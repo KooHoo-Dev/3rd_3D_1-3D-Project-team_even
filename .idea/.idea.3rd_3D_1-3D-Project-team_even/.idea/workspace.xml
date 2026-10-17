@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="8307f4e8-e726-4115-9b12-9f7e40aa57c2" name="변경" comment="" />
+    <list default="true" id="6c3264b0-7560-41e9-b45a-988accbd65bf" name="변경" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 4,
+  "associatedIndex": 5,
   "fromUser": false
 }]]></component>
-  <component name="ProjectId" id="3Kl5ELfYmsGkG5SXG2GtJZu4rQj" />
+  <component name="ProjectId" id="3KnuDSD9AAtlVFMl2sgZS7XFCfo" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -28,11 +28,11 @@
 }]]></component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="디폴트 작업">
-      <changelist id="8307f4e8-e726-4115-9b12-9f7e40aa57c2" name="변경" comment="" />
-      <created>1792119208837</created>
+      <changelist id="6c3264b0-7560-41e9-b45a-988accbd65bf" name="변경" comment="" />
+      <created>1792205536909</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1792119208837</updated>
+      <updated>1792205536909</updated>
     </task>
     <servers />
   </component>
