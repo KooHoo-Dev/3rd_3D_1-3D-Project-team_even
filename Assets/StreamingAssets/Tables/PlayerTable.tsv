@@ -1,0 +1,3 @@
+Id	Name	MaxHp	MoveSpeed	LookSensitivity	PitchMin	PitchMax	RifleId	GrenadeId	StartGrenades	MaxGrenades
+# BL-001 이동 · BL-002 시야(PitchMin/Max: 상하 회전 제한, 도) · BL-005 수류탄 보유 · BL-006 체력
+1001	요원	100	5	0.15	-80	80	2001	2101	3	5

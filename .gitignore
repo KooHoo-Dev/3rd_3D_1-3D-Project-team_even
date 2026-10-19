@@ -104,3 +104,44 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Claude Code (personal settings - each member uses their own)
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+.mcp.json
+
+# Other AI tool instruction/config files (personal)
+AGENTS.md
+GEMINI.md
+.cursor/
+.cursorrules
+.windsurfrules
+.aider*
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
+.github/chatmodes/
+.github/agents/
+.gemini/
+.codex/
+.agents/
+.windsurf/
+.continue/
+.roo/
+.roomodes
+.clinerules
+.kiro/
+.junie/
+.aiderignore
+CODEX.md
+QWEN.md
+.claude-plugin/
+
+# Docs mainly consumed by Claude (templates, workflow guide)
+Docs/Guides/ClaudeGitWorkflow.md
+Docs/**/_TEMPLATE.md
+
+# 이외 것들
+/팀프로젝트 지침 정보
+Docs/Decisions
