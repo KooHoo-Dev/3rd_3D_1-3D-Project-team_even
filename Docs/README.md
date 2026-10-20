@@ -10,3 +10,6 @@
 | [Decisions/](Decisions/) | 설계 결정 기록 (Spike·Design 결론) | 리뷰어, 면접 준비 |
 | [Troubleshooting/](Troubleshooting/) | 문제 해결 기록 | 포트폴리오 |
 | [Devlog/](Devlog/) | 일일 개발 일지 | 회고 |
+| [Guides/01-코드구조-이해하기](Guides/01-코드구조-이해하기.md) | 비유·그림으로 보는 Contract / ServiceLocator / EventBus / DataManager | 코드가 낯선 사람 포함 전원 |
+| [Guides/02-API-사용법](Guides/02-API-사용법.md) | 복붙용 API 레시피, 이벤트 사전, 체크리스트 | 코드 작성 전 |
+| [Guides/Workflow](Guides/Workflow.md) | 카드 하나의 작업 흐름 (Asana + Git), 문서를 남기는 시점 | 전원 |

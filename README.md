@@ -28,5 +28,5 @@ Assets/
 네임스페이스: `HybridShooter.<Scripts 아래 폴더 경로>`
 
 ## 문서
-- [팀 규약](Docs/Conventions/TeamRules.md) · [문서 목차](Docs/README.md)
+- [팀 규약](Docs/Conventions/TeamRules.md) · [작업 흐름](Docs/Guides/Workflow.md) · [문서 목차](Docs/README.md)
 - 작업 관리: Asana "Team Even" 보드
