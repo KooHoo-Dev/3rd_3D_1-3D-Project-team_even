@@ -16,8 +16,13 @@
 | 1000~1999 | PlayerTable |
 | 2000~2099 | WeaponTable (라이플) |
 | 2100~2199 | GrenadeTable |
-| 3000~3899 | MonsterTable 일반 (30xx) / MonsterSkillTable (35xx~38xx) |
-| 3900~3999 | MonsterTable 보스 (390x) / 보스 스킬 (359x 처럼 MonsterSkillTable 대역 사용) |
+| 1001~1999 (몬스터) | MonsterTable 일반체 (1001~) |
+| 2001~2999 (몬스터) | MonsterTable 중간체 (2001~) |
+| 3001~ (몬스터) | MonsterTable 보스 |
+| MonsterId×100+순번 | MonsterAttackTable (예: 보스 300104) |
+| 1~ (순번) | MonsterPartTable, BossPhaseTable, StatusEffectTable, MonsterGradeTable (GradeId) |
+
+> 주의: 몬스터 Id(1001~)와 PlayerTable(1000~1999) Id 대역이 숫자상 겹치지만 서로 다른 테이블이라 충돌하지 않는다.
 | 4000~4999 | SupplyTable |
 | 5100~5999 | CrowdSpawnTable |
 | 6000~6999 | UpgradeTable (60x1 = 종류별 10단위) |
@@ -52,35 +57,70 @@
 | FuseTime | float | 투척 후 폭발까지(초) |
 | ThrowSpeed | float | 투척 초기 속도 |
 
-## MonsterTable — E3, E5
+## 몬스터 테이블 묶음 — E3, E5 (Build1)
+`MonsterTable` 한 행에 공격(`MonsterAttackTable`), 부위(`MonsterPartTable`), 보스 페이즈(`BossPhaseTable`)가 `MonsterId` 로 연결된다. 방어도는 없다: 피해 = 무기 Damage × 부위 DamageMultiplier.
+
+### MonsterGradeTable (검증 기준)
+| 컬럼 | 설명 |
+|---|---|
+| GradeId / Grade | PK / `Weak`(일반체) · `Mid`(중간체) · `Boss` |
+| MinHitsToKill / MaxHitsToKill | 처치 타수 범위 = ceil(MaxHp / 라이플 Damage). Max -1 = 제한 없음 |
+| AttackPatternCount | 기본 공격(PatternTag None) 개수. -1 = 보스 별도 |
+
+규칙 위반은 로드 시 **경고**로 나온다.
+
+### MonsterTable
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
-| Role | enum | `Melee`(BL-010) / `PoisonFog`(011) / `Infiltrator`(012) / `Aerial`(013) / `Charger`(014) / `Boss`(E5) |
-| MaxHp | int | 일반은 낮게(쉽게 죽는 다수), 보스는 "체력 돼지" |
-| MoveSpeed, AttackDamage, AttackRange, AttackInterval, DetectRange | | 기본 공격 |
-| Reward | int | 처치 재화 (BL-029, 종류별 차등) |
+| Key / Name | string | 식별 키 / 한글명 |
+| GradeId | int | MonsterGradeTable |
+| Role | enum | `Melee` / `Air` / `Rusher` / `Infiltrator` / `ZonePressure` / `Boss` (Boss 는 Grade Boss 와 함께) |
+| MaxHp | int | |
+| MoveSpeed / RunSpeed | float | 이동 / 질주 (m/s), RunSpeed >= MoveSpeed |
+| DetectRange | float | 탐지 거리(m), -1 = 전장 전체 |
+| BodyScale / Height | float | 프리팹 스케일 / 신장(m) |
+| FlyHeight | float | 비행 고도(m). Air 역할만 0 초과 (`IsFlying` = Role Air) |
+| MeshVariant | enum | `Default` / `WingsOff` / `WingsOn` (무스코모프 육상·공중이 같은 프리팹 사용) |
+| Reward | int | 처치 재화 (BL-029) |
 | PrefabKey | string | `Resources/` 기준 경로 |
 
-## MonsterSkillTable — BL-011, BL-023~027
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| MonsterId | int | MonsterTable.Id |
-| SkillKey | string | 구현 클래스 키 (아래 표) |
-| Slot | enum | `Basic`(일반 몬스터 고유) / `Entrance`(보스 등장 공격, 1개) / `Pattern`(보스 반복) |
-| Damage / Radius | int / float | 피해 / 범위(m) |
-| WindupTime | float | 준비 동작·예고 표시(초) = 플레이어 회피 시간 |
-| RecoverTime | float | 공격 후 경직(초) = 플레이어 반격 시간 (체력 회복 아님) |
-| Cooldown | float | 재사용 대기 |
-| Weight | int | Pattern 선택 가중치 |
-| Param1 / Param2 | float | SkillKey 별 의미 ↓ |
+### MonsterAttackTable
+Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수 4).
+| 컬럼 | 설명 |
+|---|---|
+| PatternTag | `None`(기본 공격) / `Entrance`(등장 공격, 1회성) / `GroundSlam` / `Bombard` / `Unique` |
+| Damage / HitCount | 1회 피해 / 타격 횟수 |
+| Cooldown / TelegraphTime / RecoveryTime | 재사용 대기 / 예고(회피 시간) / 공격 후 경직(반격 시간) |
+| Shape | `Melee`(Range) / `Circle`(Radius) / `Cone`(Range, Angle) / `Line`(Range, Width) / `Projectile`(ProjectileSpeed, ProjectileCount) |
+| ProjectileSpeed / ProjectileCount | 투사체 속도 / 투사체·구역 개수 |
+| KnockbackDistance / WallHitStunTime | 넉백(m) / 벽 충돌 시 자기 기절(초) |
+| EffectId | StatusEffectTable (0 = 없음) |
+| Trigger / TriggerValue | `None` / `PlayerStationary`(TriggerValue 초 동안 플레이어 정지 시 발동) |
+| ClearsMinions | 적중 시 일반 몬스터 정리 (등장 공격) |
+| AnimTrigger | Animator 트리거명 (임시 이름) |
 
-| SkillKey | Param1 | Param2 | 백로그 | 구현 클래스 |
-|---|---|---|---|---|
-| PoisonFog | 같은 위치 체류 판정 시간(초) | 독안개 지속(초) | BL-011 | (몬스터 담당 작성) |
-| EntranceRoar | — | — | BL-023 | |
-| GroundSlam | — | — | BL-024 | |
-| Charge | 돌진 속도 | 벽 충돌 시 추가 경직(초) | BL-025 | |
-| Artillery | 포탄 수 | 낙하 구역 반경(m) | BL-026 | |
+### MonsterPartTable
+| 컬럼 | 설명 |
+|---|---|
+| PartKey / Name | 몬스터 안에서 유일한 키 / 부위명 |
+| DamageMultiplier | 명중 피해 배율 |
+| Exposure | `Always` / `WhileAttacking` / `WhileRecovering` |
+| PartHp | 0 = 파괴 불가 (`IsDestructible` = PartHp > 0) |
+| LinkedAttackId | 파괴 시 약화되는 공격 (0 = 없음) |
+| TransformToMonsterId | 파괴 시 전환될 몬스터 (0 = 없음, 남은 체력 유지) |
+
+### BossPhaseTable
+| 컬럼 | 설명 |
+|---|---|
+| Phase / HpThresholdPercent | 1부터 연속 / 체력 % 이하에서 진입 (1페이즈 = 100, 점점 작아짐) |
+| PatternSequence | 반복 특수 공격 Id 목록 (`;` 구분). **순서대로 순환** (`BossPhaseDef.GetPattern(i)`). 가중치 랜덤 아님 |
+| CooldownMultiplier | 쿨다운 배율 |
+| ElectricSweep / VisualState | 안테나 전격 스윕 여부 / 외형 상태 키 |
+
+코드: `MonsterDef.Attacks / BasicAttacks / EntranceAttack / Parts / Phases / GetPhase(hpRatio)`
+
+### StatusEffectTable
+플레이어 대상 상태 효과. `Type` = `DamageOverTime`, `Value` = 틱 피해, `IsZone` = 바닥 구역. 몬스터 자신의 기절은 `WallHitStunTime` 으로 처리한다.
 
 ## RoundTable — BL-015·018·021·032
 | 컬럼 | 타입 | 설명 |
@@ -124,16 +164,17 @@
 | 테이블 | 컬럼 |
 |---|---|
 | SoundTable | Key, Category(`Bgm`/`Sfx`/`Ui`), Path(Resources 경로), Volume(0~1), Loop |
-| ConfigTable | Key, Value, Description — 코드는 `GameConfig` 상수 키로 접근 |
+| ConfigTable | Key, Value, Desc — 코드는 `GameConfig` 상수 키로 접근 |
 
 | Config Key | 의미 | 백로그 |
 |---|---|---|
 | SpawnSafeRadius | 시작 직후 플레이어 주변 생성 금지 반경 | BL-015 |
 | SpawnRingRadius | 기본 스폰 링 반경 (전장 구역 없을 때) | BL-015 |
-| CrowdNearRadius / CrowdMaxNear | 과밀 판정 반경 / 인원 | BL-016 |
+| CrowdRadius / CrowdMaxMelee | 근접 과밀 판정 반경 / 근접 몬스터 수 | BL-016 |
+| StationaryRadius | 정지 판정 반경 (독안개 트리거) | |
+| BossCameraFovAdd | 보스전 3인칭 FOV 추가(도) | |
 | PlayerInvincibleTime | 피격 후 무적 | BL-006 |
 | LowHpRatio | 플레이어 위험 상태 비율 | BL-007 |
 | MonsterLowHpRatio | 일반 몬스터 저체력 표현 비율 | BL-017 |
-| BossDamageStageRatios | 보스 외형 변화 비율 목록 (내림차순) | BL-028 |
 | SupplyLifetime | 보급 유지 시간 | BL-018 |
 | CameraTransitionTime | 1인칭→3인칭 전환 시간 | BL-022 |

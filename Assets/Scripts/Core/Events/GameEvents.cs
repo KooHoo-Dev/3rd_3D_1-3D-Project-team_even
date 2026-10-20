@@ -159,15 +159,15 @@ namespace HybridShooter.Core.Events
         public BossAppearedEvent(MonsterDef boss, GameObject instance) { Boss = boss; Instance = instance; }
     }
 
-    /// <summary>패턴 단계 변화. 예고 표시·포효·공격음·회복 상태 표현에 사용 (BL-024~028)</summary>
+    /// <summary>공격 단계 변화. 예고 표시·포효·공격음·회복 상태 표현에 사용 (BL-024~028)</summary>
     public readonly struct BossSkillPhaseChangedEvent
     {
-        public readonly MonsterSkillDef Skill;
+        public readonly MonsterAttackDef Attack;
         public readonly SkillPhase Phase;
-        public BossSkillPhaseChangedEvent(MonsterSkillDef skill, SkillPhase phase) { Skill = skill; Phase = phase; }
+        public BossSkillPhaseChangedEvent(MonsterAttackDef attack, SkillPhase phase) { Attack = attack; Phase = phase; }
     }
 
-    /// <summary>누적 피해 단계 변화 (Config.BossDamageStageRatios 기준, 0 = 멀쩡) (BL-028)</summary>
+    /// <summary>보스 페이즈 변화 (BossPhaseDef.Phase 기준, 0 = 멀쩡) (BL-028)</summary>
     public readonly struct BossDamageStageChangedEvent
     {
         public readonly int Stage;

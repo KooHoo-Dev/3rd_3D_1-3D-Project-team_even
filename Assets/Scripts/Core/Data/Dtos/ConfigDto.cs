@@ -8,6 +8,6 @@ namespace HybridShooter.Core.Data.Dtos
     {
         public string Key = "";
         public string Value = "";
-        public string Description = "";
+        public string Desc = "";
     }
 }

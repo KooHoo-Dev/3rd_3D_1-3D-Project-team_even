@@ -6,97 +6,116 @@ using HybridShooter.Core.Data.Loading;
 namespace HybridShooter.Core.Data.Defs
 {
     /// <summary>
-    /// 몬스터 정의. 일반 몬스터(E3)와 보스(E5)가 같은 테이블을 쓰고 Role 로 구분한다.
-    /// 공격 패턴은 MonsterSkillTable 에서 연결된 Skills 로 접근한다.
+    /// 몬스터 정의. 일반 몬스터와 보스가 같은 테이블을 쓰고 Grade/Role 로 구분한다.
+    /// 공격은 MonsterAttackTable, 약점·부위는 MonsterPartTable, 보스 페이즈는 BossPhaseTable 에서 Link 단계에 연결된다.
+    /// 방어도는 없다. 피해 = 무기 Damage × 부위 DamageMultiplier.
     /// </summary>
     public sealed class MonsterDef
     {
         public const string Table = "MonsterTable";
 
         public int Id { get; }
+        public string Key { get; }
         public string Name { get; }
+        public int GradeId { get; }
         public MonsterRole Role { get; }
         public bool IsBoss => Role == MonsterRole.Boss;
+        public bool IsFlying => Role == MonsterRole.Air;
         public int MaxHp { get; }
         public float MoveSpeed { get; }
-        public int AttackDamage { get; }
-        public float AttackRange { get; }
-        public float AttackInterval { get; }
+        /// <summary>질주 속도(m/s)</summary>
+        public float RunSpeed { get; }
+        /// <summary>탐지 거리(m). -1 = 전장 전체</summary>
         public float DetectRange { get; }
+        public bool DetectsAll => DetectRange < 0f;
+        public float BodyScale { get; }
+        public float Height { get; }
+        /// <summary>비행 고도(m). 지상 유닛은 0</summary>
+        public float FlyHeight { get; }
+        public MeshVariant MeshVariant { get; }
         /// <summary>처치 시 자동 획득 재화 (BL-029)</summary>
         public int Reward { get; }
         public string PrefabKey { get; }
 
-        /// <summary>Link 단계에서 채워짐. 테이블 순서 유지</summary>
-        public IReadOnlyList<MonsterSkillDef> Skills { get; private set; } = Array.Empty<MonsterSkillDef>();
+        /// <summary>Link 단계에서 채워짐</summary>
+        public MonsterGradeDef Grade { get; internal set; }
+        /// <summary>테이블 순서 유지</summary>
+        public IReadOnlyList<MonsterAttackDef> Attacks { get; private set; } = Array.Empty<MonsterAttackDef>();
+        /// <summary>기본 공격 (PatternTag None)</summary>
+        public IReadOnlyList<MonsterAttackDef> BasicAttacks { get; private set; } = Array.Empty<MonsterAttackDef>();
         /// <summary>보스 등장 공격 (없으면 null)</summary>
-        public MonsterSkillDef EntranceSkill { get; private set; }
-        /// <summary>보스 반복 패턴 목록 (BL-027)</summary>
-        public IReadOnlyList<MonsterSkillDef> PatternSkills { get; private set; } = Array.Empty<MonsterSkillDef>();
-        public int PatternTotalWeight { get; private set; }
+        public MonsterAttackDef EntranceAttack { get; private set; }
+        public IReadOnlyList<MonsterPartDef> Parts { get; private set; } = Array.Empty<MonsterPartDef>();
+        /// <summary>보스 페이즈 (Phase 오름차순). 일반 몬스터는 비어 있음</summary>
+        public IReadOnlyList<BossPhaseDef> Phases { get; private set; } = Array.Empty<BossPhaseDef>();
 
         internal MonsterDef(MonsterDto d, DataLoadReport r)
         {
             Id = d.Id;
+            Key = d.Key;
             Name = d.Name;
+            GradeId = d.GradeId;
             Role = ParseUtil.Enum<MonsterRole>(d.Role, r, Table, Id, nameof(d.Role));
             MaxHp = d.MaxHp;
             MoveSpeed = d.MoveSpeed;
-            AttackDamage = d.AttackDamage;
-            AttackRange = d.AttackRange;
-            AttackInterval = d.AttackInterval;
+            RunSpeed = d.RunSpeed;
             DetectRange = d.DetectRange;
+            BodyScale = d.BodyScale;
+            Height = d.Height;
+            FlyHeight = d.FlyHeight;
+            MeshVariant = ParseUtil.Enum<MeshVariant>(d.MeshVariant, r, Table, Id, nameof(d.MeshVariant));
             Reward = d.Reward;
             PrefabKey = d.PrefabKey;
 
+            r.Check(string.IsNullOrEmpty(Key) == false, Table, Id, "Key 가 비었습니다");
             r.Check(MaxHp > 0, Table, Id, "MaxHp 는 1 이상");
-            r.Check(AttackInterval > 0f, Table, Id, "AttackInterval 은 0 초과");
+            r.Check(MoveSpeed > 0f && RunSpeed >= MoveSpeed, Table, Id, "MoveSpeed 는 0 초과, RunSpeed 는 MoveSpeed 이상");
+            r.Check(DetectRange > 0f || DetectRange == -1f, Table, Id, "DetectRange 는 0 초과 또는 -1(전장 전체)");
+            r.Check(BodyScale > 0f && Height > 0f, Table, Id, "BodyScale, Height 는 0 초과");
+            r.Check(IsFlying ? FlyHeight > 0f : FlyHeight == 0f, Table, Id, "FlyHeight 는 Air 역할만 0 초과");
             r.Check(Reward >= 0, Table, Id, "Reward 는 0 이상");
             r.Check(string.IsNullOrEmpty(PrefabKey) == false, Table, Id, "PrefabKey 가 비었습니다");
         }
 
-        internal void SetSkills(List<MonsterSkillDef> skills)
+        internal void SetLinks(List<MonsterAttackDef> attacks, List<MonsterPartDef> parts, List<BossPhaseDef> phases)
         {
-            Skills = skills;
-            var patterns = new List<MonsterSkillDef>();
-            int weight = 0;
-            foreach (var s in skills)
+            Attacks = attacks;
+            Parts = parts;
+            Phases = phases;
+            var basics = new List<MonsterAttackDef>();
+            foreach (var a in attacks)
             {
-                if (s.Slot == SkillSlot.Entrance) EntranceSkill = s;
-                else if (s.Slot == SkillSlot.Pattern) { patterns.Add(s); weight += s.Weight; }
+                if (a.IsEntrance) EntranceAttack = a;
+                else if (a.IsSpecial == false) basics.Add(a);
             }
-            PatternSkills = patterns;
-            PatternTotalWeight = weight;
+            BasicAttacks = basics;
         }
 
-        /// <summary>SkillKey 로 스킬 찾기 (없으면 null)</summary>
-        public MonsterSkillDef FindSkill(string skillKey)
+        /// <summary>AttackKey 로 공격 찾기 (없으면 null)</summary>
+        public MonsterAttackDef FindAttack(string attackKey)
         {
-            foreach (var s in Skills)
-                if (s.SkillKey == skillKey) return s;
+            foreach (var a in Attacks)
+                if (a.AttackKey == attackKey) return a;
             return null;
         }
 
-        /// <summary>
-        /// 다음 보스 패턴을 가중치 랜덤으로 선택. roll01 은 [0,1) 난수 (UnityEngine.Random.value).
-        /// exclude 를 넘기면 같은 패턴 연속을 피한다 (패턴이 2개 이상일 때만).
-        /// </summary>
-        public MonsterSkillDef PickPattern(float roll01, MonsterSkillDef exclude = null)
+        /// <summary>PartKey 로 부위 찾기 (없으면 null)</summary>
+        public MonsterPartDef FindPart(string partKey)
         {
-            if (PatternSkills.Count == 0) return null;
-            bool skip = exclude != null && PatternSkills.Count > 1;
-            float total = skip ? PatternTotalWeight - exclude.Weight : PatternTotalWeight;
-            float target = roll01 * total;
-            float acc = 0f;
-            foreach (var p in PatternSkills)
-            {
-                if (skip && p == exclude) continue;
-                acc += p.Weight;
-                if (target < acc) return p;
-            }
-            for (int i = PatternSkills.Count - 1; i >= 0; i--)
-                if (skip == false || PatternSkills[i] != exclude) return PatternSkills[i];
+            foreach (var p in Parts)
+                if (p.PartKey == partKey) return p;
             return null;
+        }
+
+        /// <summary>현재 체력 비율(0~1)에 해당하는 보스 페이즈. 페이즈가 없으면 null</summary>
+        public BossPhaseDef GetPhase(float hpRatio01)
+        {
+            if (Phases.Count == 0) return null;
+            float percent = hpRatio01 * 100f;
+            var result = Phases[0];
+            foreach (var p in Phases)
+                if (percent <= p.HpThresholdPercent) result = p;
+            return result;
         }
     }
 }

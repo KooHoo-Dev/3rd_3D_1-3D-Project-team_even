@@ -33,7 +33,11 @@ namespace HybridShooter.Core.Data
         private static DefTable<int, WeaponDef> weapons;
         private static DefTable<int, GrenadeDef> grenades;
         private static DefTable<int, MonsterDef> monsters;
-        private static DefTable<int, MonsterSkillDef> monsterSkills;
+        private static DefTable<int, MonsterGradeDef> monsterGrades;
+        private static DefTable<int, MonsterAttackDef> monsterAttacks;
+        private static DefTable<int, MonsterPartDef> monsterParts;
+        private static DefTable<int, BossPhaseDef> bossPhases;
+        private static DefTable<int, StatusEffectDef> statusEffects;
         private static DefTable<int, RoundDef> rounds;
         private static DefTable<int, CrowdSpawnRuleDef> crowdSpawnRules;
         private static DefTable<int, SupplyDef> supplies;
@@ -46,7 +50,11 @@ namespace HybridShooter.Core.Data
         public static DefTable<int, WeaponDef> Weapons { get { EnsureLoaded(); return weapons; } }
         public static DefTable<int, GrenadeDef> Grenades { get { EnsureLoaded(); return grenades; } }
         public static DefTable<int, MonsterDef> Monsters { get { EnsureLoaded(); return monsters; } }
-        public static DefTable<int, MonsterSkillDef> MonsterSkills { get { EnsureLoaded(); return monsterSkills; } }
+        public static DefTable<int, MonsterGradeDef> MonsterGrades { get { EnsureLoaded(); return monsterGrades; } }
+        public static DefTable<int, MonsterAttackDef> MonsterAttacks { get { EnsureLoaded(); return monsterAttacks; } }
+        public static DefTable<int, MonsterPartDef> MonsterParts { get { EnsureLoaded(); return monsterParts; } }
+        public static DefTable<int, BossPhaseDef> BossPhases { get { EnsureLoaded(); return bossPhases; } }
+        public static DefTable<int, StatusEffectDef> StatusEffects { get { EnsureLoaded(); return statusEffects; } }
         /// <summary>Key = Round 번호. 마지막 행 이후 라운드는 GetRound 사용</summary>
         public static DefTable<int, RoundDef> Rounds { get { EnsureLoaded(); return rounds; } }
         public static DefTable<int, CrowdSpawnRuleDef> CrowdSpawnRules { get { EnsureLoaded(); return crowdSpawnRules; } }
@@ -99,8 +107,12 @@ namespace HybridShooter.Core.Data
             players         = Build<PlayerDto, int, PlayerDef>(folder, PlayerDef.Table, r, d => d.Id, d => new PlayerDef(d, r));
             weapons         = Build<WeaponDto, int, WeaponDef>(folder, WeaponDef.Table, r, d => d.Id, d => new WeaponDef(d, r));
             grenades        = Build<GrenadeDto, int, GrenadeDef>(folder, GrenadeDef.Table, r, d => d.Id, d => new GrenadeDef(d, r));
+            monsterGrades   = Build<MonsterGradeDto, int, MonsterGradeDef>(folder, MonsterGradeDef.Table, r, d => d.GradeId, d => new MonsterGradeDef(d, r));
             monsters        = Build<MonsterDto, int, MonsterDef>(folder, MonsterDef.Table, r, d => d.Id, d => new MonsterDef(d, r));
-            monsterSkills   = Build<MonsterSkillDto, int, MonsterSkillDef>(folder, MonsterSkillDef.Table, r, d => d.Id, d => new MonsterSkillDef(d, r));
+            monsterAttacks  = Build<MonsterAttackDto, int, MonsterAttackDef>(folder, MonsterAttackDef.Table, r, d => d.Id, d => new MonsterAttackDef(d, r));
+            monsterParts    = Build<MonsterPartDto, int, MonsterPartDef>(folder, MonsterPartDef.Table, r, d => d.Id, d => new MonsterPartDef(d, r));
+            bossPhases      = Build<BossPhaseDto, int, BossPhaseDef>(folder, BossPhaseDef.Table, r, d => d.Id, d => new BossPhaseDef(d, r));
+            statusEffects   = Build<StatusEffectDto, int, StatusEffectDef>(folder, StatusEffectDef.Table, r, d => d.Id, d => new StatusEffectDef(d, r));
             rounds          = Build<RoundDto, int, RoundDef>(folder, RoundDef.Table, r, d => d.Round, d => new RoundDef(d, r));
             crowdSpawnRules = Build<CrowdSpawnDto, int, CrowdSpawnRuleDef>(folder, CrowdSpawnRuleDef.Table, r, d => d.Id, d => new CrowdSpawnRuleDef(d, r));
             supplies        = Build<SupplyDto, int, SupplyDef>(folder, SupplyDef.Table, r, d => d.Id, d => new SupplyDef(d, r));
@@ -112,7 +124,7 @@ namespace HybridShooter.Core.Data
 
             // 2) Link + Group : Id 참조 → Def 참조, 여러 행 → 상위 Def
             LinkPlayer(r);
-            LinkMonsterSkills(r);
+            LinkMonsters(r);
             LinkRounds(r);
             upgradeTracks = GroupUpgrades(r);
 
@@ -154,24 +166,105 @@ namespace HybridShooter.Core.Data
             }
         }
 
-        private static void LinkMonsterSkills(DataLoadReport r)
+        private static void LinkMonsters(DataLoadReport r)
         {
-            foreach (var s in monsterSkills)
-            {
-                if (monsters.TryGet(s.MonsterId, out var m)) s.Owner = m;
-                else r.Error(MonsterSkillDef.Table, s.Id, $"MonsterId {s.MonsterId} 가 MonsterTable 에 없습니다");
-            }
-
-            var byMonster = monsterSkills.Where(s => s.Owner != null).GroupBy(s => s.MonsterId).ToDictionary(g => g.Key, g => g.ToList());
             foreach (var m in monsters)
             {
-                var list = byMonster.TryGetValue(m.Id, out var l) ? l : new List<MonsterSkillDef>();
-                if (list.Count(s => s.Slot == SkillSlot.Entrance) > 1)
-                    r.Error(MonsterSkillDef.Table, $"Monster {m.Id}", "Entrance 스킬은 1개만 가능합니다");
-                if (m.IsBoss == false && list.Any(s => s.Slot != SkillSlot.Basic))
-                    r.Error(MonsterSkillDef.Table, $"Monster {m.Id}", "일반 몬스터는 Basic 스킬만 가질 수 있습니다");
-                m.SetSkills(list);
+                if (monsterGrades.TryGet(m.GradeId, out var g)) m.Grade = g;
+                else r.Error(MonsterDef.Table, m.Id, $"GradeId {m.GradeId} 가 MonsterGradeTable 에 없습니다");
+                CheckGradeRole(m, r);
             }
+
+            foreach (var a in monsterAttacks)
+            {
+                if (monsters.TryGet(a.MonsterId, out var m)) a.Owner = m;
+                else r.Error(MonsterAttackDef.Table, a.Id, $"MonsterId {a.MonsterId} 가 MonsterTable 에 없습니다");
+
+                if (a.EffectId != 0)
+                {
+                    if (statusEffects.TryGet(a.EffectId, out var e)) a.Effect = e;
+                    else r.Error(MonsterAttackDef.Table, a.Id, $"EffectId {a.EffectId} 가 StatusEffectTable 에 없습니다");
+                }
+            }
+
+            foreach (var p in monsterParts)
+            {
+                if (monsters.TryGet(p.MonsterId, out var m)) p.Owner = m;
+                else r.Error(MonsterPartDef.Table, p.Id, $"MonsterId {p.MonsterId} 가 MonsterTable 에 없습니다");
+
+                if (p.LinkedAttackId != 0)
+                {
+                    if (monsterAttacks.TryGet(p.LinkedAttackId, out var a))
+                    {
+                        p.LinkedAttack = a;
+                        if (a.MonsterId != p.MonsterId) r.Error(MonsterPartDef.Table, p.Id, $"LinkedAttackId {p.LinkedAttackId} 는 다른 몬스터의 공격입니다");
+                    }
+                    else r.Error(MonsterPartDef.Table, p.Id, $"LinkedAttackId {p.LinkedAttackId} 가 MonsterAttackTable 에 없습니다");
+                }
+
+                if (p.TransformToMonsterId != 0)
+                {
+                    if (monsters.TryGet(p.TransformToMonsterId, out var t))
+                    {
+                        p.TransformTo = t;
+                        if (t.IsBoss || t.Id == p.MonsterId) r.Error(MonsterPartDef.Table, p.Id, "TransformToMonsterId 는 자기 자신이나 보스가 될 수 없습니다");
+                    }
+                    else r.Error(MonsterPartDef.Table, p.Id, $"TransformToMonsterId {p.TransformToMonsterId} 가 MonsterTable 에 없습니다");
+                }
+            }
+
+            foreach (var ph in bossPhases)
+            {
+                if (monsters.TryGet(ph.MonsterId, out var m))
+                {
+                    if (m.IsBoss == false) r.Error(BossPhaseDef.Table, ph.Id, $"MonsterId {ph.MonsterId} 는 보스가 아닙니다");
+                }
+                else r.Error(BossPhaseDef.Table, ph.Id, $"MonsterId {ph.MonsterId} 가 MonsterTable 에 없습니다");
+
+                var seq = new List<MonsterAttackDef>();
+                foreach (int id in ph.PatternSequenceIds)
+                {
+                    if (monsterAttacks.TryGet(id, out var a))
+                    {
+                        seq.Add(a);
+                        if (a.MonsterId != ph.MonsterId) r.Error(BossPhaseDef.Table, ph.Id, $"PatternSequence 의 {id} 는 다른 몬스터의 공격입니다");
+                        else if (a.IsSpecial == false || a.IsEntrance) r.Error(BossPhaseDef.Table, ph.Id, $"PatternSequence 의 {id} 는 반복 특수 공격이 아닙니다 (기본 공격/등장 공격 불가)");
+                    }
+                    else r.Error(BossPhaseDef.Table, ph.Id, $"PatternSequence 의 {id} 가 MonsterAttackTable 에 없습니다");
+                }
+                ph.PatternSequence = seq;
+            }
+
+            var attacksBy = monsterAttacks.Where(a => a.Owner != null).GroupBy(a => a.MonsterId).ToDictionary(g => g.Key, g => g.ToList());
+            var partsBy = monsterParts.Where(p => p.Owner != null).GroupBy(p => p.MonsterId).ToDictionary(g => g.Key, g => g.ToList());
+            var phasesBy = bossPhases.GroupBy(p => p.MonsterId).ToDictionary(g => g.Key, g => g.OrderBy(p => p.Phase).ToList());
+            foreach (var m in monsters)
+            {
+                var attacks = attacksBy.TryGetValue(m.Id, out var al) ? al : new List<MonsterAttackDef>();
+                var parts = partsBy.TryGetValue(m.Id, out var pl) ? pl : new List<MonsterPartDef>();
+                var phases = phasesBy.TryGetValue(m.Id, out var phl) ? phl : new List<BossPhaseDef>();
+                m.SetLinks(attacks, parts, phases);
+
+                CheckUniqueKeys(r, MonsterAttackDef.Table, m.Id, attacks.Select(a => a.AttackKey));
+                CheckUniqueKeys(r, MonsterPartDef.Table, m.Id, parts.Select(p => p.PartKey));
+                if (attacks.Count(a => a.IsEntrance) > 1)
+                    r.Error(MonsterAttackDef.Table, $"Monster {m.Id}", "Entrance 공격은 1개만 가능합니다");
+                if (m.IsBoss == false && (attacks.Any(a => a.IsSpecial) || phases.Count > 0))
+                    r.Error(MonsterAttackDef.Table, $"Monster {m.Id}", "일반 몬스터는 기본 공격(PatternTag None)만 가질 수 있고 BossPhase 도 가질 수 없습니다");
+            }
+        }
+
+        private static void CheckGradeRole(MonsterDef m, DataLoadReport r)
+        {
+            if (m.Grade == null) return;
+            bool bossGrade = m.Grade.Grade == MonsterGrade.Boss;
+            r.Check(bossGrade == m.IsBoss, MonsterDef.Table, m.Id, "Role Boss 와 Grade Boss 는 함께여야 합니다 (둘이 일치해야 함)");
+        }
+
+        private static void CheckUniqueKeys(DataLoadReport r, string table, int monsterId, IEnumerable<string> keys)
+        {
+            foreach (var g in keys.GroupBy(k => k).Where(g => g.Count() > 1))
+                r.Error(table, $"Monster {monsterId}", $"Key '{g.Key}' 가 한 몬스터 안에서 중복됩니다");
         }
 
         private static void LinkRounds(DataLoadReport r)
@@ -236,12 +329,7 @@ namespace HybridShooter.Core.Data
                         r.Warn(CrowdSpawnRuleDef.Table, rule.Id, $"StartTime {rule.StartTime} 이 {round.Round} 라운드 보스 등장 이후라 실행되지 않습니다");
             }
 
-            foreach (var m in monsters)
-            {
-                if (m.IsBoss == false) continue;
-                if (m.EntranceSkill == null) r.Warn(MonsterDef.Table, m.Id, "보스에 Entrance(등장 공격) 스킬이 없습니다 (BL-023)");
-                if (m.PatternSkills.Count < 3) r.Warn(MonsterDef.Table, m.Id, $"보스 패턴이 {m.PatternSkills.Count}개입니다 (기획: 최소 3개)");
-            }
+            ValidateMonsters(r);
 
             foreach (UpgradeType type in Enum.GetValues(typeof(UpgradeType)))
                 if (upgradeTracks.Contains(type) == false) r.Warn(UpgradeDef.Table, type, "이 강화 종류의 데이터가 없습니다");
@@ -249,13 +337,49 @@ namespace HybridShooter.Core.Data
             float reloadTotal = upgradeTracks.TryGet(UpgradeType.ReloadSpeed, out var reload) ? reload.GetTotalValue(reload.MaxLevel) : 0f;
             r.Check(reloadTotal < 1f, UpgradeDef.Table, UpgradeType.ReloadSpeed, $"재장전 감소율 합계가 {reloadTotal} 입니다 (1 미만이어야 함)");
 
-            var stages = config.Has(GameConfig.BossDamageStageRatios) ? config.GetFloatList(GameConfig.BossDamageStageRatios) : Array.Empty<float>();
-            for (int i = 1; i < stages.Length; i++)
-                if (stages[i] >= stages[i - 1])
-                    r.Error(GameConfig.Table, GameConfig.BossDamageStageRatios, "값은 큰 수에서 작은 수 순서여야 합니다");
-
             CheckSound(r, WeaponDef.Table, weapons.Select(w => (w.Id as object, w.FireSfxKey)).Concat(weapons.Select(w => (w.Id as object, w.ReloadSfxKey))));
             CheckSound(r, GrenadeDef.Table, grenades.Select(g => (g.Id as object, g.ExplodeSfxKey)));
+        }
+
+        private static void ValidateMonsters(DataLoadReport r)
+        {
+            // Load 도중이라 공개 프로퍼티(EnsureLoaded 재진입)가 아닌 필드를 직접 읽는다
+            int rifleDamage = players.Count > 0 ? players.All[0].Rifle?.Damage ?? 0 : 0;
+
+            foreach (var m in monsters)
+            {
+                // 등급 규칙: 처치 타수, 공격 패턴 수 (밸런스 값이라 경고)
+                if (m.Grade != null && rifleDamage > 0)
+                {
+                    int hits = (m.MaxHp + rifleDamage - 1) / rifleDamage;
+                    if (m.Grade.IsHitsInRange(hits) == false)
+                    {
+                        string max = m.Grade.MaxHitsToKill < 0 ? "제한없음" : m.Grade.MaxHitsToKill.ToString();
+                        r.Warn(MonsterDef.Table, m.Id, $"{m.Grade.Name} 등급은 {m.Grade.MinHitsToKill}~{max}타 처치인데 현재 {hits}타 (MaxHp {m.MaxHp} / 라이플 {rifleDamage})");
+                    }
+                }
+                if (m.Grade != null && m.Grade.AttackPatternCount >= 0 && m.BasicAttacks.Count != m.Grade.AttackPatternCount)
+                    r.Warn(MonsterAttackDef.Table, $"Monster {m.Id}", $"{m.Grade.Name} 등급은 공격 패턴 {m.Grade.AttackPatternCount}개인데 {m.BasicAttacks.Count}개입니다");
+                if (m.Attacks.Count == 0)
+                    r.Error(MonsterAttackDef.Table, $"Monster {m.Id}", "공격이 하나도 없습니다");
+
+                foreach (var p in m.Parts)
+                    if (p.TransformTo != null && p.TransformTo.PrefabKey != m.PrefabKey)
+                        r.Warn(MonsterPartDef.Table, p.Id, $"전환 대상 {p.TransformTo.Id} 의 PrefabKey 가 달라 같은 프리팹 변종이 아닙니다");
+
+                if (m.IsBoss == false) continue;
+
+                if (m.EntranceAttack == null) r.Warn(MonsterDef.Table, m.Id, "보스에 Entrance(등장 공격) 가 없습니다 (BL-023)");
+                if (m.Phases.Count == 0) { r.Error(BossPhaseDef.Table, $"Monster {m.Id}", "보스 페이즈가 없습니다"); continue; }
+
+                for (int i = 0; i < m.Phases.Count; i++)
+                {
+                    var ph = m.Phases[i];
+                    if (ph.Phase != i + 1) r.Error(BossPhaseDef.Table, ph.Id, "Phase 는 1 부터 연속이어야 합니다");
+                    if (i == 0 && ph.HpThresholdPercent != 100) r.Error(BossPhaseDef.Table, ph.Id, "1 페이즈의 HpThresholdPercent 는 100 이어야 합니다");
+                    if (i > 0 && ph.HpThresholdPercent >= m.Phases[i - 1].HpThresholdPercent) r.Error(BossPhaseDef.Table, ph.Id, "HpThresholdPercent 는 페이즈가 올라갈수록 작아져야 합니다");
+                }
+            }
         }
 
         private static void CheckSound(DataLoadReport r, string table, IEnumerable<(object id, string key)> refs)

@@ -5,24 +5,25 @@ namespace HybridShooter.Core.Data
 
     public enum FireMode { Single, Auto }
 
-    /// <summary>몬스터 역할 (백로그 E3/E5)</summary>
-    public enum MonsterRole
-    {
-        Melee,        // 기본 근접형 (BL-010)
-        PoisonFog,    // 위치 압박형 (BL-011)
-        Infiltrator,  // 침투형 (BL-012)
-        Aerial,       // 공중 공격형 (BL-013)
-        Charger,      // 일반 돌진형 (BL-014)
-        Boss,         // 보스 (E5)
-    }
+    public enum MonsterGrade { Weak, Mid, Boss }
 
-    /// <summary>몬스터 스킬 슬롯</summary>
-    public enum SkillSlot
-    {
-        Basic,     // 일반 몬스터 고유 공격 (독안개 등)
-        Entrance,  // 보스 등장 공격 (BL-023)
-        Pattern,   // 보스 반복 패턴 (BL-024~027)
-    }
+    /// <summary>몬스터 AI 역할. Boss 는 Grade 가 Boss 인 몬스터에만 쓴다</summary>
+    public enum MonsterRole { Melee, Air, Rusher, Infiltrator, ZonePressure, Boss }
+
+    /// <summary>같은 프리팹의 메시 변종 (무스코모프 날개 ON/OFF)</summary>
+    public enum MeshVariant { Default, WingsOff, WingsOn }
+
+    /// <summary>공격 분류. None = 기본 공격, 나머지는 보스 특수 공격 (Entrance = 등장 공격, 1회성)</summary>
+    public enum BossPatternTag { None, Entrance, GroundSlam, Bombard, Unique }
+
+    public enum AttackShape { Melee, Circle, Cone, Line, Projectile }
+
+    /// <summary>공격 발동 조건. None = 쿨다운만 만족하면 사용</summary>
+    public enum TriggerType { None, PlayerStationary }
+
+    public enum EffectType { DamageOverTime }
+
+    public enum PartExposure { Always, WhileAttacking, WhileRecovering }
 
     /// <summary>군중 생성 방식 (BL-015)</summary>
     public enum SpawnPattern

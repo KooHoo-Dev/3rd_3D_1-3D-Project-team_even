@@ -22,7 +22,7 @@ namespace HybridShooter.Core.Contracts
         public readonly Vector3 HitPoint;
         /// <summary>피해가 들어온 방향 (공격자 → 피격자). 피격 방향 표시용</summary>
         public readonly Vector3 Direction;
-        /// <summary>원인 데이터 Id (WeaponTable/GrenadeTable/MonsterSkillTable 등, 0 = 알 수 없음)</summary>
+        /// <summary>원인 데이터 Id (WeaponTable/GrenadeTable/MonsterAttackTable 등, 0 = 알 수 없음)</summary>
         public readonly int SourceDefId;
 
         public DamageInfo(int amount, DamageKind kind, Faction attackerFaction, GameObject attacker,

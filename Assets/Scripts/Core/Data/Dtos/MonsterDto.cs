@@ -7,14 +7,18 @@ namespace HybridShooter.Core.Data.Dtos
     public sealed class MonsterDto
     {
         public int Id;
+        public string Key = "";
         public string Name = "";
+        public int GradeId;  // MonsterGradeTable.GradeId
         public string Role = "";  // MonsterRole enum
         public int MaxHp;
         public float MoveSpeed;
-        public int AttackDamage;
-        public float AttackRange;
-        public float AttackInterval;
-        public float DetectRange;
+        public float RunSpeed;
+        public float DetectRange;  // -1 = 전장 전체
+        public float BodyScale;
+        public float Height;
+        public float FlyHeight;
+        public string MeshVariant = "";  // MeshVariant enum
         public int Reward;
         public string PrefabKey = "";
     }

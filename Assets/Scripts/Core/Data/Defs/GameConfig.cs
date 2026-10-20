@@ -19,12 +19,13 @@ namespace HybridShooter.Core.Data.Defs
         // ── 키 ──
         public const string SpawnSafeRadius = "SpawnSafeRadius";             // BL-015
         public const string SpawnRingRadius = "SpawnRingRadius";
-        public const string CrowdNearRadius = "CrowdNearRadius";             // BL-016
-        public const string CrowdMaxNear = "CrowdMaxNear";                   // BL-016
+        public const string CrowdRadius = "CrowdRadius";                     // BL-016 근접 과밀 판정 반경
+        public const string CrowdMaxMelee = "CrowdMaxMelee";                 // BL-016 과밀 판정 근접 몬스터 수
+        public const string StationaryRadius = "StationaryRadius";           // 정지 판정 반경 (독안개 트리거)
+        public const string BossCameraFovAdd = "BossCameraFovAdd";           // 보스전 3인칭 FOV 추가(도)
         public const string PlayerInvincibleTime = "PlayerInvincibleTime";
         public const string LowHpRatio = "LowHpRatio";                       // BL-007
         public const string MonsterLowHpRatio = "MonsterLowHpRatio";         // BL-017
-        public const string BossDamageStageRatios = "BossDamageStageRatios"; // BL-028
         public const string SupplyLifetime = "SupplyLifetime";               // BL-018
         public const string CameraTransitionTime = "CameraTransitionTime";   // BL-022
 

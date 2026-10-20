@@ -12,8 +12,25 @@
   <component name="ChangeListManager">
     <list default="true" id="6c3264b0-7560-41e9-b45a-988accbd65bf" name="변경" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.3rd_3D_1-3D-Project-team_even/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.3rd_3D_1-3D-Project-team_even/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scenes/SampleScene.unity" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scenes/SampleScene.unity.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Contracts/CombatContracts.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Contracts/CombatContracts.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/DataManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Data/DataManager.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Defs/GameConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Defs/GameConfig.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Defs/MonsterDef.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Defs/MonsterDef.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Defs/MonsterSkillDef.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Defs/MonsterSkillDef.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Dtos/ConfigDto.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Dtos/ConfigDto.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Dtos/MonsterDto.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Dtos/MonsterDto.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Dtos/MonsterSkillDto.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Dtos/MonsterSkillDto.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/GameEnums.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Data/GameEnums.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Events/GameEvents.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Events/GameEvents.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/ConfigTable.tsv" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/ConfigTable.tsv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/CrowdSpawnTable.tsv" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/CrowdSpawnTable.tsv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/MonsterSkillTable.tsv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/MonsterSkillTable.tsv.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/MonsterTable.tsv" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/MonsterTable.tsv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/RoundTable.tsv" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/RoundTable.tsv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Docs/Tables/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/Docs/Tables/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

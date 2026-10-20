@@ -1,8 +1,0 @@
-Id	MonsterId	SkillKey	Slot	Damage	Radius	WindupTime	RecoverTime	Cooldown	Weight	Param1	Param2
-# Slot: Basic(일반 몬스터 고유 공격)/Entrance(보스 등장 공격)/Pattern(보스 반복 패턴)  ·  WindupTime: 예고·준비  ·  RecoverTime: 공격 후 경직(반격 시간)
-# Param 의미 → docs/tables/README.md 의 SkillKey 표
-3511	3002	PoisonFog	Basic	5	4	1.5	0	8	1	3	4
-3591	3901	EntranceRoar	Entrance	30	15	3	2	0	1	0	0
-3592	3901	GroundSlam	Pattern	40	7	1.5	3	0	40	0	0
-3593	3901	Charge	Pattern	50	3	1.2	2	0	30	25	6
-3594	3901	Artillery	Pattern	25	4	2.0	2.5	0	30	6	20

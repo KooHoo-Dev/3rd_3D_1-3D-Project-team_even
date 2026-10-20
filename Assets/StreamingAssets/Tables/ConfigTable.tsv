@@ -1,12 +1,13 @@
-Key	Value	Description
+Key	Value	Desc
 # 전역 상수. 코드에서는 GameConfig 상수 키로 접근
 SpawnSafeRadius	15	라운드 시작 직후 플레이어 주변 생성 금지 반경(m) - BL-015
 SpawnRingRadius	35	기본 스폰 링 반경(m) - 전장 스폰 구역이 없을 때 사용
-CrowdNearRadius	6	과밀 판정 반경(m) - BL-016
-CrowdMaxNear	8	과밀 판정 인원 - BL-016
+CrowdRadius	4	근접 과밀 판정 반경(m) - BL-016
+CrowdMaxMelee	6	과밀 판정 근접 몬스터 수 - BL-016
+StationaryRadius	3	정지 판정 반경(m) - 독안개 트리거
+BossCameraFovAdd	10	보스전 3인칭 FOV 추가(도)
 PlayerInvincibleTime	0.3	피격 후 무적 시간(초)
 LowHpRatio	0.3	플레이어 위험 상태 체력 비율 - BL-007
 MonsterLowHpRatio	0.4	일반 몬스터 저체력 표현 비율 - BL-017
-BossDamageStageRatios	0.7;0.4;0.15	보스 외형 변화 체력 비율 - BL-028
 SupplyLifetime	40	보급 물자 유지 시간(초)
 CameraTransitionTime	1.2	1인칭→3인칭 전환 시간(초) - BL-022
