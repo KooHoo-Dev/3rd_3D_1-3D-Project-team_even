@@ -118,6 +118,13 @@ namespace HybridShooter.Core.Events
 
     public readonly struct ReloadFinishedEvent { }
 
+    /// <summary>[플레이어] → UI. 회복 팩 보유 개수 변화 (BL-019)</summary>
+    public readonly struct HealPackCountChangedEvent
+    {
+        public readonly int Current, Max;
+        public HealPackCountChangedEvent(int current, int max) { Current = current; Max = max; }
+    }
+
     public readonly struct GrenadeCountChangedEvent
     {
         public readonly int Current, Max;

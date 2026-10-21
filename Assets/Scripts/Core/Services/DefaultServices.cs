@@ -87,12 +87,16 @@ namespace HybridShooter.Core.Services
             return true;
         }
 
+        /// <summary>플레이어 기준 XZ 거리 SupplyDropMinDistance ~ SupplyDropMaxDistance 링 안. y 는 플레이어 높이 (지면 탐색은 보급 쪽에서)</summary>
         public bool TryGetSupplyDropPosition(out Vector3 position)
         {
             GetPlayer(out var center, out _);
-            float radius = DataManager.Config.GetFloat(GameConfig.SpawnRingRadius, 35f) * 0.6f;
+            float min = DataManager.Config.GetFloat(GameConfig.SupplyDropMinDistance, 30f);
+            float max = Mathf.Max(min, DataManager.Config.GetFloat(GameConfig.SupplyDropMaxDistance, 150f));
+            // 면적 기준 균등 분포 (반지름을 그대로 Random 하면 안쪽에 몰린다)
+            float distance = Mathf.Sqrt(Random.Range(min * min, max * max));
             float rad = Random.Range(0f, Mathf.PI * 2f);
-            position = center + new Vector3(Mathf.Sin(rad), 0f, Mathf.Cos(rad)) * Random.Range(radius * 0.4f, radius);
+            position = center + new Vector3(Mathf.Sin(rad), 0f, Mathf.Cos(rad)) * distance;
             return true;
         }
 
