@@ -36,6 +36,7 @@
 
 # Visual Studio cache directory
 .vs/
+.idea
 
 # Gradle cache directory
 .gradle/
@@ -105,43 +106,32 @@ InitTestScene*.unity*
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
-# Claude Code (personal settings - each member uses their own)
+# Local reports and AI assistant tooling
+/[Rr]eport/
+/report/*
+.ai/
+.agents/
+.codex/
+.claude/
+.cursor/
+.gemini/
+.windsurf/
+.mcp/
+.mcp.json
+mcp.json
+mcp_config.json
+AGENTS.md
+AGENTS.override.md
 CLAUDE.md
 CLAUDE.local.md
-.claude/
-.mcp.json
-
-# Other AI tool instruction/config files (personal)
 AGENTS.md
+CLAUDE.md
 GEMINI.md
-.cursor/
 .cursorrules
+.cursorignore
 .windsurfrules
 .aider*
 .github/copilot-instructions.md
 .github/instructions/
 .github/prompts/
-.github/chatmodes/
 .github/agents/
-.gemini/
-.codex/
-.agents/
-.windsurf/
-.continue/
-.roo/
-.roomodes
-.clinerules
-.kiro/
-.junie/
-.aiderignore
-CODEX.md
-QWEN.md
-.claude-plugin/
-
-# Docs mainly consumed by Claude (templates, workflow guide)
-Docs/Guides/ClaudeGitWorkflow.md
-Docs/**/_TEMPLATE.md
-
-# 이외 것들
-/팀프로젝트 지침 정보
-Docs/Decisions

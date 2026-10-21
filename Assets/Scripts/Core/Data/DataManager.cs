@@ -33,7 +33,6 @@ namespace HybridShooter.Core.Data
         private static DefTable<int, WeaponDef> weapons;
         private static DefTable<int, GrenadeDef> grenades;
         private static DefTable<int, MonsterDef> monsters;
-        private static DefTable<int, MonsterGradeDef> monsterGrades;
         private static DefTable<int, MonsterAttackDef> monsterAttacks;
         private static DefTable<int, MonsterPartDef> monsterParts;
         private static DefTable<int, BossPhaseDef> bossPhases;
@@ -50,7 +49,6 @@ namespace HybridShooter.Core.Data
         public static DefTable<int, WeaponDef> Weapons { get { EnsureLoaded(); return weapons; } }
         public static DefTable<int, GrenadeDef> Grenades { get { EnsureLoaded(); return grenades; } }
         public static DefTable<int, MonsterDef> Monsters { get { EnsureLoaded(); return monsters; } }
-        public static DefTable<int, MonsterGradeDef> MonsterGrades { get { EnsureLoaded(); return monsterGrades; } }
         public static DefTable<int, MonsterAttackDef> MonsterAttacks { get { EnsureLoaded(); return monsterAttacks; } }
         public static DefTable<int, MonsterPartDef> MonsterParts { get { EnsureLoaded(); return monsterParts; } }
         public static DefTable<int, BossPhaseDef> BossPhases { get { EnsureLoaded(); return bossPhases; } }
@@ -107,7 +105,6 @@ namespace HybridShooter.Core.Data
             players         = Build<PlayerDto, int, PlayerDef>(folder, PlayerDef.Table, r, d => d.Id, d => new PlayerDef(d, r));
             weapons         = Build<WeaponDto, int, WeaponDef>(folder, WeaponDef.Table, r, d => d.Id, d => new WeaponDef(d, r));
             grenades        = Build<GrenadeDto, int, GrenadeDef>(folder, GrenadeDef.Table, r, d => d.Id, d => new GrenadeDef(d, r));
-            monsterGrades   = Build<MonsterGradeDto, int, MonsterGradeDef>(folder, MonsterGradeDef.Table, r, d => d.GradeId, d => new MonsterGradeDef(d, r));
             monsters        = Build<MonsterDto, int, MonsterDef>(folder, MonsterDef.Table, r, d => d.Id, d => new MonsterDef(d, r));
             monsterAttacks  = Build<MonsterAttackDto, int, MonsterAttackDef>(folder, MonsterAttackDef.Table, r, d => d.Id, d => new MonsterAttackDef(d, r));
             monsterParts    = Build<MonsterPartDto, int, MonsterPartDef>(folder, MonsterPartDef.Table, r, d => d.Id, d => new MonsterPartDef(d, r));
@@ -170,8 +167,6 @@ namespace HybridShooter.Core.Data
         {
             foreach (var m in monsters)
             {
-                if (monsterGrades.TryGet(m.GradeId, out var g)) m.Grade = g;
-                else r.Error(MonsterDef.Table, m.Id, $"GradeId {m.GradeId} 가 MonsterGradeTable 에 없습니다");
                 CheckGradeRole(m, r);
             }
 
@@ -256,8 +251,7 @@ namespace HybridShooter.Core.Data
 
         private static void CheckGradeRole(MonsterDef m, DataLoadReport r)
         {
-            if (m.Grade == null) return;
-            bool bossGrade = m.Grade.Grade == MonsterGrade.Boss;
+            bool bossGrade = m.Grade == MonsterGrade.Boss;
             r.Check(bossGrade == m.IsBoss, MonsterDef.Table, m.Id, "Role Boss 와 Grade Boss 는 함께여야 합니다 (둘이 일치해야 함)");
         }
 
@@ -343,23 +337,8 @@ namespace HybridShooter.Core.Data
 
         private static void ValidateMonsters(DataLoadReport r)
         {
-            // Load 도중이라 공개 프로퍼티(EnsureLoaded 재진입)가 아닌 필드를 직접 읽는다
-            int rifleDamage = players.Count > 0 ? players.All[0].Rifle?.Damage ?? 0 : 0;
-
             foreach (var m in monsters)
             {
-                // 등급 규칙: 처치 타수, 공격 패턴 수 (밸런스 값이라 경고)
-                if (m.Grade != null && rifleDamage > 0)
-                {
-                    int hits = (m.MaxHp + rifleDamage - 1) / rifleDamage;
-                    if (m.Grade.IsHitsInRange(hits) == false)
-                    {
-                        string max = m.Grade.MaxHitsToKill < 0 ? "제한없음" : m.Grade.MaxHitsToKill.ToString();
-                        r.Warn(MonsterDef.Table, m.Id, $"{m.Grade.Name} 등급은 {m.Grade.MinHitsToKill}~{max}타 처치인데 현재 {hits}타 (MaxHp {m.MaxHp} / 라이플 {rifleDamage})");
-                    }
-                }
-                if (m.Grade != null && m.Grade.AttackPatternCount >= 0 && m.BasicAttacks.Count != m.Grade.AttackPatternCount)
-                    r.Warn(MonsterAttackDef.Table, $"Monster {m.Id}", $"{m.Grade.Name} 등급은 공격 패턴 {m.Grade.AttackPatternCount}개인데 {m.BasicAttacks.Count}개입니다");
                 if (m.Attacks.Count == 0)
                     r.Error(MonsterAttackDef.Table, $"Monster {m.Id}", "공격이 하나도 없습니다");
 

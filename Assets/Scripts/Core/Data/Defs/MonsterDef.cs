@@ -37,8 +37,8 @@ namespace HybridShooter.Core.Data.Defs
         public int Reward { get; }
         public string PrefabKey { get; }
 
-        /// <summary>Link 단계에서 채워짐</summary>
-        public MonsterGradeDef Grade { get; internal set; }
+        /// <summary>GradeId 에서 계산 (1 → Weak, 2 → Mid, 3 → Boss)</summary>
+        public MonsterGrade Grade { get; internal set; }
         /// <summary>테이블 순서 유지</summary>
         public IReadOnlyList<MonsterAttackDef> Attacks { get; private set; } = Array.Empty<MonsterAttackDef>();
         /// <summary>기본 공격 (PatternTag None)</summary>
@@ -55,6 +55,7 @@ namespace HybridShooter.Core.Data.Defs
             Key = d.Key;
             Name = d.Name;
             GradeId = d.GradeId;
+            Grade = (MonsterGrade)( GradeId - 1 );
             Role = ParseUtil.Enum<MonsterRole>(d.Role, r, Table, Id, nameof(d.Role));
             MaxHp = d.MaxHp;
             MoveSpeed = d.MoveSpeed;
@@ -67,6 +68,7 @@ namespace HybridShooter.Core.Data.Defs
             Reward = d.Reward;
             PrefabKey = d.PrefabKey;
 
+            r.Check(Enum.IsDefined(typeof(MonsterGrade), Grade), Table, Id, "GradeId 는 1(Weak)~3(Boss) 중 하나");
             r.Check(string.IsNullOrEmpty(Key) == false, Table, Id, "Key 가 비었습니다");
             r.Check(MaxHp > 0, Table, Id, "MaxHp 는 1 이상");
             r.Check(MoveSpeed > 0f && RunSpeed >= MoveSpeed, Table, Id, "MoveSpeed 는 0 초과, RunSpeed 는 MoveSpeed 이상");
