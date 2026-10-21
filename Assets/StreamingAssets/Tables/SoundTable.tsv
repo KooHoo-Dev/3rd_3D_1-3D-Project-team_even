@@ -1,0 +1,11 @@
+Key	Category	Path	Volume	Loop
+# Category: Bgm/Sfx/Ui  ·  Path: Resources 기준 경로
+bgm_crowd	Bgm	Audio/Bgm/Crowd	0.6	true
+bgm_boss	Bgm	Audio/Bgm/Boss	0.7	true
+sfx_rifle_fire	Sfx	Audio/Sfx/RifleFire	0.8	false
+sfx_rifle_reload	Sfx	Audio/Sfx/RifleReload	0.7	false
+sfx_grenade_explode	Sfx	Audio/Sfx/GrenadeExplode	0.9	false
+sfx_player_hit	Sfx	Audio/Sfx/PlayerHit	0.8	false
+sfx_boss_warning	Sfx	Audio/Sfx/BossWarning	1.0	false
+sfx_supply_drop	Sfx	Audio/Sfx/SupplyDrop	0.8	false
+ui_click	Ui	Audio/Ui/Click	0.5	false
