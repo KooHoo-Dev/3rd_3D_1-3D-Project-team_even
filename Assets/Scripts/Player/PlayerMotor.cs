@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace HybridShooter.Player
 {
@@ -24,6 +25,7 @@ namespace HybridShooter.Player
         [Tooltip("걷기 속도(m/s). PlayerController 가 PlayerTable.MoveSpeed 로 덮어쓴다")]
         [SerializeField] private float walkSpeed = 5f;
         [SerializeField] private float sprintMultiplier = 1.6f;
+        [SerializeField] private float maxWalkSpeed = 10;
         [SerializeField] private float groundAcceleration = 45f;
         [SerializeField] private float groundDeceleration = 55f;
         [SerializeField] private float airAcceleration = 10f;
@@ -94,18 +96,7 @@ namespace HybridShooter.Player
         public float HorizontalSpeed { get { var v = rb.linearVelocity; return new Vector2(v.x, v.z).magnitude; } }
         public float WalkSpeed { get => walkSpeed; set => walkSpeed = Mathf.Max(0f, value); }
         public Vector3 Forward => rb.rotation * Vector3.forward;
-        private Animator animator;
-        private bool hasAnimator => animator != null;
-        private float animationBlend;
-        
-        
-        // animation IDs
-        private int _animIDSpeed;
-        private int _animIDGrounded;
-        private int _animIDJump;
-        private int _animIDFreeFall;
-        private int _animIDMotionSpeed;
-        
+
         private void Awake()
         {
             rb = GetComponent<Rigidbody>();
@@ -114,7 +105,6 @@ namespace HybridShooter.Player
             rb.freezeRotation = true;
             rb.interpolation = RigidbodyInterpolation.Interpolate;
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-            animator = GetComponentInChildren<Animator>();
             capsule.sharedMaterial = new PhysicsMaterial("PlayerNoFriction")
             {
                 dynamicFriction = 0f,
@@ -122,7 +112,7 @@ namespace HybridShooter.Player
                 frictionCombine = PhysicsMaterialCombine.Minimum,
                 bounceCombine = PhysicsMaterialCombine.Minimum,
             };
-            AssignAnimationIDs();
+            SetupAnimator();
         }
 
         // ───────────────────────── 외부에서 넣는 값 ─────────────────────────
@@ -191,7 +181,7 @@ namespace HybridShooter.Player
         {
             float dt = Time.fixedDeltaTime;
 
-            UpdateGround();
+            UpdateGround(dt);
 
             if (isRolling) UpdateRoll(dt);
             else UpdateWalk(dt);
@@ -200,7 +190,7 @@ namespace HybridShooter.Player
             UpdateFacing(dt);
         }
 
-        private void UpdateGround()
+        private void UpdateGround(float dt)
         {
             bool wasGrounded = isGrounded;
             float radius = capsule.radius;
@@ -223,11 +213,13 @@ namespace HybridShooter.Player
             }
 
             rb.useGravity = isGrounded == false;
+            UpdateGroundAnimation(dt);
         }
 
         private void UpdateWalk(float dt)
         {
             float speed = walkSpeed * (IsSprintingInput ? sprintMultiplier : 1f) * ModifierProduct() * FacingSpeedFactor();
+            speed = Mathf.Clamp(speed, 0, maxWalkSpeed);
             Vector3 target = moveDirection * speed;
 
             Vector3 velocity = rb.linearVelocity;
@@ -240,6 +232,7 @@ namespace HybridShooter.Player
                 rb.linearVelocity = AlongGround(horizontal);
             else
                 rb.linearVelocity = new Vector3(horizontal.x, velocity.y, horizontal.z);
+
         }
 
         // IsSprinting 은 "지금 속도" 기준이라 출발 순간이 false → 입력 기준으로 따로 본다
@@ -286,6 +279,7 @@ namespace HybridShooter.Player
             isGrounded = false;
             rb.useGravity = true;
             Jumped?.Invoke();
+            PlayJumpAnimation();
         }
 
         private void UpdateFacing(float dt)
@@ -340,26 +334,109 @@ namespace HybridShooter.Player
                 if (modifiers[i].Key == key) modifiers.RemoveAt(i);
         }
 
-        public void UpdateAnimation()
+        // ───────────────────────── 애니메이션 ─────────────────────────
+        // Animator 파라미터: Speed(float) · MotionSpeed(float) · Grounded(bool) · Jump(bool) · FreeFall(bool)
+        // Speed/MotionSpeed = 바깥(PlayerController)이 UpdateWalkAnimation 으로 넣는다. 안 넣으면 LateUpdate 에서 자동으로 채운다.
+        // Grounded/Jump/FreeFall = 모터가 바닥 판정·점프에서 직접 갱신한다.
+
+        [Header("애니메이션")]
+        [Tooltip("Speed 파라미터가 목표값을 따라가는 속도")]
+        [SerializeField, FormerlySerializedAs("SpeedChangeRate")] private float speedChangeRate = 10f;
+        [Tooltip("발이 땅에서 떨어진 뒤 이 시간이 지나야 낙하(FreeFall) 모션으로 넘어간다. 잔 요철에서 깜빡이는 것 방지")]
+        [SerializeField] private float freeFallDelay = 0.15f;
+
+        private Animator animator;
+        private bool hasAnimator => animator != null;
+        private float animationBlend;
+        private float freeFallTimer;
+        private bool walkAnimationFed;
+
+        private int animIdSpeed;
+        private int animIdGrounded;
+        private int animIdJump;
+        private int animIdFreeFall;
+        private int animIdMotionSpeed;
+
+        private void SetupAnimator()
         {
-            // update animator if using character
-            
-            // animationBlend = Mathf.Lerp(animationBlend, targetSpeed, Time.deltaTime * SpeedChangeRate);
-            // if (animationBlend < 0.01f) animationBlend = 0f;
-            // if (hasAnimator)
-            // {
-            //     animator.SetFloat(_animIDSpeed, animationBlend);
-            //     animator.SetFloat(_animIDMotionSpeed, inputMagnitude);
-            // }
-        }
-        private void AssignAnimationIDs()
-        {
-            _animIDSpeed = Animator.StringToHash("Speed");
-            _animIDGrounded = Animator.StringToHash("Grounded");
-            _animIDJump = Animator.StringToHash("Jump");
-            _animIDFreeFall = Animator.StringToHash("FreeFall");
-            _animIDMotionSpeed = Animator.StringToHash("MotionSpeed");
+            animator = GetComponentInChildren<Animator>();
+            AssignAnimationIDs();
+
+            if (hasAnimator == false)
+            {
+                Debug.LogWarning("[PlayerMotor] 자식에서 Animator 를 찾지 못했습니다. 애니메이션 없이 동작합니다.");
+                return;
+            }
+            // 이동은 Rigidbody 가 맡는다. 루트 모션이 켜져 있으면 모델이 몸과 따로 밀려난다
+            animator.applyRootMotion = false;
         }
 
+        /// <summary>바닥 판정 직후(FixedUpdate)에 호출. Grounded/Jump/FreeFall 갱신</summary>
+        private void UpdateGroundAnimation(float dt)
+        {
+            if (hasAnimator == false) return;
+
+            animator.SetBool(animIdGrounded, isGrounded);
+
+            if (isGrounded)
+            {
+                // 착지: 점프·낙하 상태를 끈다
+                freeFallTimer = 0f;
+                animator.SetBool(animIdJump, false);
+                animator.SetBool(animIdFreeFall, false);
+            }
+            else
+            {
+                // 공중: 잠깐은 점프 모션을 보여주고, 계속 떠 있으면 낙하 모션
+                freeFallTimer += dt;
+                if (freeFallTimer >= freeFallDelay) animator.SetBool(animIdFreeFall, true);
+            }
+        }
+
+        private void PlayJumpAnimation()
+        {
+            if (hasAnimator == false) return;
+
+            freeFallTimer = 0f;
+            animator.SetBool(animIdJump, true);
+            animator.SetBool(animIdFreeFall, false);
+        }
+
+        /// <summary>
+        /// 걷기/달리기 블렌드용. 매 프레임(Update) 호출.
+        /// targetSpeed = 목표 속도(블렌드 트리 임계값과 같은 단위), inputMagnitude = 입력 크기 0~1
+        /// </summary>
+        public void UpdateWalkAnimation(float targetSpeed, float inputMagnitude)
+        {
+            walkAnimationFed = true;
+            ApplyWalkAnimation(targetSpeed, inputMagnitude);
+        }
+
+        private void ApplyWalkAnimation(float targetSpeed, float inputMagnitude)
+        {
+            animationBlend = Mathf.Lerp(animationBlend, targetSpeed, Time.deltaTime * speedChangeRate);
+            if (animationBlend < 0.01f) animationBlend = 0f;
+
+            if (hasAnimator == false) return;
+            animator.SetFloat(animIdSpeed, animationBlend);
+            animator.SetFloat(animIdMotionSpeed, inputMagnitude);
+        }
+
+        // 바깥에서 UpdateWalkAnimation 을 부르지 않은 프레임엔 모터가 가진 값(실제 수평 속도, 입력 크기)으로 대신 채운다
+        private void LateUpdate()
+        {
+            if (walkAnimationFed == false)
+                ApplyWalkAnimation(HorizontalSpeed, moveDirection.magnitude);
+            walkAnimationFed = false;
+        }
+
+        private void AssignAnimationIDs()
+        {
+            animIdSpeed = Animator.StringToHash("Speed");
+            animIdGrounded = Animator.StringToHash("Grounded");
+            animIdJump = Animator.StringToHash("Jump");
+            animIdFreeFall = Animator.StringToHash("FreeFall");
+            animIdMotionSpeed = Animator.StringToHash("MotionSpeed");
+        }
     }
 }

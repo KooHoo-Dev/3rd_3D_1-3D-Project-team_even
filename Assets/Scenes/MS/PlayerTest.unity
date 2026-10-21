@@ -778,11 +778,11 @@ PrefabInstance:
     - target: {fileID: 1719046959116000578, guid: f0dc4aab69f7949499cc69a43af67e79, type: 3}
       propertyPath: m_ReferenceObject
       value: 
-      objectReference: {fileID: 46335671}
+      objectReference: {fileID: 0}
     - target: {fileID: 1719046959116000581, guid: f0dc4aab69f7949499cc69a43af67e79, type: 3}
       propertyPath: m_ReferenceObject
       value: 
-      objectReference: {fileID: 46335671}
+      objectReference: {fileID: 0}
     - target: {fileID: 1719046959116000582, guid: f0dc4aab69f7949499cc69a43af67e79, type: 3}
       propertyPath: m_Controller
       value: 
@@ -791,6 +791,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: SK_LP287_Play
       objectReference: {fileID: 0}
+    - target: {fileID: 4466352569638511372, guid: f0dc4aab69f7949499cc69a43af67e79, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.75
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
@@ -798,6 +802,9 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1623806441}
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1952910532174935989, guid: f0dc4aab69f7949499cc69a43af67e79, type: 3}
+      insertIndex: 2
+      addedObject: {fileID: 2015258715}
     - targetCorrespondingSourceObject: {fileID: 1952910532174935989, guid: f0dc4aab69f7949499cc69a43af67e79, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2015258700}
@@ -820,11 +827,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 2015258711}
   m_SourcePrefab: {fileID: 100100000, guid: f0dc4aab69f7949499cc69a43af67e79, type: 3}
---- !u!4 &46335671 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 1175986392452803855, guid: f0dc4aab69f7949499cc69a43af67e79, type: 3}
-  m_PrefabInstance: {fileID: 46335670}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &54582157 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 480640, guid: 86ec80172df7b48a69ff03660881b51c, type: 3}
@@ -5759,7 +5761,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.CameraModeSwitcher
   rig: {fileID: 749948028}
-  startMode: 1
+  startMode: 0
   fallbackTransitionTime: 1.5
   ease:
     serializedVersion: 2
@@ -5800,7 +5802,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerCameraRig
   viewCamera: {fileID: 749948024}
-  pivot: {fileID: 46335671}
+  pivot: {fileID: 1804360360}
   sensitivity: 0.15
   pitchMin: -80
   pitchMax: 80
@@ -11194,6 +11196,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 444402, guid: a754a763720cb4a258ab9498caf07209, type: 3}
   m_PrefabInstance: {fileID: 1788130509}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &1804360360 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4466352569638511372, guid: f0dc4aab69f7949499cc69a43af67e79, type: 3}
+  m_PrefabInstance: {fileID: 46335670}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1807408651
 GameObject:
   m_ObjectHideFlags: 0
@@ -12428,6 +12435,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerInputReader
   stickLookPixelsPerSecond: 600
   lockCursor: 1
+--- !u!114 &2015258715
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2015258698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 507ce7319febdde4da7b1869712c158d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.CameraModeDebugInput
+  transitionTime: 0.5
+  showOverlay: 1
 --- !u!1001 &2020584710
 PrefabInstance:
   m_ObjectHideFlags: 0
