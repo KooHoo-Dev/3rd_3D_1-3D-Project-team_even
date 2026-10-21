@@ -135,3 +135,6 @@ GEMINI.md
 .github/instructions/
 .github/prompts/
 .github/agents/
+
+# Docs 하위 폴더 추적 제외 (Docs/README.md 등 루트 파일은 유지)
+/Docs/*/

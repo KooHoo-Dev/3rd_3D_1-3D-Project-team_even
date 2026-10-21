@@ -267,7 +267,7 @@ public class SoundService : MonoBehaviour, ISoundService
 ### 3-3. 🛠 레시피: 서비스를 "사용"하기
 
 ```csharp
-ServiceLocator.Get<ISoundService>().PlaySfx(weaponDef.FireSfxKey, muzzle.position);
+ServiceLocator.Get<ISoundService>().PlaySfx(weaponDef.FireSfx.Key, muzzle.position);
 ```
 
 > 💡 자주 부를 거라면 `Start()` 에서 한 번 받아 변수에 담아도 됩니다.
@@ -286,7 +286,7 @@ sound.StopBgm();
 ```
 키 이름은 `SoundTable.tsv` 에 있는 것만 유효 (`DataManager.Sounds`).
 
-#### 🏭 `IMonsterFactory` — 몬스터 생성/회수 (기본: `Resources/{PrefabKey}` 를 Instantiate)
+#### 🏭 `IMonsterFactory` — 몬스터 생성/회수 (기본: `def.Prefab` 을 Instantiate)
 
 ```csharp
 var factory = ServiceLocator.Get<IMonsterFactory>();
@@ -294,7 +294,7 @@ MonsterDef def = DataManager.Monsters.Get(3001);
 GameObject go = factory.Spawn(def, position, rotation);  // 생성 성공 시 MonsterSpawnedEvent 자동 방송
 factory.Despawn(go);                                      // 회수 (풀링 구현이면 재활용)
 ```
-- 몬스터 프리팹은 `Assets/Resources/<PrefabKey>` 에 있어야 기본 구현이 찾습니다. (예: `Monsters/Melee` → `Resources/Monsters/Melee.prefab`)
+- 몬스터 프리팹은 `Assets/Resources/<PrefabKey>` 에 있어야 DataManager 가 로드해 `MonsterDef.Prefab` 에 채웁니다. (예: `Monsters/Melee` → `Resources/Monsters/Melee.prefab`)
 - 프리팹이 없으면 에러 로그 + `null` 반환 → **null 체크** 필요.
 - **구현하는 쪽(몬스터 담당)의 의무:** `Spawn` 시 `MonsterSpawnedEvent` 를 방송할 것.
 
@@ -514,7 +514,7 @@ public class RifleFire : MonoBehaviour
         magazine--;
 
         // ☎ 소리: 사운드 담당이 없어도 에러 없이 통과
-        ServiceLocator.Get<ISoundService>().PlaySfx(weapon.FireSfxKey, origin);
+        ServiceLocator.Get<ISoundService>().PlaySfx(weapon.FireSfx.Key, origin);
 
         // 🧾 피해: 누가 맞았는지 몰라도 됨
         if (Physics.Raycast(origin, dir, out var hit, weapon.Range)
