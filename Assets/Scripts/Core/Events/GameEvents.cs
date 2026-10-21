@@ -76,6 +76,25 @@ namespace HybridShooter.Core.Events
         public CameraModeChangedEvent(CameraMode mode, bool isComplete) { Mode = mode; IsComplete = isComplete; }
     }
 
+    /// <summary>
+    /// [누구나] → 플레이어 카메라. 시점 전환 요청. Duration &lt; 0 이면 ConfigTable 의 CameraTransitionTime 사용, 0 이면 즉시.
+    /// (보스 등장은 GameStateChangedEvent 로 자동 처리되므로, 이 이벤트는 연출/디버그용)
+    /// </summary>
+    public readonly struct CameraModeRequestedEvent
+    {
+        public readonly CameraMode Mode;
+        public readonly float Duration;
+        public CameraModeRequestedEvent(CameraMode mode, float duration = -1f) { Mode = mode; Duration = duration; }
+    }
+
+    /// <summary>[플레이어 스태미나] → UI(HUD). 값이 바뀔 때마다</summary>
+    public readonly struct PlayerStaminaChangedEvent
+    {
+        public readonly float Current, Max;
+        public PlayerStaminaChangedEvent(float current, float max) { Current = current; Max = max; }
+        public float Ratio => Max > 0f ? Current / Max : 0f;
+    }
+
     // ── 무기 (E2) ──  [무기] → UI(HUD)·사운드
     public readonly struct AmmoChangedEvent
     {
