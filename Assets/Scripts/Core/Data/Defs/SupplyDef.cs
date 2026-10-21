@@ -18,30 +18,30 @@ namespace HybridShooter.Core.Data.Defs
         /// <summary>낙하 위치 표시(마커) 키 (BL-018 "종류와 낙하 위치를 구분")</summary>
         public string MarkerKey { get; }
 
-        internal SupplyDef(SupplyDto d, DataLoadReport r)
+        internal SupplyDef(SupplyDto supplyDto, DataLoadReport dataLoadReport)
         {
-            Id = d.Id;
-            SupplyType = ParseUtil.Enum<SupplyType>(d.SupplyType, r, Table, Id, nameof(d.SupplyType));
-            Amount = d.Amount;
-            Weight = d.Weight;
-            PrefabKey = d.PrefabKey;
-            MarkerKey = d.MarkerKey;
+            Id = supplyDto.Id;
+            SupplyType = ParseUtil.Enum<SupplyType>(supplyDto.SupplyType, dataLoadReport, Table, Id, nameof(supplyDto.SupplyType));
+            Amount = supplyDto.Amount;
+            Weight = supplyDto.Weight;
+            PrefabKey = supplyDto.PrefabKey;
+            MarkerKey = supplyDto.MarkerKey;
 
-            r.Check(Amount > 0, Table, Id, "Amount 는 1 이상");
-            r.Check(Weight > 0, Table, Id, "Weight 는 1 이상");
+            dataLoadReport.Check(Amount > 0, Table, Id, "Amount 는 1 이상");
+            dataLoadReport.Check(Weight > 0, Table, Id, "Weight 는 1 이상");
         }
 
         /// <summary>가중치 랜덤으로 보급 종류 선택</summary>
         public static SupplyDef Pick(IReadOnlyList<SupplyDef> all, float roll01)
         {
             int total = 0;
-            foreach (var s in all) total += s.Weight;
+            foreach (SupplyDef supplyDef in all) total += supplyDef.Weight;
             if (total <= 0) return null;
             float target = roll01 * total, acc = 0f;
-            foreach (var s in all)
+            foreach (SupplyDef supplyDef in all)
             {
-                acc += s.Weight;
-                if (target < acc) return s;
+                acc += supplyDef.Weight;
+                if (target < acc) return supplyDef;
             }
             return all[all.Count - 1];
         }

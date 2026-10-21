@@ -18,19 +18,19 @@ namespace HybridShooter.Core.Data.Defs
         public string Name { get; }
         public string Description { get; }
 
-        internal UpgradeDef(UpgradeDto d, DataLoadReport r)
+        internal UpgradeDef(UpgradeDto upgradeDto, DataLoadReport dataLoadReport)
         {
-            Id = d.Id;
-            UpgradeType = ParseUtil.Enum<UpgradeType>(d.UpgradeType, r, Table, Id, nameof(d.UpgradeType));
-            Level = d.Level;
-            Cost = d.Cost;
-            Value = d.Value;
-            Name = d.Name;
-            Description = d.Description;
+            Id = upgradeDto.Id;
+            UpgradeType = ParseUtil.Enum<UpgradeType>(upgradeDto.UpgradeType, dataLoadReport, Table, Id, nameof(upgradeDto.UpgradeType));
+            Level = upgradeDto.Level;
+            Cost = upgradeDto.Cost;
+            Value = upgradeDto.Value;
+            Name = upgradeDto.Name;
+            Description = upgradeDto.Description;
 
-            r.Check(Level >= 1, Table, Id, "Level 은 1 부터");
-            r.Check(Cost >= 0, Table, Id, "Cost 는 0 이상");
-            r.Check(Value > 0f, Table, Id, "Value 는 0 초과");
+            dataLoadReport.Check(Level >= 1, Table, Id, "Level 은 1 부터");
+            dataLoadReport.Check(Cost >= 0, Table, Id, "Cost 는 0 이상");
+            dataLoadReport.Check(Value > 0f, Table, Id, "Value 는 0 초과");
         }
     }
 
