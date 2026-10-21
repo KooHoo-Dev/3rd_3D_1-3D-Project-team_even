@@ -20,6 +20,7 @@ namespace HybridShooter.Supply
     [RequireComponent(typeof(Rigidbody), typeof(BoxCollider))]
     public sealed class SupplyCrate : MonoBehaviour
     {
+        /// <summary>Idle = Launch 전, Falling = 낙하 중, Landed = 착지 완료</summary>
         public enum State { Idle, Falling, Landed }
 
         [Tooltip("낙하 속도 (m/s)")]
@@ -39,8 +40,11 @@ namespace HybridShooter.Supply
         [SerializeField] private Color grenadeColor = new Color(1f, 0.55f, 0.1f, 1f);
         [SerializeField] private Color healColor = new Color(0.2f, 1f, 0.35f, 1f);
 
+        /// <summary>이 물자의 보급 정의 (종류·보충 수량). Launch 에서 설정</summary>
         public SupplyDef Def { get; private set; }
+        /// <summary>현재 낙하 상태</summary>
         public State CurrentState { get; private set; }
+        /// <summary>최종 착지 위치 (피벗 기준, 모델 바닥이 지면에 닿는 위치)</summary>
         public Vector3 LandingPosition => landingPosition;
 
         /// <summary>획득·정리로 사라질 때 (스포너가 목록에서 빼는 용도)</summary>
@@ -54,6 +58,10 @@ namespace HybridShooter.Supply
         private bool removed;
         private Material beaconMaterial;
 
+        /// <summary>
+        /// 필수 컴포넌트 설정: Rigidbody 는 Kinematic(중력 X, 보간 O), BoxCollider 는 Trigger.
+        /// fitColliderToRenderers 가 켜져 있으면 콜라이더 크기를 모델 크기에 맞춘다.
+        /// </summary>
         private void Awake()
         {
             body = GetComponent<Rigidbody>();
@@ -67,7 +75,9 @@ namespace HybridShooter.Supply
         }
 
         /// <summary>
-        /// 낙하 시작. groundPoint = 착지할 지면 지점, dropHeight = 지면 기준 시작 높이.
+        /// 낙하 시작. groundPoint = 착지할 지면 지점, dropHeight = 지면 기준 시작 높이,
+        /// landingZoneHeight = 감속을 시작할 높이(지면 기준).
+        /// 착지 위치를 계산해 그 위 dropHeight 지점으로 옮기고, Falling 상태로 바꾼 뒤 종류별 색 빛기둥을 단다.
         /// </summary>
         public void Launch(SupplyDef def, Vector3 groundPoint, float dropHeight, float landingZoneHeight)
         {
@@ -89,6 +99,10 @@ namespace HybridShooter.Supply
             if (showBeacon) CreateBeacon(def.SupplyType == SupplyType.Grenade ? grenadeColor : healColor);
         }
 
+        /// <summary>
+        /// 낙하 이동 (물리 프레임마다). 남은 높이에 맞는 속도로 아래로 이동하며 천천히 회전한다.
+        /// 이번 프레임 이동량이 남은 높이 이상이면 착지 위치에 정확히 맞추고 착지 처리.
+        /// </summary>
         private void FixedUpdate()
         {
             if (CurrentState != State.Falling) return;
@@ -110,7 +124,8 @@ namespace HybridShooter.Supply
         }
 
         /// <summary>
-        /// 감속 구간(landingHeight 이내)은 등감속: v² = vLand² + (v0² - vLand²) · (h / H).
+        /// 현재 높이(착지 위치 기준)에서의 낙하 속도.
+        /// 감속 구간 밖은 fallSpeed, 감속 구간(landingHeight 이내)은 등감속: v² = vLand² + (v0² - vLand²) · (h / H).
         /// h = H 에서 v0, h = 0 에서 vLand 가 되어 속도가 끊기지 않고 부드럽게 줄어든다.
         /// </summary>
         private float GetFallSpeed(float height)
@@ -122,13 +137,19 @@ namespace HybridShooter.Supply
             return Mathf.Sqrt(vLandSq + (v0Sq - vLandSq) * t);
         }
 
+        /// <summary>착지 완료 처리. 이후 FixedUpdate 에서 더 이상 움직이지 않는다</summary>
         private void Land() => CurrentState = State.Landed;
 
+        /// <summary>콜라이더가 트리거에 들어오는 순간 획득 시도 (키 입력 없이 자동 획득)</summary>
         private void OnTriggerEnter(Collider other) => TryCollect(other);
 
-        // 가득 차서 못 먹은 뒤, 자리를 벗어나지 않고 수량이 줄어든 경우 대비
+        /// <summary>트리거 안에 머무는 동안 계속 획득 시도. 가득 차서 못 먹은 뒤, 자리를 벗어나지 않고 수량이 줄어든 경우 대비</summary>
         private void OnTriggerStay(Collider other) => TryCollect(other);
 
+        /// <summary>
+        /// 닿은 콜라이더에 보급을 적용해 보고, 성공하면 SupplyCollectedEvent 발행 후 물자를 제거한다.
+        /// 이미 제거됐거나 Launch 전이면 무시.
+        /// </summary>
         private void TryCollect(Collider other)
         {
             if (removed || Def == null) return;
@@ -138,7 +159,11 @@ namespace HybridShooter.Supply
             Remove();
         }
 
-        /// <summary>보급 종류에 맞는 계약을 찾아 실제 수량을 보충. 대상이 아니거나 가득 차면 false</summary>
+        /// <summary>
+        /// 보급 종류에 맞는 계약을 닿은 콜라이더(또는 부모)에서 찾아 실제 보유 수량을 보충한다.
+        /// 수류탄 → IGrenadeReceiver.AddGrenades, 회복 팩 → IHealPackReceiver.AddHealPacks.
+        /// 대상이 아니거나(플레이어 아님) 가득 차면 false.
+        /// </summary>
         private bool ApplyTo(Collider other)
         {
             switch (Def.SupplyType)
@@ -154,7 +179,10 @@ namespace HybridShooter.Supply
             }
         }
 
-        /// <summary>획득·라운드 정리 시 호출</summary>
+        /// <summary>
+        /// 물자 제거. 획득·라운드 정리 시 호출. Removed 이벤트로 스포너에 알린 뒤 오브젝트를 파괴한다.
+        /// 여러 번 호출돼도 한 번만 처리.
+        /// </summary>
         public void Remove()
         {
             if (removed) return;
@@ -163,6 +191,10 @@ namespace HybridShooter.Supply
             Destroy(gameObject);
         }
 
+        /// <summary>
+        /// 자식 렌더러 전체를 감싸는 크기로 BoxCollider 를 맞춘다.
+        /// 렌더러 월드 AABB 의 꼭짓점 8개를 로컬 공간으로 옮겨 감싸고, XZ 로 pickupPadding 만큼 넓힌다.
+        /// </summary>
         private void FitColliderToRenderers()
         {
             var renderers = GetComponentsInChildren<Renderer>();
@@ -193,6 +225,10 @@ namespace HybridShooter.Supply
             trigger.size = local.size + pad;
         }
 
+        /// <summary>
+        /// 멀리서도 위치와 종류를 알 수 있는 빛기둥을 자식으로 만든다.
+        /// 콜라이더 없는 실린더(높이 beaconHeight, 그림자 X)에 종류별 색의 URP Unlit 머티리얼을 입힌다.
+        /// </summary>
         private void CreateBeacon(Color color)
         {
             var beacon = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -214,6 +250,7 @@ namespace HybridShooter.Supply
             }
         }
 
+        /// <summary>코드로 만든 빛기둥 머티리얼 정리 (메모리 누수 방지)</summary>
         private void OnDestroy()
         {
             if (beaconMaterial != null) Destroy(beaconMaterial);
