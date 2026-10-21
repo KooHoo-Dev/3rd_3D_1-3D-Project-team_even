@@ -31,4 +31,12 @@ namespace HybridShooter.Core.Contracts
         int MaxGrenades { get; }
         bool AddGrenades(int amount);
     }
+
+    /// <summary>회복 팩 보급 → 플레이어 (BL-019). 회복 팩 "보유 개수"를 늘린다. 최대치라 못 먹으면 false</summary>
+    public interface IHealPackReceiver
+    {
+        int HealPacks { get; }
+        int MaxHealPacks { get; }
+        bool AddHealPacks(int amount);
+    }
 }

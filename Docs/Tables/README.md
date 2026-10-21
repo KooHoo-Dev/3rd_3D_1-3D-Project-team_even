@@ -147,7 +147,7 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | SupplyType | enum | `Grenade` / `Heal` |
-| Amount | int | 수류탄 보충 수 / 회복량 |
+| Amount | int | 수류탄 보충 수 / 회복 팩 보충 수 |
 | Weight | int | 투하 종류 가중치 |
 | PrefabKey / MarkerKey | string | 물자 프리팹 / 낙하 위치 표시 |
 
@@ -177,4 +177,6 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | LowHpRatio | 플레이어 위험 상태 비율 | BL-007 |
 | MonsterLowHpRatio | 일반 몬스터 저체력 표현 비율 | BL-017 |
 | SupplyLifetime | 보급 유지 시간 | BL-018 |
+| SupplyDropMinDistance / SupplyDropMaxDistance | 보급 낙하 위치: 플레이어 기준 XZ 거리 범위 (30 ~ 150) | BL-018 |
+| SupplyDropHeight / SupplyLandingHeight | 낙하 시작 높이(30 이상) / 감속 착지 시작 높이 (지면 기준) | BL-018 |
 | CameraTransitionTime | 1인칭→3인칭 전환 시간 | BL-022 |

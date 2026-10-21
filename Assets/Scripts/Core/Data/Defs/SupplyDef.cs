@@ -11,7 +11,7 @@ namespace HybridShooter.Core.Data.Defs
 
         public int Id { get; }
         public SupplyType SupplyType { get; }
-        /// <summary>Grenade = 보충 개수, Heal = 회복량</summary>
+        /// <summary>Grenade = 수류탄 보충 개수, Heal = 회복 팩 보충 개수</summary>
         public int Amount { get; }
         public int Weight { get; }
         public string PrefabKey { get; }
