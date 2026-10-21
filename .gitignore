@@ -106,6 +106,38 @@ InitTestScene*.unity*
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
+# AI assistant tooling
+.ai/
+.agents/
+.codex/
+.claude/
+.cursor/
+.gemini/
+.windsurf/
+.mcp/
+.mcp.json
+mcp.json
+mcp_config.json
+AGENTS.md
+AGENTS.override.md
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.cursorrules
+.cursorignore
+.windsurfrules
+.aider*
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
+.github/agents/
+
+# Docs 하위 폴더 추적 제외 (Docs/README.md 등 루트 파일은 유지)
+Docs/
+/[Rr]eport/
+/report/*
 # --- 패키지 및 개인별 로컬 설정 파일 추가 제외 ---
 ProjectSettings/Packages/
 ProjectSettings/ProBuilderSettings.json

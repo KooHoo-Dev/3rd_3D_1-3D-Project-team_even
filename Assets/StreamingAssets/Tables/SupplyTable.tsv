@@ -1,0 +1,4 @@
+Id	SupplyType	Amount	Weight	PrefabKey	MarkerKey
+# SupplyType: Grenade/Heal  ·  Weight: 투하 종류 가중치  ·  BL-018/019
+4001	Grenade	2	50	Supply/GrenadeCrate	marker_grenade
+4002	Heal	40	50	Supply/HealCrate	marker_heal
