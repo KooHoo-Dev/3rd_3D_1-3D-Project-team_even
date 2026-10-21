@@ -1,0 +1,3 @@
+Id	Key	Name	Type	Value	Duration	TickInterval	IsZone
+# 플레이어 대상 상태 효과  ·  Type: DamageOverTime  ·  Value: 틱 피해  ·  IsZone: 바닥 구역 효과  ·  (Build1 에 원본 CSV 없음: 이전 빌드 독안개 값 임시 사용)
+1	PoisonCloud	독안개	DamageOverTime	6	5	1	TRUE

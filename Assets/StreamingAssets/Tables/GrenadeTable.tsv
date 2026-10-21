@@ -1,0 +1,3 @@
+Id	Name	Damage	Radius	FuseTime	ThrowSpeed	PrefabKey	ExplodeSfxKey
+# BL-005 수류탄  ·  Radius: 폭발 반경(m)  ·  FuseTime: 투척 후 폭발까지(초)
+2101	수류탄	80	6	2.0	18	Weapons/Grenade	sfx_grenade_explode
