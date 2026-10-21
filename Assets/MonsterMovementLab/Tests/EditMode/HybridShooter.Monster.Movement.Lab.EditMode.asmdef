@@ -1,0 +1,6 @@
+{
+  "name": "HybridShooter.Monster.Movement.Lab.EditMode",
+  "references": ["HybridShooter.Monster.Movement"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

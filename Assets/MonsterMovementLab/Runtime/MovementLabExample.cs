@@ -1,0 +1,262 @@
+using System.Collections.Generic;
+using HybridShooter.Monster.Movement;
+using UnityEngine;
+using UnityEngine.AI;
+using Unity.AI.Navigation;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+namespace HybridShooter.Monster.MovementLab
+{
+    /// <summary>Core 이동 모듈을 실제 NavMesh 장면에서 손으로 확인하는 MVP 실험실.</summary>
+    public sealed class MovementLabExample : MonoBehaviour
+    {
+        [SerializeField] private CrowdCoordinator coordinator;
+        [SerializeField] private TransformMovementTarget target;
+        [SerializeField] private Transform monsterRoot;
+        [SerializeField] private MovementLabGizmos gizmos;
+        [SerializeField] private Transform ownedRoot;
+        [SerializeField] private int crowdSpawnCount = 24;
+
+        public CrowdCoordinator Coordinator => coordinator;
+        public TransformMovementTarget Target => target;
+        public Transform MonsterRoot => monsterRoot;
+
+        [ContextMenu("Laboratory/Build Laboratory")]
+        public void BuildLaboratory()
+        {
+            if (Application.isPlaying || IsPrefabAsset()) { Debug.LogError("Build Laboratory는 씬의 일반 GameObject에서 Edit mode로 실행하세요.", this); return; }
+            ResetLaboratory();
+            var root = new GameObject("Monster Movement Laboratory (Owned)");
+            root.AddComponent<MovementLabOwnedMonster>();
+            ownedRoot = root.transform;
+            root.transform.SetParent(transform, false);
+            CreateBox(root.transform, "Floor", new Vector3(0f, -0.25f, 0f), new Vector3(30f, 0.5f, 30f), new Color(.24f, .28f, .31f));
+            CreateBox(root.transform, "North Wall", new Vector3(0f, 1f, 15f), new Vector3(30f, 2f, .5f), new Color(.32f, .36f, .39f));
+            CreateBox(root.transform, "South Wall", new Vector3(0f, 1f, -15f), new Vector3(30f, 2f, .5f), new Color(.32f, .36f, .39f));
+            CreateBox(root.transform, "East Wall", new Vector3(15f, 1f, 0f), new Vector3(.5f, 2f, 30f), new Color(.32f, .36f, .39f));
+            CreateBox(root.transform, "West Wall", new Vector3(-15f, 1f, 0f), new Vector3(.5f, 2f, 30f), new Color(.32f, .36f, .39f));
+            CreateBox(root.transform, "Fixed Test Obstacle", new Vector3(4f, 1f, 2f), new Vector3(2.5f, 2f, 7f), new Color(.4f, .45f, .5f));
+
+            var surface = root.AddComponent<NavMeshSurface>();
+            surface.collectObjects = CollectObjects.Children;
+            surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
+            surface.BuildNavMesh();
+
+            var targetObject = new GameObject("WASD Target (WASD)");
+            targetObject.transform.SetParent(root.transform, false);
+            target = targetObject.AddComponent<TransformMovementTarget>();
+            var targetVisual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            targetVisual.name = "Target Visual (pivot at feet)";
+            targetVisual.transform.SetParent(targetObject.transform, false);
+            targetVisual.transform.localPosition = Vector3.up;
+            DestroyImmediate(targetVisual.GetComponent<Collider>());
+            SetColor(targetVisual.GetComponent<Renderer>(), new Color(.18f, .75f, 1f));
+
+            var coordObject = new GameObject("Crowd Coordinator");
+            coordObject.transform.SetParent(root.transform, false);
+            coordinator = coordObject.AddComponent<CrowdCoordinator>();
+            coordinator.SetTarget(target);
+            coordinator.Settings.UseSlots = true;
+
+            monsterRoot = new GameObject("Owned Monsters").transform;
+            monsterRoot.SetParent(root.transform, false);
+            gizmos = coordObject.AddComponent<MovementLabGizmos>();
+            gizmos.Configure(coordinator, monsterRoot);
+            coordinator.RefreshSlots();
+            SetupCamera(root.transform);
+            SetupLight(root.transform);
+            Debug.Log("Monster Movement Laboratory 생성 완료. Play 후 ContextMenu의 Spawn 명령을 사용하세요.", this);
+        }
+
+        [ContextMenu("Laboratory/Reset Laboratory")]
+        public void ResetLaboratory()
+        {
+            if (Application.isPlaying || IsPrefabAsset()) { Debug.LogError("Reset Laboratory는 씬의 일반 GameObject에서 Edit mode로 실행하세요.", this); return; }
+            if (ownedRoot != null && ownedRoot.GetComponent<MovementLabOwnedMonster>() != null)
+                DestroyImmediate(ownedRoot.gameObject);
+            ownedRoot = null; coordinator = null; target = null; monsterRoot = null; gizmos = null;
+        }
+
+        [ContextMenu("Play/Spawn Single MVP")]
+        public void SpawnSingleMvp()
+        {
+            if (!ValidatePlaySetup()) return;
+            ClearOwnedMonstersInternal();
+            SpawnMonster(MovementPolicyKind.Melee, Vector3.right * -5f, false);
+        }
+
+        [ContextMenu("Play/Spawn Crowd MVP")]
+        public void SpawnCrowdMvp()
+        {
+            if (!ValidatePlaySetup()) return;
+            ClearOwnedMonstersInternal();
+            for (int i = 0; i < crowdSpawnCount; i++)
+            {
+                float angle = i * Mathf.PI * 2f / crowdSpawnCount;
+                SpawnMonster(MovementPolicyKind.Melee, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 12f, false);
+            }
+        }
+
+        [ContextMenu("Play/Spawn Slot Crowd")]
+        public void SpawnSlotCrowd()
+        {
+            if (!ValidatePlaySetup()) return;
+            ClearOwnedMonstersInternal();
+            coordinator.Settings.UseSlots = true;
+            coordinator.RefreshSlots();
+            for (int i = 0; i < crowdSpawnCount; i++)
+            {
+                float angle = i * Mathf.PI * 2f / crowdSpawnCount;
+                MovementPolicyKind kind = i % 7 == 0 ? MovementPolicyKind.KeepDistance
+                    : i % 4 == 0 ? MovementPolicyKind.Flank : MovementPolicyKind.Melee;
+                SpawnMonster(kind, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 12f, true);
+            }
+        }
+
+        [ContextMenu("Play/Remove Assigned Monster")]
+        public void RemoveAssignedMonster()
+        {
+            if (!ValidatePlaySetup()) return;
+            for (int i = monsterRoot.childCount - 1; i >= 0; i--)
+            {
+                var child = monsterRoot.GetChild(i);
+                if (child.GetComponent<MovementLabOwnedMonster>() == null) continue;
+                var movement = child.GetComponent<MonsterMovement>();
+                if (movement == null || movement.Directive.Kind != DirectiveKind.Engage || !movement.Directive.HasSlotPosition) continue;
+                movement.enabled = false;
+                Destroy(child.gameObject);
+                return;
+            }
+            Debug.Log("제거할 슬롯 할당 몬스터가 없습니다. Slot Crowd를 실행하고 배분을 기다리세요.", this);
+        }
+
+        [ContextMenu("Play/Clear Owned Monsters")]
+        public void ClearOwnedMonsters()
+        {
+            if (!ValidatePlaySetup()) return;
+            ClearOwnedMonstersInternal();
+        }
+
+        [ContextMenu("Play/Dump Slots")]
+        public void DumpSlots()
+        {
+            if (!ValidatePlaySetup()) return;
+            var lines = new List<string>();
+            for (int i = 0; i < coordinator.SlotCount; i++)
+            {
+                var s = coordinator.GetSlotSnapshot(i);
+                lines.Add($"#{s.Id} {s.Kind} {s.Use} {s.Validity} owner={s.OwnerId} pos={s.Position} congested={s.Congested}");
+            }
+            Debug.Log(lines.Count == 0 ? "슬롯 없음" : string.Join("\n", lines), coordinator);
+        }
+
+        [ContextMenu("Play/Move Target To Center")]
+        public void MoveTargetToCenter()
+        {
+            if (!ValidatePlaySetup()) return;
+            target.transform.position = Vector3.zero;
+            coordinator.RefreshSlots();
+        }
+
+        private void SpawnMonster(MovementPolicyKind kind, Vector3 position, bool useCoordinator)
+        {
+            if (!ValidatePlaySetup()) return;
+            var go = new GameObject($"Lab {kind} Monster");
+            go.transform.SetParent(monsterRoot, true);
+            go.transform.position = position;
+            go.SetActive(false);
+            var ownedMonster = go.AddComponent<MovementLabOwnedMonster>();
+            var agent = go.AddComponent<NavMeshAgent>();
+            agent.radius = .45f; agent.height = 1.8f; agent.speed = 3.5f; agent.stoppingDistance = .1f;
+            agent.avoidancePriority = Random.Range(20, 80);
+            go.AddComponent<NavMeshMoveExecutor>();
+            var movement = go.AddComponent<MonsterMovement>();
+            var profile = MovementProfile.CreateRuntime(kind);
+            ownedMonster.SetProfile(profile);
+            if (useCoordinator) movement.Configure(profile, coordinator);
+            else movement.ConfigureDirect(profile, target);
+            CreateVisual(go.transform, kind);
+            go.SetActive(true);
+        }
+
+        private static void CreateVisual(Transform parent, MovementPolicyKind kind)
+        {
+            var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            visual.name = "Visual (pivot at feet)";
+            visual.transform.SetParent(parent, false);
+            visual.transform.localPosition = Vector3.up;
+            var collider = visual.GetComponent<Collider>();
+            if (Application.isPlaying) Destroy(collider); else DestroyImmediate(collider);
+            SetColor(visual.GetComponent<Renderer>(), kind == MovementPolicyKind.Flank
+                ? new Color(1f, .58f, .16f) : kind == MovementPolicyKind.KeepDistance ? new Color(.7f, .4f, 1f) : new Color(1f, .24f, .22f));
+        }
+
+        private static GameObject CreateBox(Transform parent, string name, Vector3 position, Vector3 scale, Color color)
+        {
+            var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            box.name = name; box.transform.SetParent(parent, false); box.transform.localPosition = position; box.transform.localScale = scale;
+            SetColor(box.GetComponent<Renderer>(), color);
+            return box;
+        }
+
+        private static void SetupCamera(Transform parent)
+        {
+            var go = new GameObject("Lab Camera");
+            var camera = go.AddComponent<Camera>(); go.AddComponent<AudioListener>();
+            camera.transform.SetParent(parent, true);
+            camera.transform.position = new Vector3(0f, 25f, -27f);
+            camera.transform.rotation = Quaternion.Euler(42f, 0f, 0f);
+            camera.orthographic = false; camera.fieldOfView = 55f;
+        }
+
+        private static void SetupLight(Transform parent)
+        {
+            var light = new GameObject("Lab Directional Light").AddComponent<Light>();
+            light.transform.SetParent(parent, false); light.type = LightType.Directional; light.intensity = 1.2f;
+            light.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+        }
+
+        private bool ValidatePlaySetup()
+        {
+            if (!Application.isPlaying || coordinator == null || target == null || monsterRoot == null || ownedRoot == null ||
+                ownedRoot.GetComponent<MovementLabOwnedMonster>() == null)
+            {
+                Debug.LogError("Play mode에서 Build Laboratory로 만든 실험실이 필요합니다.", this);
+                return false;
+            }
+            return true;
+        }
+
+        private void ClearOwnedMonstersInternal()
+        {
+            for (int i = monsterRoot.childCount - 1; i >= 0; i--)
+            {
+                var child = monsterRoot.GetChild(i);
+                if (child.GetComponent<MovementLabOwnedMonster>() == null) continue;
+                var movement = child.GetComponent<MonsterMovement>();
+                if (movement != null) movement.enabled = false;
+                Destroy(child.gameObject);
+            }
+        }
+
+        private static void SetColor(Renderer renderer, Color color)
+        {
+            var block = new MaterialPropertyBlock();
+            renderer.GetPropertyBlock(block);
+            block.SetColor("_Color", color);
+            block.SetColor("_BaseColor", color);
+            renderer.SetPropertyBlock(block);
+        }
+
+        private bool IsPrefabAsset()
+        {
+#if UNITY_EDITOR
+            return PrefabUtility.IsPartOfPrefabAsset(gameObject);
+#else
+            return false;
+#endif
+        }
+    }
+}
