@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using HybridShooter.Core.Data.Dtos;
 using HybridShooter.Core.Data.Loading;
+using UnityEngine;
 
 namespace HybridShooter.Core.Data.Defs
 {
@@ -35,7 +36,8 @@ namespace HybridShooter.Core.Data.Defs
         public MeshVariant MeshVariant { get; }
         /// <summary>처치 시 자동 획득 재화 (BL-029)</summary>
         public int Reward { get; }
-        public string PrefabKey { get; }
+        /// <summary>생성할 프리팹 (Resources 에서 로드된 원본. Instantiate 해서 사용)</summary>
+        public GameObject Prefab { get; }
 
         /// <summary>GradeId 에서 계산 (1 → Weak, 2 → Mid, 3 → Boss)</summary>
         public MonsterGrade Grade { get; internal set; }
@@ -66,7 +68,7 @@ namespace HybridShooter.Core.Data.Defs
             FlyHeight = d.FlyHeight;
             MeshVariant = ParseUtil.Enum<MeshVariant>(d.MeshVariant, r, Table, Id, nameof(d.MeshVariant));
             Reward = d.Reward;
-            PrefabKey = d.PrefabKey;
+            Prefab = ParseUtil.Asset<GameObject>(d.PrefabKey, r, Table, Id, nameof(d.PrefabKey));
 
             r.Check(Enum.IsDefined(typeof(MonsterGrade), Grade), Table, Id, "GradeId 는 1(Weak)~3(Boss) 중 하나");
             r.Check(string.IsNullOrEmpty(Key) == false, Table, Id, "Key 가 비었습니다");
@@ -76,7 +78,6 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(BodyScale > 0f && Height > 0f, Table, Id, "BodyScale, Height 는 0 초과");
             r.Check(IsFlying ? FlyHeight > 0f : FlyHeight == 0f, Table, Id, "FlyHeight 는 Air 역할만 0 초과");
             r.Check(Reward >= 0, Table, Id, "Reward 는 0 이상");
-            r.Check(string.IsNullOrEmpty(PrefabKey) == false, Table, Id, "PrefabKey 가 비었습니다");
         }
 
         internal void SetLinks(List<MonsterAttackDef> attacks, List<MonsterPartDef> parts, List<BossPhaseDef> phases)

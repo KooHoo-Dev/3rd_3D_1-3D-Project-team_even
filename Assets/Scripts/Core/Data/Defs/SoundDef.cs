@@ -1,5 +1,6 @@
 using HybridShooter.Core.Data.Dtos;
 using HybridShooter.Core.Data.Loading;
+using UnityEngine;
 
 namespace HybridShooter.Core.Data.Defs
 {
@@ -9,8 +10,8 @@ namespace HybridShooter.Core.Data.Defs
 
         public string Key { get; }
         public SoundCategory Category { get; }
-        /// <summary>Resources.Load 경로 (확장자 제외)</summary>
-        public string Path { get; }
+        /// <summary>Resources 에서 로드된 오디오 클립</summary>
+        public AudioClip Clip { get; }
         public float Volume { get; }
         public bool Loop { get; }
 
@@ -18,7 +19,7 @@ namespace HybridShooter.Core.Data.Defs
         {
             Key = d.Key;
             Category = ParseUtil.Enum<SoundCategory>(d.Category, r, Table, Key, nameof(d.Category));
-            Path = d.Path;
+            Clip = ParseUtil.Asset<AudioClip>(d.Path, r, Table, Key, nameof(d.Path));
             Volume = d.Volume;
             Loop = d.Loop;
 

@@ -32,24 +32,12 @@ namespace HybridShooter.Core.Services
         public void StopBgm() { }
     }
 
-    /// <summary>몬스터 담당 풀링 구현 전까지 쓰는 기본 팩토리. Resources/{PrefabKey} 를 Instantiate</summary>
+    /// <summary>몬스터 담당 풀링 구현 전까지 쓰는 기본 팩토리. def.Prefab 을 Instantiate</summary>
     public sealed class ResourcesMonsterFactory : IMonsterFactory
     {
-        private readonly Dictionary<string, GameObject> cache = new Dictionary<string, GameObject>();
-
         public GameObject Spawn(MonsterDef def, Vector3 position, Quaternion rotation)
         {
-            if (cache.TryGetValue(def.PrefabKey, out var prefab) == false)
-            {
-                prefab = Resources.Load<GameObject>(def.PrefabKey);
-                cache[def.PrefabKey] = prefab;
-            }
-            if (prefab == null)
-            {
-                Debug.LogError($"[ResourcesMonsterFactory] Resources/{def.PrefabKey} 프리팹이 없습니다. (Monster {def.Id})");
-                return null;
-            }
-            var go = Object.Instantiate(prefab, position, rotation);
+            var go = Object.Instantiate(def.Prefab, position, rotation);
             EventBus<MonsterSpawnedEvent>.Publish(new MonsterSpawnedEvent(def, go));
             return go;
         }

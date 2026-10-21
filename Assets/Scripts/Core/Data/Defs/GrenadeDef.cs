@@ -1,5 +1,6 @@
 using HybridShooter.Core.Data.Dtos;
 using HybridShooter.Core.Data.Loading;
+using UnityEngine;
 
 namespace HybridShooter.Core.Data.Defs
 {
@@ -16,8 +17,10 @@ namespace HybridShooter.Core.Data.Defs
         /// <summary>투척 후 폭발까지(초)</summary>
         public float FuseTime { get; }
         public float ThrowSpeed { get; }
-        public string PrefabKey { get; }
-        public string ExplodeSfxKey { get; }
+        public GameObject Prefab { get; }
+        /// <summary>Link 단계에서 채워짐 (키가 비었으면 null)</summary>
+        public SoundDef ExplodeSfx { get; internal set; }
+        internal string ExplodeSfxKey { get; }
 
         internal GrenadeDef(GrenadeDto d, DataLoadReport r)
         {
@@ -27,7 +30,7 @@ namespace HybridShooter.Core.Data.Defs
             Radius = d.Radius;
             FuseTime = d.FuseTime;
             ThrowSpeed = d.ThrowSpeed;
-            PrefabKey = d.PrefabKey;
+            Prefab = ParseUtil.Asset<GameObject>(d.PrefabKey, r, Table, Id, nameof(d.PrefabKey));
             ExplodeSfxKey = d.ExplodeSfxKey;
 
             r.Check(Damage > 0, Table, Id, "Damage 는 1 이상");

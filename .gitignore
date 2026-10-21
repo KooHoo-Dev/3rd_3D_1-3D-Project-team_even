@@ -106,9 +106,7 @@ InitTestScene*.unity*
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
-# Local reports and AI assistant tooling
-/[Rr]eport/
-/report/*
+# AI assistant tooling
 .ai/
 .agents/
 .codex/
@@ -137,4 +135,6 @@ GEMINI.md
 .github/agents/
 
 # Docs 하위 폴더 추적 제외 (Docs/README.md 등 루트 파일은 유지)
-/Docs/*/
+Docs/
+/[Rr]eport/
+/report/*
