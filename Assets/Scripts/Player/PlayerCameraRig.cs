@@ -39,12 +39,27 @@ namespace HybridShooter.Player
         [Tooltip("장애물이 사라졌을 때 카메라가 원래 거리로 돌아가는 시간")]
         [SerializeField] private float distanceRecoverTime = 0.25f;
 
+        [Header("조준 줌 (우클릭)")]
+        [Tooltip("조준 중 시야각 배율. 작을수록 크게 확대 (무기가 따로 값을 주면 그 값을 씀)")]
+        [SerializeField, Range(0.2f, 1f)] private float aimFovMultiplier = 0.7f;
+        [Tooltip("3인칭 조준 중 카메라 거리")]
+        [SerializeField] private float aimThirdPersonDistance = 1.8f;
+        [Tooltip("3인칭 조준 중 어깨 오프셋 (x = 오른쪽, y = 위)")]
+        [SerializeField] private Vector2 aimThirdPersonShoulder = new Vector2(0.55f, 0.15f);
+        [Tooltip("줌 인/아웃에 걸리는 시간(초)")]
+        [SerializeField] private float aimZoomTime = 0.12f;
+
         private float yaw;
         private float pitch;
         private float blend;
         private float currentDistance;
         private float distanceVelocity;
         private float thirdPersonFovAdd;
+        private bool aimRequested;
+        private float aimFovTarget = -1f;
+        private float aimZoom;
+        private float aimZoomVelocity;
+        private float aimFovCurrent = 0.7f;
 
         /// <summary>현재 목표 시점 (CameraModeSwitcher 가 설정)</summary>
         public CameraMode Mode { get; private set; } = CameraMode.FirstPerson;
@@ -53,6 +68,8 @@ namespace HybridShooter.Player
         public float Pitch => pitch;
         public Camera ViewCamera => viewCamera;
         public Transform ViewPoint => viewCamera != null ? viewCamera.transform : transform;
+        /// <summary>0 = 평소, 1 = 완전히 조준 줌</summary>
+        public float AimZoom => aimZoom;
 
         private void Awake()
         {
@@ -88,9 +105,21 @@ namespace HybridShooter.Player
         /// <summary>0 = 1인칭, 1 = 3인칭</summary>
         public void SetBlend(float value) => blend = Mathf.Clamp01(value);
 
+        /// <summary>조준 줌 요청. 매 프레임 호출 (PlayerController). fovMultiplier 가 0 이하면 리그 기본값</summary>
+        public void SetAiming(bool aiming, float fovMultiplier = -1f)
+        {
+            aimRequested = aiming;
+            aimFovTarget = fovMultiplier;
+        }
+
         private void LateUpdate()
         {
             if (viewCamera == null) return;
+
+            // 조준 줌 진행도 (부드럽게)
+            aimZoom = Mathf.SmoothDamp(aimZoom, aimRequested ? 1f : 0f, ref aimZoomVelocity, aimZoomTime);
+            if (aimRequested) aimFovCurrent = aimFovTarget > 0f ? aimFovTarget : aimFovMultiplier;
+            float zoomFov = Mathf.Lerp(1f, aimFovCurrent, aimZoom);
 
             Vector3 anchor = pivot != null ? pivot.position : transform.position;
             Quaternion yawRotation = Quaternion.Euler(0f, yaw, 0f);
@@ -106,16 +135,19 @@ namespace HybridShooter.Player
             }
 
             viewCamera.transform.SetPositionAndRotation(position, lookRotation);
-            viewCamera.fieldOfView = fov;
+            viewCamera.fieldOfView = fov * zoomFov;
         }
 
         private Vector3 ComputeThirdPersonPosition(Vector3 anchor, Quaternion yawRotation, Quaternion lookRotation)
         {
-            Vector3 origin = anchor + yawRotation * new Vector3(thirdPersonShoulder.x, thirdPersonShoulder.y, 0f);
+            // 조준 중엔 어깨 가까이 당겨 붙는다
+            Vector2 shoulder = Vector2.Lerp(thirdPersonShoulder, aimThirdPersonShoulder, aimZoom);
+            float distance = Mathf.Lerp(thirdPersonDistance, aimThirdPersonDistance, aimZoom);
+            Vector3 origin = anchor + yawRotation * new Vector3(shoulder.x, shoulder.y, 0f);
             Vector3 back = lookRotation * Vector3.back;
 
-            float allowed = thirdPersonDistance;
-            if (Physics.SphereCast(origin, collisionRadius, back, out var hit, thirdPersonDistance, collisionMask, QueryTriggerInteraction.Ignore))
+            float allowed = distance;
+            if (Physics.SphereCast(origin, collisionRadius, back, out var hit, distance, collisionMask, QueryTriggerInteraction.Ignore))
                 allowed = Mathf.Max(0f, hit.distance);
 
             // 장애물이 가까워질 땐 즉시, 멀어질 땐 부드럽게

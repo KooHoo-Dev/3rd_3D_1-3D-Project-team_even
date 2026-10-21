@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 namespace HybridShooter.Player
 {
     /// <summary>
-    /// 테스트 전용: 1 = 1인칭, 3 = 3인칭 전환을 요청한다. (CameraModeRequestedEvent 발행 → CameraModeSwitcher 가 처리)
+    /// 테스트 전용: F1 = 1인칭, F3 = 3인칭 전환을 요청한다. (숫자 1~4 는 무기 교체 키라 F 키로 옮김) (CameraModeRequestedEvent 발행 → CameraModeSwitcher 가 처리)
     /// 씬의 아무 오브젝트에 붙이면 동작하고, 테스트가 끝나면 컴포넌트만 제거하면 된다.
     /// </summary>
     public class CameraModeDebugInput : MonoBehaviour
@@ -30,9 +30,9 @@ namespace HybridShooter.Player
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
 
-            if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame)
+            if (keyboard.f1Key.wasPressedThisFrame)
                 Request(CameraMode.FirstPerson);
-            else if (keyboard.digit3Key.wasPressedThisFrame || keyboard.numpad3Key.wasPressedThisFrame)
+            else if (keyboard.f3Key.wasPressedThisFrame)
                 Request(CameraMode.ThirdPerson);
         }
 
@@ -50,7 +50,7 @@ namespace HybridShooter.Player
             string state = switcher == null
                 ? "Switcher 없음"
                 : $"{switcher.TargetMode}{(switcher.IsTransitioning ? " (전환 중)" : "")}";
-            GUI.Label(new Rect(10, 10, 400, 24), $"[1] 1인칭   [3] 3인칭   현재: {state}   마지막 요청: {lastRequested}");
+            GUI.Label(new Rect(10, 10, 400, 24), $"[F1] 1인칭   [F3] 3인칭   현재: {state}   마지막 요청: {lastRequested}");
         }
     }
 }

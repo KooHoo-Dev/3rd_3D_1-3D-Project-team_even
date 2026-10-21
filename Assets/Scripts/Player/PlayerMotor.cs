@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace HybridShooter.Player
 {
-    /// <summary>몸체 회전 방식. 3인칭 = 이동 방향을 바라봄, 1인칭 = 카메라 방향에 고정</summary>
+    /// <summary>몸체 회전 방식. LockYaw = 카메라 방향에 고정(현재 1·3인칭 공통), FollowMove = 이동 방향을 바라봄(현재 미사용)</summary>
     public enum FacingMode { FollowMove, LockYaw }
 
     /// <summary>
@@ -17,6 +16,8 @@ namespace HybridShooter.Player
     ///  - 마찰 0 콜라이더 → 벽에 비비며 걸려도 붙지 않음.
     ///  - 감속/가속: 이름(key)이 있는 속도 배율 목록. 곱해서 적용한다. (피격 둔화, 스태미나 바닥, 상태이상 등)
     ///    + 자동: 몸이 이동 방향과 어긋나 있을 때(뒤로 걷기, 뒤돌아 출발) 느려짐.
+    ///  - 외부 제어: 벽넘기처럼 애니메이션이 몸을 직접 옮겨야 할 때 BeginExternalControl ~ EndExternalControl 동안 물리를 멈춘다.
+    ///  - 애니메이션은 모르는 상태. PlayerAnimator 가 모터의 값(속도·바닥·이벤트)을 읽어 Animator 에 넘긴다.
     /// </summary>
     [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
     public class PlayerMotor : MonoBehaviour
@@ -29,7 +30,7 @@ namespace HybridShooter.Player
         [SerializeField] private float groundAcceleration = 45f;
         [SerializeField] private float groundDeceleration = 55f;
         [SerializeField] private float airAcceleration = 10f;
-        [Tooltip("3인칭에서 몸이 이동 방향으로 도는 속도(도/초)")]
+        [Tooltip("FollowMove 모드에서 몸이 이동 방향으로 도는 속도(도/초). LockYaw 에서는 쓰지 않음")]
         [SerializeField] private float turnSpeed = 720f;
         [Tooltip("몸 정면 기준 정반대로 움직일 때의 속도 배율. 옆걸음은 거의 감속 없음")]
         [SerializeField, Range(0.1f, 1f)] private float backwardMultiplier = 0.65f;
@@ -96,6 +97,13 @@ namespace HybridShooter.Player
         public float HorizontalSpeed { get { var v = rb.linearVelocity; return new Vector2(v.x, v.z).magnitude; } }
         public float WalkSpeed { get => walkSpeed; set => walkSpeed = Mathf.Max(0f, value); }
         public Vector3 Forward => rb.rotation * Vector3.forward;
+        public float RollDuration => rollDuration;
+        public float SprintMultiplier => sprintMultiplier;
+        /// <summary>벽넘기 등으로 바깥(애니메이션 루트모션)이 위치를 움직이는 중. 이 동안 모터는 물리를 건드리지 않는다</summary>
+        public bool IsExternallyControlled => externalControl;
+
+        private bool externalControl;
+        private RigidbodyInterpolation savedInterpolation;
 
         private void Awake()
         {
@@ -112,7 +120,6 @@ namespace HybridShooter.Player
                 frictionCombine = PhysicsMaterialCombine.Minimum,
                 bounceCombine = PhysicsMaterialCombine.Minimum,
             };
-            SetupAnimator();
         }
 
         // ───────────────────────── 외부에서 넣는 값 ─────────────────────────
@@ -125,10 +132,10 @@ namespace HybridShooter.Player
             sprintRequested = sprint;
         }
 
-        /// <summary>1인칭: 몸을 이 방향(yaw)에 고정</summary>
+        /// <summary>몸을 이 방향(yaw)에 고정. 1인칭·3인칭 공통으로 카메라 yaw 를 넘긴다</summary>
         public void LockFacing(float yaw) { facingMode = FacingMode.LockYaw; lockedYaw = yaw; }
 
-        /// <summary>3인칭: 이동(구르기) 방향으로 몸을 돌림</summary>
+        /// <summary>이동(구르기) 방향으로 몸을 돌림. 지금은 쓰지 않지만 나중에 자유 시점이 필요하면 호출</summary>
         public void FollowMoveFacing() => facingMode = FacingMode.FollowMove;
 
         public void RequestJump() => jumpRequestedTime = Time.time;
@@ -175,10 +182,56 @@ namespace HybridShooter.Player
             isRolling = false;
         }
 
+        /// <summary>
+        /// 위치 제어를 바깥에 넘긴다 (벽넘기). Rigidbody 를 kinematic 으로 바꿔 충돌에 밀리지 않게 하고,
+        /// 이후 <see cref="MoveExternal"/> 로 옮긴다. 끝나면 반드시 <see cref="EndExternalControl"/>.
+        /// </summary>
+        public void BeginExternalControl()
+        {
+            if (externalControl) return;
+            externalControl = true;
+            isRolling = false;
+            moveDirection = Vector3.zero;
+            rb.linearVelocity = Vector3.zero;
+            savedInterpolation = rb.interpolation;
+            // kinematic + 직접 위치 지정 시 보간이 켜져 있으면 한 프레임 늦게 따라와 떨린다
+            rb.interpolation = RigidbodyInterpolation.None;
+            rb.isKinematic = true;
+        }
+
+        /// <summary>외부 제어 중에만 의미 있음. 월드 기준으로 이만큼 이동 (루트모션 delta)</summary>
+        public void MoveExternal(Vector3 delta)
+        {
+            if (externalControl == false) return;
+            Vector3 p = rb.position + delta;
+            rb.position = p;
+            transform.position = p;
+        }
+
+        /// <summary>외부 제어 중 몸 방향을 즉시 바꾼다</summary>
+        public void SetRotationImmediate(float yaw)
+        {
+            Quaternion r = Quaternion.Euler(0f, yaw, 0f);
+            rb.rotation = r;
+            transform.rotation = r;
+            lockedYaw = yaw;
+        }
+
+        public void EndExternalControl()
+        {
+            if (externalControl == false) return;
+            externalControl = false;
+            rb.isKinematic = false;
+            rb.interpolation = savedInterpolation;
+            rb.linearVelocity = Vector3.zero;
+            jumpRequestedTime = float.NegativeInfinity;
+        }
+
         // ───────────────────────── 물리 ─────────────────────────
 
         private void FixedUpdate()
         {
+            if (externalControl) return;
             float dt = Time.fixedDeltaTime;
 
             UpdateGround(dt);
@@ -213,7 +266,6 @@ namespace HybridShooter.Player
             }
 
             rb.useGravity = isGrounded == false;
-            UpdateGroundAnimation(dt);
         }
 
         private void UpdateWalk(float dt)
@@ -279,7 +331,6 @@ namespace HybridShooter.Player
             isGrounded = false;
             rb.useGravity = true;
             Jumped?.Invoke();
-            PlayJumpAnimation();
         }
 
         private void UpdateFacing(float dt)
@@ -334,109 +385,5 @@ namespace HybridShooter.Player
                 if (modifiers[i].Key == key) modifiers.RemoveAt(i);
         }
 
-        // ───────────────────────── 애니메이션 ─────────────────────────
-        // Animator 파라미터: Speed(float) · MotionSpeed(float) · Grounded(bool) · Jump(bool) · FreeFall(bool)
-        // Speed/MotionSpeed = 바깥(PlayerController)이 UpdateWalkAnimation 으로 넣는다. 안 넣으면 LateUpdate 에서 자동으로 채운다.
-        // Grounded/Jump/FreeFall = 모터가 바닥 판정·점프에서 직접 갱신한다.
-
-        [Header("애니메이션")]
-        [Tooltip("Speed 파라미터가 목표값을 따라가는 속도")]
-        [SerializeField, FormerlySerializedAs("SpeedChangeRate")] private float speedChangeRate = 10f;
-        [Tooltip("발이 땅에서 떨어진 뒤 이 시간이 지나야 낙하(FreeFall) 모션으로 넘어간다. 잔 요철에서 깜빡이는 것 방지")]
-        [SerializeField] private float freeFallDelay = 0.15f;
-
-        private Animator animator;
-        private bool hasAnimator => animator != null;
-        private float animationBlend;
-        private float freeFallTimer;
-        private bool walkAnimationFed;
-
-        private int animIdSpeed;
-        private int animIdGrounded;
-        private int animIdJump;
-        private int animIdFreeFall;
-        private int animIdMotionSpeed;
-
-        private void SetupAnimator()
-        {
-            animator = GetComponentInChildren<Animator>();
-            AssignAnimationIDs();
-
-            if (hasAnimator == false)
-            {
-                Debug.LogWarning("[PlayerMotor] 자식에서 Animator 를 찾지 못했습니다. 애니메이션 없이 동작합니다.");
-                return;
-            }
-            // 이동은 Rigidbody 가 맡는다. 루트 모션이 켜져 있으면 모델이 몸과 따로 밀려난다
-            animator.applyRootMotion = false;
-        }
-
-        /// <summary>바닥 판정 직후(FixedUpdate)에 호출. Grounded/Jump/FreeFall 갱신</summary>
-        private void UpdateGroundAnimation(float dt)
-        {
-            if (hasAnimator == false) return;
-
-            animator.SetBool(animIdGrounded, isGrounded);
-
-            if (isGrounded)
-            {
-                // 착지: 점프·낙하 상태를 끈다
-                freeFallTimer = 0f;
-                animator.SetBool(animIdJump, false);
-                animator.SetBool(animIdFreeFall, false);
-            }
-            else
-            {
-                // 공중: 잠깐은 점프 모션을 보여주고, 계속 떠 있으면 낙하 모션
-                freeFallTimer += dt;
-                if (freeFallTimer >= freeFallDelay) animator.SetBool(animIdFreeFall, true);
-            }
-        }
-
-        private void PlayJumpAnimation()
-        {
-            if (hasAnimator == false) return;
-
-            freeFallTimer = 0f;
-            animator.SetBool(animIdJump, true);
-            animator.SetBool(animIdFreeFall, false);
-        }
-
-        /// <summary>
-        /// 걷기/달리기 블렌드용. 매 프레임(Update) 호출.
-        /// targetSpeed = 목표 속도(블렌드 트리 임계값과 같은 단위), inputMagnitude = 입력 크기 0~1
-        /// </summary>
-        public void UpdateWalkAnimation(float targetSpeed, float inputMagnitude)
-        {
-            walkAnimationFed = true;
-            ApplyWalkAnimation(targetSpeed, inputMagnitude);
-        }
-
-        private void ApplyWalkAnimation(float targetSpeed, float inputMagnitude)
-        {
-            animationBlend = Mathf.Lerp(animationBlend, targetSpeed, Time.deltaTime * speedChangeRate);
-            if (animationBlend < 0.01f) animationBlend = 0f;
-
-            if (hasAnimator == false) return;
-            animator.SetFloat(animIdSpeed, animationBlend);
-            animator.SetFloat(animIdMotionSpeed, inputMagnitude);
-        }
-
-        // 바깥에서 UpdateWalkAnimation 을 부르지 않은 프레임엔 모터가 가진 값(실제 수평 속도, 입력 크기)으로 대신 채운다
-        private void LateUpdate()
-        {
-            if (walkAnimationFed == false)
-                ApplyWalkAnimation(HorizontalSpeed, moveDirection.magnitude);
-            walkAnimationFed = false;
-        }
-
-        private void AssignAnimationIDs()
-        {
-            animIdSpeed = Animator.StringToHash("Speed");
-            animIdGrounded = Animator.StringToHash("Grounded");
-            animIdJump = Animator.StringToHash("Jump");
-            animIdFreeFall = Animator.StringToHash("FreeFall");
-            animIdMotionSpeed = Animator.StringToHash("MotionSpeed");
-        }
     }
 }
