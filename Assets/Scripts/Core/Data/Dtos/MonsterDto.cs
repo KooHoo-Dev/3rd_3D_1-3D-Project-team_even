@@ -9,7 +9,7 @@ namespace HybridShooter.Core.Data.Dtos
         public int Id;
         public string Key = "";
         public string Name = "";
-        public int GradeId;  // MonsterGradeTable.GradeId
+        public int GradeId;  
         public string Role = "";  // MonsterRole enum
         public int MaxHp;
         public float MoveSpeed;

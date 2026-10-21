@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace HybridShooter.Core.Data.Loading
 {
@@ -17,6 +19,21 @@ namespace HybridShooter.Core.Data.Loading
 
             report.Error(table, id, $"{column} 값 '{raw}' 은(는) 잘못된 값입니다. 허용: {string.Join("/", System.Enum.GetNames(typeof(TEnum)))}");
             return default;
+        }
+
+        /// <summary>Resources 기준 경로(확장자 제외)의 에셋을 로드. 비었거나 없으면 report 에 오류를 기록하고 null.</summary>
+        public static T Asset<T>(string path, DataLoadReport report, string table, object id, string column)
+            where T : Object
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                report.Error(table, id, $"{column} 가 비었습니다");
+                return null;
+            }
+
+            var asset = Resources.Load<T>(path);
+            if (asset == null) report.Error(table, id, $"{column} 'Resources/{path}' 에서 {typeof(T).Name} 를 찾을 수 없습니다");
+            return asset;
         }
 
         /// <summary>"2001;2002" → [2001, 2002]. 빈 문자열이면 빈 배열.</summary>

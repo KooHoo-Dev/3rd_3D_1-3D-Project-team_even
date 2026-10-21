@@ -33,7 +33,6 @@ namespace HybridShooter.Core.Data
         private static DefTable<int, WeaponDef> weapons;
         private static DefTable<int, GrenadeDef> grenades;
         private static DefTable<int, MonsterDef> monsters;
-        private static DefTable<int, MonsterGradeDef> monsterGrades;
         private static DefTable<int, MonsterAttackDef> monsterAttacks;
         private static DefTable<int, MonsterPartDef> monsterParts;
         private static DefTable<int, BossPhaseDef> bossPhases;
@@ -50,7 +49,6 @@ namespace HybridShooter.Core.Data
         public static DefTable<int, WeaponDef> Weapons { get { EnsureLoaded(); return weapons; } }
         public static DefTable<int, GrenadeDef> Grenades { get { EnsureLoaded(); return grenades; } }
         public static DefTable<int, MonsterDef> Monsters { get { EnsureLoaded(); return monsters; } }
-        public static DefTable<int, MonsterGradeDef> MonsterGrades { get { EnsureLoaded(); return monsterGrades; } }
         public static DefTable<int, MonsterAttackDef> MonsterAttacks { get { EnsureLoaded(); return monsterAttacks; } }
         public static DefTable<int, MonsterPartDef> MonsterParts { get { EnsureLoaded(); return monsterParts; } }
         public static DefTable<int, BossPhaseDef> BossPhases { get { EnsureLoaded(); return bossPhases; } }
@@ -107,7 +105,6 @@ namespace HybridShooter.Core.Data
             players         = Build<PlayerDto, int, PlayerDef>(folder, PlayerDef.Table, r, d => d.Id, d => new PlayerDef(d, r));
             weapons         = Build<WeaponDto, int, WeaponDef>(folder, WeaponDef.Table, r, d => d.Id, d => new WeaponDef(d, r));
             grenades        = Build<GrenadeDto, int, GrenadeDef>(folder, GrenadeDef.Table, r, d => d.Id, d => new GrenadeDef(d, r));
-            monsterGrades   = Build<MonsterGradeDto, int, MonsterGradeDef>(folder, MonsterGradeDef.Table, r, d => d.GradeId, d => new MonsterGradeDef(d, r));
             monsters        = Build<MonsterDto, int, MonsterDef>(folder, MonsterDef.Table, r, d => d.Id, d => new MonsterDef(d, r));
             monsterAttacks  = Build<MonsterAttackDto, int, MonsterAttackDef>(folder, MonsterAttackDef.Table, r, d => d.Id, d => new MonsterAttackDef(d, r));
             monsterParts    = Build<MonsterPartDto, int, MonsterPartDef>(folder, MonsterPartDef.Table, r, d => d.Id, d => new MonsterPartDef(d, r));
@@ -123,6 +120,7 @@ namespace HybridShooter.Core.Data
             foreach (var dto in TsvTableReader.Read<ConfigDto>(folder, GameConfig.Table, r)) config.Add(dto, r);
 
             // 2) Link + Group : Id 참조 → Def 참조, 여러 행 → 상위 Def
+            LinkSounds(r);
             LinkPlayer(r);
             LinkMonsters(r);
             LinkRounds(r);
@@ -154,6 +152,26 @@ namespace HybridShooter.Core.Data
 
         // ───────────────────────── Link / Group ─────────────────────────
 
+        private static void LinkSounds(DataLoadReport r)
+        {
+            foreach (var w in weapons)
+            {
+                w.FireSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.FireSfx), w.FireSfxKey);
+                w.ReloadSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.ReloadSfx), w.ReloadSfxKey);
+            }
+            foreach (var g in grenades)
+                g.ExplodeSfx = FindSound(r, GrenadeDef.Table, g.Id, nameof(g.ExplodeSfx), g.ExplodeSfxKey);
+        }
+
+        /// <summary>키가 비었으면 null (사운드 없음). 키가 있는데 SoundTable 에 없으면 경고 후 null</summary>
+        private static SoundDef FindSound(DataLoadReport r, string table, object id, string column, string key)
+        {
+            if (string.IsNullOrEmpty(key)) return null;
+            if (sounds.TryGet(key, out var sound)) return sound;
+            r.Warn(table, id, $"{column} 키 '{key}' 가 SoundTable 에 없습니다");
+            return null;
+        }
+
         private static void LinkPlayer(DataLoadReport r)
         {
             foreach (var p in players)
@@ -170,8 +188,6 @@ namespace HybridShooter.Core.Data
         {
             foreach (var m in monsters)
             {
-                if (monsterGrades.TryGet(m.GradeId, out var g)) m.Grade = g;
-                else r.Error(MonsterDef.Table, m.Id, $"GradeId {m.GradeId} 가 MonsterGradeTable 에 없습니다");
                 CheckGradeRole(m, r);
             }
 
@@ -256,8 +272,7 @@ namespace HybridShooter.Core.Data
 
         private static void CheckGradeRole(MonsterDef m, DataLoadReport r)
         {
-            if (m.Grade == null) return;
-            bool bossGrade = m.Grade.Grade == MonsterGrade.Boss;
+            bool bossGrade = m.Grade == MonsterGrade.Boss;
             r.Check(bossGrade == m.IsBoss, MonsterDef.Table, m.Id, "Role Boss 와 Grade Boss 는 함께여야 합니다 (둘이 일치해야 함)");
         }
 
@@ -337,35 +352,18 @@ namespace HybridShooter.Core.Data
             float reloadTotal = upgradeTracks.TryGet(UpgradeType.ReloadSpeed, out var reload) ? reload.GetTotalValue(reload.MaxLevel) : 0f;
             r.Check(reloadTotal < 1f, UpgradeDef.Table, UpgradeType.ReloadSpeed, $"재장전 감소율 합계가 {reloadTotal} 입니다 (1 미만이어야 함)");
 
-            CheckSound(r, WeaponDef.Table, weapons.Select(w => (w.Id as object, w.FireSfxKey)).Concat(weapons.Select(w => (w.Id as object, w.ReloadSfxKey))));
-            CheckSound(r, GrenadeDef.Table, grenades.Select(g => (g.Id as object, g.ExplodeSfxKey)));
         }
 
         private static void ValidateMonsters(DataLoadReport r)
         {
-            // Load 도중이라 공개 프로퍼티(EnsureLoaded 재진입)가 아닌 필드를 직접 읽는다
-            int rifleDamage = players.Count > 0 ? players.All[0].Rifle?.Damage ?? 0 : 0;
-
             foreach (var m in monsters)
             {
-                // 등급 규칙: 처치 타수, 공격 패턴 수 (밸런스 값이라 경고)
-                if (m.Grade != null && rifleDamage > 0)
-                {
-                    int hits = (m.MaxHp + rifleDamage - 1) / rifleDamage;
-                    if (m.Grade.IsHitsInRange(hits) == false)
-                    {
-                        string max = m.Grade.MaxHitsToKill < 0 ? "제한없음" : m.Grade.MaxHitsToKill.ToString();
-                        r.Warn(MonsterDef.Table, m.Id, $"{m.Grade.Name} 등급은 {m.Grade.MinHitsToKill}~{max}타 처치인데 현재 {hits}타 (MaxHp {m.MaxHp} / 라이플 {rifleDamage})");
-                    }
-                }
-                if (m.Grade != null && m.Grade.AttackPatternCount >= 0 && m.BasicAttacks.Count != m.Grade.AttackPatternCount)
-                    r.Warn(MonsterAttackDef.Table, $"Monster {m.Id}", $"{m.Grade.Name} 등급은 공격 패턴 {m.Grade.AttackPatternCount}개인데 {m.BasicAttacks.Count}개입니다");
                 if (m.Attacks.Count == 0)
                     r.Error(MonsterAttackDef.Table, $"Monster {m.Id}", "공격이 하나도 없습니다");
 
                 foreach (var p in m.Parts)
-                    if (p.TransformTo != null && p.TransformTo.PrefabKey != m.PrefabKey)
-                        r.Warn(MonsterPartDef.Table, p.Id, $"전환 대상 {p.TransformTo.Id} 의 PrefabKey 가 달라 같은 프리팹 변종이 아닙니다");
+                    if (p.TransformTo != null && p.TransformTo.Prefab != m.Prefab)
+                        r.Warn(MonsterPartDef.Table, p.Id, $"전환 대상 {p.TransformTo.Id} 의 Prefab 이 달라 같은 프리팹 변종이 아닙니다");
 
                 if (m.IsBoss == false) continue;
 
@@ -380,13 +378,6 @@ namespace HybridShooter.Core.Data
                     if (i > 0 && ph.HpThresholdPercent >= m.Phases[i - 1].HpThresholdPercent) r.Error(BossPhaseDef.Table, ph.Id, "HpThresholdPercent 는 페이즈가 올라갈수록 작아져야 합니다");
                 }
             }
-        }
-
-        private static void CheckSound(DataLoadReport r, string table, IEnumerable<(object id, string key)> refs)
-        {
-            foreach (var (id, key) in refs)
-                if (string.IsNullOrEmpty(key) == false && sounds.Contains(key) == false)
-                    r.Warn(table, id, $"사운드 키 '{key}' 가 SoundTable 에 없습니다");
         }
     }
 }
