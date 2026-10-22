@@ -30,6 +30,16 @@ namespace HybridShooter.Monster.Movement
             public bool WasOccupied;        // 직전에 도착(Occupied) 상태였나
         }
 
+        /// <summary>TryFindInRing 이 값싼 필터를 통과시킨 후보 (id, 개체와의 수평 거리²)</summary>
+        private readonly struct RingCandidate
+        {
+            public readonly int Id;
+            public readonly float DistanceSqr;
+
+            public RingCandidate(int id, float distanceSqr)
+            { Id = id; DistanceSqr = distanceSqr; }
+        }
+
         /// <summary>링 1개의 슬롯 id 범위와 반경</summary>
         private readonly struct RingInfo
         {
@@ -64,6 +74,16 @@ namespace HybridShooter.Monster.Movement
 
         // ════════ 혼잡 판정용 ════════
         private readonly List<SlotObstacle> obstacles = new List<SlotObstacle>();             // 이번 Refresh 의 몬스터 위치
+        // 슬롯·장애물 위치는 Refresh(RefreshRange) 에서만 바뀌므로 그 시점에 미리 센다. 소유자 제외는 Reserve/Release 로 바뀌어 조회 시점에 보정한다
+        private readonly List<int> congestCount = new List<int>();                            // 슬롯 id → 혼잡 반경 안 장애물 수 (소유자 제외 전)
+        private readonly Dictionary<int, int> obstacleIndexByOwner = new Dictionary<int, int>(); // 몬스터 id → obstacles 인덱스 (OwnerId 는 유일하다고 가정)
+
+        // ════════ TooClose 판정용 균일 격자 (RefreshRange 안에서만 사용, 호출마다 다시 만든다) ════════
+        private readonly Dictionary<long, int> spacingGridHead = new Dictionary<long, int>(); // 셀 → 그 셀의 첫 슬롯 id
+        private readonly List<int> spacingGridNext = new List<int>();                         // 슬롯 id → 같은 셀의 다음 슬롯 id (-1 = 끝)
+
+        // ════════ 링 탐색용 임시 버퍼 ════════
+        private readonly List<RingCandidate> ringCandidates = new List<RingCandidate>();      // TryFindInRing 후보 (매번 할당하지 않도록 재사용)
 
         // ════════ 외부 공개 ════════
         public int Count => slots.Count;
@@ -106,6 +126,13 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
+        /// slotId 가 아직 ownerId 의 예약이고 유효(Valid)한가. GetSnapshot 과 달리 혼잡 판정을 하지 않아 O(1).
+        /// MonsterMovement.HasCurrentReservation 이 매 프레임 부르므로 범위 밖 id 는 예외 없이 false.
+        /// </summary>
+        public bool IsValidlyReservedBy(int slotId, int ownerId) =>
+            (uint)slotId < (uint)slots.Count && slots[slotId].Owner == ownerId && slots[slotId].Validity == SlotValidity.Valid;
+
+        /// <summary>
         /// 목표 위치(center)가 바뀐 뒤 슬롯 후보를 다시 계산하고 점유 상태를 갱신한다.
         /// 만료된 거절 기록 정리 → 모든 슬롯 위치 재계산(유효하지 않게 된 슬롯의 예약은 해제) → 소유자가 슬롯에 도착했는지(Occupied) 판정
         /// </summary>
@@ -115,7 +142,12 @@ namespace HybridShooter.Monster.Movement
 
             // 1) 이번 장애물 목록 저장 + 만료된 거절 기록 제거
             obstacles.Clear();
-            for (int i = 0; i < currentObstacles.Count; i++) obstacles.Add(currentObstacles[i]);
+            obstacleIndexByOwner.Clear();
+            for (int i = 0; i < currentObstacles.Count; i++)
+            {
+                obstacles.Add(currentObstacles[i]);
+                obstacleIndexByOwner.Add(currentObstacles[i].OwnerId, i); // OwnerId 중복이면 예외: 혼잡 캐시가 틀려지므로 드러낸다
+            }
             expiredRejections.Clear();
             foreach (KeyValuePair<long, float> rejection in rejectedUntil)
                 if (now >= rejection.Value) expiredRejections.Add(rejection.Key);
@@ -151,7 +183,11 @@ namespace HybridShooter.Monster.Movement
             int count = approachCount + ringIndex * countStep;
             float radius = approachRadius * count / approachCount;
             rings.Add(new RingInfo(slots.Count, count, radius));
-            for (int i = 0; i < count; i++) slots.Add(new Slot { RingIndex = ringIndex });
+            for (int i = 0; i < count; i++)
+            {
+                slots.Add(new Slot { RingIndex = ringIndex });
+                congestCount.Add(0); // 위치 계산(RefreshRange) 전에는 0
+            }
         }
 
         /// <summary>
@@ -160,6 +196,20 @@ namespace HybridShooter.Monster.Movement
         /// </summary>
         private void RefreshRange(int startId)
         {
+            // 0) TooClose 판정용 격자 준비: startId 앞쪽의 Valid 슬롯(이번에 다시 계산하지 않는 슬롯)을 먼저 넣는다
+            float minSpacing = settings.MinimumSpacing;
+            float minSqr = minSpacing * minSpacing;
+            // 셀 크기를 MinimumSpacing 보다 아주 조금 크게 잡아, 부동소수 반올림으로 이웃 셀을 놓치는 일을 막는다 (최종 판정은 정확한 거리 비교)
+            float cellSize = minSpacing * 1.001f;
+            bool useSpacing = minSpacing > 0f; // 0 이하면 기존 비교(dist² >= 0)가 항상 통과라 TooClose 가 없다
+            if (useSpacing)
+            {
+                spacingGridHead.Clear();
+                while (spacingGridNext.Count < slots.Count) spacingGridNext.Add(-1);
+                for (int other = 0; other < startId; other++)
+                    if (slots[other].Validity == SlotValidity.Valid) SpacingGridInsert(other, slots[other].Position, cellSize);
+            }
+
             for (int id = startId; id < slots.Count; id++)
             {
                 Slot slot = slots[id];
@@ -173,19 +223,48 @@ namespace HybridShooter.Monster.Movement
                 {
                     slot.Position = projected;
                     slot.Validity = SlotValidity.Valid;
-                    float minSqr = settings.MinimumSpacing * settings.MinimumSpacing;
-                    for (int other = 0; other < id; other++)
+                    // 앞 번호 Valid 슬롯 중 MinimumSpacing 안에 하나라도 있으면 TooClose (격자의 이웃 셀만 비교)
+                    if (useSpacing)
                     {
-                        if (slots[other].Validity != SlotValidity.Valid) continue;
-                        if (HorizontalSqr(projected, slots[other].Position) >= minSqr) continue;
-                        slot.Validity = SlotValidity.TooClose;
-                        break;
+                        if (IsTooCloseInGrid(projected, cellSize, minSqr)) slot.Validity = SlotValidity.TooClose;
+                        else SpacingGridInsert(id, projected, cellSize); // Valid 로 확정된 슬롯만 이후 슬롯의 비교 대상
                     }
                 }
                 slots[id] = slot;
+                // 위치가 확정됐으니 혼잡 반경 안 장애물 수를 캐시 (링을 새로 만들 때의 RefreshRange(startId) 도 여기서 계산됨)
+                congestCount[id] = slot.Validity == SlotValidity.Valid ? CountObstaclesNear(slot.Position) : 0;
                 if (slot.Validity != SlotValidity.Valid && slot.Use != SlotUse.Free)
                     Release(slot.Owner);
             }
+        }
+
+        /// <summary>격자 셀 좌표(cx, cz)를 하나의 long 키로 합친다</summary>
+        private static long SpacingCellKey(int cx, int cz) => ((long)cx << 32) | (uint)cz;
+
+        /// <summary>Valid 슬롯 id 를 position 이 속한 셀의 연결 리스트 맨 앞에 넣는다 (spacingGridNext[id] = 이전 head)</summary>
+        private void SpacingGridInsert(int id, Vector3 position, float cellSize)
+        {
+            long key = SpacingCellKey(Mathf.FloorToInt(position.x / cellSize), Mathf.FloorToInt(position.z / cellSize));
+            spacingGridNext[id] = spacingGridHead.TryGetValue(key, out int head) ? head : -1;
+            spacingGridHead[key] = id;
+        }
+
+        /// <summary>
+        /// position 에서 minSqr(= MinimumSpacing²) 미만 거리에 격자 속 슬롯이 있는가.
+        /// 거리가 MinimumSpacing 미만인 두 점은 셀 크기 ≥ MinimumSpacing 이므로 항상 인접 3×3 셀 안에 있어, 전수 비교와 결과가 같다
+        /// </summary>
+        private bool IsTooCloseInGrid(Vector3 position, float cellSize, float minSqr)
+        {
+            int cx = Mathf.FloorToInt(position.x / cellSize);
+            int cz = Mathf.FloorToInt(position.z / cellSize);
+            for (int dx = -1; dx <= 1; dx++)
+            for (int dz = -1; dz <= 1; dz++)
+            {
+                if (!spacingGridHead.TryGetValue(SpacingCellKey(cx + dx, cz + dz), out int other)) continue;
+                for (; other >= 0; other = spacingGridNext[other])
+                    if (HorizontalSqr(position, slots[other].Position) < minSqr) return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -317,7 +396,9 @@ namespace HybridShooter.Monster.Movement
 
         /// <summary>
         /// ringIndex 링에서 position 에 가장 가까운 사용 가능한 슬롯을 찾는다.
-        /// 제외 조건: 무효, 이미 예약됨, 다른 몬스터로 혼잡, 최근 거절, 도달 불가
+        /// 제외 조건: 무효, 이미 예약됨, 다른 몬스터로 혼잡, 최근 거절, 도달 불가.
+        /// 값싼 필터를 먼저 모두 적용해 후보를 모으고, 가까운 후보부터 비싼 CanReach(NavMesh 경로 계산)를 확인한다.
+        /// 거리가 같으면 id 가 작은 쪽이 먼저라 결과는 id 순 전수 탐색과 같고 CanReach 호출만 줄어든다
         /// </summary>
         private bool TryFindInRing(int ownerId, Vector3 position, float now, int ringIndex, out int best)
         {
@@ -325,18 +406,32 @@ namespace HybridShooter.Monster.Movement
             int start = ring.StartId;
             int end = start + ring.Count;
             best = -1;
-            float bestSqr = float.PositiveInfinity;
+
+            // 1) 값싼 필터 통과 후보를 id 오름차순으로 (id, 거리²) 버퍼에 모은다
+            ringCandidates.Clear();
             for (int id = start; id < end; id++)
             {
                 Slot slot = slots[id];
                 if (slot.Validity != SlotValidity.Valid || slot.Use != SlotUse.Free || IsCongested(id, ownerId)) continue;
                 if (rejectedUntil.TryGetValue(RejectionKey(ownerId, id), out float until) && now < until) continue;
-                float distance = HorizontalSqr(position, slot.Position);
-                if (distance >= bestSqr || !navigation.CanReach(position, slot.Position)) continue;
-                best = id;
-                bestSqr = distance;
+                ringCandidates.Add(new RingCandidate(id, HorizontalSqr(position, slot.Position)));
             }
-            return best >= 0;
+
+            // 2) 가장 가까운 후보부터 도달 가능 여부 확인. 불가하면 그 후보를 버리고 다음으로 가까운 후보 (엄격한 < 라 동률은 작은 id 유지)
+            while (ringCandidates.Count > 0)
+            {
+                int nearest = 0;
+                for (int i = 1; i < ringCandidates.Count; i++)
+                    if (ringCandidates[i].DistanceSqr < ringCandidates[nearest].DistanceSqr) nearest = i;
+                int candidateId = ringCandidates[nearest].Id;
+                if (navigation.CanReach(position, slots[candidateId].Position))
+                {
+                    best = candidateId;
+                    return true;
+                }
+                ringCandidates.RemoveAt(nearest); // 순서 유지 (id 오름차순이 동률 판정 기준)
+            }
+            return false;
         }
 
         /// <summary>슬롯 id 를 ownerId 에게 예약하고 진행 추적을 시작한다. 이미 슬롯 위에 있으면 바로 Occupied</summary>
@@ -357,20 +452,39 @@ namespace HybridShooter.Monster.Movement
             if (id < approachCount) ApproachReservations++;
         }
 
-        /// <summary>슬롯 위치 근처에 (excludedOwner·슬롯 소유자 외의) 다른 몬스터가 서 있어 쓰기 곤란한가</summary>
+        /// <summary>
+        /// 슬롯 위치 근처에 (excludedOwner·슬롯 소유자 외의) 다른 몬스터가 서 있어 쓰기 곤란한가. O(1).
+        /// RefreshRange 가 미리 센 congestCount 에서, 제외 대상 몬스터가 반경 안에 있으면 그만큼 뺀다
+        /// </summary>
         private bool IsCongested(int id, int excludedOwner)
         {
             Slot slot = slots[id];
             if (slot.Validity != SlotValidity.Valid) return false;
-            for (int i = 0; i < obstacles.Count; i++)
-            {
-                SlotObstacle obstacle = obstacles[i];
-                if (obstacle.OwnerId == excludedOwner || obstacle.OwnerId == slot.Owner) continue;
-                float clearance = obstacle.Radius + settings.MinimumSpacing * 0.5f;
-                if (HorizontalSqr(obstacle.Position, slot.Position) < clearance * clearance) return true;
-            }
-            return false;
+            int count = congestCount[id] - IsObstacleNear(excludedOwner, slot.Position);
+            // 슬롯 소유자가 제외 대상과 같으면 이미 뺐으므로 한 번만 뺀다
+            if (slot.Owner != excludedOwner) count -= IsObstacleNear(slot.Owner, slot.Position);
+            return count > 0;
         }
+
+        /// <summary>장애물 obstacle 이 slotPosition 의 혼잡 반경(장애물 반지름 + MinimumSpacing/2) 안에 있는가. 세기·제외 양쪽이 같은 식을 쓰게 한 곳에 둔다</summary>
+        private bool IsInClearance(in SlotObstacle obstacle, Vector3 slotPosition)
+        {
+            float clearance = obstacle.Radius + settings.MinimumSpacing * 0.5f;
+            return HorizontalSqr(obstacle.Position, slotPosition) < clearance * clearance;
+        }
+
+        /// <summary>slotPosition 혼잡 반경 안의 장애물 수 (RefreshRange 에서 슬롯마다 1회)</summary>
+        private int CountObstaclesNear(Vector3 slotPosition)
+        {
+            int count = 0;
+            for (int i = 0; i < obstacles.Count; i++)
+                if (IsInClearance(obstacles[i], slotPosition)) count++;
+            return count;
+        }
+
+        /// <summary>ownerId 의 장애물이 이번 Refresh 목록에 있고 slotPosition 혼잡 반경 안이면 1, 아니면 0</summary>
+        private int IsObstacleNear(int ownerId, Vector3 slotPosition) =>
+            obstacleIndexByOwner.TryGetValue(ownerId, out int index) && IsInClearance(obstacles[index], slotPosition) ? 1 : 0;
 
         /// <summary>(몬스터 id, 슬롯 id) 를 하나의 long 키로 합친다</summary>
         private static long RejectionKey(int ownerId, int slotId) => ((long)ownerId << 32) | (uint)slotId;

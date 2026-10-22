@@ -403,13 +403,12 @@ namespace HybridShooter.Monster.Movement
             SetState(intent.State);
         }
 
-        /// <summary>slotId 가 아직 내 예약이며 유효한 슬롯인가 (슬롯이 무효화/회수되면 false)</summary>
-        private bool HasCurrentReservation(int slotId)
-        {
-            if (crowdCoordinator == null || slotId < 0 || slotId >= crowdCoordinator.SlotCount) return false;
-            SlotSnapshot slot = crowdCoordinator.GetSlotSnapshot(slotId);
-            return slot.OwnerId == GetInstanceID() && slot.Validity == SlotValidity.Valid;
-        }
+        /// <summary>
+        /// slotId 가 아직 내 예약이며 유효한 슬롯인가 (슬롯이 무효화/회수되면 false).
+        /// 스냅샷(혼잡 판정 포함) 대신 코디네이터의 O(1) 조회를 쓴다
+        /// </summary>
+        private bool HasCurrentReservation(int slotId) =>
+            crowdCoordinator != null && crowdCoordinator.IsSlotReservedBy(this, slotId);
 
         /// <summary>예약 슬롯이 사라졌을 때(타겟 소실·NavMesh 변경 등) 이동을 멈추고 Idle 로 돌아간다. 다음 Think 에서 새 슬롯을 받는다</summary>
         private void StopForInvalidReservation()

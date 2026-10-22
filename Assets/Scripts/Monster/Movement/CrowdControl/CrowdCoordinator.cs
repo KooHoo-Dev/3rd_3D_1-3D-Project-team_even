@@ -16,8 +16,8 @@ namespace HybridShooter.Monster.Movement
         [Min(0f)] public float ReleaseRadius = 10.5f;
         [Tooltip("토큰 배분 주기 (s)")]
         [Min(0.02f)] public float AllocationInterval = 0.2f;
-        [Tooltip("개체 판단을 이 시간 동안 프레임에 나눠 한 바퀴 돈다 (s)")]
-        [Min(0.02f)] public float ThinkCycle = 0.2f;
+        [Tooltip("개체 판단을 이 시간 동안 프레임에 나눠 한 바퀴 돈다 = 개체당 Think 간격 (s)")]
+        [Min(0.02f)] public float ThinkCycle = 0.5f;
         public bool EnableCrowdControl = true;
         public bool UseSlots = true;
         public SlotSettings Slots = new SlotSettings();
@@ -101,6 +101,13 @@ namespace HybridShooter.Monster.Movement
                 throw new InvalidOperationException("슬롯 후보가 아직 갱신되지 않았다. RefreshSlots를 먼저 호출해야 한다");
             return slots.GetSnapshot(id);
         }
+
+        /// <summary>
+        /// agent 가 slotId 를 아직 유효하게 예약 중인가 (MonsterMovement.HasCurrentReservation 용 O(1) 조회).
+        /// 슬롯이 아직 갱신 전이면 false 이며, 스냅샷을 만들지 않아 혼잡 판정 비용이 없다
+        /// </summary>
+        public bool IsSlotReservedBy(MonsterMovement agent, int slotId) =>
+            slotsRefreshed && slots.IsValidlyReservedBy(slotId, agent.GetInstanceID());
 
         /// <summary>targetSource 를 IMovementTarget 으로 변환해 저장하고 설정값 검증</summary>
         private void Awake()
@@ -364,7 +371,6 @@ namespace HybridShooter.Monster.Movement
             {
                 // B) 배분 주기가 되면 모드에 따라 배분: 슬롯 모드 / 토큰 모드 / 군중 제어 꺼짐(전원 자유 이동)
                 float now = Time.time;
-                bool allocated = false;
                 if (now >= nextAllocationTime)
                 {
                     if (settings.EnableCrowdControl && settings.UseSlots)
@@ -395,16 +401,15 @@ namespace HybridShooter.Monster.Movement
                         lastEngagedInsideNear = 0;
                         nextAllocationTime = now + settings.AllocationInterval;
                     }
-                    allocated = true;
                 }
 
                 // C) 개체 판단 분산: 이번 프레임에 판단할 수(thinkBudget)만큼 순번대로 Think 호출
                 int n = agents.Count;
                 if (n > 0)
                 {
-                    // 배분 직후에는 전원이 한 번씩 판단 (5Hz 전체 갱신: 지시 종류 변화를 빨리 반영하는 대신 해당 프레임 비용 증가)
-                    if (allocated) thinkBudget = n;
-                    else thinkBudget = Mathf.Min(thinkBudget + n * Time.deltaTime / settings.ThinkCycle, n);
+                    // 배분 프레임에도 전원 Think 를 몰아주지 않고 예산만 누적한다: 개체당 정확히 ThinkCycle 마다 1회, 프레임에 고르게 분산
+                    // (대신 지시 변화·신규 슬롯 반영이 최대 ThinkCycle 만큼 늦어진다)
+                    thinkBudget = Mathf.Min(thinkBudget + n * Time.deltaTime / settings.ThinkCycle, n);
 
                     int k = Mathf.Min(n, (int)thinkBudget);
                     thinkBudget -= k;

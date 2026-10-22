@@ -25,6 +25,10 @@ namespace HybridShooter.Monster.MovementLab
         [Tooltip("프리팹 크기 배율")]
         [SerializeField, Min(0.01f)] private float monsterVisualScale = 1f;
 
+        [Header("Crowd Think")]
+        [Tooltip("개체당 Think 간격 (s). 코디네이터는 씬에 1개라 모든 몬스터에 공통 적용된다. Lab 슬라이더는 Play 중 임시 조정")]
+        [SerializeField, Min(0.02f)] private float thinkCycle = 0.5f;
+
         private readonly List<MovementLabOwnedMonster> ownedMonsters = new List<MovementLabOwnedMonster>();
         private int spawnSerial;
 
@@ -38,6 +42,19 @@ namespace HybridShooter.Monster.MovementLab
         private void Awake()
         {
             if (GetComponent<MovementLabController>() == null) gameObject.AddComponent<MovementLabController>();
+        }
+
+        // Play 시작 시 인스펙터 값을 코디네이터에 1회 반영 (씬에 저장된 코디네이터 값은 코드 기본값이 바뀌어도 그대로라서 필요)
+        private void Start() => ApplyThinkCycle();
+
+        // 인스펙터 수정 시(Play 중 포함) 즉시 반영
+        private void OnValidate() => ApplyThinkCycle();
+
+        /// <summary>인스펙터의 thinkCycle 을 코디네이터 설정에 밀어 넣는다. 코디네이터가 아직 없으면(Build 전) 건너뜀</summary>
+        private void ApplyThinkCycle()
+        {
+            if (coordinator == null) return;
+            coordinator.Settings.ThinkCycle = thinkCycle;
         }
 
         [ContextMenu("Laboratory/Build Laboratory")]
