@@ -11,6 +11,8 @@ namespace HybridShooter.Core.Contracts
     public interface IPlayerTarget
     {
         Transform Root { get; }
+        // Behaviour 브랜치와의 계약 호환. 실제 플레이어 등록/연동은 후속 작업에서 연결한다.
+        Vector3 Position { get; }
         /// <summary>몬스터가 조준할 지점 (가슴 높이)</summary>
         Transform AimPoint { get; }
         /// <summary>현재 시야(카메라) 트랜스폼. 침투형의 "시야 밖" 판정용 (BL-012)</summary>
