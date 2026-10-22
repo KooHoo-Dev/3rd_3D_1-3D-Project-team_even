@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace HybridShooter.Round
 {
-    public sealed class RoundManager : MonoBehaviour
+    public sealed class RoundSequencer : MonoBehaviour
     {
         private enum TimedSituation
         {
@@ -21,10 +21,10 @@ namespace HybridShooter.Round
         
         [Header("References")]
         [SerializeField] private SupplyDropper supplyDropper;
-
+        
         [Header("Round Timeline")]
         [SerializeField] private List<TimelineEntry> timeline = new List<TimelineEntry>();
-
+        
         private float elapsedSeconds;
         private int nextTimelineIndex;
         private bool isRoundRunning;
@@ -84,12 +84,12 @@ namespace HybridShooter.Round
                 case TimedSituation.StartSupplyDropCycle:
                     if (supplyDropper == null)
                     {
-                        Debug.LogError("[RoundManager] S per가 연결되지 않았습니다.",this);
+                        Debug.LogError("[RoundManager] SupplyDropper가 연결되지 않았습니다.",this);
                         return;
                     }
-
                     supplyDropper.StartAutoDropCycle();
                     break;
+                
             }
         }
 

@@ -4,10 +4,10 @@ using UnityEngine;
 
 public class RoundTester : MonoBehaviour
 {
-    [SerializeField] private RoundManager roundManager;
+    [SerializeField] private RoundSequencer roundSequencer;
     
     private void Start()
     {
-        roundManager.StartRound();
+        roundSequencer.StartRound();
     }
 }
