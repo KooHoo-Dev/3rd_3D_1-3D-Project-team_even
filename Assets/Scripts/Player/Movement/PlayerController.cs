@@ -31,7 +31,7 @@ namespace HybridShooter.Player
     ///  - 외부 제어: 벽넘기처럼 애니메이션이 몸을 직접 옮겨야 할 때 BeginExternalControl ~ EndExternalControl 동안 물리를 멈춘다.
     /// </summary>
     [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
-    public class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IGrenadeReceiver
+    public class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IGrenadeReceiver, IDamageable
     {
         #region 설정(인스펙터)
         [Header("이동")]
@@ -256,6 +256,8 @@ namespace HybridShooter.Player
             transitionGetter = () => transitionT;
             transitionSetter = x => { transitionT = x; ApplyTransitionPose(); };
             transitionComplete = OnViewTransitionComplete;
+
+            IsDead = false;
         }
 
         private void Start()
@@ -346,6 +348,11 @@ namespace HybridShooter.Player
 
         private void InputHandle()
         {
+
+            // 마우스 → 시선 회전.
+            UpdateLook();
+            LockFacing(lookYaw);
+            if(IsDead) return;
             // 0) 커서 잠금 해제/복귀 (좌클릭은 조준용으로 비워 둔다)
             if (SimpleInput.GetKeyDown(keySettings.cursorToggleKey))
                 SetCursorLocked(Cursor.lockState != CursorLockMode.Locked);
@@ -353,11 +360,8 @@ namespace HybridShooter.Player
             // 1) 시점 전환
             if (SimpleInput.GetKeyDown(keySettings.viewToggleKey)) ToggleViewMode();
 
-            // 2) 마우스 → 시선 회전.
-            UpdateLook();
-            LockFacing(lookYaw);
 
-            // 3) 이동 키 → 로컬 입력 (x = 좌우, y = 앞뒤)
+            // 이동 키 → 로컬 입력 (x = 좌우, y = 앞뒤)
             Vector2 input = Vector2.zero;
             if (SimpleInput.GetKey(keySettings.frontKey)) input.y += 1f;
             if (SimpleInput.GetKey(keySettings.backKey)) input.y -= 1f;
@@ -365,17 +369,17 @@ namespace HybridShooter.Player
             if (SimpleInput.GetKey(keySettings.leftKey)) input.x -= 1f;
             lastMoveInput = Vector2.ClampMagnitude(input, 1f); // 대각선이 더 빨라지지 않게
 
-            // 4) 로컬 입력 → 월드 방향
+            // 로컬 입력 → 월드 방향
             Vector3 worldMove = InputToWorld(lastMoveInput);
 
-            // 5) 이동 + 달리기 (누르고 있는 동안)
+            // 이동 + 달리기 (누르고 있는 동안)
             bool sprint = SimpleInput.GetKey(keySettings.sprintKey);
             SetMoveInput(worldMove, sprint);
 
-            // 6) 점프
+            // 점프
             if (SimpleInput.GetKeyDown(keySettings.jumpKey)) RequestJump();
 
-            // 7) 구르기: 이동 입력이 있으면 그 방향, 없으면 몸 정면
+            // 구르기: 이동 입력이 있으면 그 방향, 없으면 몸 정면
             if (SimpleInput.GetKeyDown(keySettings.RollKey))
             {
                 Vector3 rollDir = worldMove.sqrMagnitude > 0.0001f ? worldMove : Forward;
@@ -945,6 +949,8 @@ namespace HybridShooter.Player
         public int Grenades => grenades;
         public int MaxGrenades => maxGrenades;
 
+        public Faction Faction => throw new NotImplementedException();
+
         /// <summary>죽었거나, 이미 가득 찼거나, amount 가 0 이하면 false (아이템을 소모하지 않게)</summary>
         public bool Heal(int amount)
         {
@@ -998,6 +1004,21 @@ namespace HybridShooter.Player
             for (int i = modifiers.Count - 1; i >= 0; i--)
                 if (modifiers[i].Key == key) modifiers.RemoveAt(i);
         }
+        bool IsDead = false;
+        public void TakeDamage(in DamageInfo info)
+        {
+            currentHealth = Mathf.Max(0, currentHealth - info.Amount);
+            if (IsDead == false && currentHealth == 0)
+            {
+                Die();
+            }
+        }
+
+        private void Die()
+        {
+            IsDead = true;
+        }
+
         #endregion
     }
 }
