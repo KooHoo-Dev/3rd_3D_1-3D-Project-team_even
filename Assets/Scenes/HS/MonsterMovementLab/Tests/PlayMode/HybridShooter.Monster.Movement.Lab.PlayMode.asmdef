@@ -1,5 +1,0 @@
-{
-  "name": "HybridShooter.Monster.Movement.Lab.PlayMode",
-  "references": ["HybridShooter.Monster.Movement", "HybridShooter.Monster.MovementLab", "Unity.AI.Navigation"],
-  "optionalUnityReferences": ["TestAssemblies"]
-}

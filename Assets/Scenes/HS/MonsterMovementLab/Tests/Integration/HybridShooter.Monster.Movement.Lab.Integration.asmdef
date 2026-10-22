@@ -1,6 +1,0 @@
-{
-  "name": "HybridShooter.Monster.Movement.Lab.Integration",
-  "includePlatforms": ["Editor"],
-  "references": ["HybridShooter.Monster.Movement", "HybridShooter.Monster.MovementLab", "Unity.AI.Navigation"],
-  "optionalUnityReferences": ["TestAssemblies"]
-}
