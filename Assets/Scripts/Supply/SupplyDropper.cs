@@ -29,10 +29,7 @@ namespace HybridShooter.Supply
         [SerializeField] private LayerMask groundMask = ~0;
         [Tooltip("낙하 지점에서 지면을 못 찾았을 때 다시 뽑는 횟수")]
         [SerializeField] private int maxPositionTries = 10;
-
         
-        [Tooltip("플레이 시작 후 첫 투하까지 대기 시간 (초)")]
-        [SerializeField, Min(0f)] private float firstDropDelay = 60f;
         [Tooltip("투하 주기 (초)")]
         [SerializeField, Min(0.1f)] private float dropInterval = 25f;
         [Tooltip("필드에 동시에 존재할 수 있는 보급 최대 개수. 이 수에 도달하면 투하하지 않는다")]
@@ -40,7 +37,7 @@ namespace HybridShooter.Supply
 
         private readonly List<SupplyCrate> activeCrates = new List<SupplyCrate>();
         private readonly Dictionary<string, SupplyCrate> prefabCache = new Dictionary<string, SupplyCrate>();
-        private bool autoDrop = true;
+        private bool autoDrop = false;
         private float nextAutoDropTime = float.PositiveInfinity;
         
         /// <summary>현재 필드에 남아 있는 보급 목록 (낙하 중 + 착지 후)</summary>
@@ -55,19 +52,14 @@ namespace HybridShooter.Supply
         /// <summary>라운드 시작·정리 이벤트 구독 (OnDisable 과 짝)</summary>
         private void OnEnable()
         {
-            EventBus<RoundStartedEvent>.Subscribe(OnRoundStarted);
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
         }
 
         /// <summary>라운드 시작·정리 이벤트 구독 해제</summary>
         private void OnDisable()
         {
-            EventBus<RoundStartedEvent>.Unsubscribe(OnRoundStarted);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
         }
-
-        /// <summary>플레이 시작 시점부터 자동 투하 타이머를 건다 (firstDropDelay 후 첫 투하)</summary>
-        private void Start() => RestartAutoDrop();
 
         /// <summary>
         /// 자동 투하 타이머 처리. 예약 시각이 되면 다음 투하를 dropInterval 뒤로 예약하고,
@@ -80,9 +72,6 @@ namespace HybridShooter.Supply
             // 제한 개수에 도달했으면 이번 주기는 건너뛰고 다음 주기에 다시 시도
             if (IsAtLimit == false) DropRandom();
         }
-
-        /// <summary>자동 투하 타이머 재시작. 지금부터 firstDropDelay 후 첫 투하, 이후 dropInterval 마다</summary>
-        public void RestartAutoDrop() => nextAutoDropTime = Time.time + firstDropDelay;
 
         /// <summary>
         /// SupplyTable 의 Weight(가중치)로 보급 종류(수류탄/회복 팩)를 랜덤 선택해 투하한다.
@@ -217,9 +206,6 @@ namespace HybridShooter.Supply
             crate.Removed -= OnCrateRemoved;
             activeCrates.Remove(crate);
         }
-
-        /// <summary>라운드 시작 시 자동 투하 타이머를 처음부터 다시 건다</summary>
-        private void OnRoundStarted(RoundStartedEvent e) => RestartAutoDrop();
 
         /// <summary>라운드 정리 시 자동 투하를 멈추고 남은 보급을 전부 제거</summary>
         private void OnRoundCleanup(RoundCleanupEvent e)

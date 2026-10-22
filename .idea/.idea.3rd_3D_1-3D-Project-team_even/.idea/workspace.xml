@@ -12,16 +12,9 @@
   <component name="ChangeListManager">
     <list default="true" id="6c3264b0-7560-41e9-b45a-988accbd65bf" name="변경" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.3rd_3D_1-3D-Project-team_even/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.3rd_3D_1-3D-Project-team_even/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scenes/GU/SupplyPackTestscene.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/GU/SupplyPackTestscene.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Contracts/PlayerContracts.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Contracts/PlayerContracts.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Defs/GameConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Defs/GameConfig.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Defs/SupplyDef.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Data/Defs/SupplyDef.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Events/GameEvents.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Events/GameEvents.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Core/Services/DefaultServices.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Core/Services/DefaultServices.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/ConfigTable.tsv" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/ConfigTable.tsv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/SupplyTable.tsv" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/StreamingAssets/Tables/SupplyTable.tsv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Docs/Architecture/02-SystemInterfaces.md" beforeDir="false" afterPath="$PROJECT_DIR$/Docs/Architecture/02-SystemInterfaces.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Docs/Tables/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/Docs/Tables/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/CY/Round Test.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/CY/Round Test.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Supply/SupplyDropper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Supply/SupplyDropper.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ProjectSettings/Packages/com.unity.probuilder/Settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/Packages/com.unity.probuilder/Settings.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -31,9 +24,71 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/Assets/Scripts/Round/RoundTester.cs" root0="FORCE_HIGHLIGHTING" />
+  </component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0000005902707043" />
+      <entry key="S2" value="1.0715025498255326" />
+      <entry key="S5" value="1.874929427730393" />
+      <entry key="S10" value="3.0732564292233935" />
+      <entry key="S30" value="4.725818684777399" />
+      <entry key="S60" value="5.383662364695842" />
+      <entry key="M2" value="5.910650819221625" />
+      <entry key="M5" value="6.4441957531853795" />
+      <entry key="M10" value="6.694698673829521" />
+      <entry key="M15" value="6.789663419038462" />
+      <entry key="M30" value="6.8912319492032825" />
+      <entry key="H1" value="6.9446767227529485" />
+      <entry key="H2" value="6.972098443670515" />
+      <entry key="H4" value="6.985988591996095" />
+      <entry key="D1" value="6.997656288734384" />
+      <entry key="W1" value="6.999664975783332" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="1.4157520014111633E-6" />
+      <entry key="MS500" value="0.06794170329553759" />
+      <entry key="S2" value="0.6418740491819984" />
+      <entry key="S5" value="1.20860000626769" />
+      <entry key="S10" value="1.5408772806169821" />
+      <entry key="S30" value="1.8297737774558496" />
+      <entry key="S60" value="1.912640467736386" />
+      <entry key="M2" value="1.9671141781429657" />
+      <entry key="M5" value="2.149551834495525" />
+      <entry key="M10" value="2.40022876624115" />
+      <entry key="M15" value="2.5451898488702924" />
+      <entry key="M30" value="2.73941651387808" />
+      <entry key="H1" value="2.860134944909064" />
+      <entry key="H2" value="2.9274927123170036" />
+      <entry key="H4" value="2.9630784821356504" />
+      <entry key="D1" value="2.993751526651945" />
+      <entry key="W1" value="2.9991050089401146" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="1.5365906758392082E-5" />
+      <entry key="MS500" value="0.12482474648889082" />
+      <entry key="S2" value="1.0777386418757025" />
+      <entry key="S5" value="2.6408073261292833" />
+      <entry key="S10" value="4.287860433708894" />
+      <entry key="S30" value="6.397005044750519" />
+      <entry key="S60" value="7.206935529061197" />
+      <entry key="M2" value="7.829263937741565" />
+      <entry key="M5" value="8.572495322100258" />
+      <entry key="M10" value="9.083630764282885" />
+      <entry key="M15" value="9.327104069603536" />
+      <entry key="M30" value="9.626638069310866" />
+      <entry key="H1" value="9.802766204956054" />
+      <entry key="H2" value="9.898557429883235" />
+      <entry key="H4" value="9.948547336439354" />
+      <entry key="D1" value="9.9913207819967" />
+      <entry key="W1" value="9.99875754118115" />
+    </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 5,
@@ -44,30 +99,30 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feat/E7-SupplyPackageDrop-System&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "cidr.known.project.marker": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "feat/RoundManager",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Unity 에디터에 연결.Unity 에디터에 연결">
     <configuration name="유닛 테스트(배치 모드)" type="RunUnityExe" factoryName="Unity Executable">
       <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.3.15f1\Editor\Unity.exe" />
