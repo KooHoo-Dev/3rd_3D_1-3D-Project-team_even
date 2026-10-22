@@ -1,0 +1,119 @@
+using System;
+using HybridShooter.Core.Contracts;
+using UnityEngine;
+
+namespace HybridShooter.Monster.Behaviour
+{
+    /// <summary>
+    /// 몬스터 1마리의 상태 머신 본체 (상태 패턴의 Owner). Unity 컴포넌트가 아니라 순수 C# 이다.
+    /// MonoBehaviour 껍데기가 Update(now, dt) 를 매 프레임 호출하고, 대상·처치 같은 외부 사건을 전달한다.
+    /// </summary>
+    public sealed class MonsterBrain
+    {
+        private readonly IMonsterMover mover;
+        private readonly IMonsterBody body;
+
+        public MonsterState Idle { get; }
+        public MonsterState Chase { get; }
+        public MonsterState Attack { get; }
+        public MonsterState Stunned { get; }
+        public MonsterState Dead { get; }
+
+        public MonsterState Current { get; private set; }
+        public IMonsterAttack CurrentAttack { get; }
+        public IPlayerTarget Target { get; private set; }
+
+        /// <summary>마지막 Update 시각 (s)</summary>
+        public float Now { get; private set; }
+        /// <summary>마지막 Update 의 경과 시간 (s)</summary>
+        public float DeltaTime { get; private set; }
+        /// <summary>마지막 Stun 요청 시간 (s)</summary>
+        public float StunDuration { get; private set; }
+        /// <summary>Die 때 받은 보상 지급 여부</summary>
+        public bool GrantReward { get; private set; }
+        public bool IsDead => Current == Dead;
+
+        /// <summary>(previous, current)</summary>
+        public event Action<MonsterState, MonsterState> StateChanged;
+        /// <summary>DeadState 진입 시 1번. 인자 = 보상 지급 여부</summary>
+        public event Action<bool> Died;
+
+        public MonsterBrain(IMonsterMover mover, IMonsterBody body, IMonsterAttack attack)
+        {
+            this.mover = mover ?? throw new ArgumentNullException(nameof(mover));
+            this.body = body ?? throw new ArgumentNullException(nameof(body));
+            CurrentAttack = attack ?? throw new ArgumentNullException(nameof(attack));
+
+            Idle = new IdleState(this);
+            Chase = new ChaseState(this);
+            Attack = new AttackState(this);
+            Stunned = new StunnedState(this);
+            Dead = new DeadState(this);
+
+            Current = Idle;
+            Current.Enter();
+        }
+
+        /// <summary>대상이 있고 파괴되지 않았으면 true</summary>
+        public bool HasTarget => Target != null && (!(Target is UnityEngine.Object unityObject) || unityObject != null);
+
+        /// <summary>대상까지 수평 거리 ≤ 현재 공격 사거리</summary>
+        public bool IsTargetInAttackRange
+        {
+            get
+            {
+                if (HasTarget == false) return false;
+                Vector3 toTarget = Target.Position - body.Position;
+                toTarget.y = 0f;
+                float range = CurrentAttack.Range;
+                return toTarget.sqrMagnitude <= range * range;
+            }
+        }
+
+        /// <summary>null = 대상 상실 (플레이어 사망 등)</summary>
+        public void SetTarget(IPlayerTarget target) => Target = target;
+
+        /// <summary>판단 1회. 현재 상태의 Update 를 부른다</summary>
+        public void Update(float now, float deltaTime)
+        {
+            Now = now;
+            DeltaTime = deltaTime;
+            Current.Update();
+        }
+
+        /// <summary>같은 상태로의 변경과 Dead 이후의 변경은 무시한다</summary>
+        public void ChangeState(MonsterState next)
+        {
+            if (next == null) throw new ArgumentNullException(nameof(next));
+            if (next == Current || Current == Dead) return;
+
+            var previous = Current;
+            previous.Exit();
+            Current = next;
+            next.Enter();
+            StateChanged?.Invoke(previous, next);
+        }
+
+        /// <summary>처치·정리. 어느 상태에서든 Dead 로 간다 (진행 중 공격은 AttackState.Exit 가 취소)</summary>
+        public void Die(bool grantReward)
+        {
+            if (IsDead) return;
+            GrantReward = grantReward;
+            ChangeState(Dead);
+        }
+
+        /// <summary>기절. 어느 상태에서든 Stunned 로 간다</summary>
+        public void Stun(float seconds)
+        {
+            if (seconds < 0f) throw new ArgumentOutOfRangeException(nameof(seconds), seconds, "기절 시간은 0 이상");
+            StunDuration = seconds;
+            ChangeState(Stunned);
+        }
+
+        // ── 상태 전용 ──
+        internal void StopMove() => mover.Stop();
+        internal void ResumeMove() => mover.Resume();
+        internal void FaceTarget() => body.Face(Target.Position);
+        internal void NotifyDied() => Died?.Invoke(GrantReward);
+    }
+}

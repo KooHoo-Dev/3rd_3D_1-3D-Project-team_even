@@ -1,0 +1,16 @@
+{
+    "name": "HybridShooter.Monster.Behaviour",
+    "rootNamespace": "HybridShooter.Monster.Behaviour",
+    "references": [
+        "HybridShooter.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
