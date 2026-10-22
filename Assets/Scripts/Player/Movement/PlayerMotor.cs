@@ -285,6 +285,7 @@ namespace HybridShooter.Player
             else
                 rb.linearVelocity = new Vector3(horizontal.x, velocity.y, horizontal.z);
 
+            Debug.Log($"[움직이는지 모든 변수 체크] {rb.gameObject.name} : {speed}, {rb.linearVelocity}, {target}");
         }
 
         // IsSprinting 은 "지금 속도" 기준이라 출발 순간이 false → 입력 기준으로 따로 본다

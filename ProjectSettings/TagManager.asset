@@ -15,9 +15,9 @@ TagManager:
   - Buildings
   - Terrain
   - Trees
-  - 
-  - 
-  - 
+  - FP_Body
+  - FP_Weapon
+  - TP_Body
   - 
   - 
   - 

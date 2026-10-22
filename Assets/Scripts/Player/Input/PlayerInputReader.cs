@@ -191,7 +191,7 @@ namespace HybridShooter.Player
             private readonly PlayerInputReader owner;
             private readonly InputAction action;
             private bool pressed;
-
+    
             public ButtonBuffer(PlayerInputReader owner, InputAction action)
             {
                 this.owner = owner;

@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &608774846031428143
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2689294889621551732}
+  m_Layer: 0
+  m_Name: RightElbowHint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2689294889621551732
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 608774846031428143}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.57730186, y: -0.29220182, z: -0.82492256}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8741522584900649699}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &789189145064104154
 GameObject:
   m_ObjectHideFlags: 0
@@ -34,6 +65,37 @@ Transform:
   - {fileID: 3902013520599442959}
   - {fileID: 5699272393961454295}
   m_Father: {fileID: 1704393303432668982}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1432469979114346285
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2743074491219420260}
+  m_Layer: 0
+  m_Name: RightHandGrip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2743074491219420260
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1432469979114346285}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.72411084, y: 0.38069394, z: 0.44157237, w: -0.368442}
+  m_LocalPosition: {x: 0.017264303, y: -0.09612552, z: -0.24625371}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8741522584900649699}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2893241574230883258
 GameObject:
@@ -184,11 +246,42 @@ Transform:
   m_GameObject: {fileID: 4656044866702014021}
   serializedVersion: 2
   m_LocalRotation: {x: -0.11863179, y: 0.9537127, z: -0.2761052, w: 0.011161364}
-  m_LocalPosition: {x: -0.0000010505319, y: -0.07487676, z: -0.016677717}
+  m_LocalPosition: {x: -0.183, y: -0.057, z: 0.292}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8741522584900649699}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5229723979038847568
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4754028582000258732}
+  m_Layer: 0
+  m_Name: LeftElbowHint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4754028582000258732
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5229723979038847568}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.247, y: -0.076, z: 0.258}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6264337335731037592}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6210816890181188538
 GameObject:
@@ -215,7 +308,7 @@ Transform:
   m_GameObject: {fileID: 6210816890181188538}
   serializedVersion: 2
   m_LocalRotation: {x: 0.36197427, y: 0.91903484, z: -0.03349866, w: 0.15240583}
-  m_LocalPosition: {x: 0.000001495704, y: -0.06254969, z: 0.065816894}
+  m_LocalPosition: {x: -0.115, y: -0.181, z: 0.205}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -252,6 +345,68 @@ Transform:
   m_Children: []
   m_Father: {fileID: 3902013520599442959}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7483134438328266950
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6910719384950543220}
+  m_Layer: 0
+  m_Name: RightElbowHint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6910719384950543220
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7483134438328266950}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.259, y: 0.231, z: -0.584}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6264337335731037592}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8069467963628006988
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6504891952775170607}
+  m_Layer: 0
+  m_Name: RightHandGrip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6504891952775170607
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8069467963628006988}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.8254326, y: 0.11520369, z: 0.18607005, w: -0.5203529}
+  m_LocalPosition: {x: -0.054, y: -0.058, z: -0.177}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6264337335731037592}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8128701355569329240
 GameObject:
   m_ObjectHideFlags: 0
@@ -282,6 +437,37 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6264337335731037592}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8922906787477476570
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4315690336433887458}
+  m_Layer: 0
+  m_Name: LeftElbowHint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4315690336433887458
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8922906787477476570}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.46741718, y: -0.5939645, z: -0.19289589}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8741522584900649699}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2103238083062715252
 PrefabInstance:
@@ -384,6 +570,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5467183551725303532, guid: f8ff7e9122ed1fa4e8200eaa7a8db70e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7549039561647612337}
+    - targetCorrespondingSourceObject: {fileID: 5467183551725303532, guid: f8ff7e9122ed1fa4e8200eaa7a8db70e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6504891952775170607}
+    - targetCorrespondingSourceObject: {fileID: 5467183551725303532, guid: f8ff7e9122ed1fa4e8200eaa7a8db70e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4754028582000258732}
+    - targetCorrespondingSourceObject: {fileID: 5467183551725303532, guid: f8ff7e9122ed1fa4e8200eaa7a8db70e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6910719384950543220}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 4653492567734856790, guid: f8ff7e9122ed1fa4e8200eaa7a8db70e, type: 3}
       insertIndex: -1
@@ -437,6 +632,7 @@ MonoBehaviour:
   explosionRadius: 5
   muzzle: {fileID: 7549039561647612337}
   leftHandGrip: {fileID: 8563089047833800554}
+  rightHandGrip: {fileID: 6504891952775170607}
   muzzleFlashPrefab: {fileID: 0}
   impactPrefab: {fileID: 0}
   effectLifetime: 1.5
@@ -452,6 +648,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92b9216fc8750d44b9f8ee9e6fb11938, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Weapon.WeaponHandPose
+  hasHoldOffset: 1
+  holdPosition: {x: -0.065, y: -0.014, z: 0.403}
+  holdRotation: {x: -0.37694508, y: -0.49052766, z: 0.062036328, w: 0.7832283}
+  loweredPitch: 25
+  hipAim: 0
   right:
     fingerWeight: 1
     thumb: 0.5
@@ -460,18 +661,18 @@ MonoBehaviour:
     ring: 0.85
     little: 0.85
     spread: 0
-    elbowHint: {fileID: 0}
+    elbowHint: {fileID: 6910719384950543220}
     elbowHintWeight: 1
   left:
-    fingerWeight: 1
+    fingerWeight: 0
     thumb: 0.35
     index: 0.55
     middle: 0.6
     ring: 0.65
     little: 0.65
     spread: 0
-    elbowHint: {fileID: 0}
-    elbowHintWeight: 1
+    elbowHint: {fileID: 4754028582000258732}
+    elbowHintWeight: 0.018
   maxJointAngle: 85
   maxThumbAngle: 50
   maxSpreadAngle: 12
@@ -1022,9 +1223,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5995d024624ba304093836e24a1091df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerHandIK
+  gripMode: 0
+  rightHandWeight: 1
   leftHandWeight: 1
   aimWeight: 1
-  matchHandRotation: 1
+  matchLeftHandRotation: 0
   blendSpeed: 6
   spineAimWeights:
   - 0.35
@@ -1033,7 +1236,7 @@ MonoBehaviour:
   handAimWeight: 0.3
   aimClamp: 0.05
   aimIterations: 2
-  relaxArmTwist: 1
+  relaxTwistBones: 0
 --- !u!114 &6468815302350274396
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1216,6 +1419,7 @@ MonoBehaviour:
   explosionRadius: 5
   muzzle: {fileID: 960192370634259078}
   leftHandGrip: {fileID: 2887523729570851473}
+  rightHandGrip: {fileID: 0}
   muzzleFlashPrefab: {fileID: 0}
   impactPrefab: {fileID: 0}
   effectLifetime: 1.5
@@ -1231,6 +1435,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92b9216fc8750d44b9f8ee9e6fb11938, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Weapon.WeaponHandPose
+  hasHoldOffset: 0
+  holdPosition: {x: 0, y: 0, z: 0}
+  holdRotation: {x: 0, y: 0, z: 0, w: 1}
+  loweredPitch: 25
+  hipAim: 0.5
   right:
     fingerWeight: 1
     thumb: 0.5
@@ -1401,6 +1610,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4406393802129974210, guid: 7ce10cefc6c95974f85d79af747f9a0d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6100712600888957363}
+    - targetCorrespondingSourceObject: {fileID: 4406393802129974210, guid: 7ce10cefc6c95974f85d79af747f9a0d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2743074491219420260}
+    - targetCorrespondingSourceObject: {fileID: 4406393802129974210, guid: 7ce10cefc6c95974f85d79af747f9a0d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4315690336433887458}
+    - targetCorrespondingSourceObject: {fileID: 4406393802129974210, guid: 7ce10cefc6c95974f85d79af747f9a0d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2689294889621551732}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 3921922232464505208, guid: 7ce10cefc6c95974f85d79af747f9a0d, type: 3}
       insertIndex: -1
@@ -1449,6 +1667,7 @@ MonoBehaviour:
   explosionRadius: 5
   muzzle: {fileID: 6100712600888957363}
   leftHandGrip: {fileID: 4266033473599910119}
+  rightHandGrip: {fileID: 2743074491219420260}
   muzzleFlashPrefab: {fileID: 0}
   impactPrefab: {fileID: 0}
   effectLifetime: 1.5
@@ -1464,6 +1683,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92b9216fc8750d44b9f8ee9e6fb11938, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Weapon.WeaponHandPose
+  hasHoldOffset: 1
+  holdPosition: {x: -0.22278012, y: -0.048412725, z: 0.458804}
+  holdRotation: {x: -0.18685842, y: -0.4055978, z: 0.24783808, w: 0.8597387}
+  loweredPitch: 32
+  hipAim: 0
   right:
     fingerWeight: 0.256
     thumb: 0.5
@@ -1472,18 +1696,18 @@ MonoBehaviour:
     ring: 0.85
     little: 0.85
     spread: 0
-    elbowHint: {fileID: 0}
+    elbowHint: {fileID: 2689294889621551732}
     elbowHintWeight: 1
   left:
-    fingerWeight: 1
+    fingerWeight: 0
     thumb: 0.167
     index: 0.351
     middle: 0.514
     ring: 0.565
     little: 0.52
     spread: 0.222
-    elbowHint: {fileID: 0}
-    elbowHintWeight: 1
+    elbowHint: {fileID: 4315690336433887458}
+    elbowHintWeight: 0.381
   maxJointAngle: 63
   maxThumbAngle: 50
   maxSpreadAngle: 12
@@ -1618,6 +1842,7 @@ MonoBehaviour:
   explosionRadius: 5
   muzzle: {fileID: 5082602597661527782}
   leftHandGrip: {fileID: 7686147046078570195}
+  rightHandGrip: {fileID: 0}
   muzzleFlashPrefab: {fileID: 0}
   impactPrefab: {fileID: 0}
   effectLifetime: 1.5
@@ -1633,6 +1858,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92b9216fc8750d44b9f8ee9e6fb11938, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Weapon.WeaponHandPose
+  hasHoldOffset: 0
+  holdPosition: {x: 0, y: 0, z: 0}
+  holdRotation: {x: 0, y: 0, z: 0, w: 1}
+  loweredPitch: 25
+  hipAim: 0.5
   right:
     fingerWeight: 1
     thumb: 0.5
