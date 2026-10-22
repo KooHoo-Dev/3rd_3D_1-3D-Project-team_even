@@ -63,12 +63,12 @@ namespace HybridShooter.Monster.Movement
             warnedOffMesh = false;
         }
 
-        public void Apply(in MoveIntent intent)
+        public MoveApplyResult Apply(in MoveIntent intent)
         {
             if (!intent.HasDestination)
             {
                 Stop();
-                return;
+                return MoveApplyResult.Stopped;
             }
 
             if (!agent.isOnNavMesh)
@@ -78,7 +78,7 @@ namespace HybridShooter.Monster.Movement
                     warnedOffMesh = true;
                     Debug.LogWarning($"[NavMeshMoveExecutor] NavMesh 위에 있지 않음: {name} @ {transform.position}", this);
                 }
-                return;
+                return MoveApplyResult.OffNavMesh;
             }
             warnedOffMesh = false;
 
@@ -92,9 +92,10 @@ namespace HybridShooter.Monster.Movement
             if (hasDestination)
             {
                 float moved = (intent.Destination - lastRequestedDest).magnitude;
-                if ((moved < repathDistance && agent.hasPath && agent.pathStatus == NavMeshPathStatus.PathComplete)
-                    || Time.time - lastRepathTime < minRepathInterval)
-                    return;
+                if (moved < repathDistance && agent.hasPath && agent.pathStatus == NavMeshPathStatus.PathComplete)
+                    return MoveApplyResult.PathKept;
+                if (Time.time - lastRepathTime < minRepathInterval)
+                    return MoveApplyResult.Deferred;
             }
 
             if (!NavMesh.SamplePosition(intent.Destination, out NavMeshHit hit, sampleRadius, agent.areaMask))
@@ -106,26 +107,27 @@ namespace HybridShooter.Monster.Movement
                     lastSampleWarnTime = Time.time;
                     Debug.LogWarning($"[NavMeshMoveExecutor] 목적지 근처({sampleRadius}m)에 NavMesh 없음: {name} dest={intent.Destination}", this);
                 }
-                return;
+                return MoveApplyResult.Unreachable;
             }
 
             if (!agent.CalculatePath(hit.position, path) || path.status != NavMeshPathStatus.PathComplete)
             {
                 Stop();
                 requestedState = MoveExecutionState.Unreachable;
-                return;
+                return MoveApplyResult.Unreachable;
             }
             if (!agent.SetPath(path))
             {
                 Stop();
                 requestedState = MoveExecutionState.Unreachable;
-                return;
+                return MoveApplyResult.Unreachable;
             }
             requestedState = MoveExecutionState.Moving;
             repathCount++;
             lastRequestedDest = intent.Destination;
             lastRepathTime = Time.time;
             hasDestination = true;
+            return MoveApplyResult.PathSet;
         }
 
         public void Stop()

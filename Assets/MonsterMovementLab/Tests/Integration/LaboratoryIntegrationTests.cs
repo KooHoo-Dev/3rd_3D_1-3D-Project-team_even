@@ -48,7 +48,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
             var coordinator = example.Coordinator;
             yield return null;
             Assert.That(coordinator.Target, Is.Not.Null, "Edit→Play에서 targetSource 직렬화 보존");
-            Assert.That(coordinator.SlotCount, Is.EqualTo(24));
+            Assert.That(coordinator.SlotCount, Is.EqualTo(20));
 
             example.SpawnSingleMvp();
             yield return WaitForSimulation(0.5f);

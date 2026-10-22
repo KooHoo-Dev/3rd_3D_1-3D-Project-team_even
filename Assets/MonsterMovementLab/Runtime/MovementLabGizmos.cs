@@ -63,7 +63,14 @@ namespace HybridShooter.Monster.MovementLab
                 if (showWaiting)
                 {
                     Gizmos.color = waitingColor;
-                    DrawSquare(target.Position, settings.Slots.WaitingRadius);
+                    int lastRing = -1;
+                    for (int i = 0; i < coordinator.SlotCount; i++)
+                    {
+                        SlotSnapshot slot = coordinator.GetSlotSnapshot(i);
+                        if (slot.RingIndex == 0 || slot.RingIndex == lastRing) continue;
+                        DrawRing(target.Position, (slot.CandidatePosition - target.Position).magnitude);
+                        lastRing = slot.RingIndex;
+                    }
                 }
             }
 
@@ -199,15 +206,6 @@ namespace HybridShooter.Monster.MovementLab
                 Gizmos.DrawLine(previous, next);
                 previous = next;
             }
-        }
-
-        private static void DrawSquare(Vector3 center, float radius)
-        {
-            Vector3 a = center + new Vector3(-radius, 0f, -radius);
-            Vector3 b = center + new Vector3(-radius, 0f, radius);
-            Vector3 c = center + new Vector3(radius, 0f, radius);
-            Vector3 d = center + new Vector3(radius, 0f, -radius);
-            Gizmos.DrawLine(a, b); Gizmos.DrawLine(b, c); Gizmos.DrawLine(c, d); Gizmos.DrawLine(d, a);
         }
 
         private static void DrawLabel(Vector3 position, string label)

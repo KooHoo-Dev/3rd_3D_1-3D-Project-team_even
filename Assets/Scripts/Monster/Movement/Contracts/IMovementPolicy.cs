@@ -11,9 +11,11 @@ namespace HybridShooter.Monster.Movement
     }
 
     /// <summary>"실제로 움직이기". 지상(NavMesh)과 공중이 다르기 때문에만 분리한다</summary>
+    public enum MoveApplyResult { PathSet, PathKept, Deferred, Unreachable, OffNavMesh, Stopped }
+
     public interface IMoveExecutor
     {
-        void Apply(in MoveIntent intent);
+        MoveApplyResult Apply(in MoveIntent intent);
         void Stop();
         /// <summary>현재 속도 (m/s). 애니메이션 연결용</summary>
         UnityEngine.Vector3 Velocity { get; }

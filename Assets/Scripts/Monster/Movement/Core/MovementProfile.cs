@@ -16,6 +16,11 @@ namespace HybridShooter.Monster.Movement
         [SerializeField, Min(0f)] private float moveSpeed = 3.5f;
         [SerializeField, Min(0f)] private float attackRange = 1.8f;
 
+        [Header("Slot Reaction")]
+        [SerializeField, Min(0f)] private float reactionDelayMin = 0.1f;
+        [SerializeField, Min(0f)] private float reactionDelayMax = 0.4f;
+        [SerializeField, Min(0f)] private float reactionChangeDistance = 0.5f;
+
         [Header("Wait / Orbit (BL-016)")]
         [SerializeField, Range(0f, 1f)] private float orbitChance = 0.5f;
         [SerializeField, Min(0f)] private float orbitAngularSpeedDeg = 25f;
@@ -34,6 +39,9 @@ namespace HybridShooter.Monster.Movement
         public bool UsesEngageToken => usesEngageToken;
         public float MoveSpeed => moveSpeed;
         public float AttackRange => attackRange;
+        public float ReactionDelayMin => reactionDelayMin;
+        public float ReactionDelayMax => reactionDelayMax;
+        public float ReactionChangeDistance => reactionChangeDistance;
         public float MinWaitSeconds => minWaitSeconds;
 
         public MovementTuning ToTuning() => new MovementTuning(
@@ -41,30 +49,10 @@ namespace HybridShooter.Monster.Movement
             keepDistanceMin, keepDistanceMax,
             flankViewHalfAngleDeg, flankRadius, flankSpeedMultiplier);
 
-        /// <summary>테스트·샌드박스용 런타임 생성. 기본값 + 정책별 대표 값</summary>
-        public static MovementProfile CreateRuntime(MovementPolicyKind kind)
-        {
-            var p = CreateInstance<MovementProfile>();
-            p.name = $"Runtime_{kind}";
-            p.policyKind = kind;
-            switch (kind)
-            {
-                case MovementPolicyKind.Melee:
-                    break;
-                case MovementPolicyKind.Flank:
-                    p.moveSpeed = 5f;
-                    break;
-                case MovementPolicyKind.KeepDistance:
-                    p.usesEngageToken = false;
-                    p.moveSpeed = 2.5f;
-                    p.attackRange = 18f;
-                    break;
-            }
-            return p;
-        }
-
         private void OnValidate()
         {
+            if (reactionDelayMax < reactionDelayMin)
+                Debug.LogWarning($"[{name}] reactionDelayMax({reactionDelayMax}) < reactionDelayMin({reactionDelayMin})", this);
             if (keepDistanceMax < keepDistanceMin)
                 Debug.LogWarning($"[{name}] keepDistanceMax({keepDistanceMax}) < keepDistanceMin({keepDistanceMin})", this);
         }

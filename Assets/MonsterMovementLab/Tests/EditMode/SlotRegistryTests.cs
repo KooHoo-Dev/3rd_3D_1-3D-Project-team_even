@@ -26,15 +26,17 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
         }
 
         [Test]
-        public void EmptyPopulationStillHasTwentyFourStableWorldAxisCandidates()
+        public void EmptyPopulationStartsWithTwoStableWorldAxisRings()
         {
             var registry = new SlotRegistry(new SlotSettings(), new FakeNavigation());
             registry.Refresh(Vector3.zero, 0f, NoObstacles);
-            Assert.That(registry.Count, Is.EqualTo(24));
+            Assert.That(registry.Count, Is.EqualTo(20));
             SlotSnapshot first = registry.GetSnapshot(0);
             Assert.That(first.Kind, Is.EqualTo(SlotKind.Approach));
             Assert.That(first.CandidatePosition.z, Is.EqualTo(2.8f).Within(0.001f));
             Assert.That(registry.GetSnapshot(8).Kind, Is.EqualTo(SlotKind.Waiting));
+            Assert.That(registry.GetSnapshot(8).RingIndex, Is.EqualTo(1));
+            Assert.That(registry.GetSnapshot(8).CandidatePosition.z, Is.EqualTo(4.2f).Within(0.001f));
             registry.Refresh(new Vector3(5f, 0f, -3f), 1f, NoObstacles);
             Assert.That(registry.GetSnapshot(0).CandidatePosition - first.CandidatePosition,
                 Is.EqualTo(new Vector3(5f, 0f, -3f)));
@@ -43,10 +45,10 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
         [Test]
         public void RegistryKeepsItsCapturedIdsWhenSettingsCountChanges()
         {
-            var settings = new SlotSettings { ApproachCount = 2, WaitingCount = 3 };
+            var settings = new SlotSettings { ApproachCount = 2, MinimumRingGap = 1.2f };
             var registry = new SlotRegistry(settings, new FakeNavigation());
             settings.ApproachCount = 8;
-            settings.WaitingCount = 16;
+            settings.MinimumRingGap = 2f;
             registry.Refresh(Vector3.zero, 1f, NoObstacles);
             Assert.That(registry.Count, Is.EqualTo(5));
             Assert.That(registry.GetSnapshot(2).Kind, Is.EqualTo(SlotKind.Waiting));
@@ -55,7 +57,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
         [Test]
         public void RequestIsStableExclusiveAndReleasePromotesWaitingOwner()
         {
-            var settings = new SlotSettings { ApproachCount = 1, WaitingCount = 1 };
+            var settings = new SlotSettings { ApproachCount = 1 };
             var registry = new SlotRegistry(settings, new FakeNavigation());
             registry.Refresh(Vector3.zero, 0f, NoObstacles);
             Assert.That(registry.TryRequest(11, Vector3.zero, 0f, true, out SlotSnapshot first), Is.True);
@@ -74,7 +76,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
         [Test]
         public void ProjectionFailureAndCollapsedProjectedPointsAreInvalid()
         {
-            var settings = new SlotSettings { ApproachCount = 2, WaitingCount = 1 };
+            var settings = new SlotSettings { ApproachCount = 2 };
             var nav = new FakeNavigation
             {
                 Projectable = p => p.z >= 0f,
@@ -90,7 +92,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
         [Test]
         public void CongestedOrUnreachableCandidateIsSkipped()
         {
-            var settings = new SlotSettings { ApproachCount = 4, WaitingCount = 1 };
+            var settings = new SlotSettings { ApproachCount = 4 };
             var nav = new FakeNavigation { Reachable = (_, destination) => destination.x <= 0.1f };
             var registry = new SlotRegistry(settings, nav);
             var obstacles = new[] { new SlotObstacle(99, new Vector3(0f, 0f, 2.8f), 0.5f) };
@@ -103,7 +105,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
         [Test]
         public void TransientCrowdDoesNotStealExistingValidReservation()
         {
-            var registry = new SlotRegistry(new SlotSettings { ApproachCount = 2, WaitingCount = 1 }, new FakeNavigation());
+            var registry = new SlotRegistry(new SlotSettings { ApproachCount = 2 }, new FakeNavigation());
             registry.Refresh(Vector3.zero, 0f, NoObstacles);
             Assert.That(registry.TryRequest(11, Vector3.zero, 0f, true, out SlotSnapshot original), Is.True);
             registry.Refresh(Vector3.zero, 1f, new[]
@@ -119,7 +121,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
         [Test]
         public void StalledReservationRejectsOnlyThatOwnersSlotUntilCooldownExpires()
         {
-            var settings = new SlotSettings { ApproachCount = 2, WaitingCount = 1 };
+            var settings = new SlotSettings { ApproachCount = 2 };
             var registry = new SlotRegistry(settings, new FakeNavigation());
             registry.Refresh(Vector3.zero, 0f, NoObstacles);
             Assert.That(registry.TryRequest(11, Vector3.zero, 0f, true, out SlotSnapshot first), Is.True);
@@ -137,7 +139,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
         [Test]
         public void MovingTargetRequiresActualArrivalAtNewPosition()
         {
-            var settings = new SlotSettings { ApproachCount = 1, WaitingCount = 1 };
+            var settings = new SlotSettings { ApproachCount = 1 };
             var registry = new SlotRegistry(settings, new FakeNavigation());
             Vector3 original = new Vector3(0f, 0f, 2.8f);
             registry.Refresh(Vector3.zero, 0f, NoObstacles);
@@ -153,7 +155,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
         [Test]
         public void UnreachableCandidatesLeaveAgentUnassignedAndApproachCanBeDisabled()
         {
-            var settings = new SlotSettings { ApproachCount = 1, WaitingCount = 1 };
+            var settings = new SlotSettings { ApproachCount = 1 };
             var nav = new FakeNavigation { Reachable = (_, __) => false };
             var registry = new SlotRegistry(settings, nav);
             registry.Refresh(Vector3.zero, 0f, NoObstacles);
@@ -161,6 +163,49 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
             nav.Reachable = (_, __) => true;
             Assert.That(registry.TryRequest(11, Vector3.zero, 0f, false, out SlotSnapshot waiting), Is.True);
             Assert.That(waiting.Kind, Is.EqualTo(SlotKind.Waiting));
+        }
+
+        [Test]
+        public void FullInnerRingsExpandWithStableIdsAndPromoteInward()
+        {
+            var registry = new SlotRegistry(new SlotSettings { MaxRingCount = 3 }, new FakeNavigation());
+            registry.Refresh(Vector3.zero, 0f, NoObstacles);
+            SlotSnapshot original = registry.GetSnapshot(8);
+            for (int owner = 1; owner <= 20; owner++)
+                Assert.That(registry.TryRequest(owner, Vector3.zero, 0f, true, out _), Is.True);
+            Assert.That(registry.Count, Is.EqualTo(20));
+            Assert.That(registry.TryRequest(21, Vector3.zero, 0f, true, out SlotSnapshot outer), Is.True);
+            Assert.That(registry.Count, Is.EqualTo(36));
+            Assert.That(outer.RingIndex, Is.EqualTo(2));
+            Assert.That(registry.GetSnapshot(8).CandidatePosition, Is.EqualTo(original.CandidatePosition));
+            registry.Release(9);
+            Assert.That(registry.TryRequest(21, Vector3.zero, 0.1f, true, out SlotSnapshot promoted), Is.True);
+            Assert.That(promoted.RingIndex, Is.EqualTo(1));
+            Assert.That(registry.GetSnapshot(outer.Id).Use, Is.EqualTo(SlotUse.Free));
+        }
+
+        [Test]
+        public void RingLimitReturnsNoSlotWhenApproachIsDisallowed()
+        {
+            var registry = new SlotRegistry(new SlotSettings { ApproachCount = 1, MaxRingCount = 2 }, new FakeNavigation());
+            registry.Refresh(Vector3.zero, 0f, NoObstacles);
+            Assert.That(registry.TryRequest(1, Vector3.zero, 0f, true, out _), Is.True);
+            Assert.That(registry.TryRequest(2, Vector3.zero, 0f, false, out _), Is.True);
+            Assert.That(registry.TryRequest(3, Vector3.zero, 0f, false, out _), Is.False);
+            Assert.That(registry.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void PausedProgressPreservesEarlierStallTime()
+        {
+            var registry = new SlotRegistry(new SlotSettings { ApproachCount = 2 }, new FakeNavigation());
+            registry.Refresh(Vector3.zero, 0f, NoObstacles);
+            Assert.That(registry.TryRequest(11, Vector3.zero, 0f, true, out SlotSnapshot first), Is.True);
+            registry.PauseProgress(11, 0.3f);
+            Assert.That(registry.TryRequest(11, Vector3.zero, 6.2f, true, out SlotSnapshot retained), Is.True);
+            Assert.That(retained.Id, Is.EqualTo(first.Id));
+            Assert.That(registry.TryRequest(11, Vector3.zero, 6.4f, true, out SlotSnapshot reassigned), Is.True);
+            Assert.That(reassigned.Id, Is.Not.EqualTo(first.Id));
         }
     }
 }

@@ -81,9 +81,7 @@ namespace HybridShooter.Monster.Movement
         public CrowdSettings Settings => settings;
         public int EngageCapacity => settings.EngageCapacity;
         public IReadOnlyList<MonsterMovement> Agents => agentsView ??= agents.AsReadOnly();
-        public int SlotCount => slotsRefreshed && slots.ApproachCount == settings.Slots.ApproachCount &&
-                                slots.Count == settings.Slots.ApproachCount + settings.Slots.WaitingCount
-            ? slots.Count : 0;
+        public int SlotCount => slotsRefreshed ? slots.Count : 0;
 
         public SlotSnapshot GetSlotSnapshot(int id)
         {
@@ -109,8 +107,10 @@ namespace HybridShooter.Monster.Movement
         {
             if (!(settings.NearRadius >= 0f && settings.NearRadius < settings.WaitRadius && settings.WaitRadius <= settings.ReleaseRadius))
                 Debug.LogError($"CrowdSettings 반경 오류: 0 <= Near({settings.NearRadius}) < Wait({settings.WaitRadius}) <= Release({settings.ReleaseRadius}) 이어야 함", this);
-            if (settings.Slots == null || settings.Slots.ApproachCount < 1 || settings.Slots.WaitingCount < 1)
-                Debug.LogError("SlotSettings 및 각 링 후보 수(1 이상)를 확인해야 함", this);
+            if (settings.Slots == null || settings.Slots.ApproachCount < 1 ||
+                settings.Slots.ApproachRadius <= 0f || settings.Slots.MinimumRingGap <= 0f ||
+                settings.Slots.MaxRingCount < 2)
+                Debug.LogError("SlotSettings 첫 링 후보 수·반경·간격은 양수이고 최대 링 수는 2 이상이어야 함", this);
         }
 
         private void OnEnable()
@@ -259,10 +259,18 @@ namespace HybridShooter.Monster.Movement
             slots?.Reject(agent.GetInstanceID(), slotId, now);
         }
 
+        public void PauseSlotProgress(MonsterMovement agent, float duration)
+        {
+            if (agent == null) throw new ArgumentNullException(nameof(agent));
+            slots?.PauseProgress(agent.GetInstanceID(), duration);
+        }
+
         private void EnsureSlots()
         {
             if (slots != null && slots.ApproachCount == settings.Slots.ApproachCount &&
-                slots.Count == settings.Slots.ApproachCount + settings.Slots.WaitingCount) return;
+                slots.ApproachRadius == settings.Slots.ApproachRadius &&
+                slots.MinimumRingGap == settings.Slots.MinimumRingGap &&
+                slots.MaxRingCount == settings.Slots.MaxRingCount) return;
             slots = new SlotRegistry(settings.Slots, new NavMeshSlotNavigation(settings.Slots));
             slotsRefreshed = false;
         }

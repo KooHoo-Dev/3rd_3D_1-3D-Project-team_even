@@ -29,10 +29,18 @@ namespace HybridShooter.Monster.Movement
         private bool isInAttackRange;
         private bool hasThought;
         private float lastThinkTime;
-        private CrowdCoordinator registeredTo;
-        private IMovementTarget directTarget;
+        private CrowdCoordinator crowdCoordinator;
+        private IMovementTarget targetInfo;
         private float nextDirectThink;
         private MoveIntent lastIntent;
+        private MoveIntent pendingIntent;
+        private bool hasPendingIntent;
+        private float pendingApplyAt;
+        private Vector3 reactionReferenceDestination;
+        private bool hasReactionReference;
+        private int reactionSlotId = -1;
+        private int executingSlotId = -1;
+        private IMovementTarget reactionTargetInfo;
 
         public MovementProfile Profile => profile;
         public MovementState State => state;
@@ -69,11 +77,11 @@ namespace HybridShooter.Monster.Movement
                 return;
             }
 
-            if (directTarget == null && directTargetSource != null)
-                directTarget = directTargetSource as IMovementTarget
+            if (targetInfo == null && directTargetSource != null)
+                targetInfo = directTargetSource as IMovementTarget
                     ?? throw new InvalidOperationException("directTargetSource 는 IMovementTarget 이어야 한다");
-            var coord = coordinator != null ? coordinator : (directTarget == null ? CrowdCoordinator.Active : null);
-            if (coord == null && directTarget == null)
+            var coord = coordinator != null ? coordinator : (targetInfo == null ? CrowdCoordinator.Active : null);
+            if (coord == null && targetInfo == null)
             {
                 Debug.LogError($"[{nameof(MonsterMovement)}] CrowdCoordinator 없음 (직접 지정하거나 씬에 배치)", this);
                 enabled = false;
@@ -83,10 +91,13 @@ namespace HybridShooter.Monster.Movement
             tuning = profile.ToTuning();
             policy ??= MovementPolicyFactory.Create(profile.PolicyKind, GetInstanceID());
             hasThought = false;
+            CancelPendingIntent();
+            hasReactionReference = false;
+            executingSlotId = -1;
             if (coord != null)
             {
                 coord.Register(this);
-                registeredTo = coord;
+                crowdCoordinator = coord;
             }
             else
                 directive = new CrowdDirective(DirectiveKind.Unrestricted, default, 0, false, 0f);
@@ -94,17 +105,32 @@ namespace HybridShooter.Monster.Movement
 
         private void Update()
         {
-            if (registeredTo != null || directTarget == null || Time.time < nextDirectThink) return;
-            Think(directTarget, 0f, Time.time);
+            if (hasReactionReference && (!MovementTargetUtility.IsValid(reactionTargetInfo) ||
+                                         !HasCurrentReservation(reactionSlotId)))
+                StopForInvalidReservation();
+            if (hasPendingIntent)
+            {
+                if (Time.time >= pendingApplyAt)
+                {
+                    hasPendingIntent = false;
+                    reactionReferenceDestination = pendingIntent.Destination;
+                    CommitIntent(in pendingIntent);
+                }
+            }
+            if (crowdCoordinator != null || targetInfo == null || Time.time < nextDirectThink) return;
+            Think(targetInfo, 0f, Time.time);
             nextDirectThink = Time.time + 0.1f;
         }
 
         private void OnDisable()
         {
-            if (registeredTo != null)
+            CancelPendingIntent();
+            hasReactionReference = false;
+            executingSlotId = -1;
+            if (crowdCoordinator != null)
             {
-                registeredTo.Unregister(this); // 내부에서 ResetCrowdState 호출
-                registeredTo = null;
+                crowdCoordinator.Unregister(this); // 내부에서 ResetCrowdState 호출
+                crowdCoordinator = null;
             }
             executor?.Stop();
             suspended = false;
@@ -120,7 +146,7 @@ namespace HybridShooter.Monster.Movement
                 throw new InvalidOperationException("Configure 는 비활성 상태에서만 호출할 수 있다");
             this.profile = profile;
             this.coordinator = coordinator;
-            directTarget = null;
+            targetInfo = null;
             directTargetSource = null;
             policy = null; // 활성화 시 새 profile 로 재생성
         }
@@ -129,7 +155,7 @@ namespace HybridShooter.Monster.Movement
         {
             if (isActiveAndEnabled) throw new InvalidOperationException("ConfigureDirect 는 비활성 상태에서만 호출할 수 있다");
             this.profile = profile;
-            directTarget = target ?? throw new ArgumentNullException(nameof(target));
+            targetInfo = target ?? throw new ArgumentNullException(nameof(target));
             directTargetSource = target as MonoBehaviour;
             coordinator = null;
             policy = null;
@@ -141,7 +167,10 @@ namespace HybridShooter.Monster.Movement
             this.suspended = suspended;
             if (!suspended) return; // 상태는 다음 Think 에서 재계산
             isInAttackRange = false;
-            if (registeredTo != null) registeredTo.ReleaseSlot(this);
+            CancelPendingIntent();
+            hasReactionReference = false;
+            executingSlotId = -1;
+            if (crowdCoordinator != null) crowdCoordinator.ReleaseSlot(this);
             executor.Stop();
             lastIntent = MoveIntent.Stop(MovementState.Suspended);
             SetState(MovementState.Suspended);
@@ -176,11 +205,14 @@ namespace HybridShooter.Monster.Movement
         {
             if (suspended) return;
 
-            if (registeredTo != null && registeredTo.Settings.UseSlots && registeredTo.Settings.EnableCrowdControl)
+            if (crowdCoordinator != null && crowdCoordinator.Settings.UseSlots && crowdCoordinator.Settings.EnableCrowdControl)
             {
-                if (directive.HasSlotPosition && executor.ExecutionState == MoveExecutionState.Unreachable)
-                    registeredTo.RejectSlot(this, directive.SlotId, now);
-                directive = registeredTo.RequestDirective(this, now);
+                if (executingSlotId >= 0 && executor.ExecutionState == MoveExecutionState.Unreachable)
+                {
+                    crowdCoordinator.RejectSlot(this, executingSlotId, now);
+                    executingSlotId = -1;
+                }
+                directive = crowdCoordinator.RequestDirective(this, now);
             }
 
             float dt = hasThought ? now - lastThinkTime : 0f;
@@ -194,9 +226,7 @@ namespace HybridShooter.Monster.Movement
             var ctx = new MovementContext(self, targetPosition, targetForward, targetValid,
                                           directive, waitRadius, tuning, now, dt);
             var intent = policy.Evaluate(in ctx);
-            lastIntent = intent;
-            executor.Apply(in intent);
-            SetState(intent.State);
+            SubmitIntent(in intent, target, targetValid, now);
 
             float dx = targetPosition.x - self.x;
             float dz = targetPosition.z - self.z;
@@ -206,10 +236,111 @@ namespace HybridShooter.Monster.Movement
         /// <summary>등록 해제 시 토큰·대기 상태 초기화 (선회 방향은 유지)</summary>
         internal void ResetCrowdState()
         {
+            CancelPendingIntent();
+            hasReactionReference = false;
+            executingSlotId = -1;
             hasToken = false;
             waitingSince = -1f;
             slotIndex = -1;
             directive = CrowdDirective.None;
+        }
+
+        private void SubmitIntent(in MoveIntent intent, IMovementTarget target, bool targetValid, float now)
+        {
+            bool slotMode = crowdCoordinator != null && crowdCoordinator.Settings.UseSlots &&
+                            crowdCoordinator.Settings.EnableCrowdControl;
+            if (!slotMode || !targetValid || !intent.HasDestination || !directive.HasSlotPosition ||
+                !HasCurrentReservation(directive.SlotId))
+            {
+                CancelPendingIntent();
+                hasReactionReference = false;
+                if (!targetValid || !intent.HasDestination || (slotMode && !directive.HasSlotPosition))
+                    executingSlotId = -1;
+                CommitIntent(in intent);
+                return;
+            }
+
+            int slotId = directive.SlotId;
+            if (!hasReactionReference || !ReferenceEquals(reactionTargetInfo, target) || reactionSlotId != slotId)
+            {
+                CancelPendingIntent();
+                if (hasReactionReference && reactionSlotId != slotId)
+                {
+                    executor.Stop();
+                    executingSlotId = -1;
+                }
+                reactionTargetInfo = target;
+                reactionSlotId = slotId;
+                reactionReferenceDestination = intent.Destination;
+                hasReactionReference = true;
+                CommitIntent(in intent);
+                return;
+            }
+
+            float thresholdSqr = profile.ReactionChangeDistance * profile.ReactionChangeDistance;
+            float changeSqr = HorizontalSqr(intent.Destination, reactionReferenceDestination);
+            bool changed = changeSqr > 0f && changeSqr >= thresholdSqr;
+            if (hasPendingIntent)
+            {
+                if (changed)
+                {
+                    pendingIntent = intent;
+                    return;
+                }
+                CancelPendingIntent();
+            }
+            else if (changed && profile.ReactionDelayMax > 0f)
+            {
+                float delay = UnityEngine.Random.Range(profile.ReactionDelayMin, profile.ReactionDelayMax);
+                if (delay > 0f)
+                {
+                    pendingIntent = intent;
+                    hasPendingIntent = true;
+                    pendingApplyAt = now + delay;
+                    crowdCoordinator.PauseSlotProgress(this, delay);
+                    return;
+                }
+            }
+
+            if (changed) reactionReferenceDestination = intent.Destination;
+            CommitIntent(in intent);
+        }
+
+        private void CommitIntent(in MoveIntent intent)
+        {
+            lastIntent = intent;
+            MoveApplyResult result = executor.Apply(in intent);
+            if (result == MoveApplyResult.PathSet || result == MoveApplyResult.Unreachable)
+                executingSlotId = directive.HasSlotPosition ? directive.SlotId : -1;
+            else if (result == MoveApplyResult.Stopped)
+                executingSlotId = -1;
+            SetState(intent.State);
+        }
+
+        private bool HasCurrentReservation(int slotId)
+        {
+            if (crowdCoordinator == null || slotId < 0 || slotId >= crowdCoordinator.SlotCount) return false;
+            SlotSnapshot slot = crowdCoordinator.GetSlotSnapshot(slotId);
+            return slot.OwnerId == GetInstanceID() && slot.Validity == SlotValidity.Valid;
+        }
+
+        private void StopForInvalidReservation()
+        {
+            CancelPendingIntent();
+            hasReactionReference = false;
+            executingSlotId = -1;
+            executor.Stop();
+            lastIntent = MoveIntent.Stop(MovementState.Idle);
+            SetState(MovementState.Idle);
+        }
+
+        private void CancelPendingIntent() => hasPendingIntent = false;
+
+        private static float HorizontalSqr(Vector3 a, Vector3 b)
+        {
+            float dx = a.x - b.x;
+            float dz = a.z - b.z;
+            return dx * dx + dz * dz;
         }
 
         private void SetState(MovementState next)

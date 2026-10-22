@@ -1407,9 +1407,9 @@ MonoBehaviour:
     UseSlots: 1
     Slots:
       ApproachCount: 8
-      WaitingCount: 16
       ApproachRadius: 2.8
-      WaitingRadius: 8
+      MinimumRingGap: 1.2
+      MaxRingCount: 6
       MinimumSpacing: 1.1
       SampleRadius: 0.6
       ArrivalDistance: 0.45

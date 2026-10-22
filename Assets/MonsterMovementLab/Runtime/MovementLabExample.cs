@@ -173,7 +173,7 @@ namespace HybridShooter.Monster.MovementLab
             agent.avoidancePriority = Random.Range(20, 80);
             go.AddComponent<NavMeshMoveExecutor>();
             var movement = go.AddComponent<MonsterMovement>();
-            var profile = MovementProfile.CreateRuntime(kind);
+            var profile = MovementLabProfiles.CreateRuntime(kind);
             ownedMonster.SetProfile(profile);
             if (useCoordinator) movement.Configure(profile, coordinator);
             else movement.ConfigureDirect(profile, target);

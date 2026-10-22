@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using HybridShooter.Monster.Movement;
+using MovementLabProfiles = HybridShooter.Monster.MovementLab.MovementLabProfiles;
 using NUnit.Framework;
 using Unity.AI.Navigation;
 using UnityEngine;
@@ -31,7 +32,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
             var player = new GameObject("Target proxy");
             player.transform.SetParent(root.transform);
             target = player.AddComponent<TransformMovementTarget>();
-            profile = MovementProfile.CreateRuntime(MovementPolicyKind.Melee);
+            profile = MovementLabProfiles.CreateRuntime(MovementPolicyKind.Melee);
             monsters.Clear();
             yield return null;
         }
@@ -135,7 +136,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
         public IEnumerator FinalCandidatesExistWithoutMonstersAndFollowTarget()
         {
             var coordinator = CreateCoordinator();
-            Assert.That(coordinator.SlotCount, Is.EqualTo(24));
+            Assert.That(coordinator.SlotCount, Is.EqualTo(20));
             var first = coordinator.GetSlotSnapshot(0);
             Assert.That(first.Validity, Is.EqualTo(SlotValidity.Valid));
             for (int i = 0; i < coordinator.SlotCount; i++)
@@ -145,6 +146,31 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
             var moved = coordinator.GetSlotSnapshot(0);
             Assert.That(moved.Id, Is.EqualTo(first.Id));
             Assert.That((moved.Position - first.Position - Vector3.right * 3).magnitude, Is.LessThan(0.1f));
+        }
+
+        [UnityTest]
+        public IEnumerator SlotDestinationChangeWaitsForReactionDelay()
+        {
+            typeof(MovementProfile).GetField("reactionDelayMin", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .SetValue(profile, 0.8f);
+            typeof(MovementProfile).GetField("reactionDelayMax", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .SetValue(profile, 0.8f);
+            var coordinator = CreateCoordinator();
+            var monster = Spawn(Vector3.forward * 9, coordinator);
+            var executor = monster.GetComponent<NavMeshMoveExecutor>();
+            yield return new WaitForSeconds(1f);
+            Assert.That(monster.Directive.HasSlotPosition, Is.True);
+            Vector3 firstDestination = monster.LastIntent.Destination;
+            int firstRepathCount = executor.RepathCount;
+
+            target.transform.position += Vector3.right * 3f;
+            yield return new WaitForSeconds(0.4f);
+            Assert.That(monster.LastIntent.Destination, Is.EqualTo(firstDestination));
+            Assert.That(executor.RepathCount, Is.EqualTo(firstRepathCount));
+
+            yield return new WaitForSeconds(0.8f);
+            Assert.That(monster.LastIntent.Destination.x, Is.GreaterThan(firstDestination.x + 1f));
+            Assert.That(executor.RepathCount, Is.GreaterThan(firstRepathCount));
         }
 
         [UnityTest]
@@ -240,7 +266,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
         public IEnumerator FinalFlankReachesAssignedSlotFromFront()
         {
             Object.Destroy(profile);
-            profile = MovementProfile.CreateRuntime(MovementPolicyKind.Flank);
+            profile = MovementLabProfiles.CreateRuntime(MovementPolicyKind.Flank);
             var coordinator = CreateCoordinator();
             var monster = Spawn(Vector3.forward * 15, coordinator);
             yield return new WaitForSeconds(0.5f);

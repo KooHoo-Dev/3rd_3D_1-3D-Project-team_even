@@ -11,9 +11,9 @@ namespace HybridShooter.Monster.Movement
     public sealed class SlotSettings
     {
         [Min(1)] public int ApproachCount = 8;
-        [Min(1)] public int WaitingCount = 16;
         [Min(0.1f)] public float ApproachRadius = 2.8f;
-        [Min(0.1f)] public float WaitingRadius = 8f;
+        [Min(0.1f)] public float MinimumRingGap = 1.2f;
+        [Min(2)] public int MaxRingCount = 6;
         [Min(0.1f)] public float MinimumSpacing = 1.1f;
         [Min(0.01f)] public float SampleRadius = 0.6f;
         [Min(0.01f)] public float ArrivalDistance = 0.45f;
@@ -29,6 +29,7 @@ namespace HybridShooter.Monster.Movement
     {
         public readonly int Id;
         public readonly SlotKind Kind;
+        public readonly int RingIndex;
         public readonly Vector3 CandidatePosition;
         public readonly Vector3 Position;
         public readonly SlotValidity Validity;
@@ -37,9 +38,10 @@ namespace HybridShooter.Monster.Movement
         public readonly bool Congested;
 
         public SlotSnapshot(int id, SlotKind kind, Vector3 candidatePosition, Vector3 position,
-                            SlotValidity validity, int ownerId, SlotUse use, bool congested)
+                            SlotValidity validity, int ownerId, SlotUse use, bool congested, int ringIndex = -1)
         {
-            Id = id; Kind = kind; CandidatePosition = candidatePosition; Position = position;
+            Id = id; Kind = kind; RingIndex = ringIndex < 0 ? kind == SlotKind.Approach ? 0 : 1 : ringIndex;
+            CandidatePosition = candidatePosition; Position = position;
             Validity = validity; OwnerId = ownerId; Use = use; Congested = congested;
         }
     }
