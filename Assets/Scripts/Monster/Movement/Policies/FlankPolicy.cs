@@ -11,17 +11,26 @@ namespace HybridShooter.Monster.Movement
         /// <summary>시야 반각 바깥으로 더 벌려 잡는 여유 (도)</summary>
         private const float BearingMarginDeg = 30f;
 
+        // 개체별 난수 (선회 여부, 정면 우회 시 측면 선택용)
         private readonly System.Random rng;
-        private DirectiveKind lastKind;
-        private bool orbiting;
-        private int side; // 우회 중 유지하는 측면 (+1/-1), 0 = 우회 아님
-        private bool committedToApproach;
+
+        // ── 대기(Wait) 관련 ──
+        private DirectiveKind lastKind; // 직전 지시 종류. Wait 진입 순간 감지용
+        private bool orbiting;          // 대기 중 선회 여부 (진입 시 1회 결정)
+
+        // ── 측면 우회 관련 ──
+        private int side;                  // 우회 중 유지하는 측면 (+1/-1), 0 = 우회 아님
+        private bool committedToApproach;  // 우회를 끝내고 돌입을 확정했나 (가까워질 때까지 우회로 되돌아가지 않기 위함)
 
         public FlankPolicy(int seed)
         {
             rng = new System.Random(seed);
         }
 
+        /// <summary>
+        /// 목표 무효 → 정지. 슬롯 대기 → 제자리 대기. Wait 지시 → 근접형과 같은 대기/선회.
+        /// 그 외 → 목표 시야 안이고 멀면 시야 밖 측면 지점으로 우회, 아니면 배율 속도로 돌입
+        /// </summary>
         public MoveIntent Evaluate(in MovementContext ctx)
         {
             var dir = ctx.Directive;
@@ -49,6 +58,7 @@ namespace HybridShooter.Monster.Movement
             }
             else
             {
+                // 1) 목표 시야 안(원뿔)에 있는지 판정
                 float d = WaitOrbit.HorizontalDistance(ctx.SelfPosition, ctx.TargetPosition);
 
                 Vector3 fwd = Flat(ctx.TargetForward);
@@ -62,6 +72,7 @@ namespace HybridShooter.Monster.Movement
                     inView = Vector3.Angle(fwd, toSelf) <= t.FlankViewHalfAngleDeg;
                 }
 
+                // 2) 우회 여부: 시야 안 + 멀리 있음 + 돌입 확정 전이면 우회, 그 외는 돌입
                 if (d <= t.AttackRange * 2f) committedToApproach = false;
                 if (inView && d > t.AttackRange * 2f && !committedToApproach)
                 {
@@ -105,6 +116,7 @@ namespace HybridShooter.Monster.Movement
             return intent;
         }
 
+        /// <summary>y 를 0 으로 만든 수평 벡터</summary>
         private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
     }
 }

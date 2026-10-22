@@ -8,6 +8,7 @@ namespace HybridShooter.Monster.Movement
     [CreateAssetMenu(menuName = "HybridShooter/Monster/Movement Profile", fileName = "MovementProfile")]
     public sealed class MovementProfile : ScriptableObject
     {
+        [Header("Policy")]
         [SerializeField] private MovementPolicyKind policyKind = MovementPolicyKind.Melee;
         [Tooltip("근접 허용 토큰(과밀 제어) 대상인가")]
         [SerializeField] private bool usesEngageToken = true;
@@ -16,7 +17,7 @@ namespace HybridShooter.Monster.Movement
         [SerializeField, Min(0f)] private float moveSpeed = 3.5f;
         [SerializeField, Min(0f)] private float attackRange = 1.8f;
 
-        [Header("Slot Reaction")]
+        [Header("Slot Reaction (슬롯 목적지가 바뀔 때 뜸 들이는 시간·민감도)")]
         [SerializeField, Min(0f)] private float reactionDelayMin = 0.1f;
         [SerializeField, Min(0f)] private float reactionDelayMax = 0.4f;
         [SerializeField, Min(0f)] private float reactionChangeDistance = 0.5f;
@@ -44,11 +45,13 @@ namespace HybridShooter.Monster.Movement
         public float ReactionChangeDistance => reactionChangeDistance;
         public float MinWaitSeconds => minWaitSeconds;
 
+        /// <summary>정책에 넘길 수치 복사본 생성 (정책이 ScriptableObject 에 의존하지 않게)</summary>
         public MovementTuning ToTuning() => new MovementTuning(
             moveSpeed, attackRange, orbitChance, orbitAngularSpeedDeg,
             keepDistanceMin, keepDistanceMax,
             flankViewHalfAngleDeg, flankRadius, flankSpeedMultiplier);
 
+        /// <summary>Inspector 수정 시 min/max 역전을 경고</summary>
         private void OnValidate()
         {
             if (reactionDelayMax < reactionDelayMin)

@@ -45,12 +45,18 @@ namespace HybridShooter.Monster.Movement
         public readonly bool HasSlot;
         /// <summary>목표 기준 슬롯 방위각 (도, atan2(x, z) 기준)</summary>
         public readonly float SlotAngleDeg;
+        /// <summary>SlotRegistry 가 배정한 슬롯 번호 (-1 = 없음)</summary>
         public readonly int SlotId;
+        /// <summary>NavMesh 에 투영된 슬롯의 실제 목적지 (월드, m)</summary>
         public readonly Vector3 SlotPosition;
+        /// <summary>SlotPosition 이 유효한가 (슬롯 모드에서 슬롯을 배정받았을 때 true)</summary>
         public readonly bool HasSlotPosition;
+        /// <summary>true 면 슬롯을 받기 전에는 움직이지 말고 대기해야 한다 (슬롯 모드)</summary>
         public readonly bool RequiresSlot;
+        /// <summary>이 거리(m) 안이면 슬롯에 도착한 것으로 본다</summary>
         public readonly float SlotArrivalDistance;
 
+        /// <summary>토큰 모드·제한 없음용 생성자 (슬롯 위치 없음)</summary>
         public CrowdDirective(DirectiveKind kind, Vector3 waitPoint, int orbitSign, bool hasSlot, float slotAngleDeg, bool requiresSlot = false)
         {
             Kind = kind;
@@ -65,6 +71,7 @@ namespace HybridShooter.Monster.Movement
             SlotArrivalDistance = 0.45f;
         }
 
+        /// <summary>슬롯 모드용 생성자: 배정받은 슬롯의 위치·번호를 담는다</summary>
         public CrowdDirective(DirectiveKind kind, in SlotSnapshot slot, float arrivalDistance = 0.45f)
         {
             Kind = kind; WaitPoint = slot.Position; OrbitSign = 0;
@@ -74,9 +81,11 @@ namespace HybridShooter.Monster.Movement
             SlotArrivalDistance = arrivalDistance;
         }
 
+        /// <summary>슬롯을 아직 못 받음: 제자리(position)에서 대기하라는 지시</summary>
         public static CrowdDirective WaitingForSlot(Vector3 position) =>
             new CrowdDirective(DirectiveKind.Wait, position, 0, false, 0f, true);
 
+        /// <summary>아직 판단 전 (Kind = None)</summary>
         public static CrowdDirective None => default;
     }
 
@@ -93,6 +102,7 @@ namespace HybridShooter.Monster.Movement
         /// <summary>m</summary>
         public readonly float StopDistance;
 
+        /// <summary>목적지로 이동하라는 의도</summary>
         public MoveIntent(MovementState state, Vector3 destination, float speed, float stopDistance)
         {
             State = state;
@@ -111,6 +121,7 @@ namespace HybridShooter.Monster.Movement
             StopDistance = 0f;
         }
 
+        /// <summary>제자리 정지 의도 (HasDestination = false). state 는 정지 이유를 표시</summary>
         public static MoveIntent Stop(MovementState state) => new MoveIntent(state);
     }
 
@@ -153,7 +164,9 @@ namespace HybridShooter.Monster.Movement
         public readonly Vector3 TargetPosition;
         public readonly Vector3 TargetForward;
         public readonly bool TargetValid;
+        /// <summary>군중 제어가 내린 지시 (허가 + 슬롯 정보)</summary>
         public readonly CrowdDirective Directive;
+        /// <summary>몬스터 유형별 수치</summary>
         public readonly MovementTuning Tuning;
         /// <summary>현재 시각 (s)</summary>
         public readonly float Now;

@@ -33,6 +33,12 @@ namespace HybridShooter.Monster.MovementLab
         [SerializeField] private Color reservationLineColor = new Color(1f, .8f, .1f);
         [SerializeField] private Color intentLineColor = new Color(1f, .35f, .15f);
 
+        /// <summary>Scene 뷰 몬스터 머리 위 텍스트 표시 여부. MovementLabController 의 GUI 토글이 설정한다</summary>
+        public bool ShowMonsterIds { get => showMonsterIds; set => showMonsterIds = value; }
+
+        /// <summary>Scene 뷰 링(슬롯) 위 텍스트 표시 여부. MovementLabController 의 GUI 토글이 설정한다</summary>
+        public bool ShowSlotIds { get => showSlotIds; set => showSlotIds = value; }
+
         public void Configure(CrowdCoordinator source, Transform monsterRoot = null)
         {
             coordinator = source;
@@ -132,9 +138,11 @@ namespace HybridShooter.Monster.MovementLab
             var movement = node.GetComponent<MonsterMovement>();
             if (movement != null)
             {
+                // 몬스터 프리팹 내부(본 계층)는 탐색하지 않는다. 사망(SetActive false)한 몬스터는 그리지 않는다
                 bool registered = false;
                 for (int i = 0; i < agents.Count; i++) if (agents[i] == movement) { registered = true; break; }
-                if (!registered) DrawMonster(movement, ref detailed);
+                if (!registered && movement.isActiveAndEnabled) DrawMonster(movement, ref detailed);
+                return;
             }
             for (int i = 0; i < node.childCount; i++) DrawDirectMonsters(node.GetChild(i), agents, ref detailed);
         }
@@ -175,7 +183,7 @@ namespace HybridShooter.Monster.MovementLab
         {
             if (root == null) return null;
             var movement = root.GetComponent<MonsterMovement>();
-            if (movement != null && movement.GetInstanceID() == instanceId) return movement;
+            if (movement != null) return movement.GetInstanceID() == instanceId ? movement : null;
             for (int i = 0; i < root.childCount; i++)
             {
                 movement = FindDirect(instanceId, root.GetChild(i));

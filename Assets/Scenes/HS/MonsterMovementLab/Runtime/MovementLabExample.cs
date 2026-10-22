@@ -19,9 +19,26 @@ namespace HybridShooter.Monster.MovementLab
         [SerializeField] private Transform ownedRoot;
         [SerializeField] private int crowdSpawnCount = 24;
 
+        [Header("Monster Prefabs")]
+        [Tooltip("소환할 실제 몬스터 프리팹(모델만 있어도 됨). 이동 컴포넌트는 소환 시 코드로 붙인다. 순서대로 돌려 쓴다")]
+        [SerializeField] private GameObject[] monsterPrefabs;
+        [Tooltip("프리팹 크기 배율")]
+        [SerializeField, Min(0.01f)] private float monsterVisualScale = 1f;
+
+        private readonly List<MovementLabOwnedMonster> ownedMonsters = new List<MovementLabOwnedMonster>();
+        private int spawnSerial;
+
         public CrowdCoordinator Coordinator => coordinator;
         public TransformMovementTarget Target => target;
         public Transform MonsterRoot => monsterRoot;
+        /// <summary>소환된 몬스터 (사망해 비활성화된 개체 포함)</summary>
+        public IReadOnlyList<MovementLabOwnedMonster> Monsters => ownedMonsters;
+
+        // 실험 조작 UI(MovementLabController)를 Play 시 자동으로 붙인다
+        private void Awake()
+        {
+            if (GetComponent<MovementLabController>() == null) gameObject.AddComponent<MovementLabController>();
+        }
 
         [ContextMenu("Laboratory/Build Laboratory")]
         public void BuildLaboratory()
@@ -137,6 +154,7 @@ namespace HybridShooter.Monster.MovementLab
                 var movement = child.GetComponent<MonsterMovement>();
                 if (movement == null || movement.Directive.Kind != DirectiveKind.Engage || !movement.Directive.HasSlotPosition) continue;
                 movement.enabled = false;
+                ownedMonsters.Remove(child.GetComponent<MovementLabOwnedMonster>());
                 Destroy(child.gameObject);
                 return;
             }
@@ -175,34 +193,25 @@ namespace HybridShooter.Monster.MovementLab
         private void SpawnMonster(MovementPolicyKind kind, Vector3 position, bool useCoordinator)
         {
             if (!ValidatePlaySetup()) return;
-            var go = new GameObject($"Lab {kind} Monster");
-            go.transform.SetParent(monsterRoot, true);
-            go.transform.position = position;
-            go.SetActive(false);
+            if (monsterPrefabs == null || monsterPrefabs.Length == 0)
+            {
+                Debug.LogError("Monster Prefabs 가 비어 있습니다. MovementLabExample 의 Monster Prefabs 에 몬스터 프리팹을 지정하세요.", this);
+                return;
+            }
+            var prefab = monsterPrefabs[spawnSerial++ % monsterPrefabs.Length];
+            var go = Instantiate(prefab, position, Quaternion.identity, monsterRoot);
+            go.SetActive(false);   // 이동 컴포넌트를 붙이고 Configure 할 때까지 OnEnable 을 막는다
+            go.name = $"Lab {kind} {prefab.name}";
+            go.transform.localScale = prefab.transform.localScale * monsterVisualScale;
             var ownedMonster = go.AddComponent<MovementLabOwnedMonster>();
             var agent = go.AddComponent<NavMeshAgent>();
             agent.radius = .45f; agent.height = 1.8f; agent.speed = 3.5f; agent.stoppingDistance = .1f;
             agent.avoidancePriority = Random.Range(20, 80);
             go.AddComponent<NavMeshMoveExecutor>();
-            var movement = go.AddComponent<MonsterMovement>();
-            var profile = MovementLabProfiles.CreateRuntime(kind);
-            ownedMonster.SetProfile(profile);
-            if (useCoordinator) movement.Configure(profile, coordinator);
-            else movement.ConfigureDirect(profile, target);
-            CreateVisual(go.transform, kind);
+            go.AddComponent<MonsterMovement>();
+            ownedMonster.Initialize(MovementLabProfiles.CreateRuntime(kind), useCoordinator ? coordinator : null, target);
+            ownedMonsters.Add(ownedMonster);
             go.SetActive(true);
-        }
-
-        private static void CreateVisual(Transform parent, MovementPolicyKind kind)
-        {
-            var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            visual.name = "Visual (pivot at feet)";
-            visual.transform.SetParent(parent, false);
-            visual.transform.localPosition = Vector3.up;
-            var collider = visual.GetComponent<Collider>();
-            if (Application.isPlaying) Destroy(collider); else DestroyImmediate(collider);
-            SetColor(visual.GetComponent<Renderer>(), kind == MovementPolicyKind.Flank
-                ? new Color(1f, .58f, .16f) : kind == MovementPolicyKind.KeepDistance ? new Color(.7f, .4f, 1f) : new Color(1f, .24f, .22f));
         }
 
         private static GameObject CreateBox(Transform parent, string name, Vector3 position, Vector3 scale, Color color)
@@ -243,6 +252,7 @@ namespace HybridShooter.Monster.MovementLab
 
         private void ClearOwnedMonstersInternal()
         {
+            ownedMonsters.Clear();
             for (int i = monsterRoot.childCount - 1; i >= 0; i--)
             {
                 var child = monsterRoot.GetChild(i);

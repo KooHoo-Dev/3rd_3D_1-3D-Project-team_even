@@ -25,6 +25,7 @@ namespace HybridShooter.Monster.Movement
             return new Vector3(target.x + Mathf.Sin(rad) * radius, target.y, target.z + Mathf.Cos(rad) * radius);
         }
 
+        /// <summary>수평(XZ) 거리 (m)</summary>
         public static float HorizontalDistance(Vector3 a, Vector3 b)
         {
             float dx = a.x - b.x;
@@ -32,9 +33,15 @@ namespace HybridShooter.Monster.Movement
             return Mathf.Sqrt(dx * dx + dz * dz);
         }
 
+        /// <summary>
+        /// Wait 지시를 받은 개체의 이동 의도.
+        /// 슬롯 모드면 배정된 슬롯으로 가서 도착 시 Waiting. 토큰 모드면 대기 링에서 정지(Waiting) 또는 선회(Orbiting)
+        /// </summary>
         public static MoveIntent Evaluate(in MovementContext ctx, bool orbiting)
         {
             var t = ctx.Tuning;
+
+            // 슬롯 모드: 슬롯이 없으면 제자리 대기, 있으면 슬롯으로 이동
             if (ctx.Directive.RequiresSlot)
             {
                 if (!ctx.Directive.HasSlotPosition) return MoveIntent.Stop(MovementState.Waiting);
@@ -49,6 +56,7 @@ namespace HybridShooter.Monster.Movement
             if (d > ringRadius + RingTolerance)
                 return new MoveIntent(MovementState.Approach, ctx.Directive.WaitPoint, t.MoveSpeed, 0.3f);
 
+            // 선회: 현재 방위보다 조금 앞선 링 위 지점을 목적지로 잡아 링을 따라 돈다
             if (orbiting)
             {
                 int sign = ctx.Directive.OrbitSign != 0 ? ctx.Directive.OrbitSign : 1;

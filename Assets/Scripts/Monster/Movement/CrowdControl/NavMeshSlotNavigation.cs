@@ -15,6 +15,7 @@ namespace HybridShooter.Monster.Movement
             path = new NavMeshPath();
         }
 
+        /// <summary>SampleRadius 안에서 가장 가까운 NavMesh 지점으로 후보를 투영</summary>
         public bool TryProject(Vector3 candidate, out Vector3 position)
         {
             var filter = new NavMeshQueryFilter { agentTypeID = settings.AgentTypeId, areaMask = settings.AreaMask };
@@ -27,6 +28,7 @@ namespace HybridShooter.Monster.Movement
             return false;
         }
 
+        /// <summary>NavMesh 경로가 끝까지 이어지면(PathComplete) true</summary>
         public bool CanReach(Vector3 origin, Vector3 destination)
         {
             var filter = new NavMeshQueryFilter { agentTypeID = settings.AgentTypeId, areaMask = settings.AreaMask };

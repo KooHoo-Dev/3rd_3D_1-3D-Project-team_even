@@ -9,6 +9,7 @@ namespace HybridShooter.Monster.Movement
         {
         }
 
+        /// <summary>밴드 안이면 정지(Engaged), 밖이면 목표 기준 같은 방향의 밴드 중앙 거리로 이동 (후퇴 또는 접근)</summary>
         public MoveIntent Evaluate(in MovementContext ctx)
         {
             if (!ctx.TargetValid)
