@@ -30,8 +30,7 @@ namespace HybridShooter.Supply
         [Tooltip("낙하 지점에서 지면을 못 찾았을 때 다시 뽑는 횟수")]
         [SerializeField] private int maxPositionTries = 10;
 
-        [Header("자동 투하")]
-        [SerializeField] private bool autoDrop = true;
+        
         [Tooltip("플레이 시작 후 첫 투하까지 대기 시간 (초)")]
         [SerializeField, Min(0f)] private float firstDropDelay = 60f;
         [Tooltip("투하 주기 (초)")]
@@ -41,8 +40,9 @@ namespace HybridShooter.Supply
 
         private readonly List<SupplyCrate> activeCrates = new List<SupplyCrate>();
         private readonly Dictionary<string, SupplyCrate> prefabCache = new Dictionary<string, SupplyCrate>();
+        private bool autoDrop = true;
         private float nextAutoDropTime = float.PositiveInfinity;
-
+        
         /// <summary>현재 필드에 남아 있는 보급 목록 (낙하 중 + 착지 후)</summary>
         public IReadOnlyList<SupplyCrate> ActiveCrates => activeCrates;
         /// <summary>필드에 동시에 존재할 수 있는 보급 최대 개수</summary>
@@ -226,6 +226,20 @@ namespace HybridShooter.Supply
         {
             nextAutoDropTime = float.PositiveInfinity;
             ClearAll();
+        }
+        
+        public void StartAutoDropCycle()
+        {
+            if (autoDrop) return;
+
+            autoDrop = true;
+            nextAutoDropTime = Time.time;
+        }
+        
+        public void StopAutoDropCycle()
+        {
+            autoDrop = false;
+            nextAutoDropTime = float.PositiveInfinity;
         }
     }
 }
