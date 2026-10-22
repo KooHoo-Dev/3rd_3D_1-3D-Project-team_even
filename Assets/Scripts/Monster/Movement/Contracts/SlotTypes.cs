@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace HybridShooter.Monster.Movement
 {
-    public enum SlotKind { Approach, Waiting }
     public enum SlotValidity { Valid, OffNavMesh, TooClose }
     public enum SlotUse { Free, Reserved, Occupied }
 
@@ -14,6 +13,8 @@ namespace HybridShooter.Monster.Movement
         [Min(0.1f)] public float ApproachRadius = 2.8f;
         [Min(0.1f)] public float MinimumRingGap = 1.2f;
         [Min(2)] public int MaxRingCount = 6;
+        [Tooltip("토큰 모드(UseSlots=false) 전용 대기 반경 (m)")]
+        [Min(0.1f)] public float WaitingRadius = 8f;
         [Min(0.1f)] public float MinimumSpacing = 1.1f;
         [Min(0.01f)] public float SampleRadius = 0.6f;
         [Min(0.01f)] public float ArrivalDistance = 0.45f;
@@ -28,7 +29,6 @@ namespace HybridShooter.Monster.Movement
     public readonly struct SlotSnapshot
     {
         public readonly int Id;
-        public readonly SlotKind Kind;
         public readonly int RingIndex;
         public readonly Vector3 CandidatePosition;
         public readonly Vector3 Position;
@@ -37,11 +37,10 @@ namespace HybridShooter.Monster.Movement
         public readonly SlotUse Use;
         public readonly bool Congested;
 
-        public SlotSnapshot(int id, SlotKind kind, Vector3 candidatePosition, Vector3 position,
-                            SlotValidity validity, int ownerId, SlotUse use, bool congested, int ringIndex = -1)
+        public SlotSnapshot(int id, int ringIndex, Vector3 candidatePosition, Vector3 position,
+                            SlotValidity validity, int ownerId, SlotUse use, bool congested)
         {
-            Id = id; Kind = kind; RingIndex = ringIndex < 0 ? kind == SlotKind.Approach ? 0 : 1 : ringIndex;
-            CandidatePosition = candidatePosition; Position = position;
+            Id = id; RingIndex = ringIndex; CandidatePosition = candidatePosition; Position = position;
             Validity = validity; OwnerId = ownerId; Use = use; Congested = congested;
         }
     }

@@ -13,7 +13,6 @@ namespace HybridShooter.Monster.Movement
     {
         [Min(0)] public int EngageCapacity = 8;
         [Min(0f)] public float NearRadius = 6f;
-        [Min(0f)] public float WaitRadius = 9f;
         [Min(0f)] public float ReleaseRadius = 10.5f;
         [Tooltip("토큰 배분 주기 (s)")]
         [Min(0.02f)] public float AllocationInterval = 0.2f;
@@ -105,8 +104,8 @@ namespace HybridShooter.Monster.Movement
 
         private void ValidateSettings()
         {
-            if (!(settings.NearRadius >= 0f && settings.NearRadius < settings.WaitRadius && settings.WaitRadius <= settings.ReleaseRadius))
-                Debug.LogError($"CrowdSettings 반경 오류: 0 <= Near({settings.NearRadius}) < Wait({settings.WaitRadius}) <= Release({settings.ReleaseRadius}) 이어야 함", this);
+            if (!settings.UseSlots && settings.Slots != null && !(settings.NearRadius >= 0f && settings.NearRadius < settings.Slots.WaitingRadius && settings.Slots.WaitingRadius <= settings.ReleaseRadius))
+                Debug.LogError($"CrowdSettings 반경 오류: 0 <= Near({settings.NearRadius}) < Waiting({settings.Slots.WaitingRadius}) <= Release({settings.ReleaseRadius}) 이어야 함", this);
             if (settings.Slots == null || settings.Slots.ApproachCount < 1 ||
                 settings.Slots.ApproachRadius <= 0f || settings.Slots.MinimumRingGap <= 0f ||
                 settings.Slots.MaxRingCount < 2)
@@ -243,7 +242,7 @@ namespace HybridShooter.Monster.Movement
             bool allowApproach = capacity > 0 && (alreadyApproaching || slots.ApproachReservations < capacity);
             if (!slots.TryRequest(agent.GetInstanceID(), agent.transform.position, now, allowApproach, out SlotSnapshot slot))
                 return CrowdDirective.WaitingForSlot(agent.transform.position);
-            DirectiveKind kind = slot.Kind == SlotKind.Approach ? DirectiveKind.Engage : DirectiveKind.Wait;
+            DirectiveKind kind = slot.RingIndex == 0 ? DirectiveKind.Engage : DirectiveKind.Wait;
             return new CrowdDirective(kind, in slot, settings.Slots.ArrivalDistance);
         }
 
@@ -307,7 +306,7 @@ namespace HybridShooter.Monster.Movement
                     loggedMissingTarget = true;
                 }
                 for (int i = 0; i < agents.Count; i++)
-                    agents[i].Think(target, settings.WaitRadius, Time.time);
+                    agents[i].Think(target, Time.time);
                 return;
             }
 
@@ -361,7 +360,7 @@ namespace HybridShooter.Monster.Movement
                     for (int i = 0; i < k; i++)
                     {
                         if (agents.Count != n) break; // 판단 중 등록/해제 발생
-                        agents[thinkCursor % n].Think(target, settings.WaitRadius, now);
+                        agents[thinkCursor % n].Think(target, now);
                         thinkCursor = (thinkCursor + 1) % n;
                     }
                 }
@@ -389,7 +388,7 @@ namespace HybridShooter.Monster.Movement
                 TargetPosition = targetPos,
                 Capacity = settings.EngageCapacity,
                 NearRadius = settings.NearRadius,
-                WaitRadius = settings.WaitRadius,
+                Slots = settings.Slots,
                 ReleaseRadius = settings.ReleaseRadius,
                 Now = now,
                 UseSlots = settings.UseSlots,

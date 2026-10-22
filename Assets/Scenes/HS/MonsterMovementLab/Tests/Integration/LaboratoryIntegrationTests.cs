@@ -56,8 +56,24 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
             example.SpawnCrowdMvp();
             yield return WaitForSimulation(0.5f);
             Assert.That(coordinator.Agents.Count, Is.Zero);
+            example.SpawnTokenCrowd();
+            yield return WaitForSimulation(0.5f);
+            Assert.That(coordinator.Settings.UseSlots, Is.False);
+            Assert.That(coordinator.Agents.Count, Is.EqualTo(24));
+            int tokenWaiting = 0;
+            foreach (var agent in coordinator.Agents)
+            {
+                if (agent.Directive.Kind != DirectiveKind.Wait) continue;
+                tokenWaiting++;
+                Assert.That(agent.Directive.HasSlotPosition, Is.False);
+                Vector3 offset = agent.Directive.WaitPoint - example.Target.Position;
+                float radius = Mathf.Sqrt(offset.x * offset.x + offset.z * offset.z);
+                Assert.That(radius, Is.EqualTo(coordinator.Settings.Slots.WaitingRadius).Within(0.001f));
+            }
+            Assert.That(tokenWaiting, Is.GreaterThan(0));
             example.SpawnSlotCrowd();
             yield return WaitForSimulation(1f);
+            Assert.That(coordinator.Settings.UseSlots, Is.True);
             Assert.That(coordinator.Agents.Count, Is.EqualTo(24));
             int unrestricted = 0, flank = 0;
             foreach (var agent in coordinator.Agents)

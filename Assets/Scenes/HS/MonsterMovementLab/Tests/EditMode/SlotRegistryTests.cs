@@ -32,9 +32,8 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
             registry.Refresh(Vector3.zero, 0f, NoObstacles);
             Assert.That(registry.Count, Is.EqualTo(20));
             SlotSnapshot first = registry.GetSnapshot(0);
-            Assert.That(first.Kind, Is.EqualTo(SlotKind.Approach));
+            Assert.That(first.RingIndex, Is.EqualTo(0));
             Assert.That(first.CandidatePosition.z, Is.EqualTo(2.8f).Within(0.001f));
-            Assert.That(registry.GetSnapshot(8).Kind, Is.EqualTo(SlotKind.Waiting));
             Assert.That(registry.GetSnapshot(8).RingIndex, Is.EqualTo(1));
             Assert.That(registry.GetSnapshot(8).CandidatePosition.z, Is.EqualTo(4.2f).Within(0.001f));
             registry.Refresh(new Vector3(5f, 0f, -3f), 1f, NoObstacles);
@@ -51,7 +50,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
             settings.MinimumRingGap = 2f;
             registry.Refresh(Vector3.zero, 1f, NoObstacles);
             Assert.That(registry.Count, Is.EqualTo(5));
-            Assert.That(registry.GetSnapshot(2).Kind, Is.EqualTo(SlotKind.Waiting));
+            Assert.That(registry.GetSnapshot(2).RingIndex, Is.EqualTo(1));
         }
 
         [Test]
@@ -64,11 +63,11 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
             Assert.That(registry.TryRequest(11, Vector3.zero, 0.1f, true, out SlotSnapshot repeat), Is.True);
             Assert.That(repeat.Id, Is.EqualTo(first.Id));
             Assert.That(registry.TryRequest(22, Vector3.zero, 0f, true, out SlotSnapshot waiting), Is.True);
-            Assert.That(waiting.Kind, Is.EqualTo(SlotKind.Waiting));
+            Assert.That(waiting.RingIndex, Is.EqualTo(1));
             Assert.That(waiting.Id, Is.Not.EqualTo(first.Id));
             registry.Release(11);
             Assert.That(registry.TryRequest(22, Vector3.zero, 0.2f, true, out SlotSnapshot promoted), Is.True);
-            Assert.That(promoted.Kind, Is.EqualTo(SlotKind.Approach));
+            Assert.That(promoted.RingIndex, Is.EqualTo(0));
             Assert.That(registry.GetSnapshot(waiting.Id).Use, Is.EqualTo(SlotUse.Free));
             Assert.That(registry.ApproachReservations, Is.EqualTo(1));
         }
@@ -162,7 +161,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
             Assert.That(registry.TryRequest(11, Vector3.zero, 0f, true, out _), Is.False);
             nav.Reachable = (_, __) => true;
             Assert.That(registry.TryRequest(11, Vector3.zero, 0f, false, out SlotSnapshot waiting), Is.True);
-            Assert.That(waiting.Kind, Is.EqualTo(SlotKind.Waiting));
+            Assert.That(waiting.RingIndex, Is.EqualTo(1));
         }
 
         [Test]

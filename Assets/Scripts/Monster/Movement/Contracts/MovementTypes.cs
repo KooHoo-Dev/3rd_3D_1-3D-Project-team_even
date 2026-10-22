@@ -154,8 +154,6 @@ namespace HybridShooter.Monster.Movement
         public readonly Vector3 TargetForward;
         public readonly bool TargetValid;
         public readonly CrowdDirective Directive;
-        /// <summary>CrowdSettings.WaitRadius (m). 선회 반경 계산용</summary>
-        public readonly float WaitRadius;
         public readonly MovementTuning Tuning;
         /// <summary>현재 시각 (s)</summary>
         public readonly float Now;
@@ -163,14 +161,13 @@ namespace HybridShooter.Monster.Movement
         public readonly float DeltaTime;
 
         public MovementContext(Vector3 selfPosition, Vector3 targetPosition, Vector3 targetForward, bool targetValid,
-                               CrowdDirective directive, float waitRadius, MovementTuning tuning, float now, float deltaTime)
+                               CrowdDirective directive, MovementTuning tuning, float now, float deltaTime)
         {
             SelfPosition = selfPosition;
             TargetPosition = targetPosition;
             TargetForward = targetForward;
             TargetValid = targetValid;
             Directive = directive;
-            WaitRadius = waitRadius;
             Tuning = tuning;
             Now = now;
             DeltaTime = deltaTime;

@@ -67,7 +67,7 @@ namespace HybridShooter.Monster.MovementLab
             coordinator.RefreshSlots();
             SetupCamera(root.transform);
             SetupLight(root.transform);
-            Debug.Log("Monster Movement Laboratory 생성 완료. Play 후 ContextMenu의 Spawn 명령을 사용하세요.", this);
+            Debug.Log("Monster Movement Laboratory 생성 완료. Play 후 ContextMenu의 Spawn Slot Crowd 또는 Spawn Token Crowd를 사용하세요.", this);
         }
 
         [ContextMenu("Laboratory/Reset Laboratory")]
@@ -102,10 +102,21 @@ namespace HybridShooter.Monster.MovementLab
         [ContextMenu("Play/Spawn Slot Crowd")]
         public void SpawnSlotCrowd()
         {
+            SpawnCoordinatorCrowd(true);
+        }
+
+        [ContextMenu("Play/Spawn Token Crowd")]
+        public void SpawnTokenCrowd()
+        {
+            SpawnCoordinatorCrowd(false);
+        }
+
+        private void SpawnCoordinatorCrowd(bool useSlots)
+        {
             if (!ValidatePlaySetup()) return;
             ClearOwnedMonstersInternal();
-            coordinator.Settings.UseSlots = true;
-            coordinator.RefreshSlots();
+            coordinator.Settings.UseSlots = useSlots;
+            if (useSlots) coordinator.RefreshSlots();
             for (int i = 0; i < crowdSpawnCount; i++)
             {
                 float angle = i * Mathf.PI * 2f / crowdSpawnCount;
@@ -143,11 +154,12 @@ namespace HybridShooter.Monster.MovementLab
         public void DumpSlots()
         {
             if (!ValidatePlaySetup()) return;
+            if (!coordinator.Settings.UseSlots) { Debug.Log("토큰 모드에는 예약 슬롯이 없습니다.", coordinator); return; }
             var lines = new List<string>();
             for (int i = 0; i < coordinator.SlotCount; i++)
             {
                 var s = coordinator.GetSlotSnapshot(i);
-                lines.Add($"#{s.Id} {s.Kind} {s.Use} {s.Validity} owner={s.OwnerId} pos={s.Position} congested={s.Congested}");
+                lines.Add($"#{s.Id} ring:{s.RingIndex} {s.Use} {s.Validity} owner={s.OwnerId} pos={s.Position} congested={s.Congested}");
             }
             Debug.Log(lines.Count == 0 ? "슬롯 없음" : string.Join("\n", lines), coordinator);
         }

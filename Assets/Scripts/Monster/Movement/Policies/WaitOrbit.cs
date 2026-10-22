@@ -43,17 +43,18 @@ namespace HybridShooter.Monster.Movement
                     ctx.Directive.SlotPosition, t.MoveSpeed, Mathf.Min(0.2f, ctx.Directive.SlotArrivalDistance * 0.5f));
             }
             float d = HorizontalDistance(ctx.SelfPosition, ctx.TargetPosition);
+            float ringRadius = HorizontalDistance(ctx.Directive.WaitPoint, ctx.TargetPosition);
 
             // 링에서 멀면 먼저 대기 지점으로 이동
-            if (d > ctx.WaitRadius + RingTolerance)
+            if (d > ringRadius + RingTolerance)
                 return new MoveIntent(MovementState.Approach, ctx.Directive.WaitPoint, t.MoveSpeed, 0.3f);
 
             if (orbiting)
             {
                 int sign = ctx.Directive.OrbitSign != 0 ? ctx.Directive.OrbitSign : 1;
                 float angle = BearingDeg(ctx.TargetPosition, ctx.SelfPosition) + sign * t.OrbitAngularSpeedDeg * OrbitLookaheadSeconds;
-                Vector3 dest = PointOnRing(ctx.TargetPosition, angle, ctx.WaitRadius);
-                float arcSpeed = t.OrbitAngularSpeedDeg * Mathf.Deg2Rad * ctx.WaitRadius * 1.2f;
+                Vector3 dest = PointOnRing(ctx.TargetPosition, angle, ringRadius);
+                float arcSpeed = t.OrbitAngularSpeedDeg * Mathf.Deg2Rad * ringRadius * 1.2f;
                 float speed = Mathf.Max(0.5f, Mathf.Min(t.MoveSpeed, arcSpeed));
                 return new MoveIntent(MovementState.Orbiting, dest, speed, 0f);
             }

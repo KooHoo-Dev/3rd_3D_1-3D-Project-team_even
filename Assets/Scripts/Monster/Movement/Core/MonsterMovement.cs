@@ -118,7 +118,7 @@ namespace HybridShooter.Monster.Movement
                 }
             }
             if (crowdCoordinator != null || targetInfo == null || Time.time < nextDirectThink) return;
-            Think(targetInfo, 0f, Time.time);
+            Think(targetInfo, Time.time);
             nextDirectThink = Time.time + 0.1f;
         }
 
@@ -201,7 +201,7 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>판단 1회: 정책 Evaluate → 실행기 Apply → 상태 갱신</summary>
-        internal void Think(IMovementTarget target, float waitRadius, float now)
+        internal void Think(IMovementTarget target, float now)
         {
             if (suspended) return;
 
@@ -224,7 +224,7 @@ namespace HybridShooter.Monster.Movement
             Vector3 targetPosition = targetValid ? target.Position : self;
             Vector3 targetForward = targetValid ? target.Forward : Vector3.forward;
             var ctx = new MovementContext(self, targetPosition, targetForward, targetValid,
-                                          directive, waitRadius, tuning, now, dt);
+                                           directive, tuning, now, dt);
             var intent = policy.Evaluate(in ctx);
             SubmitIntent(in intent, target, targetValid, now);
 

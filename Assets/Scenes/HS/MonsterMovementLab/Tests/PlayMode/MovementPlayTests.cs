@@ -191,7 +191,7 @@ namespace HybridShooter.Monster.Movement.Lab.Tests
                 var s = coordinator.GetSlotSnapshot(i);
                 if (s.Use == SlotUse.Free) continue;
                 Assert.That(owners.Add(s.OwnerId), Is.True, "한 개체가 여러 슬롯 소유 불가");
-                if (s.Kind == SlotKind.Approach) { approach++; removedSlot = i; removedOwner = s.OwnerId; }
+                if (s.RingIndex == 0) { approach++; removedSlot = i; removedOwner = s.OwnerId; }
                 else waiting++;
             }
             Assert.That(approach, Is.EqualTo(8));

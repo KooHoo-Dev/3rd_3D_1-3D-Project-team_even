@@ -56,7 +56,7 @@ namespace HybridShooter.Monster.Movement
         public int MaxRingCount => maxRingCount;
         public int ApproachReservations { get; private set; }
         public bool HasApproachReservation(int ownerId) =>
-            ownerSlots.TryGetValue(ownerId, out int id) && Kind(id) == SlotKind.Approach;
+            ownerSlots.TryGetValue(ownerId, out int id) && id < approachCount;
 
         public SlotRegistry(SlotSettings settings, ISlotNavigation navigation)
         {
@@ -81,8 +81,8 @@ namespace HybridShooter.Monster.Movement
         {
             if ((uint)id >= (uint)slots.Count) throw new ArgumentOutOfRangeException(nameof(id));
             Slot slot = slots[id];
-            return new SlotSnapshot(id, Kind(id), slot.Candidate, slot.Position, slot.Validity,
-                slot.Owner, slot.Use, IsCongested(id, slot.Owner), slot.RingIndex);
+            return new SlotSnapshot(id, slot.RingIndex, slot.Candidate, slot.Position, slot.Validity,
+                slot.Owner, slot.Use, IsCongested(id, slot.Owner));
         }
 
         public void Refresh(Vector3 center, float now, IReadOnlyList<SlotObstacle> currentObstacles)
@@ -164,7 +164,7 @@ namespace HybridShooter.Monster.Movement
             {
                 Slot owned = slots[ownedId];
                 if (owned.Validity == SlotValidity.Valid &&
-                    (allowApproach || Kind(ownedId) == SlotKind.Waiting) &&
+                    (allowApproach || ownedId >= approachCount) &&
                     navigation.CanReach(position, owned.Position))
                 {
                     float distance = Mathf.Sqrt(HorizontalSqr(position, owned.Position));
@@ -241,7 +241,7 @@ namespace HybridShooter.Monster.Movement
             slots[id] = slot;
             ownerSlots.Remove(ownerId);
             progress.Remove(ownerId);
-            if (Kind(id) == SlotKind.Approach) ApproachReservations--;
+            if (id < approachCount) ApproachReservations--;
         }
 
         public void ClearReservations()
@@ -308,7 +308,7 @@ namespace HybridShooter.Monster.Movement
                 LastProgressTime = now,
                 WasOccupied = slot.Use == SlotUse.Occupied
             };
-            if (Kind(id) == SlotKind.Approach) ApproachReservations++;
+            if (id < approachCount) ApproachReservations++;
         }
 
         private bool IsCongested(int id, int excludedOwner)
@@ -325,7 +325,6 @@ namespace HybridShooter.Monster.Movement
             return false;
         }
 
-        private SlotKind Kind(int id) => slots[id].RingIndex == 0 ? SlotKind.Approach : SlotKind.Waiting;
         private static long RejectionKey(int ownerId, int slotId) => ((long)ownerId << 32) | (uint)slotId;
         private static float HorizontalSqr(Vector3 a, Vector3 b)
         {

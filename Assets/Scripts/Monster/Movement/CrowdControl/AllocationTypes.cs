@@ -28,9 +28,9 @@ namespace HybridShooter.Monster.Movement
         public int Capacity;
         /// <summary>과밀 판정 반경 (m)</summary>
         public float NearRadius;
-        /// <summary>대기 링 반경 (m), NearRadius 보다 커야 함</summary>
-        public float WaitRadius;
-        /// <summary>토큰 보유자가 이 반경 밖으로 나가면 토큰 회수 (m), WaitRadius 이상</summary>
+        /// <summary>슬롯/토큰 모드가 공유하는 링 설정</summary>
+        public SlotSettings Slots;
+        /// <summary>토큰 보유자가 이 반경 밖으로 나가면 토큰 회수 (m), Slots.WaitingRadius 이상</summary>
         public float ReleaseRadius;
         /// <summary>현재 시각 (s)</summary>
         public float Now;

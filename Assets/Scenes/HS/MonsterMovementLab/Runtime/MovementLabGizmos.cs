@@ -51,11 +51,9 @@ namespace HybridShooter.Monster.MovementLab
                 var settings = coordinator.Settings;
                 Gizmos.color = new Color(.2f, .8f, 1f, .7f);
                 DrawRing(target.Position, settings.NearRadius);
-                Gizmos.color = new Color(1f, .75f, .2f, .7f);
-                DrawRing(target.Position, settings.WaitRadius);
                 Gizmos.color = new Color(1f, .25f, .2f, .5f);
                 DrawRing(target.Position, settings.ReleaseRadius);
-                if (showApproach)
+                if (settings.UseSlots && showApproach)
                 {
                     Gizmos.color = approachColor;
                     DrawRing(target.Position, settings.Slots.ApproachRadius);
@@ -63,13 +61,18 @@ namespace HybridShooter.Monster.MovementLab
                 if (showWaiting)
                 {
                     Gizmos.color = waitingColor;
-                    int lastRing = -1;
-                    for (int i = 0; i < coordinator.SlotCount; i++)
+                    if (!settings.UseSlots)
+                        DrawRing(target.Position, settings.Slots.WaitingRadius);
+                    else
                     {
-                        SlotSnapshot slot = coordinator.GetSlotSnapshot(i);
-                        if (slot.RingIndex == 0 || slot.RingIndex == lastRing) continue;
-                        DrawRing(target.Position, (slot.CandidatePosition - target.Position).magnitude);
-                        lastRing = slot.RingIndex;
+                        int lastRing = -1;
+                        for (int i = 0; i < coordinator.SlotCount; i++)
+                        {
+                            SlotSnapshot slot = coordinator.GetSlotSnapshot(i);
+                            if (slot.RingIndex == 0 || slot.RingIndex == lastRing) continue;
+                            DrawRing(target.Position, (slot.CandidatePosition - target.Position).magnitude);
+                            lastRing = slot.RingIndex;
+                        }
                     }
                 }
             }
@@ -85,22 +88,22 @@ namespace HybridShooter.Monster.MovementLab
                     DrawDirectMonsters(optionalMonsterRoot.GetChild(i), agents, ref detailed);
             }
 
-            for (int i = 0; i < coordinator.SlotCount; i++)
+            for (int i = 0; coordinator.Settings.UseSlots && i < coordinator.SlotCount; i++)
             {
                 var slot = coordinator.GetSlotSnapshot(i);
-                if (slot.Kind == SlotKind.Approach && !showApproach || slot.Kind == SlotKind.Waiting && !showWaiting) continue;
+                if (slot.RingIndex == 0 && !showApproach || slot.RingIndex != 0 && !showWaiting) continue;
                 if (slot.Validity != SlotValidity.Valid && !showInvalid) continue;
                 if (slot.Validity == SlotValidity.Valid && slot.Use == SlotUse.Free && !showFree) continue;
                 if (slot.Validity == SlotValidity.Valid && slot.Use != SlotUse.Free && !showAssigned) continue;
 
-                Color kindColor = slot.Kind == SlotKind.Approach ? approachColor : waitingColor;
+                Color kindColor = slot.RingIndex == 0 ? approachColor : waitingColor;
                 Color color = slot.Validity != SlotValidity.Valid ? invalidColor
                     : slot.Use == SlotUse.Free ? Color.Lerp(kindColor, freeColor, .5f) : assignedColor;
                 if (slot.Congested) color = Color.Lerp(color, invalidColor, .65f);
                 Gizmos.color = color;
                 if (slot.Validity == SlotValidity.Valid)
                 {
-                    if (slot.Kind == SlotKind.Approach)
+                    if (slot.RingIndex == 0)
                         Gizmos.DrawWireSphere(slot.Position + Vector3.up * .08f, slotSize);
                     else
                         Gizmos.DrawWireCube(slot.Position + Vector3.up * .08f, Vector3.one * slotSize * 2f);
@@ -115,7 +118,7 @@ namespace HybridShooter.Monster.MovementLab
 
                 if (showLabels && showSlotIds)
                 {
-                    string label = $"slot {slot.Id} {slot.Kind} {slot.Use}";
+                    string label = $"slot {slot.Id} ring:{slot.RingIndex} {slot.Use}";
                     if (slot.OwnerId != 0) label += $" owner:{slot.OwnerId}";
                     if (slot.Congested) label += " CONGESTED";
                     if (slot.Validity != SlotValidity.Valid) label += $" {slot.Validity}";

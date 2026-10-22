@@ -52,9 +52,9 @@ namespace HybridShooter.Monster.Movement
                 throw new ArgumentException($"results.Length({results.Length}) < count({count})", nameof(results));
             if (p.Capacity < 0)
                 throw new ArgumentOutOfRangeException(nameof(p), $"Capacity({p.Capacity}) < 0");
-            if (!(0f <= p.NearRadius && p.NearRadius < p.WaitRadius && p.WaitRadius <= p.ReleaseRadius))
+            if (p.Slots == null || !(0f <= p.NearRadius && p.NearRadius < p.Slots.WaitingRadius && p.Slots.WaitingRadius <= p.ReleaseRadius))
                 throw new ArgumentException(
-                    $"반경 순서 위반: 0 <= Near({p.NearRadius}) < Wait({p.WaitRadius}) <= Release({p.ReleaseRadius})", nameof(p));
+                    $"반경 순서 위반: 0 <= Near({p.NearRadius}) < Waiting({p.Slots?.WaitingRadius}) <= Release({p.ReleaseRadius})", nameof(p));
         }
 
         private static void EnsureCapacity(int count, int slotCount)
@@ -256,7 +256,7 @@ namespace HybridShooter.Monster.Movement
                 dirX = (pos.x - p.TargetPosition.x) / dist;
                 dirZ = (pos.z - p.TargetPosition.z) / dist;
             }
-            return new Vector3(p.TargetPosition.x + dirX * p.WaitRadius, p.TargetPosition.y, p.TargetPosition.z + dirZ * p.WaitRadius);
+            return new Vector3(p.TargetPosition.x + dirX * p.Slots.WaitingRadius, p.TargetPosition.y, p.TargetPosition.z + dirZ * p.Slots.WaitingRadius);
         }
 
         /// <summary>목표 기준 방위각 [0, 360) 도, atan2(dx, dz)</summary>
