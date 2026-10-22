@@ -45,6 +45,10 @@ namespace HybridShooter.Supply.Tester
         public Transform Root => transform;
         public Transform AimPoint => transform;
         public Transform ViewPoint => transform;
+        public Vector3 Position => Root.position;
+        // 임시로 처리
+        public Vector3 Velocity => Vector3.zero;
+        public Vector3 Forward => ViewPoint.forward;
         public bool IsAlive => true;
 
         private void Awake()

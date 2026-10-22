@@ -1,3 +1,4 @@
+using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
@@ -21,11 +22,10 @@ namespace HybridShooter.Player
     /// 일단 애니메이션도 담당한다.
     /// </summary>
     [RequireComponent(typeof(PlayerMotor), typeof(PlayerStamina))]
-    public class PlayerController : MonoBehaviour
+    public class PlayerController : MonoBehaviour, IPlayerTarget
     {
         private const string HitSlowKey = "hit";
         private const string ExhaustedKey = "exhausted";
-
 
         [SerializeField] private PlayerCameraRig cameraRig;
 
@@ -45,11 +45,14 @@ namespace HybridShooter.Player
         private PlayerStamina stamina;
         private bool exhaustedApplied;
 
-        private readonly PlayerTrackingInfo trackingInfo = new PlayerTrackingInfo();
-
         public bool IsInvulnerable => motor.IsInvulnerable;
         public PlayerMotor Motor => motor;
         public PlayerCameraRig CameraRig => cameraRig;
+        public Transform Root => transform;
+        // 나중에 게임 오브젝트 루트랑 모델 루트랑 달라지면 수정하세요
+        public Transform ViewPoint => transform;
+        public Vector3 Position => Root.position;
+        public Vector3 Forward => Root.forward;
 
 
         private void Awake()
@@ -127,14 +130,15 @@ namespace HybridShooter.Player
             => motor.AddTimedSpeedModifier(HitSlowKey, hitSpeedMultiplier, hitSlowDuration);
 
         /// <summary>군집(몬스터 무리)에게 넘겨줄 플레이어 정보. 같은 인스턴스를 갱신해 돌려주므로 보관만 하지 말고 매번 읽을 것</summary>
-        public PlayerTrackingInfo GetTrackingInfo()
-        {
-            trackingInfo.Position = transform.position;
-            trackingInfo.Velocity = motor.Velocity;
-            Vector3 forward = motor.Forward;
-            forward.y = 0f;
-            trackingInfo.Forward = forward.normalized;
-            return trackingInfo;
-        }
+        // 인터페이스로 교체
+        // public PlayerTrackingInfo GetTrackingInfo()
+        // {
+        //     trackingInfo.Position = transform.position;
+        //     trackingInfo.Velocity = motor.Velocity;
+        //     Vector3 forward = motor.Forward;
+        //     forward.y = 0f;
+        //     trackingInfo.Forward = forward.normalized;
+        //     return trackingInfo;
+        // }
     }
 }
