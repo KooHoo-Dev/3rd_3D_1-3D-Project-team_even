@@ -63,6 +63,7 @@ namespace HybridShooter.Monster.Movement
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
+            agent.updateRotation = false; // 이동 방향 자동 회전 끔. 시선은 MonsterMovement.ApplyLookRotation 이 담당
             path = new NavMeshPath();
             // 같은 우선순위의 정면 대치가 반복되지 않게 개체별 우선순위를 분산한다.
             priorityOffset = GetInstanceID() & 15;

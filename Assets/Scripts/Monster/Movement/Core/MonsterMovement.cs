@@ -18,6 +18,10 @@ namespace HybridShooter.Monster.Movement
         [Tooltip("군중 관리자 없는 직접 추적 모드의 IMovementTarget")]
         [SerializeField] private MonoBehaviour directTargetSource;
 
+        [Header("시선")]
+        [Tooltip("플레이어 방향으로 돌아보는 속도. 클수록 빠르게 따라붙는다 (지수 보간 계수, 1/s)")]
+        [SerializeField, Min(0f)] private float turnSpeed = 8f;
+
         // ════════ 협력 객체 (Awake/OnEnable 에서 연결) ════════
         // 실행기: "어떻게 움직일지"를 NavMeshAgent 로 실제 수행 (정책이 낸 MoveIntent 를 받는다)
         // 나중에 NavMesh 만으로
@@ -64,6 +68,10 @@ namespace HybridShooter.Monster.Movement
         // ════════ 슬롯 실행 추적 ════════
         // 실행기가 지금 향하고 있는 슬롯 번호. 경로 없음(Unreachable)이면 그 슬롯을 거절하기 위해 기억한다
         private int executingSlotId = -1;
+
+        // ════════ 시선 (Think 가 갱신, LateUpdate 가 회전에 사용) ════════
+        private Vector3 lookTarget;           // 마지막 Think 에서 얻은 플레이어 위치
+        private bool hasLookTarget;           // 목표가 유효한가
 
         // ════════ 외부 공개 (읽기 전용) ════════
         public MovementProfile Profile => profile;
@@ -168,6 +176,26 @@ namespace HybridShooter.Monster.Movement
             nextDirectThink = Time.time + 0.1f;
         }
 
+        /// <summary>모든 Update(이동·NavMeshAgent 갱신) 이후 매 프레임 시선 회전을 적용한다</summary>
+        private void LateUpdate() => ApplyLookRotation();
+
+        /// <summary>
+        /// 이동 방향이 아니라 플레이어(lookTarget) 쪽을 수평으로 바라보게 한다.
+        /// 지수 보간(Slerp)이라 멀리 돌수록 빠르고 가까워질수록 부드럽게 멈춘다. 정지(suspended)·목표 무효 시에는 회전하지 않는다.
+        /// NavMeshAgent.updateRotation 이 꺼져 있어야 하므로 NavMeshMoveExecutor.Awake 에서 끈다.
+        /// </summary>
+        private void ApplyLookRotation()
+        {
+            if (!hasLookTarget || suspended) return;
+
+            Vector3 dir = lookTarget - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f) return;
+
+            float t = 1f - Mathf.Exp(-turnSpeed * Time.deltaTime); // 프레임레이트와 무관한 보간 비율
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), t);
+        }
+
         /// <summary>
         /// 프레임 갱신: 슬롯 예약이 사라졌으면 정지, 반응 지연이 끝난 의도 적용.
         /// 군중 모드는 CrowdCoordinator 가 Think 직후 호출, 직접 모드는 Update 가 호출
@@ -197,6 +225,7 @@ namespace HybridShooter.Monster.Movement
             CancelPendingIntent();
             hasReactionReference = false;
             executingSlotId = -1;
+            hasLookTarget = false;
             if (crowdCoordinator != null)
             {
                 crowdCoordinator.Unregister(this); // 내부에서 ResetCrowdState 호출
@@ -296,6 +325,8 @@ namespace HybridShooter.Monster.Movement
             bool targetValid = MovementTargetUtility.IsValid(target);
             Vector3 targetPosition = targetValid ? target.Position : self;
             Vector3 targetForward = targetValid ? target.Forward : Vector3.forward;
+            lookTarget = targetPosition;   // 시선 갱신 (실제 회전은 LateUpdate 의 ApplyLookRotation)
+            hasLookTarget = targetValid;
             var ctx = new MovementContext(self, targetPosition, targetForward, targetValid,
                                            directive, tuning, now, dt);
             // 3) 정책이 "어디로 갈지" 결정 → 반응 지연 규칙을 거쳐 실행기에 전달

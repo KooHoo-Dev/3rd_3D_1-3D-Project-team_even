@@ -67,6 +67,8 @@ namespace HybridShooter.Monster.MovementLab
             var mouse = Mouse.current;
             if (mouse == null || (mode != LabMode.Policy && mode != LabMode.Kill)) return;
             Vector2 screen = mouse.position.ReadValue();
+            // Game 뷰의 조작 창 위에서는 브러시/죽이기 입력을 무시한다 (창 조작이 월드 클릭으로 새지 않게)
+            if (windowRect.Contains(new Vector2(screen.x, Screen.height - screen.y))) return;
 
             Ray ray = labCamera.ScreenPointToRay(screen);
             if (mode == LabMode.Policy)
@@ -133,10 +135,21 @@ namespace HybridShooter.Monster.MovementLab
 
         // ════════ IMGUI ════════
 
-        /// <summary>Game 뷰 OnGUI 에는 몬스터 정책 라벨만 그린다. 조작 창은 Scene 뷰에 그린다(OnSceneGUI)</summary>
+        /// <summary>Game 뷰 OnGUI: 몬스터 정책 라벨 + 조작 창. Scene 뷰(OnSceneGUI)에도 같은 창을 그린다</summary>
         private void OnGUI()
         {
             if (showMonsterLabels) DrawMonsterLabels();
+            DrawControlWindow();
+        }
+
+        /// <summary>
+        /// 조작 창을 그린다. GUILayout.Window 는 반환 높이가 늘기만 하고 줄지 않으므로,
+        /// 매 호출 전에 높이를 0 으로 리셋해 모드(정책/죽이기/군중)별 내용 길이에 맞게 늘고 줄게 한다.
+        /// </summary>
+        private void DrawControlWindow()
+        {
+            windowRect.height = 0f;
+            windowRect = GUILayout.Window(GetInstanceID(), windowRect, DrawWindow, "Monster Movement Lab");
         }
 
 #if UNITY_EDITOR
@@ -148,7 +161,7 @@ namespace HybridShooter.Monster.MovementLab
         private void OnSceneGUI(UnityEditor.SceneView sceneView)
         {
             UnityEditor.Handles.BeginGUI();
-            windowRect = GUILayout.Window(GetInstanceID(), windowRect, DrawWindow, "Monster Movement Lab");
+            DrawControlWindow();
             UnityEditor.Handles.EndGUI();
             sceneView.Repaint(); // 스냅샷 등 실시간 값이 갱신되도록 계속 다시 그린다
         }
