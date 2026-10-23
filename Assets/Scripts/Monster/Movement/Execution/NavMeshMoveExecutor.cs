@@ -158,8 +158,10 @@ namespace HybridShooter.Monster.Movement
             hasDestination = false;
             requestedState = MoveExecutionState.Idle;
             if (agent == null || !agent.isActiveAndEnabled || !agent.isOnNavMesh) return;
-            agent.isStopped = true;
             agent.ResetPath();
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+            agent.nextPosition = transform.position;
         }
     }
 }

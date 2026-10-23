@@ -55,7 +55,8 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>대상이 있고 파괴되지 않았으면 true</summary>
-        public bool HasTarget => Target != null && (!(Target is UnityEngine.Object unityObject) || unityObject != null);
+        public bool HasTarget => PlayerMovementTarget.IsAlive(Target);
+        public bool CanAttack => !(mover is IMonsterCombatMover combatMover) || combatMover.CanAttack;
 
         /// <summary>대상까지 수평 거리 ≤ 현재 공격 사거리</summary>
         public bool IsTargetInAttackRange
@@ -71,13 +72,23 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>null = 대상 상실 (플레이어 사망 등)</summary>
-        public void SetTarget(IPlayerTarget target) => Target = target;
+        public void SetTarget(IPlayerTarget target)
+        {
+            if (!ReferenceEquals(Target, target) && CurrentAttack.IsRunning) CurrentAttack.Cancel();
+            Target = target;
+            if (!HasTarget)
+            {
+                if (CurrentAttack.IsRunning) CurrentAttack.Cancel();
+                if (Current == Attack || Current == Chase) ChangeState(Idle);
+            }
+        }
 
         /// <summary>판단 1회. 현재 상태의 Update 를 부른다</summary>
         public void Update(float now, float deltaTime)
         {
             Now = now;
             DeltaTime = deltaTime;
+            if (!HasTarget && (Current == Attack || Current == Chase)) SetTarget(null);
             Current.Update();
         }
 
@@ -106,12 +117,27 @@ namespace HybridShooter.Monster.Behaviour
         public void Stun(float seconds)
         {
             if (seconds < 0f) throw new ArgumentOutOfRangeException(nameof(seconds), seconds, "기절 시간은 0 이상");
+            if (IsDead || Current == Stunned) return; // 반복 기절은 최초 종료시각을 유지한다.
             StunDuration = seconds;
             ChangeState(Stunned);
         }
 
+        /// <summary>회수/비활성화: 보상·사망 알림 없이 공격과 이동을 정리한다.</summary>
+        public void Cleanup()
+        {
+            SetTarget(null);
+            if (CurrentAttack.IsRunning) CurrentAttack.Cancel();
+            if (!IsDead) ChangeState(Idle);
+            mover.Stop();
+        }
+
         // ── 상태 전용 ──
         internal void StopMove() => mover.Stop();
+        internal void StopForAttack()
+        {
+            if (mover is IMonsterCombatMover combatMover) combatMover.StopForAttack();
+            else mover.Stop();
+        }
         internal void ResumeMove() => mover.Resume();
         internal void FaceTarget() => body.Face(Target.Position);
         internal void NotifyDied() => Died?.Invoke(GrantReward);

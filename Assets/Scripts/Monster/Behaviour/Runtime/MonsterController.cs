@@ -4,17 +4,18 @@ using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.Services;
+using HybridShooter.Monster.Movement;
 using UnityEngine;
 
 namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
     /// 몬스터 1마리의 Unity 진입점 (Facade).
-    /// 프리팹에 monsterId 를 넣어 두면 Awake 에서 MonsterDef 를 읽어 체력·이동·공격·브레인을 조립한다.
+    /// Awake에서 Def/체력을 준비하고 모든 Awake 이후 Start에서 이동·공격·브레인을 조립한다.
     /// (기본 IMonsterFactory 는 프리팹을 Instantiate 만 하므로 초기화는 여기서 스스로 한다)
     /// 매 프레임 브레인을 돌리고, 대상 확보·처치·정리 이벤트를 브레인에 전달한다.
     /// </summary>
-    [RequireComponent(typeof(MonsterHealth), typeof(SimpleChaseMover))]
+    [RequireComponent(typeof(MonsterHealth), typeof(MonsterMovement), typeof(NavMeshMoveExecutor))]
     public sealed class MonsterController : MonoBehaviour
     {
         [Tooltip("MonsterTable Id")]
@@ -23,7 +24,8 @@ namespace HybridShooter.Monster.Behaviour
         [SerializeField, Min(0f)] private float despawnDelay = 2f;
 
         private MonsterHealth health;
-        private SimpleChaseMover mover;
+        private MovementMonsterMover mover;
+        private MonsterMovement movement;
         private bool playerDead;
         private float despawnTime = -1f;
         private bool despawned;
@@ -34,22 +36,38 @@ namespace HybridShooter.Monster.Behaviour
         private void Awake()
         {
             health = GetComponent<MonsterHealth>();
-            mover = GetComponent<SimpleChaseMover>();
+            movement = GetComponent<MonsterMovement>();
+            if (TryGetComponent<SimpleChaseMover>(out var legacy) && legacy.enabled)
+                throw new InvalidOperationException("MonsterController의 SimpleChaseMover를 제거하거나 비활성화해야 한다");
 
             Def = DataManager.Monsters.Get(monsterId);
             health.Initialize(Def.MaxHp);
-            mover.MoveSpeed = Def.MoveSpeed;
+        }
+
+        private void Start()
+        {
+            // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
+            mover = new MovementMonsterMover(movement);
 
             var body = new TransformMonsterBody(transform);
             var attack = MonsterBrainFactory.CreateAttack(Def.Role, AttackSpec.From(SingleBasicAttack(Def)), body, FindPlayerDamageable);
+            movement.SetCombatTuning(Def.MoveSpeed, attack.Range);
             Brain = new MonsterBrain(mover, body, attack);
 
             Brain.Died += OnBrainDied;
-            health.Depleted += OnHealthDepleted;
+            Subscribe();
         }
 
         private void OnEnable()
         {
+            if (Brain == null) return; // 최초 구독은 Start의 조립이 끝난 뒤 수행한다.
+            movement.enabled = true;
+            Subscribe();
+        }
+
+        private void Subscribe()
+        {
+            health.Depleted += OnHealthDepleted;
             EventBus<MonsterWipeRequestedEvent>.Subscribe(OnWipeRequested);
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
             EventBus<PlayerDiedEvent>.Subscribe(OnPlayerDied);
@@ -57,6 +75,9 @@ namespace HybridShooter.Monster.Behaviour
 
         private void OnDisable()
         {
+            Brain?.Cleanup();
+            if (movement != null) movement.enabled = false;
+            if (health != null) health.Depleted -= OnHealthDepleted;
             EventBus<MonsterWipeRequestedEvent>.Unsubscribe(OnWipeRequested);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
             EventBus<PlayerDiedEvent>.Unsubscribe(OnPlayerDied);
@@ -78,16 +99,16 @@ namespace HybridShooter.Monster.Behaviour
         private void AcquireTarget()
         {
             if (playerDead || Brain.HasTarget) return;
-            if (ServiceLocator.TryGet(out IPlayerTarget player) == false) return; // 플레이어 등록 전
+            if (ServiceLocator.TryGet(out IPlayerTarget player) == false || !PlayerMovementTarget.IsAlive(player)) return; // 플레이어 등록 전
             Brain.SetTarget(player);
-            mover.Target = player;
+            mover.SetTarget(player);
         }
 
         private void OnHealthDepleted() => Brain.Die(true);
 
         private void OnBrainDied(bool grantReward)
         {
-            mover.Target = null;
+            Brain.SetTarget(null);
             foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = false; // 시체는 피격 판정 없음
             EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(Def, transform.position, gameObject, grantReward));
             despawnTime = Time.time + despawnDelay;
@@ -103,13 +124,15 @@ namespace HybridShooter.Monster.Behaviour
         {
             playerDead = true;
             Brain.SetTarget(null);
-            mover.Target = null;
         }
 
         private void Despawn()
         {
             if (despawned) return;
             despawned = true;
+            Brain.Cleanup();
+            movement.enabled = false;
+            enabled = false;
             ServiceLocator.Get<IMonsterFactory>().Despawn(gameObject);
         }
 

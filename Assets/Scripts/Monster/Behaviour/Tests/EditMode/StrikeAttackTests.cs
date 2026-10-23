@@ -92,8 +92,11 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [Test]
         public void DeadTargetIsNotDamaged()
         {
+            attack.Begin(target, 0f);
             target.IsAlive = false;
-            RunToRecover();
+            attack.Tick(0.4f, 0.4f);
+            Assert.IsFalse(attack.IsRunning);
+            Assert.AreEqual(AttackResult.Cancelled, attack.LastResult);
             Assert.AreEqual(0, target.Received.Count);
         }
 

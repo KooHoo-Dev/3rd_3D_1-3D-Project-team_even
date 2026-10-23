@@ -52,6 +52,11 @@ namespace HybridShooter.Monster.Behaviour
 
         public void Tick(float now, float deltaTime)
         {
+            if (IsRunning && !PlayerMovementTarget.IsAlive(Target))
+            {
+                Cancel();
+                return;
+            }
             switch (Phase)
             {
                 case SkillPhase.Windup:
@@ -106,7 +111,7 @@ namespace HybridShooter.Monster.Behaviour
             direction = direction.sqrMagnitude > 1e-8f ? direction.normalized : Vector3.zero;
             var info = new DamageInfo(Spec.Damage, DamageKind.MonsterAttack, Faction.Monster, null,
                                       target.Position, direction, Spec.SourceDefId);
-            for (int i = 0; i < Spec.HitCount; i++)
+            for (int i = 0; i < Spec.HitCount && PlayerMovementTarget.IsAlive(target); i++)
                 damageable.TakeDamage(in info);
         }
 

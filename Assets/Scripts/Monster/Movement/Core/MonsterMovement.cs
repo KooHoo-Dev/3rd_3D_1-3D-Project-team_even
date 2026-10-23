@@ -50,6 +50,11 @@ namespace HybridShooter.Monster.Movement
 
         // ════════ 초기화 시점 ════════
         private bool started;                 // Start 를 거쳤는가 (첫 활성화는 Start, 이후 재활성화는 OnEnable 에서 초기화)
+        private bool registered;
+        private bool retainReservation;
+        private bool hasCombatTuning;
+        private float combatSpeed;
+        private float combatRange;
 
         // ════════ 판단 주기 ════════
         private bool hasThought;              // 한 번이라도 Think 했는가 (첫 dt 를 0 으로 만들기 위함)
@@ -75,6 +80,22 @@ namespace HybridShooter.Monster.Movement
 
         // ════════ 외부 공개 (읽기 전용) ════════
         public MovementProfile Profile => profile;
+        public IMovementTarget Target => crowdCoordinator != null ? crowdCoordinator.Target : targetInfo;
+        /// <summary>거리와 별개인 현재 군중 허가. 정지 중에도 실제 예약/토큰을 확인한다.</summary>
+        public bool CanAttack
+        {
+            get
+            {
+                if (!isActiveAndEnabled || !MovementTargetUtility.IsValid(Target)) return false;
+                if (crowdCoordinator == null) return directive.Kind == DirectiveKind.Unrestricted;
+                if (!registered) return false;
+                if (!crowdCoordinator.Settings.EnableCrowdControl || !profile.UsesEngageToken) return true;
+                return directive.Kind == DirectiveKind.Engage &&
+                    (crowdCoordinator.Settings.UseSlots
+                        ? crowdCoordinator.IsSlotReservedBy(this, directive.SlotId)
+                        : hasToken);
+            }
+        }
         public MovementState State => state;
         /// <summary>목표 유효 + 수평 거리 ≤ AttackRange</summary>
         public bool IsInAttackRange => isInAttackRange;
@@ -145,6 +166,7 @@ namespace HybridShooter.Monster.Movement
 
             // 2) 정책·수치 준비 (정책은 개체 하나당 인스턴스 하나, 재활성화 시 재사용)
             tuning = profile.ToTuning();
+            if (hasCombatTuning) ApplyCombatTuning();
             policy ??= MovementPolicyFactory.Create(profile.PolicyKind, GetInstanceID());
 
             // 3) 이전 활성화 때 남은 상태 초기화
@@ -156,8 +178,9 @@ namespace HybridShooter.Monster.Movement
             // 4) 군중 모드면 등록, 직접 모드면 제한 없음(Unrestricted) 지시를 고정
             if (coord != null)
             {
-                coord.Register(this);
                 crowdCoordinator = coord;
+                ValidateCombatSlots();
+                if (!suspended || retainReservation) RegisterCrowd();
             }
             else
                 directive = new CrowdDirective(DirectiveKind.Unrestricted, default, 0, false, 0f);
@@ -228,11 +251,12 @@ namespace HybridShooter.Monster.Movement
             hasLookTarget = false;
             if (crowdCoordinator != null)
             {
-                crowdCoordinator.Unregister(this); // 내부에서 ResetCrowdState 호출
+                UnregisterCrowd();
                 crowdCoordinator = null;
             }
             executor?.Stop();
             suspended = false;
+            retainReservation = false;
             SetState(MovementState.Idle);
             isInAttackRange = false;
             lastIntent = MoveIntent.Stop(MovementState.Idle);
@@ -261,16 +285,73 @@ namespace HybridShooter.Monster.Movement
             policy = null;
         }
 
-        /// <summary>공격 동작·경직 중 이동 정지 요청. 토큰은 유지된다</summary>
-        public void SetSuspended(bool suspended)
+        /// <summary>Def/Attack의 개체별 수치. Profile 원본은 변경하지 않는다.</summary>
+        public void SetCombatTuning(float moveSpeed, float attackRange)
+        {
+            if (moveSpeed <= 0f || attackRange <= 0f)
+                throw new ArgumentOutOfRangeException(nameof(attackRange), "전투 이동 속도와 사거리는 양수여야 한다");
+            combatSpeed = moveSpeed;
+            combatRange = attackRange;
+            hasCombatTuning = true;
+            if (profile != null) ApplyCombatTuning();
+            ValidateCombatSlots();
+        }
+
+        private void ApplyCombatTuning()
+        {
+            var source = profile.ToTuning();
+            tuning = new MovementTuning(combatSpeed, combatRange, source.OrbitChance, source.OrbitAngularSpeedDeg,
+                source.KeepDistanceMin, source.KeepDistanceMax, source.FlankViewHalfAngleDeg,
+                source.FlankRadius, source.FlankSpeedMultiplier);
+        }
+
+        private void ValidateCombatSlots()
+        {
+            if (hasCombatTuning && crowdCoordinator != null && profile.UsesEngageToken &&
+                crowdCoordinator.Settings.EnableCrowdControl && crowdCoordinator.Settings.UseSlots &&
+                crowdCoordinator.Settings.Slots.ApproachRadius + crowdCoordinator.Settings.Slots.SampleRadius +
+                Mathf.Min(0.2f, crowdCoordinator.Settings.Slots.ArrivalDistance * 0.5f) >= combatRange)
+                throw new InvalidOperationException("접근 슬롯 반경 + NavMesh 투영/정지 여유는 공격 사거리보다 작아야 한다");
+        }
+
+        /// <summary>직접/군중 모드의 공유 목표를 연결한다. 활성화 전에는 Configure를 사용한다.</summary>
+        public void SetTarget(IMovementTarget target)
+        {
+            if (crowdCoordinator != null) crowdCoordinator.SetTarget(target);
+            else if (coordinator != null || (targetInfo == null && CrowdCoordinator.Active != null))
+                (coordinator != null ? coordinator : CrowdCoordinator.Active).SetTarget(target);
+            else targetInfo = target ?? throw new ArgumentNullException(nameof(target));
+        }
+
+        private void RegisterCrowd()
+        {
+            if (crowdCoordinator == null || registered) return;
+            crowdCoordinator.Register(this);
+            registered = true;
+        }
+
+        private void UnregisterCrowd()
+        {
+            if (!registered) return;
+            crowdCoordinator.Unregister(this);
+            registered = false;
+        }
+
+        /// <summary>공격 중에만 예약 유지. 그 외 정지는 등록·슬롯·토큰을 즉시 반환한다.</summary>
+        public void SetSuspended(bool suspended, bool retainReservation = false)
         {
             this.suspended = suspended;
-            if (!suspended) return; // 상태는 다음 Think 에서 재계산
+            this.retainReservation = suspended && retainReservation;
+            if (!suspended)
+            {
+                RegisterCrowd();
+                return; // 상태는 다음 Think 에서 재계산
+            }
             isInAttackRange = false;
             CancelPendingIntent();
             hasReactionReference = false;
             executingSlotId = -1;
-            if (crowdCoordinator != null) crowdCoordinator.ReleaseSlot(this);
+            if (!retainReservation) UnregisterCrowd();
             executor.Stop();
             lastIntent = MoveIntent.Stop(MovementState.Suspended);
             SetState(MovementState.Suspended);

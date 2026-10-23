@@ -2,7 +2,8 @@
     "name": "HybridShooter.Monster.Behaviour",
     "rootNamespace": "HybridShooter.Monster.Behaviour",
     "references": [
-        "HybridShooter.Core"
+        "HybridShooter.Core",
+        "HybridShooter.Monster.Movement"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

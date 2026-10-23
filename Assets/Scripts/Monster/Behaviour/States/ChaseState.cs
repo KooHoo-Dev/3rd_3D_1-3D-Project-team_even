@@ -10,7 +10,7 @@ namespace HybridShooter.Monster.Behaviour
         public override void Update()
         {
             if (Owner.HasTarget == false) Owner.ChangeState(Owner.Idle);
-            else if (Owner.IsTargetInAttackRange) Owner.ChangeState(Owner.Attack);
+            else if (Owner.IsTargetInAttackRange && Owner.CanAttack) Owner.ChangeState(Owner.Attack);
         }
     }
 }

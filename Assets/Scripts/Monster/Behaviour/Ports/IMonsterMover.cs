@@ -10,4 +10,11 @@ namespace HybridShooter.Monster.Behaviour
         void Stop();
         void Resume();
     }
+
+    /// <summary>군중 이동의 공격 허가와 공격 중 예약 유지를 위한 추가 계약.</summary>
+    public interface IMonsterCombatMover : IMonsterMover
+    {
+        bool CanAttack { get; }
+        void StopForAttack();
+    }
 }

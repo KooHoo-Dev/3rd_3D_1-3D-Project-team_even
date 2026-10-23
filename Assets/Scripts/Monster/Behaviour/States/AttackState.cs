@@ -8,7 +8,7 @@ namespace HybridShooter.Monster.Behaviour
     {
         public AttackState(MonsterBrain owner) : base(owner) { }
 
-        public override void Enter() => Owner.StopMove();
+        public override void Enter() => Owner.StopForAttack();
 
         public override void Update()
         {
@@ -18,11 +18,13 @@ namespace HybridShooter.Monster.Behaviour
                 attack.Tick(Owner.Now, Owner.DeltaTime);
                 if (attack.IsRunning == false && attack.LastResult == AttackResult.WallHit)
                     Owner.Stun(attack.WallHitStunTime);
+                else if (!attack.IsRunning)
+                    Owner.ChangeState(Owner.HasTarget ? Owner.Chase : Owner.Idle);
                 return;
             }
 
             if (Owner.HasTarget == false) Owner.ChangeState(Owner.Idle);
-            else if (Owner.IsTargetInAttackRange == false) Owner.ChangeState(Owner.Chase);
+            else if (Owner.IsTargetInAttackRange == false || !Owner.CanAttack) Owner.ChangeState(Owner.Chase);
             else
             {
                 Owner.FaceTarget();
@@ -33,6 +35,7 @@ namespace HybridShooter.Monster.Behaviour
         public override void Exit()
         {
             if (Owner.CurrentAttack.IsRunning) Owner.CurrentAttack.Cancel();
+            Owner.StopMove(); // 공격 한 주기가 끝나면 예약을 반환한 뒤 다시 경쟁한다.
         }
     }
 }
