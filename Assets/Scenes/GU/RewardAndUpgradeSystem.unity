@@ -15815,6 +15815,82 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 459512, guid: 9df12a0dcdc7b4b6391ce00b492a9ffe, type: 3}
   m_PrefabInstance: {fileID: 2137959614}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1710000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1710000002}
+  - component: {fileID: 1710000003}
+  - component: {fileID: 1710000004}
+  m_Layer: 5
+  m_Name: UpgradeSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1710000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1710000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1710000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1710000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b67fb174d75c435b8c5d10989f95362c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1710000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1710000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569636efed314f6b9c3d75b1be6e0217, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  manager: {fileID: 1710000003}
+  textFont: {fileID: 0}
+  numberFont: {fileID: 12800000, guid: 31e9027949eff3b40a1e5d085e0a9935, type: 3}
+  rewardRibbon: {fileID: 21300000, guid: 9240bc58998de0e46b9fb0a09f9933db, type: 3}
+  victoryTitle: {fileID: 21300000, guid: 1fb73d0970ed855438cf15979ce4fb2c, type: 3}
+  titleBar: {fileID: 21300000, guid: 38ae50db7f8f4f74e88c88fecebfa33e, type: 3}
+  coinBar: {fileID: 21300000, guid: bbd5db0d6af46ff43938d3a5a81ebe69, type: 3}
+  cardPanel: {fileID: 21300000, guid: d58cd44bc083bcc468f0dab8acd2f443, type: 3}
+  buyNormal: {fileID: 21300000, guid: 6643c0f00e79fc143b355131043c2773, type: 3}
+  buyDisabled: {fileID: 21300000, guid: e792b9e8b9db0f548879514c8d357363, type: 3}
+  ownedButton: {fileID: 21300000, guid: fa3a0d30dbd005e428477ee31c0d813f, type: 3}
+  starOn: {fileID: 21300000, guid: fce26e07ea952cf4c8f99ce507a9a5f7, type: 3}
+  starOff: {fileID: 21300000, guid: 70fe5d4846ea9e54f8975a9897604efa, type: 3}
+  mainButton: {fileID: 21300000, guid: 2820080ef74ae054b845ecb01dc20a86, type: 3}
+  coinIcon: {fileID: 21300000, guid: 2c491632b392aa14db373a587f52e01d, type: 3}
+  upgradeIcons:
+  - {fileID: 21300000, guid: fd45161fb1eac26468da5b78cf84d43c, type: 3}
+  - {fileID: 21300000, guid: db7e2dc1a8334d94482fe0e0a13d9287, type: 3}
+  - {fileID: 21300000, guid: e8cfafe9591c9b2409f3f71b63212f36, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -15829,3 +15905,4 @@ SceneRoots:
   - {fileID: 218311746}
   - {fileID: 2048632274}
   - {fileID: 1700000002}
+  - {fileID: 1710000002}
