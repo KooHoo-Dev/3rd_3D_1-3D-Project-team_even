@@ -2,6 +2,7 @@ using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
+using HybridShooter.Core.GameFlow;
 using HybridShooter.Core.Services;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -21,6 +22,10 @@ namespace HybridShooter.Reward.Tester
     ///   N : 다음 라운드 진행 정리 (RoundCleanupEvent, FullReset = false)       → 재화 유지
     ///   F : 처음부터 재시작 정리 (RoundCleanupEvent, FullReset = true)        → 재화 0, 강화 레벨 0, 라운드 정보 초기화
     ///   U : 강화 구매            (IUpgradeState.TryPurchase, testUpgradeType)  → 재화 차감, 강화 레벨 +1 (F 초기화 확인용)
+    ///   6 : 보스 등장            (BossAppearedEvent, bossMonsterId)            → 이후 획득 재화는 보스전으로 집계 (UpgradeManager)
+    ///   7 : Reward 상태 진입     (GameStateChangedEvent BossBattle → Reward)   → 강화 선택 화면 열림 (코어 대신)
+    ///   강화 화면에서 [다음 라운드]/[건너뛰기] → RewardSelectionFinishedEvent 수신
+    ///                            → [임시] 코어 대신 RoundCleanupEvent(FullReset = false) + 다음 RoundStartedEvent 발행
     ///
     /// 화면 좌상단에 현재 재화·마지막 변화량·현재 라운드·키 안내를 표시하고, 재화가 바뀔 때마다 콘솔에 로그를 남긴다.
     /// </summary>
@@ -47,12 +52,14 @@ namespace HybridShooter.Reward.Tester
         private void OnEnable()
         {
             EventBus<CurrencyChangedEvent>.Subscribe(OnCurrencyChanged);
+            EventBus<RewardSelectionFinishedEvent>.Subscribe(OnRewardSelectionFinished);
         }
 
         /// <summary>재화 변경 구독 해제</summary>
         private void OnDisable()
         {
             EventBus<CurrencyChangedEvent>.Unsubscribe(OnCurrencyChanged);
+            EventBus<RewardSelectionFinishedEvent>.Unsubscribe(OnRewardSelectionFinished);
         }
 
         /// <summary>키 입력을 읽어 해당 테스트 이벤트를 발행</summary>
@@ -66,6 +73,8 @@ namespace HybridShooter.Reward.Tester
             if (Pressed(keyboard.digit3Key, keyboard.numpad3Key)) PublishMonsterDied(weakMonsterId, false);
             if (Pressed(keyboard.digit4Key, keyboard.numpad4Key)) PublishMonsterDied(bossMonsterId, true);
             if (Pressed(keyboard.digit5Key, keyboard.numpad5Key)) PublishBossDefeated();
+            if (Pressed(keyboard.digit6Key, keyboard.numpad6Key)) PublishBossAppeared();
+            if (Pressed(keyboard.digit7Key, keyboard.numpad7Key)) PublishRewardState();
             if (keyboard.rKey.wasPressedThisFrame) PublishNextRoundStarted();
             if (keyboard.nKey.wasPressedThisFrame) PublishCleanup(false);
             if (keyboard.fKey.wasPressedThisFrame) PublishCleanup(true);
@@ -85,9 +94,9 @@ namespace HybridShooter.Reward.Tester
                 $"재화 {balance}  (마지막 변화 {lastDelta:+0;-0;0})\n" +
                 $"{roundText}\n" +
                 $"강화 레벨  {upgradeText}\n" +
-                "1 일반체  2 중간체  3 보상제외  4 보스MonsterDied  5 보스처치\n" +
+                "1 일반체  2 중간체  3 보상제외  4 보스MonsterDied  5 보스처치  6 보스등장  7 Reward진입\n" +
                 $"R 다음 라운드 시작  N 정리(유지)  F 정리(초기화)  U 강화 구매({testUpgradeType})";
-            GUI.Label(new Rect(20f, 20f, 1000f, 150f), text, statusStyle);
+            GUI.Label(new Rect(20f, 20f, 1200f, 150f), text, statusStyle);
         }
 
         /// <summary>숫자 키 또는 키패드 숫자 키가 이번 프레임에 눌렸는지</summary>
@@ -110,6 +119,30 @@ namespace HybridShooter.Reward.Tester
 
             Debug.Log($"[KillRewardTester] BossDefeatedEvent 발행: {boss.Name}({boss.Id}), 보스 Reward {boss.Reward}, 현재 테스트 라운드 {testRound}", this);
             EventBus<BossDefeatedEvent>.Publish(new BossDefeatedEvent(boss, transform.position));
+        }
+
+        /// <summary>보스 등장 이벤트 발행. 이후 획득 재화는 UpgradeManager 가 보스전으로 집계한다</summary>
+        private void PublishBossAppeared()
+        {
+            if (TryGetMonster(bossMonsterId, out var boss) == false) return;
+
+            Debug.Log($"[KillRewardTester] BossAppearedEvent 발행: {boss.Name}({boss.Id})", this);
+            EventBus<BossAppearedEvent>.Publish(new BossAppearedEvent(boss, null));
+        }
+
+        /// <summary>[임시] 코어 대신 Reward 상태 진입 발행 → 강화 선택 화면이 열린다</summary>
+        private void PublishRewardState()
+        {
+            Debug.Log("[KillRewardTester] GameStateChangedEvent 발행: BossBattle → Reward", this);
+            EventBus<GameStateChangedEvent>.Publish(new GameStateChangedEvent(GameState.BossBattle, GameState.Reward));
+        }
+
+        /// <summary>[임시] 코어 대신 강화 선택 종료를 받아 다음 라운드로 진행 (정리 → 다음 라운드 시작)</summary>
+        private void OnRewardSelectionFinished(RewardSelectionFinishedEvent e)
+        {
+            Debug.Log("[KillRewardTester] RewardSelectionFinishedEvent 수신 → 다음 라운드 진행", this);
+            PublishCleanup(false);
+            PublishNextRoundStarted();
         }
 
         /// <summary>[임시] 라운드 공급원 대신 다음 라운드 시작 이벤트 발행</summary>
