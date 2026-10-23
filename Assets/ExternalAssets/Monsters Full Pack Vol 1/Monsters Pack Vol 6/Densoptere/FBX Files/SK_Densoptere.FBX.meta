@@ -1,0 +1,489 @@
+fileFormatVersion: 2
+guid: 301df9fbf4a5521448ef0a59f4174026
+ModelImporter:
+  serializedVersion: 24501
+  internalIDToNameTable:
+  - first:
+      1: 100000
+    second: Densoptere_
+  - first:
+      1: 100002
+    second: Densoptere_ Head
+  - first:
+      1: 100004
+    second: Densoptere_ L Calf
+  - first:
+      1: 100006
+    second: Densoptere_ L Clavicle
+  - first:
+      1: 100008
+    second: Densoptere_ L Finger0
+  - first:
+      1: 100010
+    second: Densoptere_ L Finger01
+  - first:
+      1: 100012
+    second: Densoptere_ L Finger02
+  - first:
+      1: 100014
+    second: Densoptere_ L Finger1
+  - first:
+      1: 100016
+    second: Densoptere_ L Finger11
+  - first:
+      1: 100018
+    second: Densoptere_ L Finger12
+  - first:
+      1: 100020
+    second: Densoptere_ L Foot
+  - first:
+      1: 100022
+    second: Densoptere_ L Forearm
+  - first:
+      1: 100024
+    second: Densoptere_ L Hand
+  - first:
+      1: 100026
+    second: Densoptere_ L Thigh
+  - first:
+      1: 100028
+    second: Densoptere_ L Toe0
+  - first:
+      1: 100030
+    second: Densoptere_ L Toe01
+  - first:
+      1: 100032
+    second: Densoptere_ L Toe02
+  - first:
+      1: 100034
+    second: Densoptere_ L Toe1
+  - first:
+      1: 100036
+    second: Densoptere_ L Toe11
+  - first:
+      1: 100038
+    second: Densoptere_ L Toe12
+  - first:
+      1: 100040
+    second: Densoptere_ L UpperArm
+  - first:
+      1: 100042
+    second: Densoptere_ Neck
+  - first:
+      1: 100044
+    second: Densoptere_ Pelvis
+  - first:
+      1: 100046
+    second: Densoptere_ Ponytail1
+  - first:
+      1: 100048
+    second: Densoptere_ Ponytail11
+  - first:
+      1: 100050
+    second: Densoptere_ Ponytail12
+  - first:
+      1: 100052
+    second: Densoptere_ Ponytail2
+  - first:
+      1: 100054
+    second: Densoptere_ Ponytail21
+  - first:
+      1: 100056
+    second: Densoptere_ Ponytail22
+  - first:
+      1: 100058
+    second: Densoptere_ R Calf
+  - first:
+      1: 100060
+    second: Densoptere_ R Clavicle
+  - first:
+      1: 100062
+    second: Densoptere_ R Finger0
+  - first:
+      1: 100064
+    second: Densoptere_ R Finger01
+  - first:
+      1: 100066
+    second: Densoptere_ R Finger02
+  - first:
+      1: 100068
+    second: Densoptere_ R Finger1
+  - first:
+      1: 100070
+    second: Densoptere_ R Finger11
+  - first:
+      1: 100072
+    second: Densoptere_ R Finger12
+  - first:
+      1: 100074
+    second: Densoptere_ R Foot
+  - first:
+      1: 100076
+    second: Densoptere_ R Forearm
+  - first:
+      1: 100078
+    second: Densoptere_ R Hand
+  - first:
+      1: 100080
+    second: Densoptere_ R Thigh
+  - first:
+      1: 100082
+    second: Densoptere_ R Toe0
+  - first:
+      1: 100084
+    second: Densoptere_ R Toe01
+  - first:
+      1: 100086
+    second: Densoptere_ R Toe02
+  - first:
+      1: 100088
+    second: Densoptere_ R Toe1
+  - first:
+      1: 100090
+    second: Densoptere_ R Toe11
+  - first:
+      1: 100092
+    second: Densoptere_ R Toe12
+  - first:
+      1: 100094
+    second: Densoptere_ R UpperArm
+  - first:
+      1: 100096
+    second: Densoptere_ Spine
+  - first:
+      1: 100098
+    second: Densoptere_ Spine1
+  - first:
+      1: 100100
+    second: Densoptere_ Tail
+  - first:
+      1: 100102
+    second: Densoptere_ Tail1
+  - first:
+      1: 100104
+    second: Densoptere_ Tail2
+  - first:
+      1: 100106
+    second: Densoptere_ Tail3
+  - first:
+      1: 100108
+    second: Densoptere_Jaw
+  - first:
+      1: 100110
+    second: root
+  - first:
+      1: 100112
+    second: //RootNode
+  - first:
+      1: 100114
+    second: SK_Densoptere
+  - first:
+      4: 400000
+    second: Densoptere_
+  - first:
+      4: 400002
+    second: Densoptere_ Head
+  - first:
+      4: 400004
+    second: Densoptere_ L Calf
+  - first:
+      4: 400006
+    second: Densoptere_ L Clavicle
+  - first:
+      4: 400008
+    second: Densoptere_ L Finger0
+  - first:
+      4: 400010
+    second: Densoptere_ L Finger01
+  - first:
+      4: 400012
+    second: Densoptere_ L Finger02
+  - first:
+      4: 400014
+    second: Densoptere_ L Finger1
+  - first:
+      4: 400016
+    second: Densoptere_ L Finger11
+  - first:
+      4: 400018
+    second: Densoptere_ L Finger12
+  - first:
+      4: 400020
+    second: Densoptere_ L Foot
+  - first:
+      4: 400022
+    second: Densoptere_ L Forearm
+  - first:
+      4: 400024
+    second: Densoptere_ L Hand
+  - first:
+      4: 400026
+    second: Densoptere_ L Thigh
+  - first:
+      4: 400028
+    second: Densoptere_ L Toe0
+  - first:
+      4: 400030
+    second: Densoptere_ L Toe01
+  - first:
+      4: 400032
+    second: Densoptere_ L Toe02
+  - first:
+      4: 400034
+    second: Densoptere_ L Toe1
+  - first:
+      4: 400036
+    second: Densoptere_ L Toe11
+  - first:
+      4: 400038
+    second: Densoptere_ L Toe12
+  - first:
+      4: 400040
+    second: Densoptere_ L UpperArm
+  - first:
+      4: 400042
+    second: Densoptere_ Neck
+  - first:
+      4: 400044
+    second: Densoptere_ Pelvis
+  - first:
+      4: 400046
+    second: Densoptere_ Ponytail1
+  - first:
+      4: 400048
+    second: Densoptere_ Ponytail11
+  - first:
+      4: 400050
+    second: Densoptere_ Ponytail12
+  - first:
+      4: 400052
+    second: Densoptere_ Ponytail2
+  - first:
+      4: 400054
+    second: Densoptere_ Ponytail21
+  - first:
+      4: 400056
+    second: Densoptere_ Ponytail22
+  - first:
+      4: 400058
+    second: Densoptere_ R Calf
+  - first:
+      4: 400060
+    second: Densoptere_ R Clavicle
+  - first:
+      4: 400062
+    second: Densoptere_ R Finger0
+  - first:
+      4: 400064
+    second: Densoptere_ R Finger01
+  - first:
+      4: 400066
+    second: Densoptere_ R Finger02
+  - first:
+      4: 400068
+    second: Densoptere_ R Finger1
+  - first:
+      4: 400070
+    second: Densoptere_ R Finger11
+  - first:
+      4: 400072
+    second: Densoptere_ R Finger12
+  - first:
+      4: 400074
+    second: Densoptere_ R Foot
+  - first:
+      4: 400076
+    second: Densoptere_ R Forearm
+  - first:
+      4: 400078
+    second: Densoptere_ R Hand
+  - first:
+      4: 400080
+    second: Densoptere_ R Thigh
+  - first:
+      4: 400082
+    second: Densoptere_ R Toe0
+  - first:
+      4: 400084
+    second: Densoptere_ R Toe01
+  - first:
+      4: 400086
+    second: Densoptere_ R Toe02
+  - first:
+      4: 400088
+    second: Densoptere_ R Toe1
+  - first:
+      4: 400090
+    second: Densoptere_ R Toe11
+  - first:
+      4: 400092
+    second: Densoptere_ R Toe12
+  - first:
+      4: 400094
+    second: Densoptere_ R UpperArm
+  - first:
+      4: 400096
+    second: Densoptere_ Spine
+  - first:
+      4: 400098
+    second: Densoptere_ Spine1
+  - first:
+      4: 400100
+    second: Densoptere_ Tail
+  - first:
+      4: 400102
+    second: Densoptere_ Tail1
+  - first:
+      4: 400104
+    second: Densoptere_ Tail2
+  - first:
+      4: 400106
+    second: Densoptere_ Tail3
+  - first:
+      4: 400108
+    second: Densoptere_Jaw
+  - first:
+      4: 400110
+    second: root
+  - first:
+      4: 400112
+    second: //RootNode
+  - first:
+      4: 400114
+    second: SK_Densoptere
+  - first:
+      21: 2100000
+    second: M_Densoptere
+  - first:
+      43: 4300000
+    second: SK_Densoptere
+  - first:
+      74: 7400000
+    second: Take 001
+  - first:
+      95: 9500000
+    second: //RootNode
+  - first:
+      137: 13700000
+    second: SK_Densoptere
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: M_Densoptere
+    second: {fileID: 2100000, guid: 197f0aeaac1535b4faef032377337721, type: 2}
+  materials:
+    materialImportMode: 2
+    materialName: 1
+    materialSearch: 1
+    materialLocation: 1
+    searchTexturesGlobally: 0
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 0
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 0
+    fileIdsGeneration: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    importUVs: -1
+    importVertexColors: 1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 0
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+    calculateBlendshapeNormalsDeltaFromImportedNormals: 1
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: root
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 1
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 0
+  importBlendShapeDeformPercent: 0
+  remapMaterialsIfMaterialImportModeIsNone: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 165213
+  packageName: MONSTER FULL PACK VOL 1
+  packageVersion: 1.31
+  assetPath: Assets/Monsters Full Pack Vol 1/Monsters Pack Vol 6/Densoptere/FBX Files/SK_Densoptere.FBX
+  uploadId: 944504

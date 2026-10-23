@@ -20,7 +20,7 @@
 | 2001~2999 (몬스터) | MonsterTable 중간체 (2001~) |
 | 3001~ (몬스터) | MonsterTable 보스 |
 | MonsterId×100+순번 | MonsterAttackTable (예: 보스 300104) |
-| 1~ (순번) | MonsterPartTable, BossPhaseTable, StatusEffectTable |
+| 1~ (순번) | MonsterPartTable, BossPhaseTable, StatusEffectTable, MonsterGradeTable (GradeId) |
 
 > 주의: 몬스터 Id(1001~)와 PlayerTable(1000~1999) Id 대역이 숫자상 겹치지만 서로 다른 테이블이라 충돌하지 않는다.
 | 4000~4999 | SupplyTable |
@@ -60,11 +60,20 @@
 ## 몬스터 테이블 묶음 — E3, E5 (Build1)
 `MonsterTable` 한 행에 공격(`MonsterAttackTable`), 부위(`MonsterPartTable`), 보스 페이즈(`BossPhaseTable`)가 `MonsterId` 로 연결된다. 방어도는 없다: 피해 = 무기 Damage × 부위 DamageMultiplier.
 
+### MonsterGradeTable (검증 기준)
+| 컬럼 | 설명 |
+|---|---|
+| GradeId / Grade | PK / `Weak`(일반체) · `Mid`(중간체) · `Boss` |
+| MinHitsToKill / MaxHitsToKill | 처치 타수 범위 = ceil(MaxHp / 라이플 Damage). Max -1 = 제한 없음 |
+| AttackPatternCount | 기본 공격(PatternTag None) 개수. -1 = 보스 별도 |
+
+규칙 위반은 로드 시 **경고**로 나온다.
+
 ### MonsterTable
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | Key / Name | string | 식별 키 / 한글명 |
-| GradeId | int | 1 = `Weak`(일반체) · 2 = `Mid`(중간체) · 3 = `Boss`. 1~3 외 값은 로드 시 **에러** |
+| GradeId | int | MonsterGradeTable |
 | Role | enum | `Melee` / `Air` / `Rusher` / `Infiltrator` / `ZonePressure` / `Boss` (Boss 는 Grade Boss 와 함께) |
 | MaxHp | int | |
 | MoveSpeed / RunSpeed | float | 이동 / 질주 (m/s), RunSpeed >= MoveSpeed |
@@ -138,7 +147,7 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | SupplyType | enum | `Grenade` / `Heal` |
-| Amount | int | 수류탄 보충 수 / 회복량 |
+| Amount | int | 수류탄 보충 수 / 회복 팩 보충 수 |
 | Weight | int | 투하 종류 가중치 |
 | PrefabKey / MarkerKey | string | 물자 프리팹 / 낙하 위치 표시 |
 
@@ -168,4 +177,6 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | LowHpRatio | 플레이어 위험 상태 비율 | BL-007 |
 | MonsterLowHpRatio | 일반 몬스터 저체력 표현 비율 | BL-017 |
 | SupplyLifetime | 보급 유지 시간 | BL-018 |
+| SupplyDropMinDistance / SupplyDropMaxDistance | 보급 낙하 위치: 플레이어 기준 XZ 거리 범위 (30 ~ 150) | BL-018 |
+| SupplyDropHeight / SupplyLandingHeight | 낙하 시작 높이(30 이상) / 감속 착지 시작 높이 (지면 기준) | BL-018 |
 | CameraTransitionTime | 1인칭→3인칭 전환 시간 | BL-022 |

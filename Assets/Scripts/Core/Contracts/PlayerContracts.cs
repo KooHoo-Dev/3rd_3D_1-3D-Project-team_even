@@ -11,11 +11,14 @@ namespace HybridShooter.Core.Contracts
     public interface IPlayerTarget
     {
         Transform Root { get; }
-        /// <summary>몬스터가 조준할 지점 (가슴 높이)</summary>
-        Transform AimPoint { get; }
         /// <summary>현재 시야(카메라) 트랜스폼. 침투형의 "시야 밖" 판정용 (BL-012)</summary>
         Transform ViewPoint { get; }
-        bool IsAlive { get; }
+        // /// <summary>몬스터가 조준할 지점 (가슴 높이)</summary>
+        // Transform AimPoint { get; }
+        // Velocity: 일단 지금 필요하지 않아서 제거
+        public Vector3 Position { get; }
+        /// <summary>몸체가 바라보는 방향 (수평)</summary>
+        public Vector3 Forward { get; }
     }
 
     /// <summary>회복 팩 → 플레이어 (BL-006, BL-019). 가득 차서 못 먹으면 false</summary>
@@ -30,5 +33,13 @@ namespace HybridShooter.Core.Contracts
         int Grenades { get; }
         int MaxGrenades { get; }
         bool AddGrenades(int amount);
+    }
+
+    /// <summary>회복 팩 보급 → 플레이어 (BL-019). 회복 팩 "보유 개수"를 늘린다. 최대치라 못 먹으면 false</summary>
+    public interface IHealPackReceiver
+    {
+        int HealPacks { get; }
+        int MaxHealPacks { get; }
+        bool AddHealPacks(int amount);
     }
 }
