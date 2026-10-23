@@ -1,0 +1,15 @@
+{
+  "defineConstraints": [],
+  "name": "HybridShooter.Monster.MovementLab.Editor",
+  "rootNamespace": "HybridShooter.Monster.MovementLab.Editor",
+  "references": ["HybridShooter.Monster.MovementLab", "HybridShooter.Monster.Movement", "Unity.AI.Navigation"],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+
+  "versionDefines": [],
+  "noEngineReferences": false
+}
