@@ -32,6 +32,13 @@ namespace HybridShooter.Monster.MovementLab
         private readonly List<MovementLabOwnedMonster> ownedMonsters = new List<MovementLabOwnedMonster>();
         private int spawnSerial;
 
+        /// <summary>군중 소환 시 생성할 몬스터 수. 조작 창(MovementLabController)의 슬라이더가 Play 중 바꾼다</summary>
+        public int CrowdSpawnCount
+        {
+            get => crowdSpawnCount;
+            set => crowdSpawnCount = Mathf.Max(1, value);
+        }
+
         public CrowdCoordinator Coordinator => coordinator;
         public TransformMovementTarget Target => target;
         public Transform MonsterRoot => monsterRoot;
