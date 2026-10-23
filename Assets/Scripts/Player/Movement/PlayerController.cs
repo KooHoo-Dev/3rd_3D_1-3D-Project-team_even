@@ -1,4 +1,5 @@
 ﻿using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Events;
 using HybridShooter.Weapon;
 using Study.Utilities;
 using System;
@@ -32,7 +33,7 @@ namespace HybridShooter.Player
     ///  - 외부 제어: 벽넘기처럼 애니메이션이 몸을 직접 옮겨야 할 때 BeginExternalControl ~ EndExternalControl 동안 물리를 멈춘다.
     /// </summary>
     [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
-    public class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IItemUser, IDamageable
+    public class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IDamageable
     {
         #region 설정(인스펙터)
         [Header("이동")]
@@ -158,13 +159,6 @@ namespace HybridShooter.Player
         [SerializeField] private int maxHealth = 100;
         [SerializeField] private int currentHealth = 100;
 
-        [Header("수류탄")]
-        [SerializeField] private int maxGrenades = 3;
-        [SerializeField] private int grenades = 0;
-        
-        [Header("힐 아이템")]
-        [SerializeField] private int maxHealPacks = 3;
-        [SerializeField] private int healPacks = 0;
         #endregion
 
         #region 상태
@@ -238,6 +232,9 @@ namespace HybridShooter.Player
         private float aimFovTarget = 1f;
         private float aimFovCurrent = 1f;
         private float aimSensitivity = 1f;
+
+        // 소모품 (수류탄 · 회복 팩). 같은 오브젝트의 PlayerItems
+        private PlayerItems items;
         #endregion
 
         #region 유니티 메시지
@@ -265,6 +262,7 @@ namespace HybridShooter.Player
             if (bodyVisual == null && bodyAnimator != null) bodyVisual = bodyAnimator.transform;
             if (bodyVisual == transform) bodyVisual = null; // 리지드바디 자신은 돌리면 안 된다
             if (gunSlot == null) gunSlot = GetComponent<GunSlot>();
+            items = GetComponent<PlayerItems>();
 
             CacheRig();
             CacheHeadRenderers();
@@ -341,10 +339,12 @@ namespace HybridShooter.Player
             public Key backKey = Key.S;
             public Key leftKey = Key.A;
             public Key rightKey = Key.D;
-            public Key viewToggleKey = Key.V;
+            public Key viewToggleKey = Key.F1;
             public Key cursorToggleKey = Key.Escape;
             public Key reloadKey = Key.R;
             public Key fireModeKey = Key.B;
+            public Key grenadeKey = Key.G;
+            public Key healKey = Key.V;
             public Key[] slotKeys = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4 };
             /// <summary>테스트용: 주무기를 예비 총으로 교체</summary>
             public Key debugSwapPrimaryKey = Key.T;
@@ -352,7 +352,7 @@ namespace HybridShooter.Player
 
             public InputPlayerSettings() { }
 
-            public InputPlayerSettings(Key jump, Key sprint, Key roll, Key front, Key back, Key left, Key right, Key viewToggle = Key.V)
+            public InputPlayerSettings(Key jump, Key sprint, Key roll, Key front, Key back, Key left, Key right, Key viewToggle = Key.F1)
             {
                 viewToggleKey = viewToggle;
                 jumpKey = jump;
@@ -408,6 +408,15 @@ namespace HybridShooter.Player
             }
 
             WeaponInputHandle();
+            ItemInputHandle();
+        }
+
+        /// <summary>소모품 입력 → PlayerItems. G 수류탄, V 회복 팩. 커서가 풀려 있으면 무시</summary>
+        private void ItemInputHandle()
+        {
+            if (items == null || Cursor.lockState != CursorLockMode.Locked) return;
+            if (SimpleInput.GetKeyDown(keySettings.grenadeKey)) items.TryThrowGrenade();
+            if (SimpleInput.GetKeyDown(keySettings.healKey)) items.TryUseHeal();
         }
 
         /// <summary>
@@ -1033,26 +1042,23 @@ namespace HybridShooter.Player
 
         #region 체력·아이템
         public bool IsAlive => currentHealth > 0;
-        public int Grenades => grenades;
-        public int MaxGrenades => maxGrenades;
+        public int CurrentHealth => currentHealth;
+        public int MaxHealth => maxHealth;
+        /// <summary>수류탄을 던지는 동작 중 (이 동안은 총을 쏠 수 없다)</summary>
+        public bool IsThrowingGrenade => items != null && items.IsThrowing;
 
-        public Faction Faction => throw new NotImplementedException();
+        public Faction Faction => Faction.Player;
 
         /// <summary>죽었거나, 이미 가득 찼거나, amount 가 0 이하면 false (아이템을 소모하지 않게)</summary>
         public bool Heal(int amount)
         {
             if (amount <= 0 || IsAlive == false || currentHealth >= maxHealth) return false;
             currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+            PublishHp();
             return true;
         }
 
-        /// <summary>이미 최대치거나 amount 가 0 이하면 false (아이템을 소모하지 않게)</summary>
-        public bool AddGrenades(int amount)
-        {
-            if (amount <= 0 || grenades >= maxGrenades) return false;
-            grenades = Mathf.Min(grenades + amount, maxGrenades);
-            return true;
-        }
+        private void PublishHp() => EventBus<PlayerHpChangedEvent>.Publish(new PlayerHpChangedEvent(currentHealth, maxHealth));
         #endregion
 
         #region 보조
@@ -1095,6 +1101,8 @@ namespace HybridShooter.Player
         public void TakeDamage(in DamageInfo info)
         {
             currentHealth = Mathf.Max(0, currentHealth - info.Amount);
+            PublishHp();
+            if (IsDead == false && info.Amount > 0) EventBus<PlayerDamagedEvent>.Publish(new PlayerDamagedEvent(info));
             if (IsDead == false && currentHealth == 0)
             {
                 Die();
@@ -1107,16 +1115,5 @@ namespace HybridShooter.Player
         }
 
         #endregion
-
-
-        public int HealPacks => healPacks;
-        public int MaxHealPacks => maxHealPacks;
-        public bool AddHealPacks(int amount)
-        {
-            if(healPacks >= maxHealPacks) return false;
-            healPacks = Mathf.Clamp(healPacks + amount, 0, maxHealPacks);
-            
-            return true;
-        }
     }
 }
