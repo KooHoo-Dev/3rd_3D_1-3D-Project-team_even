@@ -16,11 +16,22 @@ namespace HybridShooter.Core.Contracts
         // /// <summary>몬스터가 조준할 지점 (가슴 높이)</summary>
         // Transform AimPoint { get; }
         // Velocity: 일단 지금 필요하지 않아서 제거
-        public Vector3 Position { get; }
-        /// <summary>몸체가 바라보는 방향 (수평)</summary>
-        public Vector3 Forward { get; }
+        public PlayerTrackingInfo playerTrackingInfo { get; }
     }
 
+    public class PlayerTrackingInfo
+    {
+        public Vector3 Position;
+        public Vector3 Forward;
+        public Quaternion Rotation;
+        public PlayerTrackingInfo(){}
+        public PlayerTrackingInfo(Vector3 pos, Vector3 forward, Quaternion rot)
+        {
+            Position = pos;
+            Forward = forward;
+            Rotation = rot;
+        }
+    }
     /// <summary>회복 팩 → 플레이어 (BL-006, BL-019). 가득 차서 못 먹으면 false</summary>
     public interface IHealable
     {
