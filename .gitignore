@@ -138,6 +138,10 @@ GEMINI.md
 /[Rr]eport/
 /report/*
 # --- 패키지 및 개인별 로컬 설정 파일 추가 제외 ---
-ProjectSettings/Packages/
 ProjectSettings/ProBuilderSettings.json
 ProjectSettings/EditorUserSettings.asset
+.idea/.idea.3rd_3D_1-3D-Project-team_even/.idea/workspace.xml
+ProfilerCaptures
+
+# --- macOS Finder 파일 ---
+.DS_Store
