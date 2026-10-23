@@ -31,6 +31,8 @@ namespace HybridShooter.Monster.MovementLab
 
         private readonly List<MovementLabOwnedMonster> ownedMonsters = new List<MovementLabOwnedMonster>();
         private int spawnSerial;
+        // 조립 중인 몬스터를 잠시 두는 비활성 부모. 이 밑에서는 Awake/OnEnable/OnDisable 이 한 번도 실행되지 않는다
+        private Transform spawnHolder;
 
         public CrowdCoordinator Coordinator => coordinator;
         public TransformMovementTarget Target => target;
@@ -38,10 +40,15 @@ namespace HybridShooter.Monster.MovementLab
         /// <summary>소환된 몬스터 (사망해 비활성화된 개체 포함)</summary>
         public IReadOnlyList<MovementLabOwnedMonster> Monsters => ownedMonsters;
 
-        // 실험 조작 UI(MovementLabController)를 Play 시 자동으로 붙인다
+        // 실험 조작 UI(MovementLabController)를 Play 시 자동으로 붙이고, 몬스터 조립용 비활성 부모를 만든다
         private void Awake()
         {
             if (GetComponent<MovementLabController>() == null) gameObject.AddComponent<MovementLabController>();
+
+            var holder = new GameObject("Spawn Holder (inactive)");
+            holder.SetActive(false);
+            holder.transform.SetParent(transform, false);
+            spawnHolder = holder.transform;
         }
 
         // Play 시작 시 인스펙터 값을 코디네이터에 1회 반영 (씬에 저장된 코디네이터 값은 코드 기본값이 바뀌어도 그대로라서 필요)
@@ -216,8 +223,9 @@ namespace HybridShooter.Monster.MovementLab
                 return;
             }
             var prefab = monsterPrefabs[spawnSerial++ % monsterPrefabs.Length];
-            var go = Instantiate(prefab, position, Quaternion.identity, monsterRoot);
-            go.SetActive(false);   // 이동 컴포넌트를 붙이고 Configure 할 때까지 OnEnable 을 막는다
+            // 비활성 부모 밑에 만들어 Configure 가 끝날 때까지 Awake/OnEnable 을 막는다.
+            // SetActive(false) 는 MonsterController.OnDisable 이 movement 를 꺼 버려서 쓰지 않는다
+            var go = Instantiate(prefab, position, Quaternion.identity, spawnHolder);
             go.name = $"Lab {kind} {prefab.name}";
             go.transform.localScale = prefab.transform.localScale * monsterVisualScale;
             // 몬스터 프리팹 기준 스폰
@@ -226,9 +234,10 @@ namespace HybridShooter.Monster.MovementLab
             var agent = go.GetComponent<NavMeshAgent>();
             agent.radius = .45f; agent.height = 1.8f; agent.speed = 3.5f; agent.stoppingDistance = .1f;
             agent.avoidancePriority = Random.Range(20, 80);
-            ownedMonster.Initialize(movement.Profile, useCoordinator ? coordinator : null, target);
+            // 프리팹의 Profile 은 프로젝트 에셋이다. 복사본을 넘겨야 Lab 이 파괴/교체(SetPolicy)해도 에셋이 안전하다
+            ownedMonster.Initialize(Instantiate(movement.Profile), useCoordinator ? coordinator : null, target);
             ownedMonsters.Add(ownedMonster);
-            
+
             // 빈 몬스터 프리팹 기준 스폰
             // var ownedMonster = go.AddComponent<MovementLabOwnedMonster>();
             // var agent = go.AddComponent<NavMeshAgent>();
@@ -238,7 +247,7 @@ namespace HybridShooter.Monster.MovementLab
             // go.AddComponent<MonsterMovement>();
             // ownedMonster.Initialize(MovementLabProfiles.CreateRuntime(kind), useCoordinator ? coordinator : null, target);
             // ownedMonsters.Add(ownedMonster);
-            go.SetActive(true);
+            go.transform.SetParent(monsterRoot);   // 활성 부모로 옮기는 순간 Awake/OnEnable/Start 가 처음 실행된다 (월드 위치 유지)
         }
 
         private static GameObject CreateBox(Transform parent, string name, Vector3 position, Vector3 scale, Color color)

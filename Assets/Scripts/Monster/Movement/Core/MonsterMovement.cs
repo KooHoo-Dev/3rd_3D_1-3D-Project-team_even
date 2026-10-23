@@ -193,7 +193,6 @@ namespace HybridShooter.Monster.Movement
         /// </summary>
         private void Update()
         {
-            Debug.Log($"State: {State}");
             if (crowdCoordinator != null || targetInfo == null) return;
             TickMovement();
             if (Time.time < nextDirectThink) return;
