@@ -31,7 +31,7 @@ namespace HybridShooter.Player
     ///  - 외부 제어: 벽넘기처럼 애니메이션이 몸을 직접 옮겨야 할 때 BeginExternalControl ~ EndExternalControl 동안 물리를 멈춘다.
     /// </summary>
     [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
-    public class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IGrenadeReceiver, IDamageable
+    public class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IItemUser, IDamageable
     {
         #region 설정(인스펙터)
         [Header("이동")]
@@ -154,6 +154,10 @@ namespace HybridShooter.Player
         [Header("수류탄")]
         [SerializeField] private int maxGrenades = 3;
         [SerializeField] private int grenades = 0;
+        
+        [Header("힐 아이템")]
+        [SerializeField] private int maxHealPacks = 3;
+        [SerializeField] private int healPacks = 0;
         #endregion
 
         #region 상태
@@ -166,7 +170,6 @@ namespace HybridShooter.Player
         private FacingMode facingMode = FacingMode.FollowMove;
         private float lockedYaw;
         private float jumpRequestedTime = float.NegativeInfinity;
-        private Vector2 lastMoveInput;
 
         // 이동 상태
         private bool isGrounded;
@@ -256,8 +259,6 @@ namespace HybridShooter.Player
             transitionGetter = () => transitionT;
             transitionSetter = x => { transitionT = x; ApplyTransitionPose(); };
             transitionComplete = OnViewTransitionComplete;
-
-            IsDead = false;
         }
 
         private void Start()
@@ -368,10 +369,10 @@ namespace HybridShooter.Player
             if (SimpleInput.GetKey(keySettings.backKey)) input.y -= 1f;
             if (SimpleInput.GetKey(keySettings.rightKey)) input.x += 1f;
             if (SimpleInput.GetKey(keySettings.leftKey)) input.x -= 1f;
-            lastMoveInput = Vector2.ClampMagnitude(input, 1f); // 대각선이 더 빨라지지 않게
+            input = Vector2.ClampMagnitude(input, 1f); // 대각선이 더 빨라지지 않게
 
             // 로컬 입력 → 월드 방향
-            Vector3 worldMove = InputToWorld(lastMoveInput);
+            Vector3 worldMove = InputToWorld(input);
 
             // 이동 + 달리기 (누르고 있는 동안)
             bool sprint = SimpleInput.GetKey(keySettings.sprintKey);
@@ -1031,5 +1032,16 @@ namespace HybridShooter.Player
         }
 
         #endregion
+
+
+        public int HealPacks => healPacks;
+        public int MaxHealPacks => maxHealPacks;
+        public bool AddHealPacks(int amount)
+        {
+            if(healPacks >= maxHealPacks) return false;
+            healPacks = Mathf.Clamp(healPacks + amount, 0, maxHealPacks);
+            
+            return true;
+        }
     }
 }
