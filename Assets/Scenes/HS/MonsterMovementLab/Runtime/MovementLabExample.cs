@@ -220,14 +220,24 @@ namespace HybridShooter.Monster.MovementLab
             go.SetActive(false);   // 이동 컴포넌트를 붙이고 Configure 할 때까지 OnEnable 을 막는다
             go.name = $"Lab {kind} {prefab.name}";
             go.transform.localScale = prefab.transform.localScale * monsterVisualScale;
+            // 몬스터 프리팹 기준 스폰
             var ownedMonster = go.AddComponent<MovementLabOwnedMonster>();
-            var agent = go.AddComponent<NavMeshAgent>();
+            var movement = go.GetComponent<MonsterMovement>();
+            var agent = go.GetComponent<NavMeshAgent>();
             agent.radius = .45f; agent.height = 1.8f; agent.speed = 3.5f; agent.stoppingDistance = .1f;
             agent.avoidancePriority = Random.Range(20, 80);
-            go.AddComponent<NavMeshMoveExecutor>();
-            go.AddComponent<MonsterMovement>();
-            ownedMonster.Initialize(MovementLabProfiles.CreateRuntime(kind), useCoordinator ? coordinator : null, target);
+            ownedMonster.Initialize(movement.Profile, useCoordinator ? coordinator : null, target);
             ownedMonsters.Add(ownedMonster);
+            
+            // 빈 몬스터 프리팹 기준 스폰
+            // var ownedMonster = go.AddComponent<MovementLabOwnedMonster>();
+            // var agent = go.AddComponent<NavMeshAgent>();
+            // agent.radius = .45f; agent.height = 1.8f; agent.speed = 3.5f; agent.stoppingDistance = .1f;
+            // agent.avoidancePriority = Random.Range(20, 80);
+            // go.AddComponent<NavMeshMoveExecutor>();
+            // go.AddComponent<MonsterMovement>();
+            // ownedMonster.Initialize(MovementLabProfiles.CreateRuntime(kind), useCoordinator ? coordinator : null, target);
+            // ownedMonsters.Add(ownedMonster);
             go.SetActive(true);
         }
 

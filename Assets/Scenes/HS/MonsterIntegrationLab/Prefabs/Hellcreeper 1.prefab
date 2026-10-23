@@ -351,6 +351,11 @@ GameObject:
   m_Component:
   - component: {fileID: 6317690233145261003}
   - component: {fileID: 6317690233135895637}
+  - component: {fileID: 8784179671553480092}
+  - component: {fileID: 8066672449405118134}
+  - component: {fileID: 5655723382875381205}
+  - component: {fileID: 7728001355033290446}
+  - component: {fileID: 141492581520547294}
   m_Layer: 0
   m_Name: Hellcreeper 1
   m_TagString: Untagged
@@ -397,6 +402,87 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &8784179671553480092
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6317690233145288235}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 969bfa8f3272bcc4cac19f2300e0e4a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterHealth
+--- !u!114 &8066672449405118134
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6317690233145288235}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f483ab3958142c0883214bbb5a4f607, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
+  profile: {fileID: 11400000, guid: c619edd1badc47247a173191b35665e2, type: 2}
+  coordinator: {fileID: 0}
+  directTargetSource: {fileID: 0}
+  turnSpeed: 8
+--- !u!195 &5655723382875381205
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6317690233145288235}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &7728001355033290446
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6317690233145288235}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd407663bf54957bb767c38a5136591, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.NavMeshMoveExecutor
+  repathDistance: 0.5
+  minRepathInterval: 0.25
+  sampleRadius: 4
+  engagedPriority: 30
+  defaultPriority: 60
+--- !u!114 &141492581520547294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6317690233145288235}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99256aef488ff7f42a2606f864e2feef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterController
+  monsterId: 1001
+  despawnDelay: 2
 --- !u!1 &6317690233145288237
 GameObject:
   m_ObjectHideFlags: 0
