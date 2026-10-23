@@ -295,6 +295,7 @@ namespace HybridShooter.Player
 
             UpdateJump();
             UpdateFacing(dt);
+            SetPlayerTrackingInfo();
         }
 
         /// <summary>
@@ -817,6 +818,7 @@ namespace HybridShooter.Player
         public Vector3 Velocity => rb.linearVelocity;
         public float HorizontalSpeed { get { var v = rb.linearVelocity; return new Vector2(v.x, v.z).magnitude; } }
         public float WalkSpeed { get => walkSpeed; set => walkSpeed = Mathf.Max(0f, value); }
+
         public Vector3 Forward => rb.rotation * Vector3.forward;
         public float RollDuration => rollDuration;
         public float SprintMultiplier => sprintMultiplier;
@@ -838,7 +840,16 @@ namespace HybridShooter.Player
         public Transform Root => rootTransform;
         public Transform AimPoint => aimPoint;
         public Transform ViewPoint => viewPoint != null ? viewPoint : (aimPoint != null ? aimPoint : transform);
+        
+        public PlayerTrackingInfo playerTrackingInfo { get; } =  new PlayerTrackingInfo();
 
+        public void SetPlayerTrackingInfo()
+        {
+            playerTrackingInfo.Position = transform.position;
+            playerTrackingInfo.Rotation = transform.rotation;
+            playerTrackingInfo.Forward = transform.forward;
+        }
+        
         /// <summary>worldDirection: 월드 기준, 수평, 크기 0~1 (스틱 기울기 반영)</summary>
         public void SetMoveInput(Vector3 worldDirection, bool sprint)
         {
