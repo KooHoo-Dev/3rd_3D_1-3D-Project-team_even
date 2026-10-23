@@ -151,7 +151,7 @@ namespace HybridShooter.UI
             panel.transform.SetParent(canvasGo.transform, false);
             var panelRect = (RectTransform)panel.transform;
             panelRect.anchorMin = panelRect.anchorMax = panelRect.pivot = new Vector2(0f, 1f);
-            panelRect.anchoredPosition = new Vector2(30f, -30f);
+            panelRect.anchoredPosition = new Vector2(800f, -30f);
             panelRect.sizeDelta = new Vector2(360f, 130f);
             panel.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.55f);
 
