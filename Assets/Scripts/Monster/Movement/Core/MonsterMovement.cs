@@ -80,6 +80,7 @@ namespace HybridShooter.Monster.Movement
 
         // ════════ 외부 공개 (읽기 전용) ════════
         public MovementProfile Profile => profile;
+        
         public IMovementTarget Target => crowdCoordinator != null ? crowdCoordinator.Target : targetInfo;
         /// <summary>거리와 별개인 현재 군중 허가. 정지 중에도 실제 예약/토큰을 확인한다.</summary>
         public bool CanAttack
@@ -307,11 +308,38 @@ namespace HybridShooter.Monster.Movement
 
         private void ValidateCombatSlots()
         {
-            if (hasCombatTuning && crowdCoordinator != null && profile.UsesEngageToken &&
-                crowdCoordinator.Settings.EnableCrowdControl && crowdCoordinator.Settings.UseSlots &&
-                crowdCoordinator.Settings.Slots.ApproachRadius + crowdCoordinator.Settings.Slots.SampleRadius +
-                Mathf.Min(0.2f, crowdCoordinator.Settings.Slots.ArrivalDistance * 0.5f) >= combatRange)
-                throw new InvalidOperationException("접근 슬롯 반경 + NavMesh 투영/정지 여유는 공격 사거리보다 작아야 한다");
+            bool hasTuning = hasCombatTuning;
+            bool hasCoordinator = crowdCoordinator != null;
+            bool usesEngageToken = profile.UsesEngageToken;
+
+            bool crowdControlEnabled = hasCoordinator && crowdCoordinator.Settings.EnableCrowdControl;
+            bool slotsEnabled = hasCoordinator && crowdCoordinator.Settings.UseSlots;
+
+            bool invalidApproachRadius = false;
+
+            if (hasCoordinator)
+            {
+                var slots = crowdCoordinator.Settings.Slots;
+
+                float approachRadius = slots.ApproachRadius;
+                float sampleRadius = slots.SampleRadius;
+                float arrivalMargin = Mathf.Min(0.2f, slots.ArrivalDistance * 0.5f);
+
+                float requiredRange = approachRadius + sampleRadius + arrivalMargin;
+
+                invalidApproachRadius = requiredRange >= combatRange;
+            }
+
+            if (hasTuning &&
+                hasCoordinator &&
+                usesEngageToken &&
+                crowdControlEnabled &&
+                slotsEnabled &&
+                invalidApproachRadius)
+            {
+                throw new InvalidOperationException(
+                    "접근 슬롯 반경 + NavMesh 투영/정지 여유는 공격 사거리보다 작아야 한다");
+            }
         }
 
         /// <summary>직접/군중 모드의 공유 목표를 연결한다. 활성화 전에는 Configure를 사용한다.</summary>

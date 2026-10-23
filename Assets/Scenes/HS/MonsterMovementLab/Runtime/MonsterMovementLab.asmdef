@@ -2,7 +2,7 @@
   "defineConstraints": [],
   "name": "HybridShooter.Monster.MovementLab",
   "rootNamespace": "HybridShooter.Monster.MovementLab",
-  "references": ["HybridShooter.Monster.Movement", "Unity.AI.Navigation", "Unity.InputSystem"],
+  "references": ["HybridShooter.Monster.Movement", "HybridShooter.Core", "Unity.AI.Navigation", "Unity.InputSystem"],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
