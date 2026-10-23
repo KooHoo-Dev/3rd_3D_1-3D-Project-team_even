@@ -1,4 +1,6 @@
 ﻿using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Events;
+using HybridShooter.Weapon;
 using Study.Utilities;
 using System;
 using System.Collections.Generic;
@@ -31,7 +33,7 @@ namespace HybridShooter.Player
     ///  - 외부 제어: 벽넘기처럼 애니메이션이 몸을 직접 옮겨야 할 때 BeginExternalControl ~ EndExternalControl 동안 물리를 멈춘다.
     /// </summary>
     [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
-    public class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IGrenadeReceiver, IDamageable
+    public class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IDamageable
     {
         #region 설정(인스펙터)
         [Header("이동")]
@@ -147,13 +149,16 @@ namespace HybridShooter.Player
         [SerializeField] private Vector3 headEyeOffset = new Vector3(0f, 0.08f, 0.1f);
         [SerializeField] private float headFollowSmoothTime = 0.08f;
 
+        [Header("무기")]
+        [Tooltip("비워 두면 같은 오브젝트에서 찾는다")]
+        [SerializeField] private GunSlot gunSlot;
+        [Tooltip("조준 확대/축소 속도 (FOV 배율 변화량/초)")]
+        [SerializeField] private float aimZoomSpeed = 6f;
+
         [Header("체력")]
         [SerializeField] private int maxHealth = 100;
         [SerializeField] private int currentHealth = 100;
 
-        [Header("수류탄")]
-        [SerializeField] private int maxGrenades = 3;
-        [SerializeField] private int grenades = 0;
         #endregion
 
         #region 상태
@@ -166,7 +171,6 @@ namespace HybridShooter.Player
         private FacingMode facingMode = FacingMode.FollowMove;
         private float lockedYaw;
         private float jumpRequestedTime = float.NegativeInfinity;
-        private Vector2 lastMoveInput;
 
         // 이동 상태
         private bool isGrounded;
@@ -223,6 +227,14 @@ namespace HybridShooter.Player
         private Renderer[] headRendererCache = Array.Empty<Renderer>();
         private bool headHidden;
         private bool headStateApplied;
+
+        // 조준 확대 (총이 SetAimZoom 으로 요청)
+        private float aimFovTarget = 1f;
+        private float aimFovCurrent = 1f;
+        private float aimSensitivity = 1f;
+
+        // 소모품 (수류탄 · 회복 팩). 같은 오브젝트의 PlayerItems
+        private PlayerItems items;
         #endregion
 
         #region 유니티 메시지
@@ -249,6 +261,8 @@ namespace HybridShooter.Player
             if (bodyAnimator == null) bodyAnimator = GetComponentInChildren<Animator>();
             if (bodyVisual == null && bodyAnimator != null) bodyVisual = bodyAnimator.transform;
             if (bodyVisual == transform) bodyVisual = null; // 리지드바디 자신은 돌리면 안 된다
+            if (gunSlot == null) gunSlot = GetComponent<GunSlot>();
+            items = GetComponent<PlayerItems>();
 
             CacheRig();
             CacheHeadRenderers();
@@ -256,8 +270,6 @@ namespace HybridShooter.Player
             transitionGetter = () => transitionT;
             transitionSetter = x => { transitionT = x; ApplyTransitionPose(); };
             transitionComplete = OnViewTransitionComplete;
-
-            IsDead = false;
         }
 
         private void Start()
@@ -312,6 +324,7 @@ namespace HybridShooter.Player
             UpdateRigRotation();
             UpdateEyePosition();
             UpdateCameraArm(dt);
+            UpdateAimZoom(dt);
             if (CameraChanging) ApplyTransitionPose();
         }
         #endregion
@@ -326,13 +339,20 @@ namespace HybridShooter.Player
             public Key backKey = Key.S;
             public Key leftKey = Key.A;
             public Key rightKey = Key.D;
-            public Key viewToggleKey = Key.V;
+            public Key viewToggleKey = Key.F1;
             public Key cursorToggleKey = Key.Escape;
+            public Key reloadKey = Key.R;
+            public Key fireModeKey = Key.B;
+            public Key grenadeKey = Key.G;
+            public Key healKey = Key.V;
+            public Key[] slotKeys = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4 };
+            /// <summary>테스트용: 주무기를 예비 총으로 교체</summary>
+            public Key debugSwapPrimaryKey = Key.T;
 
 
             public InputPlayerSettings() { }
 
-            public InputPlayerSettings(Key jump, Key sprint, Key roll, Key front, Key back, Key left, Key right, Key viewToggle = Key.V)
+            public InputPlayerSettings(Key jump, Key sprint, Key roll, Key front, Key back, Key left, Key right, Key viewToggle = Key.F1)
             {
                 viewToggleKey = viewToggle;
                 jumpKey = jump;
@@ -368,13 +388,13 @@ namespace HybridShooter.Player
             if (SimpleInput.GetKey(keySettings.backKey)) input.y -= 1f;
             if (SimpleInput.GetKey(keySettings.rightKey)) input.x += 1f;
             if (SimpleInput.GetKey(keySettings.leftKey)) input.x -= 1f;
-            lastMoveInput = Vector2.ClampMagnitude(input, 1f); // 대각선이 더 빨라지지 않게
+            input = Vector2.ClampMagnitude(input, 1f); // 대각선이 더 빨라지지 않게
 
             // 로컬 입력 → 월드 방향
-            Vector3 worldMove = InputToWorld(lastMoveInput);
+            Vector3 worldMove = InputToWorld(input);
 
-            // 이동 + 달리기 (누르고 있는 동안)
-            bool sprint = SimpleInput.GetKey(keySettings.sprintKey);
+            // 이동 + 달리기 (누르고 있는 동안). 조준 중에는 달리지 않는다
+            bool sprint = SimpleInput.GetKey(keySettings.sprintKey) && (gunSlot == null || gunSlot.IsAiming == false);
             SetMoveInput(worldMove, sprint);
 
             // 점프
@@ -386,6 +406,48 @@ namespace HybridShooter.Player
                 Vector3 rollDir = worldMove.sqrMagnitude > 0.0001f ? worldMove : Forward;
                 TryRoll(rollDir);
             }
+
+            WeaponInputHandle();
+            ItemInputHandle();
+        }
+
+        /// <summary>소모품 입력 → PlayerItems. G 수류탄, V 회복 팩. 커서가 풀려 있으면 무시</summary>
+        private void ItemInputHandle()
+        {
+            if (items == null || Cursor.lockState != CursorLockMode.Locked) return;
+            if (SimpleInput.GetKeyDown(keySettings.grenadeKey)) items.TryThrowGrenade();
+            if (SimpleInput.GetKeyDown(keySettings.healKey)) items.TryUseHeal();
+        }
+
+        /// <summary>
+        /// 무기 입력 → GunSlot → 지금 든 총. 좌클릭 사격, 우클릭 조준, R 재장전, B 사격 모드, 1~4 / 휠 무기 교체.
+        /// 커서가 풀려 있으면(Esc) 방아쇠·조준을 놓는다
+        /// </summary>
+        private void WeaponInputHandle()
+        {
+            if (gunSlot == null) return;
+            if (Cursor.lockState != CursorLockMode.Locked)
+            {
+                gunSlot.TriggerUp();
+                gunSlot.AimUp();
+                return;
+            }
+
+            if (SimpleInput.GetMouseButtonDown(SimpleInput.MouseButton.Left)) gunSlot.TriggerDown();
+            if (SimpleInput.GetMouseButtonUp(SimpleInput.MouseButton.Left)) gunSlot.TriggerUp();
+            if (SimpleInput.GetMouseButtonDown(SimpleInput.MouseButton.Right)) gunSlot.AimDown();
+            if (SimpleInput.GetMouseButtonUp(SimpleInput.MouseButton.Right)) gunSlot.AimUp();
+
+            if (SimpleInput.GetKeyDown(keySettings.reloadKey)) gunSlot.Reload();
+            if (SimpleInput.GetKeyDown(keySettings.fireModeKey)) gunSlot.ToggleFireMode();
+
+            for (int i = 0; i < keySettings.slotKeys.Length; i++)
+                if (SimpleInput.GetKeyDown(keySettings.slotKeys[i])) gunSlot.Select(i);
+            if (SimpleInput.GetKeyDown(keySettings.debugSwapPrimaryKey)) gunSlot.ReplacePrimaryWithNextReserve();
+
+            float scroll = SimpleInput.GetMouseScrollDeltaRaw();
+            if (scroll > 0f) gunSlot.SelectNext(-1);
+            else if (scroll < 0f) gunSlot.SelectNext(1);
         }
 
         /// <summary>WASD 입력(x=좌우, y=앞뒤)을 시선 yaw 로 돌려 월드 수평 방향으로 바꾼다.
@@ -404,7 +466,7 @@ namespace HybridShooter.Player
             if (mouse == null) return;
 
             // delta 는 이미 "이번 프레임 이동량" 이라 deltaTime 을 곱하지 않는다
-            Vector2 delta = mouse.delta.ReadValue() * mouseSensitivity;
+            Vector2 delta = mouse.delta.ReadValue() * (mouseSensitivity * aimSensitivity);
             lookYaw = Mathf.Repeat(lookYaw + delta.x, 360f);
             lookPitch = Mathf.Clamp(lookPitch + (invertY ? delta.y : -delta.y), minPitch, maxPitch);
         }
@@ -601,6 +663,15 @@ namespace HybridShooter.Player
                 ? target
                 : Mathf.MoveTowards(tpArmDistance, target, cameraReturnSpeed * dt);
             tpCameraArm.localPosition = new Vector3(tpArmHomePos.x, tpArmHomePos.y, -tpArmDistance);
+        }
+
+        /// <summary>총 조준 확대: 지금 카메라 FOV = 기본 FOV × 배율. 시점 전환 중에는 전환 연출이 FOV 를 쓰므로 건드리지 않는다</summary>
+        private void UpdateAimZoom(float dt)
+        {
+            aimFovCurrent = Mathf.MoveTowards(aimFovCurrent, aimFovTarget, aimZoomSpeed * dt);
+            if (CameraChanging) return;
+            if (viewMode == ViewMode.FirstPerson) fpCamera.fieldOfView = fpFov * aimFovCurrent;
+            else tpCamera.fieldOfView = tpFov * aimFovCurrent;
         }
 
         /// <summary>어깨 → 카메라 사이에 벽이 있으면 그 앞까지의 거리. 자기 콜라이더는 무시</summary>
@@ -866,6 +937,20 @@ namespace HybridShooter.Player
 
         public void RequestJump() => jumpRequestedTime = Time.time;
 
+        /// <summary>시선을 이만큼 돌린다 (총 반동). pitch 음수 = 위로, yaw 양수 = 오른쪽</summary>
+        public void AddLookOffset(float pitch, float yaw)
+        {
+            lookYaw = Mathf.Repeat(lookYaw + yaw, 360f);
+            lookPitch = Mathf.Clamp(lookPitch + pitch, minPitch, maxPitch);
+        }
+
+        /// <summary>조준 확대. fovMultiplier 1 = 원래 시야, sensitivityMultiplier = 마우스 감도 배율</summary>
+        public void SetAimZoom(float fovMultiplier, float sensitivityMultiplier)
+        {
+            aimFovTarget = Mathf.Clamp(fovMultiplier, 0.05f, 1f);
+            aimSensitivity = Mathf.Clamp(sensitivityMultiplier, 0.05f, 1f);
+        }
+
         /// <summary>방향은 호출 쪽이 정한다 (4방향 스냅 등). 지상이 아니거나 쿨다운이면 false</summary>
         public bool TryRoll(Vector3 worldDirection)
         {
@@ -957,26 +1042,23 @@ namespace HybridShooter.Player
 
         #region 체력·아이템
         public bool IsAlive => currentHealth > 0;
-        public int Grenades => grenades;
-        public int MaxGrenades => maxGrenades;
+        public int CurrentHealth => currentHealth;
+        public int MaxHealth => maxHealth;
+        /// <summary>수류탄을 던지는 동작 중 (이 동안은 총을 쏠 수 없다)</summary>
+        public bool IsThrowingGrenade => items != null && items.IsThrowing;
 
-        public Faction Faction => throw new NotImplementedException();
+        public Faction Faction => Faction.Player;
 
         /// <summary>죽었거나, 이미 가득 찼거나, amount 가 0 이하면 false (아이템을 소모하지 않게)</summary>
         public bool Heal(int amount)
         {
             if (amount <= 0 || IsAlive == false || currentHealth >= maxHealth) return false;
             currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+            PublishHp();
             return true;
         }
 
-        /// <summary>이미 최대치거나 amount 가 0 이하면 false (아이템을 소모하지 않게)</summary>
-        public bool AddGrenades(int amount)
-        {
-            if (amount <= 0 || grenades >= maxGrenades) return false;
-            grenades = Mathf.Min(grenades + amount, maxGrenades);
-            return true;
-        }
+        private void PublishHp() => EventBus<PlayerHpChangedEvent>.Publish(new PlayerHpChangedEvent(currentHealth, maxHealth));
         #endregion
 
         #region 보조
@@ -1019,6 +1101,8 @@ namespace HybridShooter.Player
         public void TakeDamage(in DamageInfo info)
         {
             currentHealth = Mathf.Max(0, currentHealth - info.Amount);
+            PublishHp();
+            if (IsDead == false && info.Amount > 0) EventBus<PlayerDamagedEvent>.Publish(new PlayerDamagedEvent(info));
             if (IsDead == false && currentHealth == 0)
             {
                 Die();

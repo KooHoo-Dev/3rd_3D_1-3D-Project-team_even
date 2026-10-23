@@ -16,7 +16,7 @@ namespace HybridShooter.Supply.Tester
     ///  - IPlayerTarget 등록 → 보급 낙하 위치(플레이어 기준 30~150m) 계산에 사용됨
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
-    public sealed class TesterPlayer : MonoBehaviour, IPlayerTarget, IGrenadeReceiver, IHealPackReceiver
+    public sealed class TesterPlayer : MonoBehaviour, IPlayerTarget, IItemUser
     {
         [SerializeField] private float moveSpeed = 10f;
         [SerializeField] private float sprintMultiplier = 2.5f;
