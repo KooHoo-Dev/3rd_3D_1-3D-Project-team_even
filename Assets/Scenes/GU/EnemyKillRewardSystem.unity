@@ -12132,6 +12132,68 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 436492, guid: c1e450e437a4c4001994fc10a51e55e4, type: 3}
   m_PrefabInstance: {fileID: 1697087136}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1700000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1700000002}
+  - component: {fileID: 1700000003}
+  - component: {fileID: 1700000004}
+  m_Layer: 0
+  m_Name: KillRewardSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1700000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1700000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1700000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1700000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e39b976286e3a64ab079e4c56311aa9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1700000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1700000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ff73cf4a295494eb85b5a7b026e78bd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  weakMonsterId: 1001
+  midMonsterId: 2001
+  bossMonsterId: 3001
+  testUpgradeType: 0
+  showStatus: 1
 --- !u!1001 &1702409054
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15155,8 +15217,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   maxPositionTries: 10
-  autoDrop: 1
-  firstDropDelay: 60
   dropInterval: 25
   maxActiveSupplies: 10
 --- !u!4 &2048632274
@@ -15768,3 +15828,4 @@ SceneRoots:
   - {fileID: 1333617411}
   - {fileID: 218311746}
   - {fileID: 2048632274}
+  - {fileID: 1700000002}
