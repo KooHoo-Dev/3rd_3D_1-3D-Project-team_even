@@ -16,10 +16,10 @@ namespace QFX.SFX
 
         public bool OverrideColor;
 
-        [ColorUsageAttribute(true, true, 0f, 8f, 0.125f, 3f)]
+        [ColorUsage(true, true)]
         public Color NormalColor;
 
-        [ColorUsageAttribute(true, true, 0f, 8f, 0.125f, 3f)]
+        [ColorUsage(true, true)]
         public Color DetectionColor;
 
         private Material _scannerMaterial;

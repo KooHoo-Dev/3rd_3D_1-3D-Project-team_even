@@ -386,7 +386,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PowerFactor: 1
-  EngineKeyCode: 119
+  EngineKeyCode: 37
   FlareParticleSystem: {fileID: 198082424310808930}
   FlareFactor: 150
   SlowSparksParticleSystem: {fileID: 198700323887717918}

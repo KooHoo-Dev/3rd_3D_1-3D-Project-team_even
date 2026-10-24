@@ -172,9 +172,9 @@ namespace QFX.SFX
 
         private void Update()
         {
-            if (Input.GetMouseButtonDown(0))
+            if (SFX_InputUtil.GetMouseButtonDown(0))
                 Run();
-            else if (Input.GetMouseButtonUp(0))
+            else if (SFX_InputUtil.GetMouseButtonUp(0))
                 Stop();
 
             if (!IsRunning)

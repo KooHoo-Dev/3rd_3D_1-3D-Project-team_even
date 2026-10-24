@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 // ReSharper disable once CheckNamespace
@@ -10,7 +11,7 @@ namespace QFX.SFX
     {
         public float PowerFactor = 1;
 
-        public KeyCode EngineKeyCode = KeyCode.W;
+        public Key EngineKeyCode = Key.W;
 
         public ParticleSystem FlareParticleSystem;
         public float FlareFactor = 150;
@@ -36,17 +37,22 @@ namespace QFX.SFX
         
         private void OnEnable()
         {
-            _engineInnerMaterial = EngineInner.GetComponent<Renderer>().material;
+            // .material creates an instance every call, so only fetch it once
+            if (_engineInnerMaterial == null)
+                _engineInnerMaterial = EngineInner.GetComponent<Renderer>().material;
+        }
+
+        private void OnDestroy()
+        {
+            if (_engineInnerMaterial != null)
+                Destroy(_engineInnerMaterial);
         }
 
         private void Update()
         {
             var enginePower = PowerFactor * Time.deltaTime;
 
-            if (Input.GetKeyDown(EngineKeyCode))
-                _isButtonHeld = true;
-            else if (Input.GetKeyUp(EngineKeyCode))
-                _isButtonHeld = false;
+            _isButtonHeld = SFX_InputUtil.GetKey(EngineKeyCode);
 
             if (_isButtonHeld)
                 _currentPower += enginePower;
@@ -81,7 +87,8 @@ namespace QFX.SFX
             _engineInnerMaterial.SetColor("_TintColor", tintColor);
             
             //ONLY FOR THE DEMO
-            TextUi.text = ((int) (_currentPower * 100)).ToString(CultureInfo.InvariantCulture);
+            if (TextUi != null)
+                TextUi.text = ((int) (_currentPower * 100)).ToString(CultureInfo.InvariantCulture);
         }
     }
 }

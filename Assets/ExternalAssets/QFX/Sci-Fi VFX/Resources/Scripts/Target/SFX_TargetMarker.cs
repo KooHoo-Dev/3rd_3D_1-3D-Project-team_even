@@ -36,7 +36,9 @@ namespace QFX.SFX
         {
             base.Run();
 
-            var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (!SFX_InputUtil.TryGetMouseRay(out var ray))
+                return;
+
             RaycastHit hit;
 
             if (!Physics.Raycast(ray, out hit))

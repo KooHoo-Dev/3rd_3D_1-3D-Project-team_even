@@ -9,7 +9,9 @@ namespace QFX.SFX
 
         private void FixedUpdate()
         {
-            var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (!SFX_InputUtil.TryGetMouseRay(out var ray))
+                return;
+
             RaycastHit hit;
 
             if (!Physics.Raycast(ray, out hit))
@@ -17,7 +19,7 @@ namespace QFX.SFX
 
             var targetRotation = Quaternion.LookRotation(hit.point - transform.position);
             transform.rotation =
-                Quaternion.Lerp(transform.rotation, targetRotation, RotationSpeed * Time.deltaTime);
+                Quaternion.Lerp(transform.rotation, targetRotation, RotationSpeed * Time.fixedDeltaTime);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.InputSystem;
 
 // ReSharper disable once CheckNamespace
 namespace QFX.SFX
@@ -6,7 +7,7 @@ namespace QFX.SFX
     [ExecuteInEditMode]
     public sealed class SFX_TopographicScannerController : MonoBehaviour
     {
-        public KeyCode ScannerKeyCode;
+        public Key ScannerKeyCode;
 
         public Transform ScannerOrigin;
         public Material EffectMaterial;
@@ -27,11 +28,16 @@ namespace QFX.SFX
 
         private void Start()
         {
-            m_sfxTopographicScannables = FindObjectsOfType<SFX_TopographicScannable>();
+            m_sfxTopographicScannables =
+                FindObjectsByType<SFX_TopographicScannable>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         }
 
         private void Update()
         {
+            // [ExecuteInEditMode] runs Update in the editor too; scanning is play mode only
+            if (!Application.isPlaying || m_sfxTopographicScannables == null)
+                return;
+
             if (_isScanning)
             {
                 _currentScanDistance += Time.deltaTime * ScanSpeed;
@@ -54,7 +60,7 @@ namespace QFX.SFX
                 }
             }
 
-            if (Input.GetKeyDown(ScannerKeyCode))
+            if (SFX_InputUtil.GetKeyDown(ScannerKeyCode))
                 Activate();
         }
 
@@ -70,6 +76,12 @@ namespace QFX.SFX
 
         private void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
+            if (EffectMaterial == null || ScannerOrigin == null)
+            {
+                Graphics.Blit(source, destination);
+                return;
+            }
+
             EffectMaterial.SetVector("_WorldPosition", ScannerOrigin.position);
             EffectMaterial.SetFloat("_ScanDistance", _currentScanDistance);
             EffectMaterial.SetFloat("_ScanWidth", ScanWidth);

@@ -69,9 +69,9 @@ namespace QFX.SFX
 
         private void Update()
         {
-            if (Input.GetMouseButtonDown(0))
+            if (SFX_InputUtil.GetMouseButtonDown(0))
                 Run();
-            else if (Input.GetMouseButtonUp(0))
+            else if (SFX_InputUtil.GetMouseButtonUp(0))
                 Stop();
 
             if (!IsRunning && _appearProgress <= 0.0f)
@@ -97,7 +97,8 @@ namespace QFX.SFX
             //                    _launchPs.Play(true);
             //                _impactPs.Play(true);
 
-            var hitPosition = hit.point;
+            // hit.point is (0,0,0) when nothing was hit, so use the resolved end position instead
+            var hitPosition = EndPosition;
 
             var startPosition = StartTransform.position;
             var directionToEmitter = (hitPosition - startPosition).normalized;
