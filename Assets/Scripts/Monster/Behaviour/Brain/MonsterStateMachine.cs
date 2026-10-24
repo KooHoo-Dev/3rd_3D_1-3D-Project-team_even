@@ -8,7 +8,7 @@ namespace HybridShooter.Monster.Behaviour
     /// 몬스터 1마리의 상태 머신 본체 (상태 패턴의 Owner). Unity 컴포넌트가 아니라 순수 C# 이다.
     /// MonoBehaviour 껍데기가 Update(now, dt) 를 매 프레임 호출하고, 대상·처치 같은 외부 사건을 전달한다.
     /// </summary>
-    public sealed class MonsterBrain
+    public sealed class MonsterStateMachine
     {
         private readonly IMonsterMover mover;
         private readonly IMonsterBody body;
@@ -38,7 +38,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>DeadState 진입 시 1번. 인자 = 보상 지급 여부</summary>
         public event Action<bool> Died;
 
-        public MonsterBrain(IMonsterMover mover, IMonsterBody body, IMonsterAttack attack)
+        public MonsterStateMachine(IMonsterMover mover, IMonsterBody body, IMonsterAttack attack)
         {
             this.mover = mover ?? throw new ArgumentNullException(nameof(mover));
             this.body = body ?? throw new ArgumentNullException(nameof(body));

@@ -92,9 +92,11 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [Test]
         public void DeadTargetIsNotDamaged()
         {
+            // 생존 판정은 공격이 아니라 소유자 몫이다: 사망 = Brain.SetTarget(null) 이 진행 중인 공격을 취소한다
+            var brain = new MonsterStateMachine(new FakeMover(), body, attack);
+            brain.SetTarget(target);
             attack.Begin(target, 0f);
-            target.IsAlive = false;
-            attack.Tick(0.4f, 0.4f);
+            brain.SetTarget(null);
             Assert.IsFalse(attack.IsRunning);
             Assert.AreEqual(AttackResult.Cancelled, attack.LastResult);
             Assert.AreEqual(0, target.Received.Count);
@@ -165,7 +167,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [Test]
         public void BrainWithStrikeAttackDamagesTarget()
         {
-            var brain = new MonsterBrain(new FakeMover(), body, attack);
+            var brain = new MonsterStateMachine(new FakeMover(), body, attack);
             brain.SetTarget(target);
             float now = 0f;
             for (int i = 0; i < 25; i++)

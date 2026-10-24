@@ -6,7 +6,7 @@ namespace HybridShooter.Monster.Behaviour
     /// </summary>
     public sealed class AttackState : MonsterState
     {
-        public AttackState(MonsterBrain owner) : base(owner) { }
+        public AttackState(MonsterStateMachine owner) : base(owner) { }
 
         public override void Enter() => Owner.StopForAttack();
 

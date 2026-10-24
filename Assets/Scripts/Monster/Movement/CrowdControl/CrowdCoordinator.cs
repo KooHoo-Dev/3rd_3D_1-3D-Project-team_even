@@ -66,8 +66,7 @@ namespace HybridShooter.Monster.Movement
         // ════════ 등록된 몬스터·추적 대상 ════════
         private readonly List<MonsterMovement> agents = new List<MonsterMovement>(); // Register/Unregister 로 관리
         private IReadOnlyList<MonsterMovement> agentsView;                            // agents 의 읽기 전용 뷰 (캐시)
-        private IPlayerTarget target;                                               // 추적 대상 (플레이어 등)
-        private bool loggedMissingTarget;                                             // 목표 미지정 에러 로그 1회 제한
+        private IPlayerTarget target;                                               // 추적 대상 (플레이어 등). null = 목표 없음(사망 등) → 전원 Idle
 
         // ════════ 슬롯 모드 (UseSlots = true) ════════
         private SlotRegistry slots;                                                   // 목표 둘레 슬롯 배정 관리
@@ -150,12 +149,11 @@ namespace HybridShooter.Monster.Movement
             slots?.ClearReservations();
         }
 
-        /// <summary>목표 교체 (대체 객체 ↔ 실제 플레이어). null 이면 ArgumentNullException</summary>
+        /// <summary>목표 교체 (대체 객체 ↔ 실제 플레이어). null 이면 목표 상실: 예약을 비우고 전원 Idle 로 정지한다</summary>
         public void SetTarget(IPlayerTarget newTarget)
         {
-            target = newTarget ?? throw new ArgumentNullException(nameof(newTarget));
+            target = newTarget;
             targetSource = newTarget as MonoBehaviour;
-            loggedMissingTarget = false;
             slots?.ClearReservations();
             slotsRefreshed = false;
             nextAllocationTime = 0f;
@@ -199,7 +197,7 @@ namespace HybridShooter.Monster.Movement
             IPlayerTarget currentTarget = Target;
 
             // 1) 목표가 없으면 예약 전부 해제하고 종료
-            if (!MovementTargetUtility.IsValid(currentTarget))
+            if (currentTarget == null)
             {
                 slots.ClearReservations();
                 slotsRefreshed = false;
@@ -214,7 +212,7 @@ namespace HybridShooter.Monster.Movement
                 MonsterMovement agent = agents[i];
                 slotObstacles.Add(new SlotObstacle(agent.GetInstanceID(), agent.transform.position, agent.Radius));
             }
-            slots.Refresh(currentTarget.Position, Time.time, slotObstacles);
+            slots.Refresh(currentTarget.PlayerTrackingInfo.Position, Time.time, slotObstacles);
             slotsRefreshed = true;
             // 3) 동시 접근 허용 수(EngageCapacity)를 넘은 접근 링 예약은 번호가 큰 쪽부터 회수
             int maxApproach = Mathf.Min(settings.EngageCapacity, slots.ApproachCount);
@@ -229,7 +227,7 @@ namespace HybridShooter.Monster.Movement
             for (int i = 0; i < agents.Count; i++)
             {
                 MonsterMovement agent = agents[i];
-                Vector3 delta = agent.transform.position - currentTarget.Position;
+                Vector3 delta = agent.transform.position - currentTarget.PlayerTrackingInfo.Position;
                 bool inside = delta.x * delta.x + delta.z * delta.z <= nearSqr;
                 if (!agent.Profile.UsesEngageToken)
                 {
@@ -272,7 +270,7 @@ namespace HybridShooter.Monster.Movement
             EnsureSlots();
             if (!slotsRefreshed) RefreshSlots();
             IPlayerTarget currentTarget = Target;
-            if (!MovementTargetUtility.IsValid(currentTarget))
+            if (currentTarget == null)
             {
                 slots.ClearReservations();
                 return CrowdDirective.WaitingForSlot(agent.transform.position);
@@ -350,17 +348,12 @@ namespace HybridShooter.Monster.Movement
         private void Update()
         {
             // A) 목표 무효: 예약 해제 + 전원 Think(→ Idle 정지)
-            if (!MovementTargetUtility.IsValid(target))
+            if (target == null)
             {
                 slots?.ClearReservations();
                 slotsRefreshed = false;
                 lastSummary = default;
                 lastEngagedInsideNear = 0;
-                if (target == null && agents.Count > 0 && !loggedMissingTarget)
-                {
-                    Debug.LogError("목표(IPlayerTarget) 미지정: targetSource 를 지정하거나 SetTarget 을 호출해야 함", this);
-                    loggedMissingTarget = true;
-                }
                 for (int i = 0; i < agents.Count; i++)
                     agents[i].Think(target, Time.time);
                 TickAgents();
@@ -450,7 +443,7 @@ namespace HybridShooter.Monster.Movement
             for (int i = 0; i < n; i++)
                 agentBuffer[i] = agents[i].BuildAllocationAgent();
 
-            Vector3 targetPos = target.Position;
+            Vector3 targetPos = target.PlayerTrackingInfo.Position;
             var p = new AllocationParams
             {
                 TargetPosition = targetPos,

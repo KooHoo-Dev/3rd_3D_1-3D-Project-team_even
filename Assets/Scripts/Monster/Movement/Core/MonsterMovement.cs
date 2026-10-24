@@ -16,7 +16,7 @@ namespace HybridShooter.Monster.Movement
         [SerializeField] private MovementProfile profile;
         [Tooltip("비우면 CrowdCoordinator.Active 사용")]
         [SerializeField] private CrowdCoordinator coordinator;
-        [Tooltip("군중 관리자 없는 직접 추적 모드의 IMovementTarget")]
+        [Tooltip("군중 관리자 없는 직접 추적 모드의 IPlayerTarget")]
         [SerializeField] private MonoBehaviour directTargetSource;
 
         [Header("시선")]
@@ -34,7 +34,8 @@ namespace HybridShooter.Monster.Movement
         // 슬롯·토큰을 나눠주는 군중 관리자 (직접 추적 모드면 null)
         private CrowdCoordinator crowdCoordinator;
         // 추적 대상. 군중 모드에서는 Think(target) 인자로 받고, 직접 모드에서는 이 값을 쓴다
-        private IMovementTarget targetInfo;
+        private IPlayerTarget targetInfo;
+        private bool isDirectMode;   // true = 군중 관리자 없이 targetInfo 를 직접 추적 (targetInfo 가 null 이어도 직접 모드)
 
         // ════════ 현재 이동 상태 (외부 공개 프로퍼티의 원본) ════════
         private MovementState state = MovementState.Idle;
@@ -69,7 +70,7 @@ namespace HybridShooter.Monster.Movement
         private Vector3 reactionReferenceDestination; // "목적지가 바뀌었나" 비교 기준점
         private bool hasReactionReference;
         private int reactionSlotId = -1;      // 기준점을 잡은 슬롯
-        private IMovementTarget reactionTargetInfo; // 기준점을 잡은 목표 (목표 교체 감지용)
+        private IPlayerTarget reactionTargetInfo; // 기준점을 잡은 목표 (목표 교체 감지용)
 
         // ════════ 슬롯 실행 추적 ════════
         // 실행기가 지금 향하고 있는 슬롯 번호. 경로 없음(Unreachable)이면 그 슬롯을 거절하기 위해 기억한다
@@ -88,7 +89,7 @@ namespace HybridShooter.Monster.Movement
         {
             get
             {
-                if (!isActiveAndEnabled || !MovementTargetUtility.IsValid(Target)) return false;
+                if (!isActiveAndEnabled || Target == null) return false;
                 if (crowdCoordinator == null) return directive.Kind == DirectiveKind.Unrestricted;
                 if (!registered) return false;
                 if (!crowdCoordinator.Settings.EnableCrowdControl || !profile.UsesEngageToken) return true;
@@ -155,11 +156,14 @@ namespace HybridShooter.Monster.Movement
             }
 
             // 1) 목표·군중 관리자 확인: 직접 목표가 있으면 군중 관리자 없이 동작, 없으면 Coordinator 필수
-            if (targetInfo == null && directTargetSource != null)
-                targetInfo = directTargetSource as IMovementTarget
-                    ?? throw new InvalidOperationException("directTargetSource 는 IMovementTarget 이어야 한다");
-            var coord = coordinator != null ? coordinator : (targetInfo == null ? CrowdCoordinator.Active : null);
-            if (coord == null && targetInfo == null)
+            if (isDirectMode == false && directTargetSource != null)
+            {
+                targetInfo = directTargetSource as IPlayerTarget
+                    ?? throw new InvalidOperationException("directTargetSource 는 IPlayerTarget 이어야 한다");
+                isDirectMode = true;
+            }
+            var coord = coordinator != null ? coordinator : (isDirectMode ? null : CrowdCoordinator.Active);
+            if (coord == null && isDirectMode == false)
             {
                 Debug.LogError($"[{nameof(MonsterMovement)}] CrowdCoordinator 없음 (직접 지정하거나 씬에 배치)", this);
                 enabled = false;
@@ -194,7 +198,7 @@ namespace HybridShooter.Monster.Movement
         /// </summary>
         private void Update()
         {
-            if (crowdCoordinator != null || targetInfo == null) return;
+            if (crowdCoordinator != null || isDirectMode == false) return;
             TickMovement();
             if (Time.time < nextDirectThink) return;
             Think(targetInfo, Time.time);
@@ -227,8 +231,7 @@ namespace HybridShooter.Monster.Movement
         /// </summary>
         internal void TickMovement()
         {
-            if (hasReactionReference && (!MovementTargetUtility.IsValid(reactionTargetInfo) ||
-                                         !HasCurrentReservation(reactionSlotId)))
+            if (hasReactionReference && (Target == null || !HasCurrentReservation(reactionSlotId)))
                 StopForInvalidReservation();
             if (hasPendingIntent)
             {
@@ -272,16 +275,18 @@ namespace HybridShooter.Monster.Movement
             this.profile = profile;
             this.coordinator = coordinator;
             targetInfo = null;
+            isDirectMode = false;
             directTargetSource = null;
             policy = null; // 활성화 시 새 profile 로 재생성
         }
 
         /// <summary>군중 관리자 없이 목표를 직접 추적하는 모드로 설정. OnEnable 전에만 호출 가능</summary>
-        public void ConfigureDirect(MovementProfile profile, IMovementTarget target)
+        public void ConfigureDirect(MovementProfile profile, IPlayerTarget target)
         {
             if (isActiveAndEnabled) throw new InvalidOperationException("ConfigureDirect 는 비활성 상태에서만 호출할 수 있다");
             this.profile = profile;
             targetInfo = target ?? throw new ArgumentNullException(nameof(target));
+            isDirectMode = true;
             directTargetSource = target as MonoBehaviour;
             coordinator = null;
             policy = null;
@@ -343,13 +348,21 @@ namespace HybridShooter.Monster.Movement
             }
         }
 
-        /// <summary>직접/군중 모드의 공유 목표를 연결한다. 활성화 전에는 Configure를 사용한다.</summary>
+        /// <summary>
+        /// 직접/군중 모드의 공유 목표를 연결한다. null 이면 목표 상실(사망 등)이며 정지한다.
+        /// 활성화 전에는 Configure를 사용한다.
+        /// </summary>
         public void SetTarget(IPlayerTarget target)
         {
-            if (crowdCoordinator != null) crowdCoordinator.SetTarget(target);
-            else if (coordinator != null || (targetInfo == null && CrowdCoordinator.Active != null))
+            if (isDirectMode) targetInfo = target;
+            else if (crowdCoordinator != null) crowdCoordinator.SetTarget(target);
+            else if (coordinator != null || CrowdCoordinator.Active != null)
                 (coordinator != null ? coordinator : CrowdCoordinator.Active).SetTarget(target);
-            else targetInfo = target ?? throw new ArgumentNullException(nameof(target));
+            else
+            {
+                isDirectMode = true; // 군중 관리자가 없으면 직접 추적 모드
+                targetInfo = target;
+            }
         }
 
         private void RegisterCrowd()
@@ -411,7 +424,7 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>판단 1회: (슬롯 모드면 지시 갱신) → 정책 Evaluate → 실행기 Apply → 공격 사거리 갱신</summary>
-        internal void Think(IMovementTarget target, float now)
+        internal void Think(IPlayerTarget target, float now)
         {
             if (suspended) return;
 
@@ -432,9 +445,9 @@ namespace HybridShooter.Monster.Movement
             lastThinkTime = now;
 
             Vector3 self = transform.position;
-            bool targetValid = MovementTargetUtility.IsValid(target);
-            Vector3 targetPosition = targetValid ? target.Position : self;
-            Vector3 targetForward = targetValid ? target.Forward : Vector3.forward;
+            bool targetValid = target != null;
+            Vector3 targetPosition = targetValid ? target.PlayerTrackingInfo.Position : self;
+            Vector3 targetForward = targetValid ? target.PlayerTrackingInfo.Forward : Vector3.forward;
             lookTarget = targetPosition;   // 시선 갱신 (실제 회전은 LateUpdate 의 ApplyLookRotation)
             hasLookTarget = targetValid;
             var ctx = new MovementContext(self, targetPosition, targetForward, targetValid,
@@ -466,7 +479,7 @@ namespace HybridShooter.Monster.Movement
         /// 슬롯 목적지가 기준점에서 ReactionChangeDistance 이상 바뀌면 랜덤 시간 뒤에 반응해 몬스터들이 동시에 꺾이는 부자연스러움을 줄인다.
         /// 슬롯 모드가 아니거나 슬롯이 없으면 지연 없이 즉시 실행.
         /// </summary>
-        private void SubmitIntent(in MoveIntent intent, IMovementTarget target, bool targetValid, float now)
+        private void SubmitIntent(in MoveIntent intent, IPlayerTarget target, bool targetValid, float now)
         {
             // 1) 지연 대상이 아닌 경우: 슬롯 모드가 아니거나, 목표/목적지/슬롯이 없거나, 예약이 이미 무효 → 즉시 실행
             bool slotMode = crowdCoordinator != null && crowdCoordinator.Settings.UseSlots &&

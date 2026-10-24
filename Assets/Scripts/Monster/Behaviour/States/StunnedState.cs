@@ -5,7 +5,7 @@ namespace HybridShooter.Monster.Behaviour
     {
         private float endTime;
 
-        public StunnedState(MonsterBrain owner) : base(owner) { }
+        public StunnedState(MonsterStateMachine owner) : base(owner) { }
 
         public override void Enter()
         {

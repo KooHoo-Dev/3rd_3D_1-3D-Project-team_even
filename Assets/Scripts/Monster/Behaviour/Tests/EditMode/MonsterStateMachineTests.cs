@@ -5,13 +5,13 @@ using UnityEngine;
 
 namespace HybridShooter.Monster.Behaviour.Tests
 {
-    public sealed class MonsterBrainTests
+    public sealed class MonsterStateMachineTests
     {
         private FakeMover mover;
         private FakeBody body;
         private FakeAttack attack;
         private FakeTarget target;
-        private MonsterBrain brain;
+        private MonsterStateMachine _stateMachine;
         private float now;
 
         [SetUp]
@@ -21,29 +21,29 @@ namespace HybridShooter.Monster.Behaviour.Tests
             body = new FakeBody { Position = Vector3.zero };
             attack = new FakeAttack { Range = 1.5f };
             target = new FakeTarget { Position = new Vector3(0f, 0f, 10f) };
-            brain = new MonsterBrain(mover, body, attack);
+            _stateMachine = new MonsterStateMachine(mover, body, attack);
             now = 0f;
         }
 
         private void Step(float dt = 0.1f)
         {
             now += dt;
-            brain.Update(now, dt);
+            _stateMachine.Update(now, dt);
         }
 
         private void EnterAttack()
         {
-            brain.SetTarget(target);
+            _stateMachine.SetTarget(target);
             Step(); // Idle → Chase
             target.Position = new Vector3(0f, 0f, 1f);
             Step(); // Chase → Attack
-            Assert.AreSame(brain.Attack, brain.Current);
+            Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
         }
 
         [Test]
         public void StartsIdleAndStopsMover()
         {
-            Assert.AreSame(brain.Idle, brain.Current);
+            Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
             Assert.IsTrue(mover.IsStopped);
         }
 
@@ -51,46 +51,46 @@ namespace HybridShooter.Monster.Behaviour.Tests
         public void IdleStaysWithoutTarget()
         {
             Step();
-            Assert.AreSame(brain.Idle, brain.Current);
+            Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
         }
 
         [Test]
         public void IdleToChaseWhenTargetSetAndMoverResumes()
         {
-            brain.SetTarget(target);
+            _stateMachine.SetTarget(target);
             Step();
-            Assert.AreSame(brain.Chase, brain.Current);
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current);
             Assert.IsFalse(mover.IsStopped);
         }
 
         [Test]
         public void ChaseToIdleWhenTargetLost()
         {
-            brain.SetTarget(target);
+            _stateMachine.SetTarget(target);
             Step();
-            brain.SetTarget(null);
+            _stateMachine.SetTarget(null);
             Step();
-            Assert.AreSame(brain.Idle, brain.Current);
+            Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
             Assert.IsTrue(mover.IsStopped);
         }
 
         [Test]
         public void ChaseStaysWhenOutOfRange()
         {
-            brain.SetTarget(target);
+            _stateMachine.SetTarget(target);
             Step();
             Step();
-            Assert.AreSame(brain.Chase, brain.Current);
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current);
         }
 
         [Test]
         public void RangeIgnoresHeight()
         {
-            brain.SetTarget(target);
+            _stateMachine.SetTarget(target);
             Step();
             target.Position = new Vector3(0f, 5f, 1f);
             Step();
-            Assert.AreSame(brain.Attack, brain.Current);
+            Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
         }
 
         [Test]
@@ -118,7 +118,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Step();
             Step();
             Assert.AreEqual(0, attack.BeginCount);
-            Assert.AreSame(brain.Attack, brain.Current);
+            Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
         }
 
         [Test]
@@ -128,7 +128,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Step(); // Begin
             target.Position = new Vector3(0f, 0f, 10f);
             Step();
-            Assert.AreSame(brain.Attack, brain.Current);
+            Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
             Assert.AreEqual(1, attack.TickCount);
             Assert.AreEqual(0, attack.CancelCount);
         }
@@ -141,7 +141,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             target.Position = new Vector3(0f, 0f, 10f);
             attack.Finish(AttackResult.Completed);
             Step();
-            Assert.AreSame(brain.Chase, brain.Current);
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current);
             Assert.IsFalse(mover.IsStopped);
         }
 
@@ -151,39 +151,39 @@ namespace HybridShooter.Monster.Behaviour.Tests
             EnterAttack();
             Step(); // Begin
             attack.Finish(AttackResult.Completed);
-            brain.SetTarget(null);
+            _stateMachine.SetTarget(null);
             Step();
-            Assert.AreSame(brain.Idle, brain.Current);
+            Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
         }
 
         [Test]
         public void StunLastsDurationThenChases()
         {
-            brain.SetTarget(target);
+            _stateMachine.SetTarget(target);
             Step(); // → Chase
-            brain.Stun(2f);
-            Assert.AreSame(brain.Stunned, brain.Current);
+            _stateMachine.Stun(2f);
+            Assert.AreSame(_stateMachine.Stunned, _stateMachine.Current);
             Assert.IsTrue(mover.IsStopped);
 
             Step(1.9f);
-            Assert.AreSame(brain.Stunned, brain.Current);
+            Assert.AreSame(_stateMachine.Stunned, _stateMachine.Current);
             Step(0.2f);
-            Assert.AreSame(brain.Chase, brain.Current);
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current);
         }
 
         [Test]
         public void AttackStateStunsWhenTickEndsWithWallHit()
         {
             var wallAttack = new WallHitOnFirstTickAttack { Range = 1.5f, WallHitStunTime = 1f };
-            brain = new MonsterBrain(mover, body, wallAttack);
-            brain.SetTarget(target);
+            _stateMachine = new MonsterStateMachine(mover, body, wallAttack);
+            _stateMachine.SetTarget(target);
             Step();
             target.Position = new Vector3(0f, 0f, 1f);
             Step(); // → Attack
             Step(); // Begin
             Step(); // Tick → WallHit → Stunned
-            Assert.AreSame(brain.Stunned, brain.Current);
-            Assert.AreEqual(1f, brain.StunDuration);
+            Assert.AreSame(_stateMachine.Stunned, _stateMachine.Current);
+            Assert.AreEqual(1f, _stateMachine.StunDuration);
         }
 
         [Test]
@@ -191,13 +191,13 @@ namespace HybridShooter.Monster.Behaviour.Tests
         {
             bool? reward = null;
             int diedCount = 0;
-            brain.Died += r => { reward = r; diedCount++; };
+            _stateMachine.Died += r => { reward = r; diedCount++; };
 
             EnterAttack();
             Step(); // Begin
-            brain.Die(false);
+            _stateMachine.Die(false);
 
-            Assert.AreSame(brain.Dead, brain.Current);
+            Assert.AreSame(_stateMachine.Dead, _stateMachine.Current);
             Assert.AreEqual(1, attack.CancelCount);
             Assert.IsTrue(mover.IsStopped);
             Assert.AreEqual(1, diedCount);
@@ -208,35 +208,35 @@ namespace HybridShooter.Monster.Behaviour.Tests
         public void DeadIsFinal()
         {
             int diedCount = 0;
-            brain.Died += _ => diedCount++;
-            brain.SetTarget(target);
-            brain.Die(true);
+            _stateMachine.Died += _ => diedCount++;
+            _stateMachine.SetTarget(target);
+            _stateMachine.Die(true);
 
-            brain.Die(true);
-            brain.ChangeState(brain.Chase);
-            brain.Stun(1f);
+            _stateMachine.Die(true);
+            _stateMachine.ChangeState(_stateMachine.Chase);
+            _stateMachine.Stun(1f);
             Step();
 
-            Assert.AreSame(brain.Dead, brain.Current);
+            Assert.AreSame(_stateMachine.Dead, _stateMachine.Current);
             Assert.AreEqual(1, diedCount);
-            Assert.IsTrue(brain.GrantReward);
+            Assert.IsTrue(_stateMachine.GrantReward);
         }
 
         [Test]
         public void StateChangedReportsPreviousAndCurrent()
         {
             MonsterState from = null, to = null;
-            brain.StateChanged += (p, c) => { from = p; to = c; };
-            brain.SetTarget(target);
+            _stateMachine.StateChanged += (p, c) => { from = p; to = c; };
+            _stateMachine.SetTarget(target);
             Step();
-            Assert.AreSame(brain.Idle, from);
-            Assert.AreSame(brain.Chase, to);
+            Assert.AreSame(_stateMachine.Idle, from);
+            Assert.AreSame(_stateMachine.Chase, to);
         }
 
         [Test]
         public void NegativeStunThrows()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => brain.Stun(-1f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _stateMachine.Stun(-1f));
         }
 
         /// <summary>시작 후 첫 Tick 에서 벽 충돌로 끝나는 공격</summary>

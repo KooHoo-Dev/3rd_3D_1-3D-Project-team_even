@@ -1,4 +1,5 @@
 using UnityEngine;
+using HybridShooter.Core.Contracts;
 using HybridShooter.Monster.Movement;
 
 namespace HybridShooter.Monster.MovementLab
@@ -16,7 +17,7 @@ namespace HybridShooter.Monster.MovementLab
 
         private MonsterMovement movement;
         private CrowdCoordinator coordinator;   // null 이면 직접 추적 모드
-        private IMovementTarget directTarget;
+        private IPlayerTarget directTarget;
         private MovementPolicyKind appliedKind;
         private MovementTuning appliedTuning;
         private float nextPoll;
@@ -24,7 +25,7 @@ namespace HybridShooter.Monster.MovementLab
         public MovementProfile Profile => ownedProfile;
 
         /// <summary>비활성 상태에서 MonsterMovement 를 붙인 직후, 활성화 전에 호출</summary>
-        public void Initialize(MovementProfile profile, CrowdCoordinator crowd, IMovementTarget target)
+        public void Initialize(MovementProfile profile, CrowdCoordinator crowd, IPlayerTarget target)
         {
             movement = GetComponent<MonsterMovement>();
             ownedProfile = profile;

@@ -6,8 +6,8 @@ namespace HybridShooter.Monster.Behaviour
     /// </summary>
     public abstract class MonsterState
     {
-        protected MonsterBrain Owner { get; }
-        protected MonsterState(MonsterBrain owner) { Owner = owner; }
+        protected MonsterStateMachine Owner { get; }
+        protected MonsterState(MonsterStateMachine owner) { Owner = owner; }
 
         public virtual void Enter() { }     // 이 상태로 들어온 순간 1번
         public abstract void Update();      // 머무는 동안 매 판단

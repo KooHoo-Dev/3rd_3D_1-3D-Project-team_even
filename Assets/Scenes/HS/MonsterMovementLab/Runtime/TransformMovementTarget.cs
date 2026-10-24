@@ -9,24 +9,23 @@ namespace HybridShooter.Monster.MovementLab
 {
     /// <summary>
     /// 이동 실험실의 간단한 키보드 플레이어.
-    /// 이동용(IMovementTarget)이자 몬스터 브레인용(IPlayerTarget)·피격 대상(IDamageable)이다.
+    /// 몬스터가 추적하는 대상(IPlayerTarget)이자 피격 대상(IDamageable)이다.
     /// 실제 플레이어가 구현되기 전까지의 임시 대역이며, 이식할 때는 Register/Unregister 만 걷어내면 된다.
     /// </summary>
     public sealed class TransformMovementTarget : MonoBehaviour, IPlayerTarget, IDamageable
     {
         [SerializeField, Min(0f)] private float moveSpeed = 5f;
         [SerializeField] private float turnSpeed = 540f;
-        private PlayerTrackingInfo playerTrackingInfo;
+        // 선언 시 생성: Awake 전(편집 모드 Gizmos 등)에도 null 이 아니다. PlayerController 와 같은 방식
+        private readonly PlayerTrackingInfo playerTrackingInfo = new PlayerTrackingInfo();
 
-        // ── IPlayerTarget 공통 ──
-        public bool IsValid => isActiveAndEnabled;
-
+        // ── IPlayerTarget ──
         public Transform Root => transform;
         public Transform ViewPoint => transform;
 
         public PlayerTrackingInfo PlayerTrackingInfo => playerTrackingInfo;
 
-        // IPlayerTarget 과 IDamageable 의 IsAlive 를 하나로 충족한다 (IsValid 와 같은 조건)
+        // IDamageable 의 IsAlive
         public bool IsAlive => isActiveAndEnabled;
 
         // ── IDamageable: 몬스터 공격이 피해를 줄 때 쓰는 값 (공격 시 IDamageable 이 없으면 예외) ──
@@ -42,9 +41,12 @@ namespace HybridShooter.Monster.MovementLab
 
         private void OnDisable() => ServiceLocator.Unregister<IPlayerTarget>(this);
 
+        /// <summary>첫 LateUpdate 전에 몬스터가 읽어도 원점이 아닌 현재 위치를 보도록 값을 채운다</summary>
         private void Awake()
         {
-            playerTrackingInfo = new PlayerTrackingInfo(transform.position, transform.forward, transform.rotation);
+            playerTrackingInfo.Position = transform.position;
+            playerTrackingInfo.Forward = transform.forward;
+            playerTrackingInfo.Rotation = transform.rotation;
         }
 
         private void Update()
@@ -63,6 +65,14 @@ namespace HybridShooter.Monster.MovementLab
             transform.position += direction * (moveSpeed * Time.deltaTime);
             transform.rotation = Quaternion.RotateTowards(transform.rotation,
                 Quaternion.LookRotation(direction, Vector3.up), turnSpeed * Time.deltaTime);
+        }
+
+        /// <summary>몬스터가 읽는 위치·방향·회전을 현재 transform 으로 맞춘다 (PlayerController.SetPlayerTrackingInfo 와 같은 역할)</summary>
+        private void LateUpdate()
+        {
+            playerTrackingInfo.Position = transform.position;
+            playerTrackingInfo.Forward = transform.forward;
+            playerTrackingInfo.Rotation = transform.rotation;
         }
 
         #endregion

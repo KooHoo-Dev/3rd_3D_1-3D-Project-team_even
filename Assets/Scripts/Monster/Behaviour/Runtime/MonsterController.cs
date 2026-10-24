@@ -31,7 +31,7 @@ namespace HybridShooter.Monster.Behaviour
         private bool despawned;
 
         public MonsterDef Def { get; private set; }
-        public MonsterBrain Brain { get; private set; }
+        public MonsterStateMachine StateMachine { get; private set; }
 
         private void Awake()
         {
@@ -52,15 +52,15 @@ namespace HybridShooter.Monster.Behaviour
             var body = new TransformMonsterBody(transform);
             var attack = MonsterBrainFactory.CreateAttack(Def.Role, AttackSpec.From(SingleBasicAttack(Def)), body, FindPlayerDamageable);
             movement.SetCombatTuning(Def.MoveSpeed, attack.Range);
-            Brain = new MonsterBrain(mover, body, attack);
+            StateMachine = new MonsterStateMachine(mover, body, attack);
 
-            Brain.Died += OnBrainDied;
+            StateMachine.Died += OnStateMachineDied;
             Subscribe();
         }
 
         private void OnEnable()
         {
-            if (Brain == null) return; // 최초 구독은 Start의 조립이 끝난 뒤 수행한다.
+            if (StateMachine == null) return; // 최초 구독은 Start의 조립이 끝난 뒤 수행한다.
             movement.enabled = true;
             Subscribe();
         }
@@ -75,7 +75,7 @@ namespace HybridShooter.Monster.Behaviour
 
         private void OnDisable()
         {
-            Brain?.Cleanup();
+            StateMachine?.Cleanup();
             if (movement != null) movement.enabled = false;
             if (health != null) health.Depleted -= OnHealthDepleted;
             EventBus<MonsterWipeRequestedEvent>.Unsubscribe(OnWipeRequested);
@@ -85,37 +85,37 @@ namespace HybridShooter.Monster.Behaviour
 
         private void Update()
         {
-            if (Brain.IsDead)
+            if (StateMachine.IsDead)
             {
                 if (Time.time >= despawnTime) Despawn();
                 return;
             }
 
             AcquireTarget();
-            Brain.Update(Time.time, Time.deltaTime);
+            StateMachine.Update(Time.time, Time.deltaTime);
         }
 
         /// <summary>대상이 없으면 ServiceLocator 의 플레이어를 브레인과 이동에 같은 값으로 넣는다</summary>
         private void AcquireTarget()
         {
-            if (playerDead || Brain.HasTarget) return;
+            if (playerDead || StateMachine.HasTarget) return;
             if (ServiceLocator.TryGet(out IPlayerTarget player) == false) return; // 플레이어 등록 전
-            Brain.SetTarget(player);
+            StateMachine.SetTarget(player);
             mover.SetTarget(player);
         }
 
-        private void OnHealthDepleted() => Brain.Die(true);
+        private void OnHealthDepleted() => StateMachine.Die(true);
 
-        private void OnBrainDied(bool grantReward)
+        private void OnStateMachineDied(bool grantReward)
         {
-            Brain.SetTarget(null);
+            StateMachine.SetTarget(null);
             foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = false; // 시체는 피격 판정 없음
             EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(Def, transform.position, gameObject, grantReward));
             despawnTime = Time.time + despawnDelay;
         }
 
         /// <summary>보스 등장 공격의 잡몹 정리 (보스 경계)</summary>
-        private void OnWipeRequested(MonsterWipeRequestedEvent e) => Brain.Die(e.GrantReward);
+        private void OnWipeRequested(MonsterWipeRequestedEvent e) => StateMachine.Die(e.GrantReward);
 
         /// <summary>라운드 정리: 처치 이벤트 없이 바로 회수</summary>
         private void OnRoundCleanup(RoundCleanupEvent e) => Despawn();
@@ -123,14 +123,15 @@ namespace HybridShooter.Monster.Behaviour
         private void OnPlayerDied(PlayerDiedEvent e)
         {
             playerDead = true;
-            Brain.SetTarget(null);
+            StateMachine.SetTarget(null);
+            mover.SetTarget(null);
         }
 
         private void Despawn()
         {
             if (despawned) return;
             despawned = true;
-            Brain.Cleanup();
+            StateMachine.Cleanup();
             movement.enabled = false;
             enabled = false;
             ServiceLocator.Get<IMonsterFactory>().Despawn(gameObject);
