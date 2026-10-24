@@ -1,3 +1,4 @@
+using HybridShooter.Core.Contracts;
 using UnityEngine;
 
 namespace HybridShooter.Monster.Movement
@@ -22,7 +23,7 @@ namespace HybridShooter.Monster.Movement
     public static class MovementTargetUtility
     {
         /// <summary>인터페이스 참조로 남아 있는 파괴된 Unity 객체도 정상적인 목표 상실로 처리한다.</summary>
-        public static bool IsValid(IMovementTarget target) => target != null &&
+        public static bool IsValid(IPlayerTarget target) => target != null &&
             (!(target is Object unityObject) || unityObject != null) && target.IsValid;
     }
 }

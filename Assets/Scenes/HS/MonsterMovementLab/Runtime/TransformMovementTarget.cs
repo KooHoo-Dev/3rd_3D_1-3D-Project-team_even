@@ -1,3 +1,4 @@
+using System;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Services;
 using HybridShooter.Monster.Movement;
@@ -11,20 +12,20 @@ namespace HybridShooter.Monster.MovementLab
     /// 이동용(IMovementTarget)이자 몬스터 브레인용(IPlayerTarget)·피격 대상(IDamageable)이다.
     /// 실제 플레이어가 구현되기 전까지의 임시 대역이며, 이식할 때는 Register/Unregister 만 걷어내면 된다.
     /// </summary>
-    public sealed class TransformMovementTarget : MonoBehaviour, IMovementTarget, IPlayerTarget, IDamageable
+    public sealed class TransformMovementTarget : MonoBehaviour, IPlayerTarget, IDamageable
     {
         [SerializeField, Min(0f)] private float moveSpeed = 5f;
         [SerializeField] private float turnSpeed = 540f;
+        private PlayerTrackingInfo playerTrackingInfo;
 
-        // ── IMovementTarget / IPlayerTarget 공통 ──
-        public Vector3 Position => transform.position;
-        public Vector3 Forward => transform.forward;
+        // ── IPlayerTarget 공통 ──
         public bool IsValid => isActiveAndEnabled;
 
-        // ── IPlayerTarget: 브레인이 쓰는 값 ──
         public Transform Root => transform;
-        public Transform AimPoint => transform;
         public Transform ViewPoint => transform;
+
+        public PlayerTrackingInfo PlayerTrackingInfo => playerTrackingInfo;
+
         // IPlayerTarget 과 IDamageable 의 IsAlive 를 하나로 충족한다 (IsValid 와 같은 조건)
         public bool IsAlive => isActiveAndEnabled;
 
@@ -34,9 +35,17 @@ namespace HybridShooter.Monster.MovementLab
             Debug.Log($"[Lab 플레이어] 피해 {info.Amount} ({info.Kind})", this);
 
         /// <summary>실제 게임과 같은 경로: 몬스터의 MonsterController.AcquireTarget 이 ServiceLocator 에서 꺼내 간다</summary>
+
+        #region unity method
+
         private void OnEnable() => ServiceLocator.Register<IPlayerTarget>(this);
 
         private void OnDisable() => ServiceLocator.Unregister<IPlayerTarget>(this);
+
+        private void Awake()
+        {
+            playerTrackingInfo = new PlayerTrackingInfo(transform.position, transform.forward, transform.rotation);
+        }
 
         private void Update()
         {
@@ -55,5 +64,7 @@ namespace HybridShooter.Monster.MovementLab
             transform.rotation = Quaternion.RotateTowards(transform.rotation,
                 Quaternion.LookRotation(direction, Vector3.up), turnSpeed * Time.deltaTime);
         }
+
+        #endregion
     }
 }

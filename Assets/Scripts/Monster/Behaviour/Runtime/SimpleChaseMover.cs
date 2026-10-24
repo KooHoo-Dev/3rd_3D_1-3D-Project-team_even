@@ -35,7 +35,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             if (stopped || Target == null) return;
 
-            Vector3 toTarget = Target.Position - transform.position;
+            Vector3 toTarget = Target.PlayerTrackingInfo.Position - transform.position;
             toTarget.y = 0f;
             float distance = toTarget.magnitude;
             if (distance < 0.0001f) return;

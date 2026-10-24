@@ -31,10 +31,9 @@ namespace HybridShooter.Monster.Behaviour.Tests
     {
         public Transform Root => null;
         // 이동 브랜치의 기존 계약 충족용 대역이며 실제 플레이어 연결이 아니다.
-        public Transform AimPoint => null;
         public Transform ViewPoint => null;
+        public PlayerTrackingInfo PlayerTrackingInfo => new PlayerTrackingInfo{Forward = Vector3.forward, Position = Position, Rotation = Quaternion.identity};
         public Vector3 Position { get; set; }
-        public Vector3 Forward => Vector3.forward;
 
         public Faction Faction => Faction.Player;
         public bool IsAlive { get; set; } = true;

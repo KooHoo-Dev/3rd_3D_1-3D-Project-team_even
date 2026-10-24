@@ -99,7 +99,7 @@ namespace HybridShooter.Monster.Behaviour
         private void AcquireTarget()
         {
             if (playerDead || Brain.HasTarget) return;
-            if (ServiceLocator.TryGet(out IPlayerTarget player) == false || !PlayerMovementTarget.IsAlive(player)) return; // 플레이어 등록 전
+            if (ServiceLocator.TryGet(out IPlayerTarget player) == false) return; // 플레이어 등록 전
             Brain.SetTarget(player);
             mover.SetTarget(player);
         }

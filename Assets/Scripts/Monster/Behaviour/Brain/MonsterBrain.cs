@@ -54,8 +54,8 @@ namespace HybridShooter.Monster.Behaviour
             Current.Enter();
         }
 
-        /// <summary>대상이 있고 파괴되지 않았으면 true</summary>
-        public bool HasTarget => PlayerMovementTarget.IsAlive(Target);
+        /// <summary>대상이 있으면 true. 대상 상실(사망 등)은 소유자(MonsterController)가 SetTarget(null)로 알린다</summary>
+        public bool HasTarget => Target != null;
         public bool CanAttack => !(mover is IMonsterCombatMover combatMover) || combatMover.CanAttack;
 
         /// <summary>대상까지 수평 거리 ≤ 현재 공격 사거리</summary>
@@ -64,7 +64,7 @@ namespace HybridShooter.Monster.Behaviour
             get
             {
                 if (HasTarget == false) return false;
-                Vector3 toTarget = Target.Position - body.Position;
+                Vector3 toTarget = Target.PlayerTrackingInfo.Position - body.Position;
                 toTarget.y = 0f;
                 float range = CurrentAttack.Range;
                 return toTarget.sqrMagnitude <= range * range;
@@ -139,7 +139,7 @@ namespace HybridShooter.Monster.Behaviour
             else mover.Stop();
         }
         internal void ResumeMove() => mover.Resume();
-        internal void FaceTarget() => body.Face(Target.Position);
+        internal void FaceTarget() => body.Face(Target.PlayerTrackingInfo.Position);
         internal void NotifyDied() => Died?.Invoke(GrantReward);
     }
 }

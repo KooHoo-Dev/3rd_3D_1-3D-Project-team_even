@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using HybridShooter.Core.Contracts;
 using Unity.Profiling;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -52,7 +53,7 @@ namespace HybridShooter.Monster.Movement
     {
         // ════════ 설정 (Inspector) ════════
         [Header("설정")]
-        [Tooltip("IMovementTarget 을 구현한 컴포넌트")]
+        [Tooltip("IPlayerTarget 을 구현한 컴포넌트")]
         [SerializeField] private MonoBehaviour targetSource;
         [SerializeField] private CrowdSettings settings = new CrowdSettings();
 
@@ -65,7 +66,7 @@ namespace HybridShooter.Monster.Movement
         // ════════ 등록된 몬스터·추적 대상 ════════
         private readonly List<MonsterMovement> agents = new List<MonsterMovement>(); // Register/Unregister 로 관리
         private IReadOnlyList<MonsterMovement> agentsView;                            // agents 의 읽기 전용 뷰 (캐시)
-        private IMovementTarget target;                                               // 추적 대상 (플레이어 등)
+        private IPlayerTarget target;                                               // 추적 대상 (플레이어 등)
         private bool loggedMissingTarget;                                             // 목표 미지정 에러 로그 1회 제한
 
         // ════════ 슬롯 모드 (UseSlots = true) ════════
@@ -88,7 +89,7 @@ namespace HybridShooter.Monster.Movement
         private float lastTickMs;
 
         // ════════ 외부 공개 ════════
-        public IMovementTarget Target => target ?? targetSource as IMovementTarget;
+        public IPlayerTarget Target => target ?? targetSource as IPlayerTarget;
         public CrowdSettings Settings => settings;
         public int EngageCapacity => settings.EngageCapacity;
         public IReadOnlyList<MonsterMovement> Agents => agentsView ??= agents.AsReadOnly();
@@ -109,14 +110,14 @@ namespace HybridShooter.Monster.Movement
         public bool IsSlotReservedBy(MonsterMovement agent, int slotId) =>
             slotsRefreshed && slots.IsValidlyReservedBy(slotId, agent.GetInstanceID());
 
-        /// <summary>targetSource 를 IMovementTarget 으로 변환해 저장하고 설정값 검증</summary>
+        /// <summary>targetSource 를 IPlayerTarget 으로 변환해 저장하고 설정값 검증</summary>
         private void Awake()
         {
             if (targetSource != null)
             {
-                target = targetSource as IMovementTarget;
+                target = targetSource as IPlayerTarget;
                 if (target == null)
-                    Debug.LogError($"targetSource({targetSource.GetType().Name}) 가 IMovementTarget 을 구현하지 않음", this);
+                    Debug.LogError($"targetSource({targetSource.GetType().Name}) 가 IPlayerTarget 을 구현하지 않음", this);
             }
             ValidateSettings();
         }
@@ -150,7 +151,7 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>목표 교체 (대체 객체 ↔ 실제 플레이어). null 이면 ArgumentNullException</summary>
-        public void SetTarget(IMovementTarget newTarget)
+        public void SetTarget(IPlayerTarget newTarget)
         {
             target = newTarget ?? throw new ArgumentNullException(nameof(newTarget));
             targetSource = newTarget as MonoBehaviour;
@@ -195,7 +196,7 @@ namespace HybridShooter.Monster.Movement
         public void RefreshSlots()
         {
             EnsureSlots();
-            IMovementTarget currentTarget = Target;
+            IPlayerTarget currentTarget = Target;
 
             // 1) 목표가 없으면 예약 전부 해제하고 종료
             if (!MovementTargetUtility.IsValid(currentTarget))
@@ -270,7 +271,7 @@ namespace HybridShooter.Monster.Movement
             if (!settings.UseSlots) return agent.Directive;
             EnsureSlots();
             if (!slotsRefreshed) RefreshSlots();
-            IMovementTarget currentTarget = Target;
+            IPlayerTarget currentTarget = Target;
             if (!MovementTargetUtility.IsValid(currentTarget))
             {
                 slots.ClearReservations();
@@ -357,7 +358,7 @@ namespace HybridShooter.Monster.Movement
                 lastEngagedInsideNear = 0;
                 if (target == null && agents.Count > 0 && !loggedMissingTarget)
                 {
-                    Debug.LogError("목표(IMovementTarget) 미지정: targetSource 를 지정하거나 SetTarget 을 호출해야 함", this);
+                    Debug.LogError("목표(IPlayerTarget) 미지정: targetSource 를 지정하거나 SetTarget 을 호출해야 함", this);
                     loggedMissingTarget = true;
                 }
                 for (int i = 0; i < agents.Count; i++)

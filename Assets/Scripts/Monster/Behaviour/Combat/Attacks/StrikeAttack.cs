@@ -19,11 +19,11 @@ namespace HybridShooter.Monster.Behaviour
             area = HitAreas.From(spec);
         }
 
-        protected override void OnWindup() => body.Face(Target.Position);
+        protected override void OnWindup() => body.Face(Target.PlayerTrackingInfo.Position);
 
         protected override bool OnActive(float now, float deltaTime)
         {
-            if (area.Contains(body.Position, body.Forward, Target.Position))
+            if (area.Contains(body.Position, body.Forward, Target.PlayerTrackingInfo.Position))
                 Hit(Target, body.Position);
             return true;
         }

@@ -912,13 +912,13 @@ namespace HybridShooter.Player
         public Transform AimPoint => aimPoint;
         public Transform ViewPoint => viewPoint != null ? viewPoint : (aimPoint != null ? aimPoint : transform);
         
-        public PlayerTrackingInfo playerTrackingInfo { get; } =  new PlayerTrackingInfo();
+        public PlayerTrackingInfo PlayerTrackingInfo { get; } =  new PlayerTrackingInfo();
 
         public void SetPlayerTrackingInfo()
         {
-            playerTrackingInfo.Position = transform.position;
-            playerTrackingInfo.Rotation = transform.rotation;
-            playerTrackingInfo.Forward = transform.forward;
+            PlayerTrackingInfo.Position = transform.position;
+            PlayerTrackingInfo.Rotation = transform.rotation;
+            PlayerTrackingInfo.Forward = transform.forward;
         }
         
         /// <summary>worldDirection: 월드 기준, 수평, 크기 0~1 (스틱 기울기 반영)</summary>

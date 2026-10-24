@@ -73,7 +73,7 @@ namespace HybridShooter.Supply.Tester
         public Transform Root => transform;
         public Transform AimPoint => transform;
         public Transform ViewPoint => transform;
-        public PlayerTrackingInfo playerTrackingInfo { get; }
+        public PlayerTrackingInfo PlayerTrackingInfo { get; }
 
         public Vector3 Position => Root.position;
         // 임시로 처리

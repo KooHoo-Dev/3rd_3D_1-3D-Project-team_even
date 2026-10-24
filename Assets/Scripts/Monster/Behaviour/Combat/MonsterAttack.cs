@@ -52,11 +52,6 @@ namespace HybridShooter.Monster.Behaviour
 
         public void Tick(float now, float deltaTime)
         {
-            if (IsRunning && !PlayerMovementTarget.IsAlive(Target))
-            {
-                Cancel();
-                return;
-            }
             switch (Phase)
             {
                 case SkillPhase.Windup:
@@ -107,11 +102,11 @@ namespace HybridShooter.Monster.Behaviour
                 ?? throw new InvalidOperationException("공격 대상에서 IDamageable 을 찾지 못했다");
             if (damageable.CanBeHitBy(Faction.Monster) == false) return;
 
-            Vector3 direction = HitAreas.Flat(target.Position - from);
+            Vector3 direction = HitAreas.Flat(target.PlayerTrackingInfo.Position - from);
             direction = direction.sqrMagnitude > 1e-8f ? direction.normalized : Vector3.zero;
             var info = new DamageInfo(Spec.Damage, DamageKind.MonsterAttack, Faction.Monster, null,
-                                      target.Position, direction, Spec.SourceDefId);
-            for (int i = 0; i < Spec.HitCount && PlayerMovementTarget.IsAlive(target); i++)
+                                      target.PlayerTrackingInfo.Position, direction, Spec.SourceDefId);
+            for (int i = 0; i < Spec.HitCount; i++)
                 damageable.TakeDamage(in info);
         }
 

@@ -1,4 +1,5 @@
 using System;
+using HybridShooter.Core.Contracts;
 using UnityEngine;
 
 namespace HybridShooter.Monster.Movement
@@ -81,7 +82,7 @@ namespace HybridShooter.Monster.Movement
         // ════════ 외부 공개 (읽기 전용) ════════
         public MovementProfile Profile => profile;
         
-        public IMovementTarget Target => crowdCoordinator != null ? crowdCoordinator.Target : targetInfo;
+        public IPlayerTarget Target => crowdCoordinator != null ? crowdCoordinator.Target : targetInfo;
         /// <summary>거리와 별개인 현재 군중 허가. 정지 중에도 실제 예약/토큰을 확인한다.</summary>
         public bool CanAttack
         {
@@ -343,7 +344,7 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>직접/군중 모드의 공유 목표를 연결한다. 활성화 전에는 Configure를 사용한다.</summary>
-        public void SetTarget(IMovementTarget target)
+        public void SetTarget(IPlayerTarget target)
         {
             if (crowdCoordinator != null) crowdCoordinator.SetTarget(target);
             else if (coordinator != null || (targetInfo == null && CrowdCoordinator.Active != null))
