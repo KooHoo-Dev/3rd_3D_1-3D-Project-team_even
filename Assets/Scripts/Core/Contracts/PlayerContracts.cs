@@ -11,26 +11,44 @@ namespace HybridShooter.Core.Contracts
     public interface IPlayerTarget
     {
         Transform Root { get; }
-        // Behaviour 브랜치와의 계약 호환. 실제 플레이어 등록/연동은 후속 작업에서 연결한다.
-        Vector3 Position { get; }
-        /// <summary>몬스터가 조준할 지점 (가슴 높이)</summary>
-        Transform AimPoint { get; }
         /// <summary>현재 시야(카메라) 트랜스폼. 침투형의 "시야 밖" 판정용 (BL-012)</summary>
         Transform ViewPoint { get; }
-        bool IsAlive { get; }
+        // /// <summary>몬스터가 조준할 지점 (가슴 높이)</summary>
+        // Transform AimPoint { get; }
+        // Velocity: 일단 지금 필요하지 않아서 제거
+        public PlayerTrackingInfo playerTrackingInfo { get; }
     }
 
+    public class PlayerTrackingInfo
+    {
+        public Vector3 Position;
+        public Vector3 Forward;
+        public Quaternion Rotation;
+        public PlayerTrackingInfo(){}
+        public PlayerTrackingInfo(Vector3 pos, Vector3 forward, Quaternion rot)
+        {
+            Position = pos;
+            Forward = forward;
+            Rotation = rot;
+        }
+    }
     /// <summary>회복 팩 → 플레이어 (BL-006, BL-019). 가득 차서 못 먹으면 false</summary>
     public interface IHealable
     {
         bool Heal(int amount);
     }
 
-    /// <summary>수류탄 보급 → 플레이어 (BL-019). 최대치라 못 먹으면 false</summary>
-    public interface IGrenadeReceiver
+    /// <summary>
+    /// 아이템 보급 → 플레이어 (BL-019). 수류탄·회복 팩 "보유 개수"를 늘린다. 최대치라 못 먹으면 false
+    /// </summary>
+    public interface IItemUser
     {
         int Grenades { get; }
         int MaxGrenades { get; }
         bool AddGrenades(int amount);
+
+        int HealPacks { get; }
+        int MaxHealPacks { get; }
+        bool AddHealPacks(int amount);
     }
 }

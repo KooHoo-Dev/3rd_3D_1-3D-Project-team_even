@@ -76,7 +76,7 @@ flowchart TB
 |---|---|---|---|
 | `IDamageable` + `DamageInfo` | 플레이어, 몬스터, 보스 | 라이플, 수류탄, 몬스터 공격, 보스 패턴 | 컴포넌트 (`collider.TryGetDamageable`) |
 | `IPlayerTarget` (Root, AimPoint, **ViewPoint**) | 플레이어 | 몬스터 추적, 침투형 시야 판정, 스폰 위치 | `ServiceLocator.Register` |
-| `IHealable`, `IGrenadeReceiver` | 플레이어 | 보급 획득 | 컴포넌트 (플레이어 루트) |
+| `IHealable`, `IGrenadeReceiver`, `IHealPackReceiver` | 플레이어 | 보급 획득 | 컴포넌트 (플레이어 루트) |
 | `IMonsterFactory` | 몬스터 (풀링) | 군중 생성, 보스 등장 | 기본: `ResourcesMonsterFactory` |
 | `ISpawnZoneProvider` | 전장 | 군중 생성, 보급 낙하 | 기본: `RingSpawnZoneProvider` (플레이어 주변 링) |
 | `ISoundService` | UI·사운드 | 전원 | 기본: `NullSoundService` |
@@ -94,6 +94,7 @@ flowchart TB
 | `CameraModeChangedEvent(Mode, IsComplete)` | 플레이어 | 보스(전환 완료 후 등장 공격), UI |
 | `AmmoChangedEvent`, `WeaponFiredEvent`, `ReloadStarted/FinishedEvent` | 무기 | UI(HUD), 사운드 |
 | `GrenadeCountChangedEvent`, `GrenadeExplodedEvent` | 무기 | UI, 몬스터(돌진형 유인 아이디어) |
+| `HealPackCountChangedEvent` | 플레이어 | UI |
 | `DamageDealtEvent` | 피해를 준 쪽 | UI(히트마커), 몬스터 피격 연출 |
 | `MonsterSpawnedEvent`, `MonsterDiedEvent(GrantReward)` | 몬스터 | 군중 생성(카운트), 보상(재화), UI·사운드 |
 | `MonsterWipeRequestedEvent` | 보스(등장 공격) | 몬스터 |

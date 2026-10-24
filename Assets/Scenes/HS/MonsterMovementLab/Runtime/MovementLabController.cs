@@ -189,6 +189,8 @@ namespace HybridShooter.Monster.MovementLab
 
             GUILayout.Space(6f);
             GUILayout.Label("소환");
+            // 소환 버튼을 누를 때 생성되는 몬스터 수 (다음 소환부터 적용)
+            DrawSpawnCountField();
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("슬롯 군중")) lab.SpawnSlotCrowd();
             if (GUILayout.Button("토큰 군중")) lab.SpawnTokenCrowd();
@@ -203,6 +205,22 @@ namespace HybridShooter.Monster.MovementLab
             GUILayout.EndHorizontal();
             ApplyLabelToggles();
             GUI.DragWindow(new Rect(0f, 0f, 10000f, 20f));
+        }
+
+        /// <summary>
+        /// 소환 몬스터 수: 슬라이더(1~400) + 직접 입력 칸. 입력 칸은 숫자가 아니면 무시하고(타이핑 중 빈 칸 허용),
+        /// 슬라이더 범위를 넘는 숫자도 그대로 받는다(최소 1은 CrowdSpawnCount 가 보정).
+        /// </summary>
+        private void DrawSpawnCountField()
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("소환 몬스터 수", GUILayout.Width(100f));
+            int sliderValue = Mathf.RoundToInt(GUILayout.HorizontalSlider(lab.CrowdSpawnCount, 1f, 400f));
+            if (sliderValue != lab.CrowdSpawnCount) lab.CrowdSpawnCount = sliderValue;
+
+            string typed = GUILayout.TextField(lab.CrowdSpawnCount.ToString(), GUILayout.Width(50f));
+            if (int.TryParse(typed, out int typedValue)) lab.CrowdSpawnCount = typedValue;
+            GUILayout.EndHorizontal();
         }
 
         /// <summary>CrowdSettings 를 직접 수정한다. 링 설정은 다음 갱신(AllocationInterval)에 반영되며, 여기서는 즉시 RefreshSlots 로 당긴다</summary>

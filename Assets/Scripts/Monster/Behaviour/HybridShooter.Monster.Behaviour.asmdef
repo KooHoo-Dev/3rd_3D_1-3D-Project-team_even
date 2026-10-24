@@ -5,7 +5,9 @@
         "HybridShooter.Core",
         "HybridShooter.Monster.Movement"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
