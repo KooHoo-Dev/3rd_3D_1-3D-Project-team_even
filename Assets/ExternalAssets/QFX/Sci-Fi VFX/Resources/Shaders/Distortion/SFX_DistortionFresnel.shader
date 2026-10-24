@@ -29,7 +29,7 @@ Shader "QFX/SFX/Distortion/DistortionCutOutFresnel"
 		ZWrite On
 		ZTest LEqual
 		
-		GrabPass{ }
+		// GrabPass is not supported in URP; _CameraOpaqueTexture (Opaque Texture in the URP asset) is used instead
 
 
 		Pass
@@ -65,7 +65,7 @@ Shader "QFX/SFX/Distortion/DistortionCutOutFresnel"
 			uniform float4 _TintColor;
 			uniform sampler2D _MainTex;
 			uniform float4 _MainTex_ST;
-			uniform sampler2D _GrabTexture;
+			uniform sampler2D _CameraOpaqueTexture;
 			uniform float _Distortion;
 			uniform sampler2D _DistortionTexture;
 			uniform float _Scale;
@@ -82,8 +82,7 @@ Shader "QFX/SFX/Distortion/DistortionCutOutFresnel"
 				float scale = 1.0;
 				#endif
 				float4 o = pos;
-				o.y = pos.w * 0.5f;
-				o.y = ( pos.y - o.y ) * _ProjectionParams.x * scale + o.y;
+				// URP opaque texture has the same orientation as ComputeScreenPos, no flip needed
 				return o;
 			}
 			
@@ -122,7 +121,7 @@ Shader "QFX/SFX/Distortion/DistortionCutOutFresnel"
 				float4 screenPos = i.ase_texcoord1;
 				float4 ase_grabScreenPos = ASE_ComputeGrabScreenPos( screenPos );
 				float4 ase_grabScreenPosNorm = ase_grabScreenPos / ase_grabScreenPos.w;
-				float4 screenColor14_g14 = tex2D( _GrabTexture, ( float4( ( _Distortion * UnpackNormal( tex2D( _DistortionTexture, (uv3_g14*_Scale + ( _Time.y * _DistortionSpeed )) ) ) ) , 0.0 ) + ase_grabScreenPosNorm ).xy );
+				float4 screenColor14_g14 = tex2D( _CameraOpaqueTexture, ( float4( ( _Distortion * UnpackNormal( tex2D( _DistortionTexture, (uv3_g14*_Scale + ( _Time.y * _DistortionSpeed )) ) ) ) , 0.0 ) + ase_grabScreenPosNorm ).xy );
 				float3 temp_output_19_0_g14 = (( ( _TintColor * tex2D( _MainTex, uv_MainTex ) ) + screenColor14_g14 )).rgb;
 				float2 uv_CutOutA = i.ase_texcoord.xy * _CutOutA_ST.xy + _CutOutA_ST.zw;
 				float temp_output_20_0_g14 = ( tex2D( _CutOutA, uv_CutOutA ).a * i.ase_color.a );
