@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;

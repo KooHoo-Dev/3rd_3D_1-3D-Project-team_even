@@ -239,7 +239,8 @@ namespace HybridShooter.Player
         #endregion
 
         #region 내부
-        private bool CanAct => player.IsAlive && player.IsRolling == false && player.IsExternallyControlled == false;
+        // 공중(발이 땅에 닿지 않음)에서는 수류탄·회복을 쓸 수 없다
+        private bool CanAct => player.IsAlive && player.IsRolling == false && player.IsExternallyControlled == false && player.IsOnGround;
 
         private void UpdateThrow()
         {

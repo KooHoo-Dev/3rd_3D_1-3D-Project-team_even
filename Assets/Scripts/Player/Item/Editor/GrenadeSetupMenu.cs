@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -16,7 +16,7 @@ namespace HybridShooter.Player.EditorTools
     /// </summary>
     public static class GrenadeSetupMenu
     {
-        private const string ScenePath = "Assets/Scenes/MS/PlayerTest.unity";
+        private const string ScenePath = "Assets/Scenes/MS/Scenes/PlayerTest.unity";
         private const string SourcePrefabPath = "Assets/ExternalAssets/Sci-fi-Weapons/SciFiWorld/Weapons/Prefabs/SciFiGrenade01_1.prefab";
         private const string PrefabFolder = "Assets/Prefabs/Weapons";
         private const string PrefabPath = PrefabFolder + "/Grenade.prefab";
