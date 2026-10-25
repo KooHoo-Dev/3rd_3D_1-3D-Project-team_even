@@ -79,7 +79,7 @@ flowchart TB
 | `IHealable`, `IGrenadeReceiver`, `IHealPackReceiver` | 플레이어 | 보급 획득 | 컴포넌트 (플레이어 루트) |
 | `IMonsterFactory` | 몬스터 (풀링) | 군중 생성, 보스 등장 | 기본: `ResourcesMonsterFactory` |
 | `ISpawnZoneProvider` | 전장 | 군중 생성, 보급 낙하 | 기본: `RingSpawnZoneProvider` (플레이어 주변 링) |
-| `ISoundService` | UI·사운드 | 전원 | 기본: `NullSoundService` |
+| `ISoundService` (PlaySfx·PlayLoop·PlayBgm) | UI·사운드 (`Audio/SoundService`) | 전원 — 같은 소리를 직접 호출과 이벤트 구독 양쪽에서 재생하지 않는다 | 기본: `NullSoundService` |
 | `ICurrencyWallet` | 보상 | 재화 획득, 강화 구매 | 기본: `CurrencyWallet` |
 | `IUpgradeState` | 보상 | 무기(능력치 계산), 강화 화면 | 기본: `UpgradeLedger` |
 
@@ -92,14 +92,14 @@ flowchart TB
 | `BossWarningEvent` | 코어 | 몬스터(보스 준비), UI·사운드(지진음·조명) |
 | `PlayerHpChangedEvent`, `PlayerDamagedEvent`, `PlayerDiedEvent` | 플레이어 | UI·사운드(피격 표현), 코어(게임오버) |
 | `CameraModeChangedEvent(Mode, IsComplete)` | 플레이어 | 보스(전환 완료 후 등장 공격), UI |
-| `AmmoChangedEvent`, `WeaponFiredEvent`, `ReloadStarted/FinishedEvent` | 무기 | UI(HUD), 사운드 |
+| `AmmoChangedEvent`, `WeaponFiredEvent`, `ReloadStarted/FinishedEvent` | 무기 | UI(HUD) (발사·재장전 소리는 Gun 이 직접 재생) |
 | `GrenadeCountChangedEvent`, `GrenadeExplodedEvent` | 무기 | UI, 몬스터(돌진형 유인 아이디어) |
 | `HealPackCountChangedEvent` | 플레이어 | UI |
-| `DamageDealtEvent` | 피해를 준 쪽 | UI(히트마커), 몬스터 피격 연출 |
+| `DamageDealtEvent` | 피해를 준 쪽 — **아직 발행처 없음** (발행 위치는 몬스터 담당과 합의 필요) | UI(히트마커), 몬스터 피격 연출, 사운드(타격음·히트마커·처치 확인음) |
 | `MonsterSpawnedEvent`, `MonsterDiedEvent(GrantReward)` | 몬스터 | 군중 생성(카운트), 보상(재화), UI·사운드 |
 | `MonsterWipeRequestedEvent` | 보스(등장 공격) | 몬스터 |
 | `BossAppearedEvent`, `BossSkillPhaseChangedEvent`, `BossDamageStageChangedEvent`, `BossDefeatedEvent` | 보스 | 코어, UI·사운드, 보상 |
-| `SupplyDroppedEvent`, `SupplyCollectedEvent` | 보급 | UI(낙하 위치 표시), 사운드 |
+| `SupplyDroppedEvent`, `SupplyCollectedEvent` | 보급 | UI(낙하 위치 표시) (낙하 소리는 SupplyDropper 가 직접 재생) |
 | `CurrencyChangedEvent`, `UpgradePurchasedEvent` | 보상 | UI, 무기(능력치 갱신) |
 | `RewardSelectionFinishedEvent` | UI(강화 화면) | 코어(다음 라운드) |
 

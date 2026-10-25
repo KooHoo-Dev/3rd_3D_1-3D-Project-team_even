@@ -21,5 +21,9 @@ namespace HybridShooter.Core.Data.Dtos
         public string MeshVariant = "";  // MeshVariant enum
         public int Reward;
         public string PrefabKey = "";
+        public string IdleSfxKey = "";  // SoundTable.Key (빈칸 = 없음)
+        public string LoopSfxKey = "";  // 이동·날갯짓 루프
+        public string HurtSfxKey = "";  // 보스 페이즈 전환 때만 사용
+        public string DeathSfxKey = "";
     }
 }

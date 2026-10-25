@@ -30,5 +30,6 @@ namespace HybridShooter.Core.Data.Dtos
         public float TriggerValue;
         public bool ClearsMinions;
         public string AnimTrigger = "";
+        public string SfxKey = "";  // SoundTable.Key (빈칸 = 없음). 예고(Telegraph) 시작에 재생
     }
 }

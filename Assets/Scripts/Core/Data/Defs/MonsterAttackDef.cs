@@ -49,6 +49,9 @@ namespace HybridShooter.Core.Data.Defs
         /// <summary>Link 단계에서 채워짐</summary>
         public MonsterDef Owner { get; internal set; }
         public StatusEffectDef Effect { get; internal set; }
+        /// <summary>공격 소리 (키가 비었으면 null). 예고 시작에 재생해 "곧 공격한다"는 신호로 쓴다</summary>
+        public SoundDef Sfx { get; internal set; }
+        internal string SfxKey { get; }
 
         internal MonsterAttackDef(MonsterAttackDto d, DataLoadReport r)
         {
@@ -76,6 +79,7 @@ namespace HybridShooter.Core.Data.Defs
             TriggerValue = d.TriggerValue;
             ClearsMinions = d.ClearsMinions;
             AnimTrigger = d.AnimTrigger;
+            SfxKey = d.SfxKey;
 
             r.Check(string.IsNullOrEmpty(AttackKey) == false, Table, Id, "AttackKey 가 비었습니다");
             r.Check(Id / 100 == MonsterId, Table, Id, "Id 는 MonsterId×100+순번 이어야 합니다");

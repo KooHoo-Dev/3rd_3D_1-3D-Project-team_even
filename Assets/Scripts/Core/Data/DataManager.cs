@@ -161,6 +161,17 @@ namespace HybridShooter.Core.Data
             }
             foreach (var g in grenades)
                 g.ExplodeSfx = FindSound(r, GrenadeDef.Table, g.Id, nameof(g.ExplodeSfx), g.ExplodeSfxKey);
+            foreach (var m in monsters)
+            {
+                m.IdleSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.IdleSfx), m.IdleSfxKey);
+                m.LoopSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.LoopSfx), m.LoopSfxKey);
+                m.HurtSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.HurtSfx), m.HurtSfxKey);
+                m.DeathSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.DeathSfx), m.DeathSfxKey);
+                if (m.LoopSfx != null && m.LoopSfx.Loop == false)
+                    r.Warn(MonsterDef.Table, m.Id, $"LoopSfx '{m.LoopSfxKey}' 의 Loop 가 false 입니다");
+            }
+            foreach (var a in monsterAttacks)
+                a.Sfx = FindSound(r, MonsterAttackDef.Table, a.Id, nameof(a.Sfx), a.SfxKey);
         }
 
         /// <summary>키가 비었으면 null (사운드 없음). 키가 있는데 SoundTable 에 없으면 경고 후 null</summary>

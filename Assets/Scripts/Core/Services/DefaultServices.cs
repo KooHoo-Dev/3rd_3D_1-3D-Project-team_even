@@ -28,6 +28,9 @@ namespace HybridShooter.Core.Services
     public sealed class NullSoundService : ISoundService
     {
         public void PlaySfx(string key, Vector3? position = null) { }
+        public void PlaySfx(SoundDef sound, Vector3? position = null) { }
+        public SoundHandle PlayLoop(SoundDef sound, Transform follow) => default;
+        public void StopLoop(SoundHandle handle) { }
         public void PlayBgm(string key) { }
         public void StopBgm() { }
     }

@@ -30,12 +30,33 @@ namespace HybridShooter.Core.Contracts
         bool TryGetSupplyDropPosition(out Vector3 position);
     }
 
-    /// <summary>소리 재생. 구현: UI·사운드 담당. 기본 구현: NullSoundService</summary>
+    /// <summary>
+    /// 소리 재생. 구현: UI·사운드 담당 (SoundService). 기본 구현: NullSoundService.
+    /// 동시 재생 수·쿨다운·우선순위·거리 제한은 SoundTable 값으로 구현 쪽이 처리하므로, 호출하는 쪽은 그냥 부르면 된다.
+    /// 같은 소리를 코드 직접 호출과 이벤트 구독 양쪽에서 재생하지 않는다 (소리 하나에 재생 경로 하나).
+    /// </summary>
     public interface ISoundService
     {
+        /// <summary>position 이 없으면 2D 로 재생 (SoundDef.Spatial 이 false 여도 2D)</summary>
         void PlaySfx(string key, Vector3? position = null);
+        /// <summary>Def 를 이미 들고 있으면 이쪽 (키 조회 생략). null 이면 무시</summary>
+        void PlaySfx(SoundDef sound, Vector3? position = null);
+        /// <summary>
+        /// follow 를 따라다니며 반복 재생 (날갯짓·이동). follow 가 꺼지거나 파괴되면 자동으로 멈춘다.
+        /// MaxInstances 를 넘으면 듣는 위치에서 가까운 것만 실제로 소리가 나고, 나머지는 대기한다.
+        /// </summary>
+        SoundHandle PlayLoop(SoundDef sound, Transform follow);
+        void StopLoop(SoundHandle handle);
         void PlayBgm(string key);
         void StopBgm();
+    }
+
+    /// <summary>PlayLoop 가 돌려주는 번호표. default = 재생 안 됨</summary>
+    public readonly struct SoundHandle
+    {
+        public readonly int Id;
+        public SoundHandle(int id) { Id = id; }
+        public bool IsValid => Id != 0;
     }
 
     /// <summary>재화 (BL-029). 기본 구현: CurrencyWallet (값이 바뀌면 CurrencyChangedEvent)</summary>

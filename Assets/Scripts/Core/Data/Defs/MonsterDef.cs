@@ -39,6 +39,18 @@ namespace HybridShooter.Core.Data.Defs
         /// <summary>생성할 프리팹 (Resources 에서 로드된 원본. Instantiate 해서 사용)</summary>
         public GameObject Prefab { get; }
 
+        /// <summary>Link 단계에서 채워짐 (키가 비었으면 null). 평상시 울음</summary>
+        public SoundDef IdleSfx { get; internal set; }
+        /// <summary>살아 있는 동안 계속 나는 소리 (이동·날갯짓)</summary>
+        public SoundDef LoopSfx { get; internal set; }
+        /// <summary>보스 페이즈 전환 때만 사용 (일반 몬스터는 금방 죽어 피격음 대신 총기 타격음으로 대체)</summary>
+        public SoundDef HurtSfx { get; internal set; }
+        public SoundDef DeathSfx { get; internal set; }
+        internal string IdleSfxKey { get; }
+        internal string LoopSfxKey { get; }
+        internal string HurtSfxKey { get; }
+        internal string DeathSfxKey { get; }
+
         /// <summary>GradeId 에서 계산 (1 → Weak, 2 → Mid, 3 → Boss)</summary>
         public MonsterGrade Grade { get; internal set; }
         /// <summary>테이블 순서 유지</summary>
@@ -69,6 +81,10 @@ namespace HybridShooter.Core.Data.Defs
             MeshVariant = ParseUtil.Enum<MeshVariant>(d.MeshVariant, r, Table, Id, nameof(d.MeshVariant));
             Reward = d.Reward;
             Prefab = ParseUtil.Asset<GameObject>(d.PrefabKey, r, Table, Id, nameof(d.PrefabKey));
+            IdleSfxKey = d.IdleSfxKey;
+            LoopSfxKey = d.LoopSfxKey;
+            HurtSfxKey = d.HurtSfxKey;
+            DeathSfxKey = d.DeathSfxKey;
 
             r.Check(Enum.IsDefined(typeof(MonsterGrade), Grade), Table, Id, "GradeId 는 1(Weak)~3(Boss) 중 하나");
             r.Check(string.IsNullOrEmpty(Key) == false, Table, Id, "Key 가 비었습니다");
