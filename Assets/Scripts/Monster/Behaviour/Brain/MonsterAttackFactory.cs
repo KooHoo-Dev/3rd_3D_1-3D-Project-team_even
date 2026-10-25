@@ -28,6 +28,7 @@ namespace HybridShooter.Monster.Behaviour
             switch (role)
             {
                 case MonsterRole.Melee: return new StrikeAttack(spec, body, findDamageable);
+                case MonsterRole.Infiltrator: return new StrikeAttack(spec, body, findDamageable);
                 case MonsterRole.ZonePressure:
                     StatusEffectDef effect = DataManager.StatusEffects.Get(spec.EffectId);
                     return new PoisonAreaAttack(spec, body, findDamageable, poisonSettings, effect);
