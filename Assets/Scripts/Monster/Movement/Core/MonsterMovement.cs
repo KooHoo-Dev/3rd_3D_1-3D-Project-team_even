@@ -5,10 +5,14 @@ using UnityEngine;
 namespace HybridShooter.Monster.Movement
 {
     /// <summary>
-    /// 몬스터 1마리의 이동 진입점. 상태 보유, 정책 호출, 실행기 전달, 외부 정지 요청 처리.
+    /// 몬스터 1마리의 이동 진입점.
+    /// 이동 상태를 가지고, 정책(IMovementPolicy)이 낸 의도를 실행기(IMoveExecutor)에 넘기며, 외부 정지 요청(SetSuspended)을 처리한다.
+    /// 군중 모드는 CrowdCoordinator 가, 직접 추적 모드는 자신의 Update 가 Think·TickMovement 를 호출한다.
+    /// </summary>
+    /// <remarks>
     /// 같은 GameObject 에 IMoveExecutor 구현 컴포넌트가 있어야 한다.
     /// 런타임 생성 시: 비활성 GameObject 에 붙이고 Configure() → SetActive(true).
-    /// </summary>
+    /// </remarks>
     public sealed class MonsterMovement : MonoBehaviour
     {
         // ════════ 설정 (Inspector / Configure 로 주입) ════════
@@ -48,32 +52,32 @@ namespace HybridShooter.Monster.Movement
         private bool hasToken;                // 근접 토큰 보유 여부 (토큰 모드)
         private float waitingSince = -1f;     // Wait 시작 시각 (음수 = 대기 아님)
         private int orbitSign;                // 대기 중 선회 방향 +1/-1
-        private int slotIndex = -1;           // 포위 슬롯 번호 (토큰 모드)
+        private int slotIndex = -1;           // 포위 슬롯 번호 (토큰 모드, -1 = 없음)
 
         // ════════ 초기화 시점 ════════
         private bool started;                 // Start 를 거쳤는가 (첫 활성화는 Start, 이후 재활성화는 OnEnable 에서 초기화)
-        private bool registered;
-        private bool retainReservation;
-        private bool hasCombatTuning;
-        private float combatSpeed;
-        private float combatRange;
+        private bool registered;              // CrowdCoordinator 에 등록돼 있는가
+        private bool retainReservation;       // 정지 중에도 등록·슬롯·토큰을 유지하는가 (공격 중 정지만 true)
+        private bool hasCombatTuning;         // SetCombatTuning 으로 개체별 속도·사거리를 받았는가
+        private float combatSpeed;            // 개체별 이동 속도 (m/s)
+        private float combatRange;            // 개체별 공격 사거리 (m)
 
         // ════════ 판단 주기 ════════
         private bool hasThought;              // 한 번이라도 Think 했는가 (첫 dt 를 0 으로 만들기 위함)
-        private float lastThinkTime;
-        private float nextDirectThink;        // 직접 추적 모드의 다음 판단 시각
+        private float lastThinkTime;          // 마지막 Think 시각 (s)
+        private float nextDirectThink;        // 직접 추적 모드의 다음 판단 시각 (s, Time.time 기준)
 
         // ════════ 반응 지연 (슬롯 목적지가 크게 바뀌면 잠깐 뜸 들인 뒤 반응) ════════
         private MoveIntent pendingIntent;     // 지연 중인 의도
         private bool hasPendingIntent;
-        private float pendingApplyAt;         // pendingIntent 를 적용할 시각
+        private float pendingApplyAt;         // pendingIntent 를 적용할 시각 (s, Time.time 기준)
         private Vector3 reactionReferenceDestination; // "목적지가 바뀌었나" 비교 기준점
         private bool hasReactionReference;
-        private int reactionSlotId = -1;      // 기준점을 잡은 슬롯
+        private int reactionSlotId = -1;      // 기준점을 잡은 슬롯 (-1 = 없음)
         private IPlayerTarget reactionTargetInfo; // 기준점을 잡은 목표 (목표 교체 감지용)
 
         // ════════ 슬롯 실행 추적 ════════
-        // 실행기가 지금 향하고 있는 슬롯 번호. 경로 없음(Unreachable)이면 그 슬롯을 거절하기 위해 기억한다
+        // 실행기가 지금 향하고 있는 슬롯 번호. 경로 없음(Unreachable)이면 그 슬롯을 거절하기 위해 기억한다 (-1 = 없음)
         private int executingSlotId = -1;
 
         // ════════ 시선 (Think 가 갱신, LateUpdate 가 회전에 사용) ════════
@@ -84,7 +88,8 @@ namespace HybridShooter.Monster.Movement
         public MovementProfile Profile => profile;
         
         public IPlayerTarget Target => crowdCoordinator != null ? crowdCoordinator.Target : targetInfo;
-        /// <summary>거리와 별개인 현재 군중 허가. 정지 중에도 실제 예약/토큰을 확인한다.</summary>
+        // 거리와 별개인 현재 군중 허가 (MonsterStateMachine.CanAttack 이 읽음). 정지 중에도 실제 예약/토큰을 확인한다.
+        // 직접 추적 모드는 지시가 Unrestricted 면 true
         public bool CanAttack
         {
             get
@@ -100,18 +105,18 @@ namespace HybridShooter.Monster.Movement
             }
         }
         public MovementState State => state;
-        /// <summary>목표 유효 + 수평 거리 ≤ AttackRange</summary>
+        // 목표 유효 + 수평 거리 ≤ AttackRange
         public bool IsInAttackRange => isInAttackRange;
         public bool IsSuspended => suspended;
-        /// <summary>현재 속도 (m/s)</summary>
+        // 현재 속도 (m/s). 실행기가 없으면 0
         public Vector3 Velocity => executor != null ? executor.Velocity : Vector3.zero;
-        /// <summary>마지막으로 받은 군중 지시 (디버그용)</summary>
+        // 마지막으로 받은 군중 지시 (디버그용)
         public CrowdDirective Directive => directive;
         public MoveIntent LastIntent => lastIntent;
         public MoveExecutionState ExecutionState => executor != null ? executor.ExecutionState : MoveExecutionState.Idle;
         public float Radius => GetComponent<UnityEngine.AI.NavMeshAgent>().radius;
 
-        /// <summary>(sender, previous, current)</summary>
+        // 이동 상태가 실제로 바뀔 때 발생 (sender, previous, current). SetState 가 발생시킨다
         public event Action<MonsterMovement, MovementState, MovementState> StateChanged;
 
         /// <summary>같은 GameObject 의 IMoveExecutor 를 찾는다. 없으면 에러 로그 후 컴포넌트 비활성화</summary>
@@ -125,11 +130,11 @@ namespace HybridShooter.Monster.Movement
             }
         }
 
-        /// <summary>
-        /// 재활성화 때만 여기서 바로 초기화한다. 첫 활성화는 Start 로 미룬다.
+        /// <summary>재활성화 때만 여기서 바로 초기화(Activate)한다. 첫 활성화는 Start 로 미룬다.</summary>
+        /// <remarks>
         /// 씬에 미리 놓인 몬스터가 CrowdCoordinator.OnEnable(Active 지정)보다 먼저 활성화돼도,
         /// 모든 OnEnable 이 끝난 Start 시점에는 Active 가 정해져 있다 (DefaultExecutionOrder 없이 순서 보장).
-        /// </summary>
+        /// </remarks>
         private void OnEnable()
         {
             if (started) Activate();
@@ -143,9 +148,11 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 동작 모드를 결정한다.
+        /// 활성화 초기화: 동작 모드를 결정하고 정책·수치를 준비한다. Start(첫 활성화)와 OnEnable(재활성화)이 호출한다.
         /// 군중 모드(CrowdCoordinator 에 등록) 또는 직접 추적 모드(목표를 직접 쥠) 중 하나가 성립해야 하며, 둘 다 없으면 비활성화.
+        /// profile 이 없어도 에러 로그 후 비활성화.
         /// </summary>
+        /// <exception cref="InvalidOperationException">directTargetSource 가 IPlayerTarget 이 아닐 때</exception>
         private void Activate()
         {
             if (profile == null)
@@ -193,8 +200,8 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 직접 추적 모드만 스스로 갱신한다 (TickMovement 후 0.1초마다 Think).
-        /// 군중 모드는 CrowdCoordinator.Update 가 Think 와 TickMovement 를 순서대로 호출하므로 여기서는 아무것도 하지 않는다
+        /// 직접 추적 모드만 스스로 갱신한다 (매 프레임 TickMovement, 0.1초마다 Think).
+        /// 군중 모드는 CrowdCoordinator.Update 가 Think 와 TickMovement 를 순서대로 호출하므로 여기서는 아무것도 하지 않는다.
         /// </summary>
         private void Update()
         {
@@ -209,10 +216,10 @@ namespace HybridShooter.Monster.Movement
         private void LateUpdate() => ApplyLookRotation();
 
         /// <summary>
-        /// 이동 방향이 아니라 플레이어(lookTarget) 쪽을 수평으로 바라보게 한다.
+        /// 이동 방향이 아니라 플레이어(lookTarget) 쪽을 수평으로 바라보게 한다. LateUpdate 가 매 프레임 호출한다.
         /// 지수 보간(Slerp)이라 멀리 돌수록 빠르고 가까워질수록 부드럽게 멈춘다. 정지(suspended)·목표 무효 시에는 회전하지 않는다.
-        /// NavMeshAgent.updateRotation 이 꺼져 있어야 하므로 NavMeshMoveExecutor.Awake 에서 끈다.
         /// </summary>
+        /// <remarks>NavMeshAgent.updateRotation 이 꺼져 있어야 하므로 NavMeshMoveExecutor.Awake 에서 끈다.</remarks>
         private void ApplyLookRotation()
         {
             if (!hasLookTarget || suspended) return;
@@ -226,8 +233,8 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 프레임 갱신: 슬롯 예약이 사라졌으면 정지, 반응 지연이 끝난 의도 적용.
-        /// 군중 모드는 CrowdCoordinator 가 Think 직후 호출, 직접 모드는 Update 가 호출
+        /// 프레임 갱신: 슬롯 예약이 사라졌으면 정지하고, 반응 지연이 끝난 의도를 실행기에 적용한다.
+        /// 군중 모드는 CrowdCoordinator 가 Think 직후 호출, 직접 모드는 Update 가 호출.
         /// </summary>
         internal void TickMovement()
         {
@@ -245,8 +252,8 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 비활성화/파괴(몬스터 사망 포함) 시 정리: 군중 관리자 등록 해제(점유 중인 슬롯·토큰 반환) 후 이동 정지.
-        /// 이 덕분에 몬스터가 중간에 제거돼도 슬롯이 다른 몬스터에게 돌아간다
+        /// 비활성화/파괴(몬스터 사망 포함) 시 정리: 군중 관리자 등록 해제(점유 중인 슬롯·토큰 반환) 후 이동 정지, 상태를 Idle 로 되돌린다.
+        /// 이 덕분에 몬스터가 중간에 제거돼도 슬롯이 다른 몬스터에게 돌아간다.
         /// </summary>
         private void OnDisable()
         {
@@ -267,7 +274,12 @@ namespace HybridShooter.Monster.Movement
             lastIntent = MoveIntent.Stop(MovementState.Idle);
         }
 
-        /// <summary>OnEnable 전에 호출. coordinator 가 null 이면 Active 사용</summary>
+        /// <summary>
+        /// 런타임 생성 몬스터를 군중 모드로 설정한다. 이전 직접 추적 설정과 정책을 비우고, 다음 활성화 때 새 profile 로 정책을 만든다.
+        /// </summary>
+        /// <param name="profile">이동 수치·정책 종류</param>
+        /// <param name="coordinator">등록할 군중 관리자. null 이면 활성화 시 CrowdCoordinator.Active 사용</param>
+        /// <exception cref="InvalidOperationException">이미 활성 상태일 때 (OnEnable 전에만 호출 가능)</exception>
         public void Configure(MovementProfile profile, CrowdCoordinator coordinator)
         {
             if (isActiveAndEnabled)
@@ -280,7 +292,14 @@ namespace HybridShooter.Monster.Movement
             policy = null; // 활성화 시 새 profile 로 재생성
         }
 
-        /// <summary>군중 관리자 없이 목표를 직접 추적하는 모드로 설정. OnEnable 전에만 호출 가능</summary>
+        /// <summary>
+        /// 군중 관리자 없이 목표를 직접 추적하는 모드로 설정한다.
+        /// 군중 관리자 지정과 정책을 비우고, 다음 활성화 때 새 profile 로 정책을 만든다.
+        /// </summary>
+        /// <param name="profile">이동 수치·정책 종류</param>
+        /// <param name="target">직접 추적할 목표</param>
+        /// <exception cref="InvalidOperationException">이미 활성 상태일 때 (OnEnable 전에만 호출 가능)</exception>
+        /// <exception cref="ArgumentNullException">target 이 null 일 때</exception>
         public void ConfigureDirect(MovementProfile profile, IPlayerTarget target)
         {
             if (isActiveAndEnabled) throw new InvalidOperationException("ConfigureDirect 는 비활성 상태에서만 호출할 수 있다");
@@ -292,7 +311,14 @@ namespace HybridShooter.Monster.Movement
             policy = null;
         }
 
-        /// <summary>Def/Attack의 개체별 수치. Profile 원본은 변경하지 않는다.</summary>
+        /// <summary>
+        /// Def/Attack의 개체별 수치를 이동에 반영한다. MonsterController.Start 가 공격 조립 직후 호출한다.
+        /// Profile 원본은 변경하지 않는다.
+        /// </summary>
+        /// <param name="moveSpeed">개체별 이동 속도 (m/s, 양수)</param>
+        /// <param name="attackRange">현재 공격 사거리 (m, 양수)</param>
+        /// <exception cref="ArgumentOutOfRangeException">moveSpeed 또는 attackRange 가 0 이하일 때</exception>
+        /// <exception cref="InvalidOperationException">슬롯 모드에서 접근 슬롯 반경 + 여유가 사거리 이상일 때 (ValidateCombatSlots)</exception>
         public void SetCombatTuning(float moveSpeed, float attackRange)
         {
             if (moveSpeed <= 0f || attackRange <= 0f)
@@ -304,6 +330,7 @@ namespace HybridShooter.Monster.Movement
             ValidateCombatSlots();
         }
 
+        /// <summary>profile 수치 복사본에서 이동 속도·공격 사거리만 개체별 수치로 바꿔 tuning 에 넣는다. Activate 와 SetCombatTuning 이 호출한다</summary>
         private void ApplyCombatTuning()
         {
             var source = profile.ToTuning();
@@ -312,6 +339,14 @@ namespace HybridShooter.Monster.Movement
                 source.FlankRadius, source.FlankSpeedMultiplier);
         }
 
+        /// <summary>
+        /// 슬롯 모드에서 접근 슬롯에 도착한 몬스터가 실제로 공격 사거리 안에 들어오는지 검사한다.
+        /// Activate(군중 모드)와 SetCombatTuning 이 호출한다.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// 개체별 수치·군중 관리자·토큰 대상·군중 제어·슬롯 모드가 모두 켜져 있고,
+        /// 접근 슬롯 반경 + NavMesh 투영 반경 + 정지 여유가 공격 사거리 이상일 때
+        /// </exception>
         private void ValidateCombatSlots()
         {
             bool hasTuning = hasCombatTuning;
@@ -323,6 +358,7 @@ namespace HybridShooter.Monster.Movement
 
             bool invalidApproachRadius = false;
 
+            // 접근 슬롯 반경 + NavMesh 투영 반경 + 정지 여유가 사거리 안에 들어오는지 계산
             if (hasCoordinator)
             {
                 var slots = crowdCoordinator.Settings.Slots;
@@ -349,9 +385,11 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 직접/군중 모드의 공유 목표를 연결한다. null 이면 목표 상실(사망 등)이며 정지한다.
+        /// 직접/군중 모드의 공유 목표를 연결한다. MonsterController 가 목표 확보·상실 시 호출한다.
+        /// 군중 관리자가 있으면 그쪽(CrowdCoordinator.SetTarget)에 넘기고, 없으면 직접 추적 모드로 전환한다.
         /// 활성화 전에는 Configure를 사용한다.
         /// </summary>
+        /// <param name="target">추적할 목표. null = 목표 상실(사망 등)이며 정지한다</param>
         public void SetTarget(IPlayerTarget target)
         {
             if (isDirectMode) targetInfo = target;
@@ -365,6 +403,7 @@ namespace HybridShooter.Monster.Movement
             }
         }
 
+        /// <summary>군중 관리자에 한 번만 등록한다 (이미 등록됐거나 군중 관리자가 없으면 무시). Activate 와 정지 해제 시 호출</summary>
         private void RegisterCrowd()
         {
             if (crowdCoordinator == null || registered) return;
@@ -372,6 +411,7 @@ namespace HybridShooter.Monster.Movement
             registered = true;
         }
 
+        /// <summary>군중 관리자 등록을 해제해 슬롯·토큰을 반환한다 (등록 안 됐으면 무시). OnDisable 과 예약 유지 없는 정지 시 호출</summary>
         private void UnregisterCrowd()
         {
             if (!registered) return;
@@ -379,7 +419,12 @@ namespace HybridShooter.Monster.Movement
             registered = false;
         }
 
-        /// <summary>공격 중에만 예약 유지. 그 외 정지는 등록·슬롯·토큰을 즉시 반환한다.</summary>
+        /// <summary>
+        /// 외부 정지 요청(공격·경직 등)을 받아 이동을 멈추거나 재개한다. MonsterStateMachine 이 호출한다.
+        /// 공격 중에만 예약 유지. 그 외 정지는 등록·슬롯·토큰을 즉시 반환한다.
+        /// </summary>
+        /// <param name="suspended">true = 정지(상태 Suspended), false = 재개 (상태는 다음 Think 에서 재계산)</param>
+        /// <param name="retainReservation">정지 중에도 등록·슬롯·토큰을 유지할지. suspended 가 false 면 무시</param>
         public void SetSuspended(bool suspended, bool retainReservation = false)
         {
             this.suspended = suspended;
@@ -401,7 +446,8 @@ namespace HybridShooter.Monster.Movement
 
         // ── CrowdCoordinator 전용 (internal) ──
 
-        /// <summary>배분 입력용 현재 상태</summary>
+        /// <summary>토큰 배분 입력용 현재 상태를 만든다. CrowdCoordinator 가 배분 전에 호출한다</summary>
+        /// <returns>위치·토큰·대기 시각·선회 방향·슬롯 번호를 담은 배분 입력 값</returns>
         internal AllocationAgent BuildAllocationAgent() => new AllocationAgent
         {
             Position = transform.position,
@@ -413,7 +459,8 @@ namespace HybridShooter.Monster.Movement
             SlotIndex = slotIndex,
         };
 
-        /// <summary>배분 결과 반영 (토큰·대기 시각·선회 방향·슬롯)</summary>
+        /// <summary>배분 결과 반영 (지시·토큰·대기 시각·선회 방향·슬롯). CrowdCoordinator 가 배분 후 호출한다</summary>
+        /// <param name="result">이 개체에 대한 배분 결과</param>
         internal void ApplyAllocation(in AllocationResult result)
         {
             directive = result.Directive;
@@ -423,7 +470,12 @@ namespace HybridShooter.Monster.Movement
             slotIndex = result.SlotIndex;
         }
 
-        /// <summary>판단 1회: (슬롯 모드면 지시 갱신) → 정책 Evaluate → 실행기 Apply → 공격 사거리 갱신</summary>
+        /// <summary>
+        /// 판단 1회: (슬롯 모드면 지시 갱신) → 정책 Evaluate → 실행기 Apply → 공격 사거리 갱신.
+        /// 군중 모드는 CrowdCoordinator.Update 가 라운드 로빈으로, 직접 모드는 Update 가 0.1초마다 호출한다. 정지 중이면 아무것도 하지 않는다.
+        /// </summary>
+        /// <param name="target">추적 목표. null = 목표 무효 (정책이 Idle 정지를 낸다)</param>
+        /// <param name="now">현재 시각 (s, Time.time 기준)</param>
         internal void Think(IPlayerTarget target, float now)
         {
             if (suspended) return;
@@ -456,13 +508,13 @@ namespace HybridShooter.Monster.Movement
             var intent = policy.Evaluate(in ctx);
             SubmitIntent(in intent, target, targetValid, now);
 
-            // 4) 공격 사거리 안인지 갱신 (공격 모듈이 읽음)
+            // 4) 공격 사거리 안인지 갱신 (IsInAttackRange 로 공개)
             float dx = targetPosition.x - self.x;
             float dz = targetPosition.z - self.z;
             isInAttackRange = targetValid && dx * dx + dz * dz <= tuning.AttackRange * tuning.AttackRange;
         }
 
-        /// <summary>등록 해제 시 토큰·대기 상태 초기화 (선회 방향은 유지)</summary>
+        /// <summary>등록 해제 시 토큰·대기·슬롯·지시 상태 초기화 (선회 방향은 유지). CrowdCoordinator.Unregister 가 호출한다</summary>
         internal void ResetCrowdState()
         {
             CancelPendingIntent();
@@ -475,10 +527,15 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 정책의 의도를 실행기에 보내기 전 "반응 지연"을 적용한다.
+        /// Think 가 정책의 의도를 실행기에 보내기 전 "반응 지연"을 적용한다.
         /// 슬롯 목적지가 기준점에서 ReactionChangeDistance 이상 바뀌면 랜덤 시간 뒤에 반응해 몬스터들이 동시에 꺾이는 부자연스러움을 줄인다.
         /// 슬롯 모드가 아니거나 슬롯이 없으면 지연 없이 즉시 실행.
         /// </summary>
+        /// <param name="intent">정책이 이번 판단에서 낸 이동 의도</param>
+        /// <param name="target">현재 목표. 기준점을 잡은 목표와 다르면 기준점을 새로 잡는다</param>
+        /// <param name="targetValid">목표가 유효한가</param>
+        /// <param name="now">현재 시각 (s). 지연 적용 시각 계산에 쓴다</param>
+        /// <remarks>지연을 시작하면 CrowdCoordinator.PauseSlotProgress 로 "슬롯으로 진행이 없다" 판정 시계를 지연 시간만큼 늦춘다.</remarks>
         private void SubmitIntent(in MoveIntent intent, IPlayerTarget target, bool targetValid, float now)
         {
             // 1) 지연 대상이 아닌 경우: 슬롯 모드가 아니거나, 목표/목적지/슬롯이 없거나, 예약이 이미 무효 → 즉시 실행
@@ -545,7 +602,8 @@ namespace HybridShooter.Monster.Movement
             CommitIntent(in intent);
         }
 
-        /// <summary>의도를 실행기에 적용하고, 결과에 따라 "실행 중인 슬롯"과 상태를 갱신한다</summary>
+        /// <summary>의도를 실행기에 적용하고, 결과에 따라 "실행 중인 슬롯"과 상태를 갱신한다. SubmitIntent 와 TickMovement(지연 의도)가 호출한다</summary>
+        /// <param name="intent">실행기에 넘길 이동 의도</param>
         private void CommitIntent(in MoveIntent intent)
         {
             lastIntent = intent;
@@ -558,13 +616,15 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// slotId 가 아직 내 예약이며 유효한 슬롯인가 (슬롯이 무효화/회수되면 false).
-        /// 스냅샷(혼잡 판정 포함) 대신 코디네이터의 O(1) 조회를 쓴다
+        /// slotId 가 아직 내 예약이며 유효한 슬롯인가.
+        /// 스냅샷(혼잡 판정 포함) 대신 코디네이터의 O(1) 조회를 쓴다.
         /// </summary>
+        /// <param name="slotId">확인할 슬롯 번호</param>
+        /// <returns>내 예약이면 true. 슬롯이 무효화/회수됐거나 군중 관리자가 없으면 false</returns>
         private bool HasCurrentReservation(int slotId) =>
             crowdCoordinator != null && crowdCoordinator.IsSlotReservedBy(this, slotId);
 
-        /// <summary>예약 슬롯이 사라졌을 때(타겟 소실·NavMesh 변경 등) 이동을 멈추고 Idle 로 돌아간다. 다음 Think 에서 새 슬롯을 받는다</summary>
+        /// <summary>예약 슬롯이 사라졌을 때(타겟 소실·NavMesh 변경 등) 이동을 멈추고 Idle 로 돌아간다. TickMovement 가 호출하며, 다음 Think 에서 새 슬롯을 받는다</summary>
         private void StopForInvalidReservation()
         {
             CancelPendingIntent();
@@ -578,7 +638,10 @@ namespace HybridShooter.Monster.Movement
         /// <summary>반응 지연 중인 의도를 버린다</summary>
         private void CancelPendingIntent() => hasPendingIntent = false;
 
-        /// <summary>수평(XZ) 거리의 제곱</summary>
+        /// <summary>반응 지연에서 목적지 변화량을 비교하려고 수평(XZ) 거리의 제곱을 구한다</summary>
+        /// <param name="a">첫 위치 (월드)</param>
+        /// <param name="b">둘째 위치 (월드)</param>
+        /// <returns>수평(XZ) 거리의 제곱 (m²)</returns>
         private static float HorizontalSqr(Vector3 a, Vector3 b)
         {
             float dx = a.x - b.x;
@@ -587,6 +650,7 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>상태 변경. 실제로 바뀐 경우에만 StateChanged 이벤트 발생</summary>
+        /// <param name="next">바꿀 이동 상태</param>
         private void SetState(MovementState next)
         {
             if (state == next) return;

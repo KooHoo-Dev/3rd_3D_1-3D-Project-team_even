@@ -8,33 +8,42 @@ using Debug = UnityEngine.Debug;
 
 namespace HybridShooter.Monster.Movement
 {
-    /// <summary>씬 단위 군중 제어 파라미터 (초기값은 팀 ConfigTable 제안값 6m / 8마리 참고)</summary>
+    /// <summary>
+    /// 씬 단위 군중 제어 파라미터. CrowdCoordinator 의 Inspector 에서 조정하고 배분·판단 주기마다 읽힌다.
+    /// 초기값은 팀 ConfigTable 제안값 6m / 8마리 참고.
+    /// </summary>
     [Serializable]
     public sealed class CrowdSettings
     {
-        [Min(0)] public int EngageCapacity = 8;
-        [Min(0f)] public float NearRadius = 6f;
-        [Min(0f)] public float ReleaseRadius = 10.5f;
+        [Min(0)] public int EngageCapacity = 8;       // 근접 동시 허용 수 (마리)
+        [Min(0f)] public float NearRadius = 6f;       // 과밀 판정 반경 (m)
+        [Min(0f)] public float ReleaseRadius = 10.5f; // 토큰 모드: 토큰 보유자가 이 반경 밖으로 나가면 회수 (m)
         [Tooltip("토큰 배분 주기 (s)")]
         [Min(0.02f)] public float AllocationInterval = 0.2f;
         [Tooltip("개체 판단을 이 시간 동안 프레임에 나눠 한 바퀴 돈다 = 개체당 Think 간격 (s)")]
         [Min(0.02f)] public float ThinkCycle = 0.5f;
-        public bool EnableCrowdControl = true;
-        public bool UseSlots = true;
+        public bool EnableCrowdControl = true;        // false = 전원 제한 없이 이동 (Unrestricted)
+        public bool UseSlots = true;                  // true = 슬롯 모드, false = 토큰 모드
         public SlotSettings Slots = new SlotSettings();
     }
 
-    /// <summary>디버그·HUD 용 집계 (읽기 전용)</summary>
+    /// <summary>디버그·HUD 용 집계 (읽기 전용). CrowdCoordinator.GetSnapshot 이 만들어 MovementLab HUD 가 읽는다.</summary>
     public readonly struct CrowdSnapshot
     {
-        public readonly int Registered;
+        public readonly int Registered;           // 등록된 몬스터 수
         public readonly AllocationSummary Summary;
-        /// <summary>토큰 보유 + NearRadius 안 개체 수 (불변식: ≤ Capacity)</summary>
+        // 토큰 보유 + NearRadius 안 개체 수 (불변식: ≤ Capacity)
         public readonly int EngagedInsideNear;
         public readonly int Capacity;
-        /// <summary>마지막 배분 + 판단에 걸린 시간 (ms)</summary>
+        // 마지막 배분 + 판단에 걸린 시간 (ms)
         public readonly float LastTickMs;
 
+        /// <summary>CrowdCoordinator.GetSnapshot 이 현재 집계 값을 묶을 때 쓴다.</summary>
+        /// <param name="registered">등록된 몬스터 수</param>
+        /// <param name="summary">마지막 배분 집계</param>
+        /// <param name="engagedInsideNear">토큰 보유 + NearRadius 안 개체 수</param>
+        /// <param name="capacity">근접 동시 허용 수 (EngageCapacity)</param>
+        /// <param name="lastTickMs">마지막 배분 + 판단에 걸린 시간 (ms)</param>
         public CrowdSnapshot(int registered, AllocationSummary summary, int engagedInsideNear, int capacity, float lastTickMs)
         {
             Registered = registered;
@@ -49,6 +58,10 @@ namespace HybridShooter.Monster.Movement
     /// 씬에 1개. 등록 관리 + 주기적 토큰 배분 + 개체 판단을 프레임에 분산 호출.
     /// 이동 "명령"은 내리지 않는다. CrowdDirective(허가 + 정보)만 전달한다.
     /// </summary>
+    /// <remarks>
+    /// 군중 모드 MonsterMovement 의 Think·TickMovement 는 이 클래스의 Update 가 호출 순서대로 부른다.
+    /// 모드: UseSlots = true 면 SlotRegistry 로 슬롯 예약, false 면 EngageAllocator 로 토큰 배분.
+    /// </remarks>
     public sealed class CrowdCoordinator : MonoBehaviour
     {
         // ════════ 설정 (Inspector) ════════
@@ -58,7 +71,7 @@ namespace HybridShooter.Monster.Movement
         [SerializeField] private CrowdSettings settings = new CrowdSettings();
 
         // ════════ 정적 (씬 전역) ════════
-        /// <summary>씬에서 활성화된 Coordinator. MonsterMovement 에 직접 지정하지 않았을 때 사용</summary>
+        // 씬에서 활성화된 Coordinator. MonsterMovement 에 직접 지정하지 않았을 때 사용 (없으면 null)
         public static CrowdCoordinator Active { get; private set; }
 
         private static readonly ProfilerMarker TickMarker = new ProfilerMarker("CrowdCoordinator.Tick");
@@ -88,13 +101,16 @@ namespace HybridShooter.Monster.Movement
         private float lastTickMs;
 
         // ════════ 외부 공개 ════════
-        public IPlayerTarget Target => target ?? targetSource as IPlayerTarget;
+        public IPlayerTarget Target => target ?? targetSource as IPlayerTarget;   // null = 목표 없음
         public CrowdSettings Settings => settings;
         public int EngageCapacity => settings.EngageCapacity;
         public IReadOnlyList<MonsterMovement> Agents => agentsView ??= agents.AsReadOnly();
-        public int SlotCount => slotsRefreshed ? slots.Count : 0;
+        public int SlotCount => slotsRefreshed ? slots.Count : 0;                 // 슬롯 갱신 전이면 0
 
-        /// <summary>슬롯 id 의 현재 상태 복사본. 슬롯이 아직 갱신 전이면 InvalidOperationException</summary>
+        /// <summary>디버그 표시(MovementLab 기즈모 등)용으로 슬롯 id 의 현재 상태 복사본을 만든다.</summary>
+        /// <param name="id">슬롯 id (0 ~ SlotCount-1)</param>
+        /// <returns>슬롯 위치·유효성·소유자·혼잡 여부 복사본</returns>
+        /// <exception cref="InvalidOperationException">슬롯이 아직 갱신 전(SlotCount == 0)일 때</exception>
         public SlotSnapshot GetSlotSnapshot(int id)
         {
             if (SlotCount == 0)
@@ -103,13 +119,17 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// agent 가 slotId 를 아직 유효하게 예약 중인가 (MonsterMovement.HasCurrentReservation 용 O(1) 조회).
-        /// 슬롯이 아직 갱신 전이면 false 이며, 스냅샷을 만들지 않아 혼잡 판정 비용이 없다
+        /// agent 가 slotId 를 아직 유효하게 예약 중인가 (MonsterMovement.HasCurrentReservation·CanAttack 용 O(1) 조회).
+        /// 스냅샷을 만들지 않아 혼잡 판정 비용이 없다.
         /// </summary>
+        /// <param name="agent">예약을 확인할 몬스터</param>
+        /// <param name="slotId">확인할 슬롯 id</param>
+        /// <returns>agent 의 유효(Valid) 예약이면 true. 슬롯이 아직 갱신 전이면 false</returns>
         public bool IsSlotReservedBy(MonsterMovement agent, int slotId) =>
             slotsRefreshed && slots.IsValidlyReservedBy(slotId, agent.GetInstanceID());
 
-        /// <summary>targetSource 를 IPlayerTarget 으로 변환해 저장하고 설정값 검증</summary>
+        /// <summary>Inspector 의 targetSource 를 IPlayerTarget 으로 변환해 저장하고 설정값을 검증한다.</summary>
+        /// <remarks>targetSource 가 IPlayerTarget 이 아니면 에러 로그만 남기고 target 은 null 로 둔다.</remarks>
         private void Awake()
         {
             if (targetSource != null)
@@ -121,9 +141,11 @@ namespace HybridShooter.Monster.Movement
             ValidateSettings();
         }
 
+        /// <summary>Inspector 에서 값을 바꿀 때마다 설정을 검증한다.</summary>
         private void OnValidate() => ValidateSettings();
 
-        /// <summary>반경·슬롯 설정이 잘못되면 에러 로그 (Inspector 수정 시에도 호출)</summary>
+        /// <summary>반경·슬롯 설정이 잘못되면 에러 로그를 남긴다. Awake 와 OnValidate(Inspector 수정 시)가 부른다.</summary>
+        /// <remarks>반경 순서(Near &lt; Waiting &lt;= Release)는 토큰 모드(UseSlots = false)일 때만 검사한다.</remarks>
         private void ValidateSettings()
         {
             if (!settings.UseSlots && settings.Slots != null && !(settings.NearRadius >= 0f && settings.NearRadius < settings.Slots.WaitingRadius && settings.Slots.WaitingRadius <= settings.ReleaseRadius))
@@ -134,7 +156,7 @@ namespace HybridShooter.Monster.Movement
                 Debug.LogError("SlotSettings 첫 링 후보 수·반경·간격은 양수이고 최대 링 수는 2 이상이어야 함", this);
         }
 
-        /// <summary>씬 전역 Active 로 등록 (2개 이상이면 에러 로그)</summary>
+        /// <summary>씬 전역 Active 로 등록한다. 2개 이상 활성화되면 에러 로그를 남기고 마지막 것이 Active 가 된다.</summary>
         private void OnEnable()
         {
             if (Active != null && Active != this)
@@ -142,14 +164,18 @@ namespace HybridShooter.Monster.Movement
             Active = this;
         }
 
-        /// <summary>Active 해제, 모든 슬롯 예약 비우기</summary>
+        /// <summary>꺼질 때 Active 를 해제하고 모든 슬롯 예약을 비운다.</summary>
         private void OnDisable()
         {
             if (Active == this) Active = null;
             slots?.ClearReservations();
         }
 
-        /// <summary>목표 교체 (대체 객체 ↔ 실제 플레이어). null 이면 목표 상실: 예약을 비우고 전원 Idle 로 정지한다</summary>
+        /// <summary>
+        /// 군중 전체의 목표를 교체한다 (대체 객체 ↔ 실제 플레이어). MonsterMovement.SetTarget 이 부른다.
+        /// 호출마다 슬롯 예약을 비우고 다음 프레임에 즉시 재배분한다.
+        /// </summary>
+        /// <param name="newTarget">새 목표. null = 목표 상실: 예약을 비우고 전원 Idle 로 정지한다</param>
         public void SetTarget(IPlayerTarget newTarget)
         {
             target = newTarget;
@@ -159,7 +185,9 @@ namespace HybridShooter.Monster.Movement
             nextAllocationTime = 0f;
         }
 
-        /// <summary>근접 동시 허용 수 변경. 다음 배분부터 반영. 음수면 ArgumentOutOfRangeException</summary>
+        /// <summary>근접 동시 허용 수를 바꾸고 다음 프레임에 즉시 재배분한다. MovementLab 슬라이더가 부른다.</summary>
+        /// <param name="capacity">새 근접 동시 허용 수 (마리, 0 이상)</param>
+        /// <exception cref="ArgumentOutOfRangeException">capacity 가 음수일 때</exception>
         public void SetEngageCapacity(int capacity)
         {
             if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity), capacity, "0 이상이어야 함");
@@ -167,11 +195,18 @@ namespace HybridShooter.Monster.Movement
             nextAllocationTime = 0f;
         }
 
-        /// <summary>디버그·HUD 용 현재 집계</summary>
+        /// <summary>디버그·HUD 용 현재 집계를 만든다. MovementLab HUD 가 매 프레임 읽는다.</summary>
+        /// <returns>등록 수, 마지막 배분 집계, 근접 반경 안 보유자 수, 정원, 마지막 틱 비용</returns>
         public CrowdSnapshot GetSnapshot() =>
             new CrowdSnapshot(agents.Count, lastSummary, lastEngagedInsideNear, settings.EngageCapacity, lastTickMs);
 
-        /// <summary>MonsterMovement.OnEnable 에서 호출. 중복 등록은 LogError</summary>
+        /// <summary>
+        /// 몬스터를 군중 목록에 넣고 다음 프레임에 즉시 재배분한다.
+        /// MonsterMovement 가 활성화될 때(OnEnable) 또는 정지(Suspended)가 풀릴 때 호출한다.
+        /// </summary>
+        /// <remarks>중복 등록은 에러 로그만 남기고 무시한다. 슬롯 모드에서 NavMeshAgent 타입이 SlotSettings.AgentTypeId 와 다르면 에러 로그.</remarks>
+        /// <param name="agent">등록할 몬스터</param>
+        /// <exception cref="ArgumentNullException">agent 가 null 일 때</exception>
         public void Register(MonsterMovement agent)
         {
             if (agent == null) throw new ArgumentNullException(nameof(agent));
@@ -188,7 +223,8 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 등록 개체와 현재 타겟 기준으로 후보와 실제 점유를 갱신한다.
+        /// 슬롯 모드 배분: 등록 개체와 현재 타겟 기준으로 슬롯 후보와 실제 점유를 갱신한다.
+        /// Update 가 배분 주기마다, RequestDirective 가 갱신 전일 때 부른다.
         /// 목표가 무효면 모든 예약을 비운다. 접근 링 예약이 허용 인원을 넘으면 먼 번호부터 회수하고, 집계(lastSummary)를 새로 계산한다.
         /// </summary>
         public void RefreshSlots()
@@ -256,6 +292,13 @@ namespace HybridShooter.Monster.Movement
         /// 군중 제어 비대상이면 Unrestricted, 슬롯 모드면 슬롯을 즉시 예약해 Engage(0번 링)/Wait(바깥 링) 지시를 돌려준다.
         /// 슬롯을 못 얻으면 제자리 대기 지시.
         /// </summary>
+        /// <param name="agent">지시를 받을 몬스터</param>
+        /// <param name="now">현재 시각 (s). 슬롯 진행·거절 만료 판정에 쓴다</param>
+        /// <returns>
+        /// 이번 판단의 지시. 토큰 모드(UseSlots = false)면 마지막 배분 결과(agent.Directive)를 그대로 돌려준다.
+        /// 목표가 없거나 슬롯을 못 얻으면 CrowdDirective.WaitingForSlot(제자리 대기)
+        /// </returns>
+        /// <exception cref="ArgumentNullException">agent 가 null 일 때</exception>
         public CrowdDirective RequestDirective(MonsterMovement agent, float now)
         {
             if (agent == null) throw new ArgumentNullException(nameof(agent));
@@ -285,21 +328,33 @@ namespace HybridShooter.Monster.Movement
             return new CrowdDirective(kind, in slot, settings.Slots.ArrivalDistance);
         }
 
-        /// <summary>agent 가 쥔 슬롯을 반납한다 (없으면 무시)</summary>
+        /// <summary>agent 가 쥔 슬롯을 반납한다 (없으면 무시). Unregister 와 군중 제어 비대상 판단 때 부른다.</summary>
+        /// <param name="agent">슬롯을 반납할 몬스터</param>
+        /// <exception cref="ArgumentNullException">agent 가 null 일 때</exception>
         public void ReleaseSlot(MonsterMovement agent)
         {
             if (agent == null) throw new ArgumentNullException(nameof(agent));
             slots?.Release(agent.GetInstanceID());
         }
 
-        /// <summary>도달 불가 등으로 slotId 를 거절한다. 일정 시간 동안 이 개체에게 같은 슬롯을 다시 주지 않는다</summary>
+        /// <summary>
+        /// 도달 불가 등으로 slotId 를 거절한다. 일정 시간(RejectionSeconds) 동안 이 개체에게 같은 슬롯을 다시 주지 않는다.
+        /// MonsterMovement.Think 가 실행기 상태가 Unreachable 일 때 부른다.
+        /// </summary>
+        /// <param name="agent">거절하는 몬스터</param>
+        /// <param name="slotId">거절할 슬롯 id. agent 가 지금 쥔 슬롯이 아니면 무시된다</param>
+        /// <param name="now">현재 시각 (s). 거절 만료 시각 계산 기준</param>
+        /// <exception cref="ArgumentNullException">agent 가 null 일 때</exception>
         public void RejectSlot(MonsterMovement agent, int slotId, float now)
         {
             if (agent == null) throw new ArgumentNullException(nameof(agent));
             slots?.Reject(agent.GetInstanceID(), slotId, now);
         }
 
-        /// <summary>반응 지연으로 일부러 멈춘 시간(duration)만큼 "슬롯으로 진행이 없다" 판정 시계를 늦춘다</summary>
+        /// <summary>반응 지연으로 일부러 멈춘 시간만큼 "슬롯으로 진행이 없다" 판정 시계를 늦춘다. MonsterMovement 의 반응 지연 처리가 부른다.</summary>
+        /// <param name="agent">멈춘 몬스터</param>
+        /// <param name="duration">일부러 멈춘 시간 (s, 0 이상)</param>
+        /// <exception cref="ArgumentNullException">agent 가 null 일 때</exception>
         public void PauseSlotProgress(MonsterMovement agent, float duration)
         {
             if (agent == null) throw new ArgumentNullException(nameof(agent));
@@ -307,6 +362,7 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>SlotRegistry 가 없거나 링 설정이 바뀌었으면 새로 만든다 (이 경우 다음 갱신 때 후보를 다시 계산)</summary>
+        /// <remarks>새로 만들면 기존 예약·거절 기록이 모두 사라진다.</remarks>
         private void EnsureSlots()
         {
             if (slots != null && slots.ApproachCount == settings.Slots.ApproachCount &&
@@ -318,9 +374,12 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// MonsterMovement.OnDisable 에서 호출 (몬스터 사망·제거 시). 목록에서 빼고 슬롯·토큰을 회수한다.
+        /// MonsterMovement.OnDisable(몬스터 사망·제거 시)과 예약을 유지하지 않는 정지(SetSuspended)에서 호출. 목록에서 빼고 슬롯·토큰을 회수한다.
         /// 판단 순번(thinkCursor)을 보정하고 즉시 재배분을 예약해 빈 자리를 다른 몬스터가 채우게 한다
         /// </summary>
+        /// <remarks>등록되지 않은 몬스터면 에러 로그만 남기고 무시한다. agent.ResetCrowdState 로 개체의 토큰·대기 상태도 초기화한다.</remarks>
+        /// <param name="agent">해제할 몬스터</param>
+        /// <exception cref="ArgumentNullException">agent 가 null 일 때</exception>
         public void Unregister(MonsterMovement agent)
         {
             if (agent == null) throw new ArgumentNullException(nameof(agent));
@@ -426,7 +485,8 @@ namespace HybridShooter.Monster.Movement
                 agents[i].TickMovement();
         }
 
-        /// <summary>토큰 모드 배분: 개체 상태를 모아 EngageAllocator 에 넘기고, 결과를 각 개체에 반영한다</summary>
+        /// <summary>토큰 모드 배분: 개체 상태를 모아 EngageAllocator 에 넘기고, 결과를 각 개체에 반영한다. Update 가 배분 주기마다 부른다.</summary>
+        /// <param name="now">현재 시각 (s). 대기 시간 판정과 다음 배분 시각 계산에 쓴다</param>
         private void Allocate(float now)
         {
             // 1) 버퍼 용량 확보 (부족하면 2배씩 확장)

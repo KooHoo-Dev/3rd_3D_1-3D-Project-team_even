@@ -7,7 +7,7 @@ namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
     /// 몬스터 1마리의 상태 머신 본체 (상태 패턴의 Owner). Unity 컴포넌트가 아니라 순수 C# 이다.
-    /// MonoBehaviour 껍데기가 Update(now, dt) 를 매 프레임 호출하고, 대상·처치 같은 외부 사건을 전달한다.
+    /// MonoBehaviour 껍데기(MonsterController)가 Update(now, dt) 를 매 프레임 호출하고, 대상·처치 같은 외부 사건을 전달한다.
     /// 이동은 MonsterMovement 의 정지/재개(SetSuspended)와 공격 허가(CanAttack)로만 제어한다.
     /// </summary>
     public sealed class MonsterStateMachine
@@ -25,21 +25,29 @@ namespace HybridShooter.Monster.Behaviour
         public MonsterAttack CurrentAttack { get; }
         public IPlayerTarget Target { get; private set; }
 
-        /// <summary>마지막 Update 시각 (s)</summary>
+        // 마지막 Update 시각 (s)
         public float Now { get; private set; }
-        /// <summary>마지막 Update 의 경과 시간 (s)</summary>
+        // 마지막 Update 의 경과 시간 (s)
         public float DeltaTime { get; private set; }
-        /// <summary>마지막 Stun 요청 시간 (s)</summary>
+        // 마지막 Stun 요청 시간 (s)
         public float StunDuration { get; private set; }
-        /// <summary>Die 때 받은 보상 지급 여부</summary>
+        // Die 때 받은 보상 지급 여부
         public bool GrantReward { get; private set; }
         public bool IsDead => Current == Dead;
 
-        /// <summary>(previous, current)</summary>
+        // 인자 = (previous, current)
         public event Action<MonsterState, MonsterState> StateChanged;
-        /// <summary>DeadState 진입 시 1번. 인자 = 보상 지급 여부</summary>
+        // DeadState 진입 시 1번. 인자 = 보상 지급 여부
         public event Action<bool> Died;
 
+        /// <summary>
+        /// 상태 5개를 만들고 Idle 로 시작한다. MonsterController.Start 가 조립 때 1번 호출한다.
+        /// </summary>
+        /// <remarks>생성 중 Idle.Enter 가 이동을 멈추므로 movement 는 Awake 가 끝난 상태여야 한다.</remarks>
+        /// <param name="movement">이 몬스터의 이동 컴포넌트</param>
+        /// <param name="body">이 몬스터의 몸체 (위치·방향)</param>
+        /// <param name="attack">이 몬스터가 쓸 공격 전략</param>
+        /// <exception cref="ArgumentNullException">movement, body, attack 중 하나가 null 일 때</exception>
         public MonsterStateMachine(MonsterMovement movement, MonsterBody body, MonsterAttack attack)
         {
             this.movement = movement != null ? movement : throw new ArgumentNullException(nameof(movement));
@@ -56,12 +64,12 @@ namespace HybridShooter.Monster.Behaviour
             Current.Enter();
         }
 
-        /// <summary>대상이 있으면 true. 대상 상실(사망 등)은 소유자(MonsterController)가 SetTarget(null)로 알린다</summary>
+        // 대상이 있으면 true. 대상 상실(사망 등)은 소유자(MonsterController)가 SetTarget(null)로 알린다
         public bool HasTarget => Target != null;
-        /// <summary>군중 이동의 공격 허가 (슬롯 예약·토큰). 직접 추적 모드는 대상이 있으면 true</summary>
+        // 군중 이동의 공격 허가 (슬롯 예약·토큰). 직접 추적 모드는 대상이 있으면 true
         public bool CanAttack => movement.CanAttack;
 
-        /// <summary>대상까지 수평 거리 ≤ 현재 공격 사거리</summary>
+        // 대상까지 수평 거리 ≤ 현재 공격 사거리. 대상이 없으면 false
         public bool IsTargetInAttackRange
         {
             get
@@ -74,7 +82,11 @@ namespace HybridShooter.Monster.Behaviour
             }
         }
 
-        /// <summary>null = 대상 상실 (플레이어 사망 등)</summary>
+        /// <summary>
+        /// 공격 대상을 바꾼다. MonsterController 가 대상 확보·상실 때 호출한다.
+        /// 대상이 바뀌면 진행 중 공격을 취소하고, 대상이 없어지면 Attack/Chase 에서 Idle 로 돌아간다.
+        /// </summary>
+        /// <param name="target">새 대상. null = 대상 상실 (플레이어 사망 등)</param>
         public void SetTarget(IPlayerTarget target)
         {
             if (!ReferenceEquals(Target, target) && CurrentAttack.IsAttacking) CurrentAttack.Cancel();
@@ -86,7 +98,12 @@ namespace HybridShooter.Monster.Behaviour
             }
         }
 
-        /// <summary>판단 1회. 현재 상태의 Update 를 부른다</summary>
+        /// <summary>
+        /// 판단 1회. MonsterController.Update 가 매 프레임 호출한다.
+        /// 시각을 기록하고 현재 상태의 Tick 을 부른다. 상태들은 기록된 Now / DeltaTime 을 읽는다.
+        /// </summary>
+        /// <param name="now">현재 시각 (s, Time.time)</param>
+        /// <param name="deltaTime">지난 프레임부터 경과 시간 (s)</param>
         public void Update(float now, float deltaTime)
         {
             Now = now;
@@ -95,7 +112,13 @@ namespace HybridShooter.Monster.Behaviour
             Current.Tick();
         }
 
-        /// <summary>같은 상태로의 변경과 Dead 이후의 변경은 무시한다</summary>
+        /// <summary>
+        /// 상태를 전이한다: 이전 상태 Exit → 새 상태 Enter → StateChanged 발행.
+        /// 각 상태의 Tick 과 이 클래스의 SetTarget / Die / Stun / Cleanup 이 호출한다.
+        /// 같은 상태로의 변경과 Dead 이후의 변경은 무시한다.
+        /// </summary>
+        /// <param name="next">들어갈 상태 (이 머신의 Idle / Chase / Attack / Stunned / Dead 중 하나)</param>
+        /// <exception cref="ArgumentNullException">next 가 null 일 때</exception>
         public void ChangeState(MonsterState next)
         {
             if (next == null) throw new ArgumentNullException(nameof(next));
@@ -108,7 +131,11 @@ namespace HybridShooter.Monster.Behaviour
             StateChanged?.Invoke(previous, next);
         }
 
-        /// <summary>처치·정리. 어느 상태에서든 Dead 로 간다 (진행 중 공격은 AttackState.Exit 가 취소)</summary>
+        /// <summary>
+        /// 처치·정리. 어느 상태에서든 Dead 로 간다 (진행 중 공격은 AttackState.Exit 가 취소).
+        /// MonsterController 가 체력 0 이나 보스 정리 이벤트 때 호출한다. 이미 죽었으면 무시한다.
+        /// </summary>
+        /// <param name="grantReward">true = 처치 보상 지급. Died 이벤트로 그대로 전달된다</param>
         public void Die(bool grantReward)
         {
             if (IsDead) return;
@@ -116,7 +143,12 @@ namespace HybridShooter.Monster.Behaviour
             ChangeState(Dead);
         }
 
-        /// <summary>기절. 어느 상태에서든 Stunned 로 간다</summary>
+        /// <summary>
+        /// 기절. 어느 상태에서든 Stunned 로 간다. AttackState 가 벽 충돌(WallHit) 결과를 받았을 때 호출한다.
+        /// 죽었거나 이미 기절 중이면 무시한다.
+        /// </summary>
+        /// <param name="seconds">기절 시간 (s). 0 이상</param>
+        /// <exception cref="ArgumentOutOfRangeException">seconds 가 0 미만일 때</exception>
         public void Stun(float seconds)
         {
             if (seconds < 0f) throw new ArgumentOutOfRangeException(nameof(seconds), seconds, "기절 시간은 0 이상");
@@ -125,7 +157,10 @@ namespace HybridShooter.Monster.Behaviour
             ChangeState(Stunned);
         }
 
-        /// <summary>회수/비활성화: 보상·사망 알림 없이 공격과 이동을 정리한다.</summary>
+        /// <summary>
+        /// 회수/비활성화: 보상·사망 알림 없이 공격과 이동을 정리한다.
+        /// MonsterController 의 OnDisable 과 Despawn 이 호출한다.
+        /// </summary>
         public void Cleanup()
         {
             SetTarget(null);
@@ -135,11 +170,15 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         // ── 상태 전용 ──
+        /// <summary>멈춘다. 군중 이동의 등록·슬롯·토큰 예약은 즉시 반환한다</summary>
         internal void StopMove() => movement.SetSuspended(true);
         /// <summary>공격하려고 멈춘다. 군중 이동의 공격 슬롯 예약은 유지한다</summary>
         internal void StopForAttack() => movement.SetSuspended(true, retainReservation: true);
+        /// <summary>Chase 진입 때 이동을 재개한다</summary>
         internal void ResumeMove() => movement.SetSuspended(false);
+        /// <summary>AttackState 가 공격 시작 전 대상 쪽을 수평으로 바라보게 한다. 대상이 있어야 한다</summary>
         internal void FaceTarget() => body.Face(Target.PlayerTrackingInfo.Position);
+        /// <summary>DeadState 진입 때 Died 이벤트를 보상 지급 여부와 함께 발행한다</summary>
         internal void NotifyDied() => Died?.Invoke(GrantReward);
     }
 }

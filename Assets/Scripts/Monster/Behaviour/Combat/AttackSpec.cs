@@ -9,23 +9,23 @@ namespace HybridShooter.Monster.Behaviour
     /// </summary>
     public readonly struct AttackSpec
     {
-        /// <summary>MonsterAttackTable Id (DamageInfo.SourceDefId). 0 = 알 수 없음</summary>
+        // MonsterAttackTable Id (DamageInfo.SourceDefId). 0 = 알 수 없음
         public readonly int SourceDefId;
         public readonly AttackShape Shape;
         public readonly int Damage;
         public readonly int HitCount;
-        /// <summary>공격 시작부터 다음 시작까지 최소 간격 (s)</summary>
+        // 공격 시작부터 다음 시작까지 최소 간격 (s)
         public readonly float Cooldown;
-        /// <summary>예고 (s)</summary>
+        // 예고 (s)
         public readonly float TelegraphTime;
-        /// <summary>공격 후 경직 (s)</summary>
+        // 공격 후 경직 (s)
         public readonly float RecoveryTime;
-        /// <summary>사거리/길이 (m). 공격 상태 진입 거리이기도 하다</summary>
+        // 사거리/길이 (m). 공격 상태 진입 거리이기도 하다
         public readonly float Range;
         public readonly float Radius;
-        /// <summary>부채꼴 전체 각도 (도)</summary>
+        // 부채꼴 전체 각도 (도)
         public readonly float Angle;
-        /// <summary>직선 폭 (m)</summary>
+        // 직선 폭 (m)
         public readonly float Width;
         public readonly float ProjectileSpeed;
         public readonly float KnockbackDistance;
@@ -33,6 +33,11 @@ namespace HybridShooter.Monster.Behaviour
         public readonly float TriggerValue;
         public readonly string AnimTrigger;
 
+        /// <summary>
+        /// 값을 직접 채운다. 테이블 값은 From 이 이 생성자로 넘기고, 테스트는 값을 직접 넣을 때 쓴다.
+        /// 각 인자는 같은 이름의 필드에 그대로 저장된다 (단위는 필드 주석 참고).
+        /// </summary>
+        /// <param name="sourceDefId">MonsterAttackTable Id. 0 = 알 수 없음</param>
         public AttackSpec(AttackShape shape, int damage, int hitCount, float cooldown,
                           float telegraphTime, float recoveryTime, float range,
                           float radius = 0f, float angle = 0f, float width = 0f,
@@ -58,6 +63,11 @@ namespace HybridShooter.Monster.Behaviour
             AnimTrigger = animTrigger;
         }
 
+        /// <summary>
+        /// 테이블 공격 Def 를 값 묶음으로 옮긴다. 테이블에서 AttackSpec 을 만드는 유일한 통로다 (MonsterController.Start 가 호출).
+        /// </summary>
+        /// <param name="def">MonsterAttackTable 의 공격 1개</param>
+        /// <returns>def 의 값을 그대로 담은 AttackSpec. SourceDefId = def.Id</returns>
         public static AttackSpec From(MonsterAttackDef def) => new AttackSpec(
             def.Shape, def.Damage, def.HitCount, def.Cooldown, def.TelegraphTime, def.RecoveryTime, def.Range,
             def.Radius, def.Angle, def.Width, def.ProjectileSpeed, def.KnockbackDistance,

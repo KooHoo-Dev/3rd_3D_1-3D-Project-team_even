@@ -3,11 +3,14 @@ using UnityEngine.AI;
 
 namespace HybridShooter.Monster.Movement
 {
-    /// <summary>NavMeshAgent 로 MoveIntent 를 실행. 재경로를 거리·시간 임계값으로 제한한다</summary>
+    /// <summary>
+    /// 지상 몬스터용 실행기. MonsterMovement 가 넘긴 MoveIntent 를 NavMeshAgent 로 실행한다.
+    /// 재경로를 거리·시간 임계값으로 제한한다.
+    /// </summary>
     [RequireComponent(typeof(NavMeshAgent))]
     public sealed class NavMeshMoveExecutor : MonoBehaviour, IMoveExecutor
     {
-        private const float SampleWarnInterval = 2f;
+        private const float SampleWarnInterval = 2f; // s, "목적지 근처 NavMesh 없음" 경고 최소 간격
 
         // ════════ 설정 (Inspector) ════════
         [Header("재경로 제한")]
@@ -20,7 +23,7 @@ namespace HybridShooter.Monster.Movement
         [Header("회피 우선순위")]
         [Tooltip("Engaged 상태 회피 우선순위 (낮을수록 우선)")]
         [SerializeField, Range(0, 99)] private int engagedPriority = 30;
-        [SerializeField, Range(0, 99)] private int defaultPriority = 60;
+        [SerializeField, Range(0, 99)] private int defaultPriority = 60; // Engaged 외 상태 기본 우선순위. 개체별 분산값(0~15)을 더한다
 
         // ════════ 컴포넌트·재사용 객체 ════════
         private NavMeshAgent agent;
@@ -30,7 +33,7 @@ namespace HybridShooter.Monster.Movement
         // ════════ 재경로 추적 ════════
         private bool hasDestination;      // 현재 유효한 경로를 따라가는 중인가
         private Vector3 lastRequestedDest;// 마지막으로 경로를 설정한 목적지
-        private float lastRepathTime;
+        private float lastRepathTime;     // 마지막 재경로 시각 (s, Time.time 기준)
         private int repathCount;          // 디버그용 누적 SetPath 횟수
 
         // ════════ 상태·경고 억제 ════════
@@ -41,9 +44,10 @@ namespace HybridShooter.Monster.Movement
         // ════════ 외부 공개 ════════
         public Vector3 Velocity => agent.isActiveAndEnabled ? agent.velocity : Vector3.zero;
 
-        /// <summary>디버그: 누적 SetPath 호출 수</summary>
+        // 디버그: 누적 SetPath 호출 수
         public int RepathCount => repathCount;
-        /// <summary>Idle / OffNavMesh / Unreachable / Pending / Moving / Arrived 중 현재 상태를 NavMeshAgent 에서 계산</summary>
+        // Idle / OffNavMesh / Unreachable / Pending / Moving / Arrived 중 현재 상태를 NavMeshAgent 에서 계산.
+        // 남은 거리가 정지 거리 + 0.15m 이하면 Arrived
         public MoveExecutionState ExecutionState
         {
             get
@@ -79,8 +83,12 @@ namespace HybridShooter.Monster.Movement
         /// <summary>
         /// 이동 의도를 NavMeshAgent 에 적용한다. 정지 의도면 멈추고,
         /// 목적지 변화가 작거나 재경로 간격이 짧으면 기존 경로를 유지/보류해 경로 계산 비용을 줄인다.
-        /// 결과(PathSet/PathKept/Deferred/Unreachable/OffNavMesh/Stopped)는 MonsterMovement 가 슬롯 추적에 사용한다.
         /// </summary>
+        /// <param name="intent">정책이 낸 이동 의도. HasDestination 이 false 면 정지</param>
+        /// <returns>
+        /// PathSet/PathKept/Deferred/Unreachable/OffNavMesh/Stopped. MonsterMovement 가 슬롯 추적에 사용한다.
+        /// 목적지 보정·경로 계산·경로 설정 중 하나라도 실패하면 정지 후 Unreachable
+        /// </returns>
         public MoveApplyResult Apply(in MoveIntent intent)
         {
             if (!intent.HasDestination)
@@ -152,7 +160,7 @@ namespace HybridShooter.Monster.Movement
             return MoveApplyResult.PathSet;
         }
 
-        /// <summary>이동을 멈추고 경로 추적 상태를 초기화한다 (NavMesh 위가 아니면 상태만 초기화)</summary>
+        /// <summary>이동을 멈추고 경로 추적 상태를 초기화한다 (Agent 가 꺼져 있거나 NavMesh 위가 아니면 상태만 초기화). MonsterMovement 와 Apply 의 실패 경로가 호출한다</summary>
         public void Stop()
         {
             hasDestination = false;

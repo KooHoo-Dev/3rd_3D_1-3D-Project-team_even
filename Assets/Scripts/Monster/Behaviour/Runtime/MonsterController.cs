@@ -12,11 +12,14 @@ namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
     /// 몬스터 1마리의 Unity 진입점 (Facade).
-    /// Awake에서 Def/체력을 준비하고 모든 Awake 이후 Start에서 이동·공격·브레인을 조립한다.
-    /// (기본 IMonsterFactory 는 프리팹을 Instantiate 만 하므로 초기화는 여기서 스스로 한다)
-    /// 매 프레임 브레인을 돌리고, 대상 확보·처치·정리 이벤트를 브레인에 전달한다.
-    /// 체력(부위 없음, 단일 체력)도 직접 가진다. 라이플·수류탄이 IDamageable 로 찾아 피해를 준다.
+    /// 체력(부위 없음, 단일 체력)을 직접 가지고(IDamageable), 매 프레임 상태 머신을 돌리고,
+    /// 게임 이벤트(보스 정리·라운드 정리·플레이어 사망)를 상태 머신에 전달한다.
     /// </summary>
+    /// <remarks>
+    /// 조립 순서: Awake = Def·체력 준비 → Start = 공격·상태 머신 조립.
+    /// 기본 IMonsterFactory 는 프리팹을 Instantiate 만 하므로 초기화는 이 클래스가 스스로 한다.
+    /// 라이플·수류탄은 IDamageable 로 이 클래스를 찾아 피해를 준다.
+    /// </remarks>
     [RequireComponent(typeof(MonsterMovement), typeof(NavMeshMoveExecutor))]
     public sealed class MonsterController : MonoBehaviour, IDamageable
     {
@@ -39,12 +42,12 @@ namespace HybridShooter.Monster.Behaviour
         [Tooltip("Active 구간 중 판정 시점 비율. 0 = Active 시작, 1 = Active 끝. 다음 공격 시작부터 반영")]
         [SerializeField, Range(0f, 1f)] private float hitTimeRatio = 0.5f;
 
-        /// <summary>Base Controller 의 Attack 상태 원본 클립 이름. Override 인덱서는 원본 클립 이름으로 찾는다</summary>
+        // Base Controller 의 Attack 상태 원본 클립 이름. Override 인덱서는 원본 클립 이름으로 슬롯을 찾는다
         private const string BaseAttackClipName = "Placeholder_Attack";
 
         private MonsterMovement movement;
         private bool playerDead;
-        private float despawnTime = -1f;
+        private float despawnTime = -1f;   // 회수 예정 시각 (s, Time.time 기준). -1 = 아직 처치 안 됨
         private bool despawned;
 
         // ── 애니메이션 ──
@@ -59,6 +62,10 @@ namespace HybridShooter.Monster.Behaviour
         public Faction Faction => Faction.Monster;
         public bool IsAlive => CurrentHp > 0;
 
+        /// <summary>
+        /// 컴포넌트 참조를 잡고, monsterId 로 테이블 Def 를 읽어 체력을 채운다.
+        /// </summary>
+        /// <remarks>다른 컴포넌트의 초기화 결과는 아직 쓰지 않는다. 조립은 Start 가 맡는다.</remarks>
         private void Awake()
         {
             movement = GetComponent<MonsterMovement>();
@@ -68,6 +75,10 @@ namespace HybridShooter.Monster.Behaviour
             InitializeHealth(Def.MaxHp);
         }
 
+        /// <summary>
+        /// Def 로 공격과 상태 머신을 만들고, 상태 머신·공격·게임 이벤트를 구독한다.
+        /// </summary>
+        /// <remarks>모든 컴포넌트 Awake 이후에 실행되어야 한다. 상태 머신 생성 직후 Idle.Stop 이 이동 실행기를 쓴다.</remarks>
         private void Start()
         {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
@@ -83,6 +94,10 @@ namespace HybridShooter.Monster.Behaviour
             Subscribe();
         }
 
+        /// <summary>
+        /// 비활성 후 다시 켜질 때 이동과 게임 이벤트 구독을 되살린다.
+        /// </summary>
+        /// <remarks>최초 활성화(StateMachine == null)는 건너뛴다. 최초 구독은 Start 가 조립 후 한다.</remarks>
         private void OnEnable()
         {
             if (StateMachine == null) return; // 최초 구독은 Start의 조립이 끝난 뒤 수행한다.
@@ -90,6 +105,10 @@ namespace HybridShooter.Monster.Behaviour
             Subscribe();
         }
 
+        /// <summary>
+        /// 몬스터가 반응하는 게임 이벤트 3개(보스 정리, 라운드 정리, 플레이어 사망)를 구독한다.
+        /// 해제는 OnDisable 이 한다.
+        /// </summary>
         private void Subscribe()
         {
             EventBus<MonsterWipeRequestedEvent>.Subscribe(OnWipeRequested);
@@ -97,6 +116,9 @@ namespace HybridShooter.Monster.Behaviour
             EventBus<PlayerDiedEvent>.Subscribe(OnPlayerDied);
         }
 
+        /// <summary>
+        /// 꺼질 때 상태 머신을 정리하고, 이동을 끄고, 게임 이벤트 구독을 해제한다.
+        /// </summary>
         private void OnDisable()
         {
             StateMachine?.Cleanup();
@@ -106,6 +128,11 @@ namespace HybridShooter.Monster.Behaviour
             EventBus<PlayerDiedEvent>.Unsubscribe(OnPlayerDied);
         }
 
+        /// <summary>
+        /// 매 프레임 진입점.
+        /// 죽었으면 회수 시각까지 기다렸다가 회수한다.
+        /// 살아 있으면 대상 확보 → 공격 튜닝 → 상태 갱신 → 이동 애니 순서로 돈다.
+        /// </summary>
         private void Update()
         {
             if (StateMachine.IsDead)
@@ -121,9 +148,11 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 인스펙터의 쿨다운(덮어쓰기 꺼짐 = 데이터 값)과 판정 비율을 매 프레임 공격에 넣는다.
-        /// 공격은 Begin 때 값을 고정하므로 실제 반영은 다음 공격부터다. 쿨다운이 예고+회복 이하면 Active 길이가 없으므로 예외.
+        /// 인스펙터의 쿨다운과 판정 비율을 현재 공격에 넣는다.
+        /// 덮어쓰기가 꺼져 있으면 쿨다운은 데이터 테이블 값을 쓴다.
         /// </summary>
+        /// <remarks>공격은 Begin 때 값을 고정하므로 실제 반영은 다음 공격부터다.</remarks>
+        /// <exception cref="InvalidOperationException">쿨다운이 예고+회복 이하라 Active 구간 길이가 없을 때</exception>
         private void ApplyAttackTuning()
         {
             MonsterAttack attack = StateMachine.CurrentAttack;
@@ -139,10 +168,15 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 상태가 바뀔 때 Animator 의 Bool/Trigger 를 맞춘다. Attack 신호는 여기서 보내지 않는다(OnAttackPhaseChanged 담당).
-        /// Stunned 진입/이탈은 IsStunned, Dead 진입은 IsDead + Death Trigger. IsDead 가 Any State 전이를 막아 Death 에서 나가지 않는다.
-        /// Idle/Chase 안의 정지·이동은 UpdateMoveAnimation 이 IsMoving 으로 정한다.
+        /// 상태 머신의 상태가 바뀔 때 Animator 의 Bool/Trigger 를 새 상태에 맞춘다.
+        /// Stunned → IsStunned, Dead → IsDead + Death Trigger, Idle/Chase → IsStunned 해제.
         /// </summary>
+        /// <remarks>
+        /// Attack 신호는 보내지 않는다 (OnAttackPhaseChanged 담당).
+        /// Idle/Chase 안의 정지·이동은 UpdateMoveAnimation 이 IsMoving 으로 정한다.
+        /// IsDead 가 Any State 전이를 막아 Death 에서 나가지 않는다.
+        /// </remarks>
+        /// <param name="current">새로 들어간 상태</param>
         private void OnStateChanged(MonsterState previous, MonsterState current)
         {
             animator.speed = 1f;
@@ -167,9 +201,12 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 공격 Active 시작에 Attack 클립을 재생한다. 배율 = 클립 길이 ÷ Active 길이 → 클립이 Active 동안 정확히 1번 재생된다.
-        /// 예고·회복·종료 단계에서는 아무것도 하지 않는다 (Animator 는 Exit Time 으로 Idle 에 돌아가 있다).
+        /// 공격 Active 시작에 Attack 클립을 재생한다.
+        /// 재생 배율 = 클립 길이 ÷ Active 길이 → 클립이 Active 동안 정확히 1번 재생된다.
         /// </summary>
+        /// <remarks>예고·회복·종료 단계는 무시한다. Animator 는 Exit Time 으로 이미 Idle 에 돌아가 있다.</remarks>
+        /// <param name="attack">단계가 바뀐 공격. ActiveDuration 을 읽는다</param>
+        /// <param name="phase">새 단계. Active 일 때만 반응한다</param>
         private void OnAttackPhaseChanged(MonsterAttack attack, SkillPhase phase)
         {
             if (phase != SkillPhase.Active) return;
@@ -180,7 +217,7 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// Chase 중 실제 이동 속도로 IsMoving 을 매 프레임 넣어 Idle ↔ Move 전이를 일으킨다.
-        /// Move 면 재생 배율을 속도 / moveClipSpeed 로 맞춰 발 미끄러짐을 줄인다.
+        /// Move 면 재생 배율을 (속도 ÷ moveClipSpeed) 로 맞춰 발 미끄러짐을 줄인다.
         /// </summary>
         private void UpdateMoveAnimation()
         {
@@ -194,7 +231,11 @@ namespace HybridShooter.Monster.Behaviour
             else animator.speed = 1f;
         }
 
-        /// <summary>몬스터별 Override Controller 의 Attack 슬롯 클립 길이 (s). 클립이 없으면 예외</summary>
+        /// <summary>
+        /// 몬스터별 Override Controller 에서 Attack 슬롯 클립 길이를 읽는다.
+        /// </summary>
+        /// <returns>Attack 슬롯 클립 길이 (s)</returns>
+        /// <exception cref="InvalidOperationException">Override Controller 에 Attack 슬롯 클립이 없을 때</exception>
         private float ReadAttackClipSeconds()
         {
             var overrideController = (AnimatorOverrideController)animator.runtimeAnimatorController;
@@ -204,7 +245,10 @@ namespace HybridShooter.Monster.Behaviour
             return attackClip.length;
         }
 
-        /// <summary>대상이 없으면 ServiceLocator 의 플레이어를 브레인과 이동에 같은 값으로 넣는다</summary>
+        /// <summary>
+        /// 대상이 없으면 ServiceLocator 의 플레이어를 상태 머신과 이동에 같은 값으로 넣는다.
+        /// 플레이어가 죽었거나 아직 등록 전이면 아무것도 하지 않는다.
+        /// </summary>
         private void AcquireTarget()
         {
             if (playerDead || StateMachine.HasTarget) return;
@@ -214,16 +258,21 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 이동(군중)에 목표를 넣는다. null = 대상 상실(사망 등).
-        /// 군중 전체가 같은 목표를 공유하고 CrowdCoordinator.SetTarget 은 호출마다 슬롯 예약을 비우므로, 같은 값이면 다시 설정하지 않는다.
+        /// 이동(군중)에 목표를 넣는다. 지금 목표와 같으면 다시 넣지 않는다.
         /// </summary>
+        /// <remarks>CrowdCoordinator.SetTarget 은 호출마다 군중 전체의 슬롯 예약을 비우므로 중복 호출을 막는다.</remarks>
+        /// <param name="target">새 목표. null = 대상 상실 (플레이어 사망 등)</param>
         private void SetMovementTarget(IPlayerTarget target)
         {
             if (ReferenceEquals(movement.Target, target)) return;
             movement.SetTarget(target);
         }
 
-        /// <summary>Awake 에서 테이블 MaxHp 로 체력을 채운다</summary>
+        /// <summary>
+        /// 최대 체력과 현재 체력을 같은 값으로 채운다. Awake 에서 1번 호출한다.
+        /// </summary>
+        /// <param name="maxHp">테이블의 MaxHp. 1 이상</param>
+        /// <exception cref="ArgumentOutOfRangeException">maxHp 가 0 이하일 때</exception>
         private void InitializeHealth(int maxHp)
         {
             if (maxHp <= 0) throw new ArgumentOutOfRangeException(nameof(maxHp), maxHp, "최대 체력은 1 이상");
@@ -232,9 +281,12 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 무기가 IDamageable 로 호출한다. 맞을 때마다 DamageDealtEvent 를 발행하고,
-        /// 체력이 0 이 된 순간 1번 브레인을 Dead 로 보낸다 (보상 지급).
+        /// 무기가 IDamageable 로 호출한다. 체력을 깎고 맞을 때마다 DamageDealtEvent 를 발행한다.
+        /// 체력이 0 이 된 순간 1번 상태 머신을 Dead 로 보낸다 (보상 지급).
+        /// 이미 죽었으면 무시한다.
         /// </summary>
+        /// <param name="info">피해 정보. Amount 만큼 체력을 깎는다</param>
+        /// <exception cref="InvalidOperationException">InitializeHealth 전에 호출됐을 때</exception>
         public void TakeDamage(in DamageInfo info)
         {
             if (MaxHp == 0) throw new InvalidOperationException($"{nameof(InitializeHealth)} 전에 피해를 받았다");
@@ -246,6 +298,11 @@ namespace HybridShooter.Monster.Behaviour
             if (isKill) StateMachine.Die(true);
         }
 
+        /// <summary>
+        /// 상태 머신이 Dead 에 들어갈 때 호출된다.
+        /// 대상을 놓고, 콜라이더를 끄고, MonsterDiedEvent 를 발행하고, 회수 시각을 정한다.
+        /// </summary>
+        /// <param name="grantReward">true = 처치 보상 지급. MonsterDiedEvent 로 그대로 전달한다</param>
         private void OnStateMachineDied(bool grantReward)
         {
             StateMachine.SetTarget(null);
@@ -254,12 +311,16 @@ namespace HybridShooter.Monster.Behaviour
             despawnTime = Time.time + despawnDelay;
         }
 
-        /// <summary>보스 등장 공격의 잡몹 정리 (보스 경계)</summary>
+        /// <summary>보스 등장 공격이 잡몹을 정리할 때 이 몬스터를 죽인다.</summary>
+        /// <param name="e">GrantReward 로 보상 지급 여부를 정한다</param>
         private void OnWipeRequested(MonsterWipeRequestedEvent e) => StateMachine.Die(e.GrantReward);
 
-        /// <summary>라운드 정리: 처치 이벤트 없이 바로 회수</summary>
+        /// <summary>라운드 정리: 처치 이벤트 없이 바로 회수한다.</summary>
         private void OnRoundCleanup(RoundCleanupEvent e) => Despawn();
 
+        /// <summary>
+        /// 플레이어가 죽으면 상태 머신과 이동의 대상을 비우고, 이후 대상 확보를 멈춘다.
+        /// </summary>
         private void OnPlayerDied(PlayerDiedEvent e)
         {
             playerDead = true;
@@ -267,6 +328,9 @@ namespace HybridShooter.Monster.Behaviour
             SetMovementTarget(null);
         }
 
+        /// <summary>
+        /// 상태 머신·이동·이 컴포넌트를 끄고 팩토리에 회수를 맡긴다. 여러 번 불려도 1번만 실행한다.
+        /// </summary>
         private void Despawn()
         {
             if (despawned) return;
@@ -277,6 +341,12 @@ namespace HybridShooter.Monster.Behaviour
             ServiceLocator.Get<IMonsterFactory>().Despawn(gameObject);
         }
 
+        /// <summary>
+        /// 일반 몬스터 Def 에서 기본 공격 1개를 꺼낸다.
+        /// </summary>
+        /// <param name="def">일반 몬스터 Def. BasicAttacks 가 정확히 1개여야 한다</param>
+        /// <returns>유일한 기본 공격 정의</returns>
+        /// <exception cref="InvalidOperationException">BasicAttacks 가 1개가 아닐 때</exception>
         private static MonsterAttackDef SingleBasicAttack(MonsterDef def)
         {
             if (def.BasicAttacks.Count != 1)
@@ -284,7 +354,12 @@ namespace HybridShooter.Monster.Behaviour
             return def.BasicAttacks[0];
         }
 
-        /// <summary>플레이어 루트에서 IDamageable 을 찾는다 (Core 의 TryGetDamageable 과 같은 부모 방향 탐색)</summary>
+        /// <summary>
+        /// 공격 판정이 피해를 줄 플레이어 IDamageable 을 찾는다.
+        /// Core 의 TryGetDamageable 과 같은 부모 방향 탐색이다.
+        /// </summary>
+        /// <param name="target">현재 공격 대상</param>
+        /// <returns>target.Root 또는 그 부모의 IDamageable. 없으면 null</returns>
         private static IDamageable FindPlayerDamageable(IPlayerTarget target) =>
             target.Root.GetComponentInParent<IDamageable>();
     }

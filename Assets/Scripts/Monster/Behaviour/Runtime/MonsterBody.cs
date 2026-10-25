@@ -11,18 +11,22 @@ namespace HybridShooter.Monster.Behaviour
     {
         private readonly Transform transform;
 
+        /// <summary>MonsterController.Start 가 자기 Transform 으로 만들어 상태 머신과 공격에 넘긴다</summary>
+        /// <param name="transform">몬스터 루트 Transform</param>
+        /// <exception cref="ArgumentNullException">transform 이 null(또는 파괴됨)일 때</exception>
         public MonsterBody(Transform transform)
         {
             this.transform = transform != null ? transform : throw new ArgumentNullException(nameof(transform));
         }
 
-        /// <summary>월드 좌표 (m)</summary>
+        // 월드 좌표 (m)
         public Vector3 Position => transform.position;
 
-        /// <summary>정면 방향 (공격 판정 기준)</summary>
+        // 정면 방향 (공격 판정 기준)
         public Vector3 Forward => transform.forward;
 
-        /// <summary>대상 지점을 수평으로 바라본다</summary>
+        /// <summary>대상 지점을 수평으로 바라본다. 상태 머신(FaceTarget)과 공격 예고(StrikeAttack.OnWindup)가 부른다</summary>
+        /// <param name="worldPoint">바라볼 월드 좌표. 높이는 무시한다. 같은 위치면 회전하지 않는다</param>
         public void Face(Vector3 worldPoint)
         {
             Vector3 toPoint = worldPoint - transform.position;

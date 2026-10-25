@@ -8,7 +8,7 @@ namespace HybridShooter.Monster.Movement
     /// </summary>
     public sealed class FlankPolicy : IMovementPolicy
     {
-        /// <summary>시야 반각 바깥으로 더 벌려 잡는 여유 (도)</summary>
+        // 우회 지점을 시야 반각 바깥으로 더 벌려 잡는 여유 (도)
         private const float BearingMarginDeg = 30f;
 
         // 개체별 난수 (선회 여부, 정면 우회 시 측면 선택용)
@@ -22,6 +22,8 @@ namespace HybridShooter.Monster.Movement
         private int side;                  // 우회 중 유지하는 측면 (+1/-1), 0 = 우회 아님
         private bool committedToApproach;  // 우회를 끝내고 돌입을 확정했나 (가까워질 때까지 우회로 되돌아가지 않기 위함)
 
+        /// <summary>개체별 난수를 준비한다. MovementPolicyFactory 가 개체마다 하나씩 만든다</summary>
+        /// <param name="seed">난수 시드 (개체 InstanceID)</param>
         public FlankPolicy(int seed)
         {
             rng = new System.Random(seed);
@@ -29,8 +31,10 @@ namespace HybridShooter.Monster.Movement
 
         /// <summary>
         /// 목표 무효 → 정지. 슬롯 대기 → 제자리 대기. Wait 지시 → 근접형과 같은 대기/선회.
-        /// 그 외 → 목표 시야 안이고 멀면 시야 밖 측면 지점으로 우회, 아니면 배율 속도로 돌입
+        /// 그 외 → 목표 시야 안이고 멀면(공격 사거리 2배 초과) 시야 밖 측면 지점으로 우회, 아니면 배율 속도로 돌입
         /// </summary>
+        /// <param name="ctx">자기·목표 위치, 군중 지시, 유형별 수치를 담은 판단 입력</param>
+        /// <returns>이번 판단의 이동 의도</returns>
         public MoveIntent Evaluate(in MovementContext ctx)
         {
             var dir = ctx.Directive;
