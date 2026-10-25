@@ -13,7 +13,7 @@ namespace HybridShooter.Supply
     ///  - 하늘(지면 + SupplyDropHeight)에서 일정 속도로 떨어지다가, 지면 SupplyLandingHeight 이내로 들어오면
     ///    착지 속도(landingSpeed)까지 등감속하며 서서히 내려앉는다.
     ///  - Kinematic Rigidbody + Trigger Collider. 플레이어 콜라이더가 닿으면 키 입력 없이 자동 획득.
-    ///  - 획득 대상은 구체 클래스가 아닌 계약(IGrenadeReceiver / IHealPackReceiver)으로 찾는다.
+    ///  - 획득 대상은 구체 클래스가 아닌 계약(IItemUser)으로 찾는다.
     ///    가득 차서 못 먹으면(false) 물자는 그대로 남는다.
     ///  - 착지 후에는 시간이 지나도 사라지지 않는다. (획득 또는 라운드 정리 때만 제거)
     /// </summary>
@@ -161,19 +161,20 @@ namespace HybridShooter.Supply
 
         /// <summary>
         /// 보급 종류에 맞는 계약을 닿은 콜라이더(또는 부모)에서 찾아 실제 보유 수량을 보충한다.
-        /// 수류탄 → IGrenadeReceiver.AddGrenades, 회복 팩 → IHealPackReceiver.AddHealPacks.
+        /// 수류탄 → IItemUser.AddGrenades, 회복 팩 → IItemUser.AddHealPacks.
         /// 대상이 아니거나(플레이어 아님) 가득 차면 false.
         /// </summary>
         private bool ApplyTo(Collider other)
         {
+            var itemUser = other.GetComponentInParent<IItemUser>();
+            if (itemUser == null) return false;
+
             switch (Def.SupplyType)
             {
                 case SupplyType.Grenade:
-                    var grenadeReceiver = other.GetComponentInParent<IGrenadeReceiver>();
-                    return grenadeReceiver != null && grenadeReceiver.AddGrenades(Def.Amount);
+                    return itemUser.AddGrenades(Def.Amount);
                 case SupplyType.Heal:
-                    var healPackReceiver = other.GetComponentInParent<IHealPackReceiver>();
-                    return healPackReceiver != null && healPackReceiver.AddHealPacks(Def.Amount);
+                    return itemUser.AddHealPacks(Def.Amount);
                 default:
                     return false;
             }
