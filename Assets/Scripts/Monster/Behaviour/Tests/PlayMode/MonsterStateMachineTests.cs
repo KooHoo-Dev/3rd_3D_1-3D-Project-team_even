@@ -159,13 +159,12 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [Test]
-        public void AttackBeginsWhenReadyAndFacesTarget()
+        public void AttackBeginsWhenReady()
         {
             EnterAttack();
-            target.Position = new Vector3(1f, 0f, 0f); // 사거리 안 측면: 바라보면 정면이 오른쪽이 된다
+            target.Position = new Vector3(1f, 0f, 0f); // 사거리 안 측면. 회전은 예고 중 Tick 이 한다 (StrikeAttackTests)
             Step();
             Assert.AreEqual(1, beginCount);
-            Assert.IsTrue(body.Forward == Vector3.right);
         }
 
         [Test]
@@ -245,7 +244,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         {
             var wallSpec = new AttackSpec(AttackShape.Melee, damage: 5, hitCount: 1, cooldown: 1f,
                                           telegraphTime: 0f, recoveryTime: 0.3f, range: 1.5f, wallHitStunTime: 1f);
-            var wallAttack = new WallHitOnFirstActiveAttack(wallSpec);
+            var wallAttack = new WallHitOnFirstActiveAttack(wallSpec, body);
             wallAttack.HitTimeRatio = 0f; // 판정 대기 없이 Active 첫 판정 틱에 OnActive
             _stateMachine = new MonsterStateMachine(movement, body, wallAttack);
             _stateMachine.SetTarget(target);
@@ -317,7 +316,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
         private ConfigurableAfterAttack UseAfterAttack(AfterAttack after)
         {
-            var afterAttack = new ConfigurableAfterAttack(Bite) { AfterValue = after };
+            var afterAttack = new ConfigurableAfterAttack(Bite, body) { AfterValue = after };
             _stateMachine = new MonsterStateMachine(movement, body, afterAttack);
             return afterAttack;
         }
@@ -437,7 +436,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             public bool RepositionedValue = true;
             public int PreparationCount;
 
-            public ConfigurableAfterAttack(in AttackSpec spec) : base(spec, t => (IDamageable)t) { }
+            public ConfigurableAfterAttack(in AttackSpec spec, MonsterBody body) : base(spec, body, t => (IDamageable)t) { }
 
             public override AfterAttack After => AfterValue;
             public override bool IsPrepared => PreparedValue;
@@ -450,7 +449,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         /// <summary>공격 단계 첫 Tick 에서 벽 충돌로 끝나는 공격 (돌진형 대역)</summary>
         private sealed class WallHitOnFirstActiveAttack : MonsterAttack
         {
-            public WallHitOnFirstActiveAttack(in AttackSpec spec) : base(spec, t => (IDamageable)t) { }
+            public WallHitOnFirstActiveAttack(in AttackSpec spec, MonsterBody body) : base(spec, body, t => (IDamageable)t) { }
 
             protected override bool OnActive(float now, float deltaTime)
             {

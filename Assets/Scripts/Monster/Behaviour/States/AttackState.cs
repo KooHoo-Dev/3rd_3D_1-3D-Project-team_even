@@ -36,7 +36,6 @@ namespace HybridShooter.Monster.Behaviour
                 Owner.ChangeState(Owner.Chase);
             else
             {
-                Owner.FaceTarget();
                 var nextAttack = Owner.ChooseNextAttack();
                 if (nextAttack.CanStart(Owner.Now))
                     nextAttack.Begin(Owner.Target, Owner.Now);

@@ -106,11 +106,18 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [Test]
-        public void WindupLocksFacingTowardTarget()
+        public void WindupTurnsTowardTargetAtTurnSpeed()
         {
-            target.Position = new Vector3(1f, 0f, 0f);
+            target.Position = new Vector3(1f, 0f, 0f); // 정면에서 오른쪽 90°
+            attack.WindupTurnSpeed = 300f;
             attack.Begin(target, 0f);
-            Assert.IsTrue(body.Forward == Vector3.right);
+            Assert.IsTrue(body.Forward == Vector3.forward, "Begin 은 즉시 돌지 않는다");
+
+            attack.Tick(0.1f, 0.1f);
+            Assert.AreEqual(30f, Vector3.Angle(Vector3.forward, body.Forward), 0.1f, "300도/초 × 0.1s");
+
+            attack.Tick(0.3f, 0.2f);
+            Assert.AreEqual(0f, Vector3.Angle(Vector3.right, body.Forward), 0.1f, "목표를 넘지 않고 멈춘다");
         }
 
         [Test]

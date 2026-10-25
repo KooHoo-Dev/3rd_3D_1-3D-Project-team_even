@@ -42,6 +42,8 @@ namespace HybridShooter.Monster.Behaviour
         [SerializeField, Min(0f)] private float cooldownOverrideSeconds = 1f;
         [Tooltip("Active 구간 중 판정 시점 비율. 0 = Active 시작, 1 = Active 끝. 다음 공격 시작부터 반영")]
         [SerializeField, Range(0f, 1f)] private float hitTimeRatio = 0.5f;
+        [Tooltip("예고 중 바라볼 지점으로 도는 속도 (도/초). 0 = 돌지 않는다. 다음 프레임부터 반영")]
+        [SerializeField, Min(0f)] private float windupTurnSpeed = 360f;
 
         // Base Controller 의 Attack 상태 원본 클립 이름. Override 인덱서는 원본 클립 이름으로 슬롯을 찾는다
         private const string BaseAttackClipName = "Placeholder_Attack";
@@ -154,10 +156,10 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 인스펙터의 쿨다운과 판정 비율을 이 몬스터의 모든 공격에 넣는다.
+        /// 인스펙터의 쿨다운·판정 비율·예고 회전 속도를 이 몬스터의 모든 공격에 넣는다.
         /// 덮어쓰기가 꺼져 있으면 쿨다운은 각 공격의 데이터 테이블 값을 쓴다.
         /// </summary>
-        /// <remarks>공격은 Begin 때 값을 고정하므로 실제 반영은 다음 공격부터다.</remarks>
+        /// <remarks>쿨다운·판정 비율은 Begin 때 고정하므로 실제 반영은 다음 공격부터다. 예고 회전 속도는 다음 프레임부터 반영된다.</remarks>
         /// <exception cref="InvalidOperationException">쿨다운이 예고+회복 이하라 Active 구간 길이가 없을 때</exception>
         private void ApplyAttackTuning()
         {
@@ -172,6 +174,7 @@ namespace HybridShooter.Monster.Behaviour
 
                 attack.Cooldown = cooldown;
                 attack.HitTimeRatio = hitTimeRatio;
+                attack.WindupTurnSpeed = windupTurnSpeed;
             }
         }
 

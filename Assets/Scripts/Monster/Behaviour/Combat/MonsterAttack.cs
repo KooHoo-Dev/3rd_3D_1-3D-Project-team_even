@@ -10,6 +10,7 @@ namespace HybridShooter.Monster.Behaviour
     /// 진행 순서 "예고(TelegraphTime) → 공격(Active) → 회복(RecoveryTime)" 은 이 클래스가 고정하고,
     /// 하위 클래스는 각 단계의 내용(OnWindup / OnActive / OnRecover / OnCancel)만 정한다.
     /// 단계는 Tick 1번에 최대 1개씩 넘어간다.
+    /// 예고 중에는 모든 공격이 WindupLookPoint 쪽으로 WindupTurnSpeed 만큼씩 돈다 (회전 코드는 이 클래스 한 곳).
     /// 공격 한 주기 = Cooldown. Active 는 ActiveDuration(= Cooldown − 예고 − 회복) 동안 유지되고, 판정(OnActive)은 Active 의 HitTimeRatio 지점에서 시작한다.
     /// </summary>
     public abstract class MonsterAttack
@@ -31,6 +32,9 @@ namespace HybridShooter.Monster.Behaviour
 
         // Active 시작부터 판정까지의 비율 (0~1). 0 = Active 첫 틱에 판정
         public float HitTimeRatio { get; set; } = 0.5f;
+
+        // 예고 중 WindupLookPoint 쪽으로 도는 속도 (도/초). 0 = 돌지 않는다. MonsterController 가 인스펙터 값을 넣는다
+        public float WindupTurnSpeed { get; set; }
 
         // 진행 중(또는 마지막) 주기의 Active 길이 (s). MonsterController 가 Attack 클립 재생 배율 계산에 쓴다
         public float ActiveDuration => cycleCooldown - Spec.TelegraphTime - Spec.RecoveryTime;
@@ -60,18 +64,27 @@ namespace HybridShooter.Monster.Behaviour
         // 진행 중인 공격의 대상. 진행 중이 아니면 null
         protected IPlayerTarget Target { get; private set; }
 
+        // 공격자 몸체. 예고 중 회전과 하위 클래스의 발사 위치·판정 방향에 쓴다
+        protected MonsterBody Body { get; }
+
+        // 예고 중 바라볼 월드 좌표. 기본 = 매 Tick 움직이는 플레이어 위치. 하위 클래스가 바꾼다 (독장판 = 고정 착탄점)
+        protected virtual Vector3 WindupLookPoint => Target.PlayerTrackingInfo.Position;
+
         /// <summary>
-        /// 공격 값과 피해 대상 탐색 방법을 받는다. 하위 전략의 생성자가 호출한다. Cooldown 은 Spec.Cooldown 으로 시작한다.
+        /// 공격 값, 몸체, 피해 대상 탐색 방법을 받는다. 하위 전략의 생성자가 호출한다. Cooldown 은 Spec.Cooldown 으로 시작한다.
         /// </summary>
         /// <param name="spec">공격 1개의 값 묶음</param>
+        /// <param name="body">공격자 몸체. 예고 중 회전에 쓴다</param>
         /// <param name="findDamageable">대상에게 피해를 줄 IDamageable 을 찾는 방법 (런타임에서 주입)</param>
-        /// <exception cref="ArgumentNullException">findDamageable 이 null 일 때</exception>
-        protected MonsterAttack(in AttackSpec spec, Func<IPlayerTarget, IDamageable> findDamageable)
+        /// <exception cref="ArgumentNullException">body 또는 findDamageable 이 null 일 때</exception>
+        protected MonsterAttack(in AttackSpec spec, MonsterBody body, Func<IPlayerTarget, IDamageable> findDamageable)
         {
+            if (body == null) throw new ArgumentNullException(nameof(body));
             if (findDamageable == null) throw new ArgumentNullException(nameof(findDamageable));
 
             Spec = spec;
             Cooldown = spec.Cooldown;
+            Body = body;
             this.findDamageable = findDamageable;
         }
 
@@ -103,18 +116,19 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 단계를 진행한다. Active 는 판정 시각(시작 + ActiveDuration × 판정 비율)까지 기다렸다가 OnActive 를 부르고,
+        /// 단계를 진행한다. 예고 중에는 매 Tick WindupLookPoint 쪽으로 WindupTurnSpeed 만큼 돈다. Active 는 판정 시각(시작 + ActiveDuration × 판정 비율)까지 기다렸다가 OnActive 를 부르고,
         /// OnActive 가 끝났다고 알린 뒤 Active 시간이 다 지나야 회복으로 넘어간다.
         /// AttackState 가 공격 진행 중 매 판단마다 부른다.
         /// </summary>
         /// <param name="now">현재 시각 (s)</param>
-        /// <param name="deltaTime">지난 판단부터 경과 시간 (s). OnActive 로 넘긴다</param>
+        /// <param name="deltaTime">지난 판단부터 경과 시간 (s). 예고 중 회전량 계산과 OnActive 에 쓴다</param>
         /// <exception cref="InvalidOperationException">진행 중이 아닌(Idle) 공격을 Tick 할 때</exception>
         public void Tick(float now, float deltaTime)
         {
             switch (Phase)
             {
                 case SkillPhase.Windup:
+                    Body.TurnToward(WindupLookPoint, WindupTurnSpeed, deltaTime);
                     if (now < phaseEndTime) return;
                     activeStartTime = now;
                     SetPhase(SkillPhase.Active, now);
@@ -169,7 +183,7 @@ namespace HybridShooter.Monster.Behaviour
 
         // ── 하위 클래스 훅 ──
 
-        /// <summary>예고 시작 (조준 고정, 예고 범위 표시)</summary>
+        /// <summary>예고 시작 (목표 확정, 예고 범위 표시). 회전은 Tick 이 WindupLookPoint 로 한다</summary>
         protected virtual void OnWindup() { }
 
         /// <summary>실제 공격 (판정 시각부터 매 틱 호출)</summary>

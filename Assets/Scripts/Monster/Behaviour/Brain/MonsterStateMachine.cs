@@ -257,8 +257,6 @@ namespace HybridShooter.Monster.Behaviour
         internal void StopForAttack() => movement.SetSuspended(true, retainReservation: true);
         /// <summary>Chase 진입 때 이동을 재개한다</summary>
         internal void ResumeMove() => movement.SetSuspended(false);
-        /// <summary>AttackState 가 공격 시작 전 대상 쪽을 수평으로 바라보게 한다. 대상이 있어야 한다</summary>
-        internal void FaceTarget() => body.Face(Target.PlayerTrackingInfo.Position);
         /// <summary>DeadState 진입 때 Died 이벤트를 보상 지급 여부와 함께 발행한다</summary>
         internal void NotifyDied() => Died?.Invoke(GrantReward);
     }

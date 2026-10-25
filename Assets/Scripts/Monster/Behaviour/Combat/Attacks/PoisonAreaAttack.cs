@@ -11,7 +11,6 @@ namespace HybridShooter.Monster.Behaviour
     /// </summary>
     public sealed class PoisonAreaAttack : MonsterAttack
     {
-        private readonly MonsterBody body;
         private readonly PoisonAreaSettings settings;
         private readonly StatusEffectDef effect;
         private readonly Func<IPlayerTarget, IDamageable> findDamageable;
@@ -19,6 +18,9 @@ namespace HybridShooter.Monster.Behaviour
         // ── 이번 주기 (예고 시작에 정하고 발사 때 투사체로 넘긴다) ──
         private Vector3 targetPoint;   // 착탄점 (Terrain 표면)
         private Transform marker;      // 발사 전 예고 표식. null = 없음 또는 투사체로 넘김
+
+        // 예고 중 착탄점 쪽으로 돈다 (플레이어를 따라가지 않는다)
+        protected override Vector3 WindupLookPoint => targetPoint;
 
         /// <summary>
         /// MonsterAttackFactory 가 ZonePressure 역할에 만든다.
@@ -28,26 +30,23 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="findDamageable">대상에서 피해를 줄 IDamageable 을 찾는 방법. 장판이 쓴다</param>
         /// <param name="settings">원거리 프리팹의 설정 (풀·발사 높이·피해 높이 허용값)</param>
         /// <param name="effect">장판의 틱 피해·간격·지속 (StatusEffectTable)</param>
-        /// <exception cref="ArgumentNullException">body, settings, effect 중 하나가 null 일 때 (프리팹에 PoisonAreaSettings 가 없을 때 등)</exception>
+        /// <exception cref="ArgumentNullException">body, settings, effect 중 하나가 null 일 때 (프리팹에 PoisonAreaSettings 가 없을 때 등). body 는 기반 생성자가 던진다</exception>
         public PoisonAreaAttack(in AttackSpec spec, MonsterBody body, Func<IPlayerTarget, IDamageable> findDamageable,
                                 PoisonAreaSettings settings, StatusEffectDef effect)
-            : base(spec, findDamageable)
+            : base(spec, body, findDamageable)
         {
-            if (body == null) throw new ArgumentNullException(nameof(body));
             if (settings == null) throw new ArgumentNullException(nameof(settings), "원거리 몬스터 프리팹에 PoisonAreaSettings 가 없다");
             if (effect == null) throw new ArgumentNullException(nameof(effect));
 
-            this.body = body;
             this.settings = settings;
             this.effect = effect;
             this.findDamageable = findDamageable;
         }
 
-        /// <summary>예고 시작: 플레이어 발밑 Terrain 지면점을 목표로 확정하고, 그쪽을 보고, 표식을 켠다</summary>
+        /// <summary>예고 시작: 플레이어 발밑 Terrain 지면점을 목표로 확정하고 표식을 켠다. 그쪽으로 도는 것은 예고 중 Tick 이 한다</summary>
         protected override void OnWindup()
         {
             targetPoint = TerrainGround.PointUnder(Target.PlayerTrackingInfo.Position);
-            body.Face(targetPoint);
 
             float diameter = Spec.Radius * 2f;
             marker = settings.MarkerPool.Get(targetPoint);
@@ -58,7 +57,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <returns>항상 true (동작 완료)</returns>
         protected override bool OnActive(float now, float deltaTime)
         {
-            Vector3 launchPoint = body.Position + Vector3.up * settings.LaunchHeight;
+            Vector3 launchPoint = Body.Position + Vector3.up * settings.LaunchHeight;
             PoisonProjectile projectile = settings.ProjectilePool.Get(launchPoint);
             projectile.Launch(settings, launchPoint, targetPoint, Spec.ProjectileSpeed, marker,
                               Target, Spec.Radius, effect, findDamageable, Spec.SourceDefId);
