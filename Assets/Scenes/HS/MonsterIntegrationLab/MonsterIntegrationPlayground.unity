@@ -796,10 +796,10 @@ Transform:
   - {fileID: 1304317026}
   - {fileID: 790174625}
   - {fileID: 1039042971}
+  - {fileID: 6398381555528643356}
   - {fileID: 349576669600419823}
   - {fileID: 1357165565}
   - {fileID: 1442314330}
-  - {fileID: 6398381555528643356}
   m_Father: {fileID: 1785309838}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1175457863
@@ -901,7 +901,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6221495752859311938, guid: b86b7ae0afd07dc4b93107c803e35712, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1358,7 +1358,7 @@ GameObject:
   - component: {fileID: 1785309838}
   - component: {fileID: 1785309837}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: Tester
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1385,7 +1385,7 @@ MonoBehaviour:
   spawnRadius: 12
   spawnSampleDistance: 3
   monsterPrefabs:
-  - {fileID: 7794425194075702535, guid: 7df4d2beaf77cfd43940ad8332fc655c, type: 3}
+  - {fileID: 3281474137550595047, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
   monsterVisualScale: 1
   thinkCycle: 0.5
 --- !u!4 &1785309838
@@ -1466,7 +1466,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7794425194075702535, guid: 7df4d2beaf77cfd43940ad8332fc655c, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -18571,10 +18571,10 @@ MeshCollider:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 1645460288}
+  - {fileID: 573109723}
   - {fileID: 1785309838}
   - {fileID: 1875854999}
   - {fileID: 1186703177}
   - {fileID: 7639047734907975239}
   - {fileID: 1113266350}
-  - {fileID: 1645460288}
-  - {fileID: 573109723}
