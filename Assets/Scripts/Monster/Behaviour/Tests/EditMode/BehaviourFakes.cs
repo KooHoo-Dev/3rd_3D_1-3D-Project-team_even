@@ -45,7 +45,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
     internal sealed class FakeAttack : IMonsterAttack
     {
         public float Range { get; set; } = 1.5f;
-        public bool IsRunning { get; set; }
+        public bool IsAttacking { get; set; }
         public AttackResult LastResult { get; set; }
         public float WallHitStunTime { get; set; } = 2f;
         public bool Ready { get; set; } = true;
@@ -59,7 +59,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         public void Begin(IPlayerTarget target, float now)
         {
             BeginCount++;
-            IsRunning = true;
+            IsAttacking = true;
             LastResult = AttackResult.None;
         }
 
@@ -68,14 +68,14 @@ namespace HybridShooter.Monster.Behaviour.Tests
         public void Cancel()
         {
             CancelCount++;
-            IsRunning = false;
+            IsAttacking = false;
             LastResult = AttackResult.Cancelled;
         }
 
         /// <summary>다음 Tick 이후 끝난 것으로 보이게 한다</summary>
         public void Finish(AttackResult result)
         {
-            IsRunning = false;
+            IsAttacking = false;
             LastResult = result;
         }
     }

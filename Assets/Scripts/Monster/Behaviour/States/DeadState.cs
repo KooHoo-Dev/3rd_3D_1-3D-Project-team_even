@@ -11,6 +11,6 @@ namespace HybridShooter.Monster.Behaviour
             Owner.NotifyDied();
         }
 
-        public override void Update() { }
+        public override void Tick() { }
     }
 }

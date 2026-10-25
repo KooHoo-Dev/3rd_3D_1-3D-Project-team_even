@@ -74,11 +74,11 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>null = 대상 상실 (플레이어 사망 등)</summary>
         public void SetTarget(IPlayerTarget target)
         {
-            if (!ReferenceEquals(Target, target) && CurrentAttack.IsRunning) CurrentAttack.Cancel();
+            if (!ReferenceEquals(Target, target) && CurrentAttack.IsAttacking) CurrentAttack.Cancel();
             Target = target;
             if (!HasTarget)
             {
-                if (CurrentAttack.IsRunning) CurrentAttack.Cancel();
+                if (CurrentAttack.IsAttacking) CurrentAttack.Cancel();
                 if (Current == Attack || Current == Chase) ChangeState(Idle);
             }
         }
@@ -89,7 +89,7 @@ namespace HybridShooter.Monster.Behaviour
             Now = now;
             DeltaTime = deltaTime;
             if (!HasTarget && (Current == Attack || Current == Chase)) SetTarget(null);
-            Current.Update();
+            Current.Tick();
         }
 
         /// <summary>같은 상태로의 변경과 Dead 이후의 변경은 무시한다</summary>
@@ -126,7 +126,7 @@ namespace HybridShooter.Monster.Behaviour
         public void Cleanup()
         {
             SetTarget(null);
-            if (CurrentAttack.IsRunning) CurrentAttack.Cancel();
+            if (CurrentAttack.IsAttacking) CurrentAttack.Cancel();
             if (!IsDead) ChangeState(Idle);
             mover.Stop();
         }

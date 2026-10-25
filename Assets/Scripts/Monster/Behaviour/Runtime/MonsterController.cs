@@ -14,47 +14,69 @@ namespace HybridShooter.Monster.Behaviour
     /// Awake에서 Def/체력을 준비하고 모든 Awake 이후 Start에서 이동·공격·브레인을 조립한다.
     /// (기본 IMonsterFactory 는 프리팹을 Instantiate 만 하므로 초기화는 여기서 스스로 한다)
     /// 매 프레임 브레인을 돌리고, 대상 확보·처치·정리 이벤트를 브레인에 전달한다.
+    /// 체력(부위 없음, 단일 체력)도 직접 가진다. 라이플·수류탄이 IDamageable 로 찾아 피해를 준다.
     /// </summary>
-    [RequireComponent(typeof(MonsterHealth), typeof(MonsterMovement), typeof(NavMeshMoveExecutor))]
-    public sealed class MonsterController : MonoBehaviour
+    [RequireComponent(typeof(MonsterMovement), typeof(NavMeshMoveExecutor))]
+    public sealed class MonsterController : MonoBehaviour, IDamageable
     {
         [Tooltip("MonsterTable Id")]
         [SerializeField] private int monsterId;
         [Tooltip("처치 후 회수까지 (s). 처치 연출 시간")]
         [SerializeField, Min(0f)] private float despawnDelay = 2f;
 
-        private MonsterHealth health;
-        private MovementMonsterMover mover;
+        [Header("애니메이션")]
+        [Tooltip("Move 클립을 1배속으로 재생할 때의 이동 속도 (m/s)")]
+        [SerializeField, Min(0.01f)] private float moveClipSpeed = 3f;
+        [Tooltip("Chase 중 이 속도 미만이면 Idle 애니를 재생 (m/s)")]
+        [SerializeField, Min(0f)] private float idleSpeedThreshold = 0.1f;
+
+        /// <summary>Base Controller 의 Attack 상태 원본 클립 이름. Override 인덱서는 원본 클립 이름으로 찾는다</summary>
+        private const string BaseAttackClipName = "Placeholder_Attack";
+
+        private MonsterMover mover;
         private MonsterMovement movement;
         private bool playerDead;
         private float despawnTime = -1f;
         private bool despawned;
 
+        // ── 애니메이션 ──
+        private Animator animator;
+        private float attackAnimationSpeed; // 공격 클립이 예고+회복 시간에 끝나는 재생 배율
+
         public MonsterDef Def { get; private set; }
         public MonsterStateMachine StateMachine { get; private set; }
 
+        // ── 체력 ──
+        public int MaxHp { get; private set; }
+        public int CurrentHp { get; private set; }
+        public Faction Faction => Faction.Monster;
+        public bool IsAlive => CurrentHp > 0;
+
         private void Awake()
         {
-            health = GetComponent<MonsterHealth>();
             movement = GetComponent<MonsterMovement>();
+            animator = GetComponent<Animator>();
             if (TryGetComponent<SimpleChaseMover>(out var legacy) && legacy.enabled)
                 throw new InvalidOperationException("MonsterController의 SimpleChaseMover를 제거하거나 비활성화해야 한다");
 
             Def = DataManager.Monsters.Get(monsterId);
-            health.Initialize(Def.MaxHp);
+            InitializeHealth(Def.MaxHp);
         }
 
         private void Start()
         {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
-            mover = new MovementMonsterMover(movement);
+            mover = new MonsterMover(movement);
 
             var body = new TransformMonsterBody(transform);
-            var attack = MonsterBrainFactory.CreateAttack(Def.Role, AttackSpec.From(SingleBasicAttack(Def)), body, FindPlayerDamageable);
+            var attackSpec = AttackSpec.From(SingleBasicAttack(Def));
+            var attack = MonsterBrainFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable);
             movement.SetCombatTuning(Def.MoveSpeed, attack.Range);
             StateMachine = new MonsterStateMachine(mover, body, attack);
+            attackAnimationSpeed = ReadAttackClipSeconds() / (attackSpec.TelegraphTime + attackSpec.RecoveryTime);
 
             StateMachine.Died += OnStateMachineDied;
+            StateMachine.StateChanged += OnStateChanged;
             Subscribe();
         }
 
@@ -67,7 +89,6 @@ namespace HybridShooter.Monster.Behaviour
 
         private void Subscribe()
         {
-            health.Depleted += OnHealthDepleted;
             EventBus<MonsterWipeRequestedEvent>.Subscribe(OnWipeRequested);
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
             EventBus<PlayerDiedEvent>.Subscribe(OnPlayerDied);
@@ -77,7 +98,6 @@ namespace HybridShooter.Monster.Behaviour
         {
             StateMachine?.Cleanup();
             if (movement != null) movement.enabled = false;
-            if (health != null) health.Depleted -= OnHealthDepleted;
             EventBus<MonsterWipeRequestedEvent>.Unsubscribe(OnWipeRequested);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
             EventBus<PlayerDiedEvent>.Unsubscribe(OnPlayerDied);
@@ -93,6 +113,65 @@ namespace HybridShooter.Monster.Behaviour
 
             AcquireTarget();
             StateMachine.Update(Time.time, Time.deltaTime);
+            UpdateMoveAnimation();
+        }
+
+        /// <summary>
+        /// 상태가 바뀔 때 애니를 바꾼다. Attack/Stunned/Death 는 같은 이름 Trigger 로 들어가고(Attack 은 공격 시간에 맞춘 배율),
+        /// Attack/Stunned 에서 Idle/Chase 로 나올 때만 Idle Trigger 를 보낸다. 받을 전이가 있을 때만 보내야 Trigger 가 소비되지 않고 남지 않는다.
+        /// Idle/Chase 안의 정지·이동은 UpdateMoveAnimation 이 IsMoving 으로 정한다.
+        /// </summary>
+        private void OnStateChanged(MonsterState previous, MonsterState current)
+        {
+            animator.speed = 1f;
+            animator.SetBool("IsMoving", false);
+
+            if (current == StateMachine.Attack)
+            {
+                animator.SetTrigger("Attack");
+                animator.speed = attackAnimationSpeed;
+                return;
+            }
+            if (current == StateMachine.Stunned)
+            {
+                animator.SetTrigger("Stunned");
+                return;
+            }
+            if (current == StateMachine.Dead)
+            {
+                animator.SetTrigger("Death");
+                return;
+            }
+
+            // 여기부터 Idle / Chase 진입
+            bool cameFromAttackOrStunned = previous == StateMachine.Attack || previous == StateMachine.Stunned;
+            if (cameFromAttackOrStunned) animator.SetTrigger("Idle");
+        }
+
+        /// <summary>
+        /// Chase 중 실제 이동 속도로 IsMoving 을 매 프레임 넣어 Idle ↔ Move 전이를 일으킨다.
+        /// Move 면 재생 배율을 속도 / moveClipSpeed 로 맞춰 발 미끄러짐을 줄인다.
+        /// </summary>
+        private void UpdateMoveAnimation()
+        {
+            if (StateMachine.Current != StateMachine.Chase) return;
+
+            float speed = movement.Velocity.magnitude;
+            bool shouldMove = speed >= idleSpeedThreshold;
+            animator.SetBool("IsMoving", shouldMove);
+
+            if (shouldMove) animator.speed = speed / moveClipSpeed;
+            else animator.speed = 1f;
+        }
+
+        /// <summary>몬스터별 Override Controller 의 Attack 슬롯 클립 길이 (s). 클립이 없으면 예외</summary>
+        private float ReadAttackClipSeconds()
+        {
+            var overrideController = (AnimatorOverrideController)animator.runtimeAnimatorController;
+            AnimationClip attackClip = overrideController[BaseAttackClipName];
+            if (attackClip == null)
+                throw new InvalidOperationException($"{name}: Override Controller 에 {BaseAttackClipName} 슬롯 클립이 없다");
+            return attackClip.length;
         }
 
         /// <summary>대상이 없으면 ServiceLocator 의 플레이어를 브레인과 이동에 같은 값으로 넣는다</summary>
@@ -104,7 +183,28 @@ namespace HybridShooter.Monster.Behaviour
             mover.SetTarget(player);
         }
 
-        private void OnHealthDepleted() => StateMachine.Die(true);
+        /// <summary>Awake 에서 테이블 MaxHp 로 체력을 채운다</summary>
+        private void InitializeHealth(int maxHp)
+        {
+            if (maxHp <= 0) throw new ArgumentOutOfRangeException(nameof(maxHp), maxHp, "최대 체력은 1 이상");
+            MaxHp = maxHp;
+            CurrentHp = maxHp;
+        }
+
+        /// <summary>
+        /// 무기가 IDamageable 로 호출한다. 맞을 때마다 DamageDealtEvent 를 발행하고,
+        /// 체력이 0 이 된 순간 1번 브레인을 Dead 로 보낸다 (보상 지급).
+        /// </summary>
+        public void TakeDamage(in DamageInfo info)
+        {
+            if (MaxHp == 0) throw new InvalidOperationException($"{nameof(InitializeHealth)} 전에 피해를 받았다");
+            if (IsAlive == false) return;
+
+            CurrentHp = Mathf.Max(0, CurrentHp - info.Amount);
+            bool isKill = IsAlive == false;
+            EventBus<DamageDealtEvent>.Publish(new DamageDealtEvent(gameObject, info, isKill));
+            if (isKill) StateMachine.Die(true);
+        }
 
         private void OnStateMachineDied(bool grantReward)
         {

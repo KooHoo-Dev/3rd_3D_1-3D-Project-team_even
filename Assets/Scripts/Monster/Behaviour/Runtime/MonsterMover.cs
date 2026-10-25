@@ -4,11 +4,11 @@ using HybridShooter.Monster.Movement;
 namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>Behaviour가 Movement의 정지·예약·공격 허가를 사용하는 연결 경계.</summary>
-    public sealed class MovementMonsterMover : IMonsterCombatMover
+    public sealed class MonsterMover : IMonsterCombatMover
     {
         private readonly MonsterMovement movement;
 
-        public MovementMonsterMover(MonsterMovement movement) => this.movement = movement;
+        public MonsterMover(MonsterMovement movement) => this.movement = movement;
         public bool IsStopped => movement.IsSuspended;
         public bool CanAttack => movement.CanAttack;
         public void Stop() => movement.SetSuspended(true);

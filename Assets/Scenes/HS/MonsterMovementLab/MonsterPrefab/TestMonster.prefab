@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 4530092942616250270}
   - component: {fileID: 8948492502033700938}
   - component: {fileID: 3754597689590589982}
-  - component: {fileID: -606130744087120106}
   - component: {fileID: -10430956279032947}
   - component: {fileID: -54523037220456611}
   - component: {fileID: 4718260786576621990}
@@ -117,18 +116,6 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &-606130744087120106
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6469838692769259260}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 969bfa8f3272bcc4cac19f2300e0e4a0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterHealth
 --- !u!114 &-10430956279032947
 MonoBehaviour:
   m_ObjectHideFlags: 0

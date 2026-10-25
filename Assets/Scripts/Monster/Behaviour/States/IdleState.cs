@@ -7,7 +7,7 @@ namespace HybridShooter.Monster.Behaviour
 
         public override void Enter() => Owner.StopMove();
 
-        public override void Update()
+        public override void Tick()
         {
             if (Owner.HasTarget) Owner.ChangeState(Owner.Chase);
         }

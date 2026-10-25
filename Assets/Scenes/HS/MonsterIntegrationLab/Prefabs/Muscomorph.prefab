@@ -1849,7 +1849,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1282629706231557258}
   - component: {fileID: 2645137613515556809}
-  - component: {fileID: -2590326965950881060}
   - component: {fileID: 6684576620808380083}
   - component: {fileID: 4993678701147813813}
   - component: {fileID: -5282420452375643821}
@@ -1894,7 +1893,7 @@ Animator:
   m_GameObject: {fileID: 7794425194075702535}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 85f1ce7badb613040b0c9e4a88522f7c, type: 3}
-  m_Controller: {fileID: 9100000, guid: e0fe3ffbc90c3c242a8117ad4c924eba, type: 2}
+  m_Controller: {fileID: 22100000, guid: 14f0ae1ad9dd0c543b88f6d2cd532799, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
@@ -1906,18 +1905,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &-2590326965950881060
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7794425194075702535}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 969bfa8f3272bcc4cac19f2300e0e4a0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterHealth
 --- !u!114 &6684576620808380083
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1987,6 +1974,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterController
   monsterId: 1001
   despawnDelay: 2
+  moveClipSpeed: 3
+  idleSpeedThreshold: 0.1
 --- !u!1 &7960356510021968820
 GameObject:
   m_ObjectHideFlags: 0

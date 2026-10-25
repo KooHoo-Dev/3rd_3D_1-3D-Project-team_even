@@ -10,7 +10,7 @@ namespace HybridShooter.Monster.Behaviour
         protected MonsterState(MonsterStateMachine owner) { Owner = owner; }
 
         public virtual void Enter() { }     // 이 상태로 들어온 순간 1번
-        public abstract void Update();      // 머무는 동안 매 판단
+        public abstract void Tick();      // 머무는 동안 매 판단
         public virtual void Exit() { }      // 이 상태를 떠나는 순간 1번
     }
 }

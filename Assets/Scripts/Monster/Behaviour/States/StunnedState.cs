@@ -13,7 +13,7 @@ namespace HybridShooter.Monster.Behaviour
             endTime = Owner.Now + Owner.StunDuration;
         }
 
-        public override void Update()
+        public override void Tick()
         {
             if (Owner.Now < endTime) return;
             Owner.ChangeState(Owner.HasTarget ? Owner.Chase : Owner.Idle);

@@ -10,31 +10,34 @@ namespace HybridShooter.Monster.Behaviour
 
         public override void Enter() => Owner.StopForAttack();
 
-        public override void Update()
+        public override void Tick()
         {
             var attack = Owner.CurrentAttack;
-            if (attack.IsRunning)
+            if (attack.IsAttacking)
             {
                 attack.Tick(Owner.Now, Owner.DeltaTime);
-                if (attack.IsRunning == false && attack.LastResult == AttackResult.WallHit)
+                if (attack.IsAttacking == false && attack.LastResult == AttackResult.WallHit)
                     Owner.Stun(attack.WallHitStunTime);
-                else if (!attack.IsRunning)
+                else if (attack.IsAttacking == false)
                     Owner.ChangeState(Owner.HasTarget ? Owner.Chase : Owner.Idle);
                 return;
             }
 
-            if (Owner.HasTarget == false) Owner.ChangeState(Owner.Idle);
-            else if (Owner.IsTargetInAttackRange == false || !Owner.CanAttack) Owner.ChangeState(Owner.Chase);
+            if (Owner.HasTarget == false) 
+                Owner.ChangeState(Owner.Idle);
+            else if (Owner.IsTargetInAttackRange == false || Owner.CanAttack == false) 
+                Owner.ChangeState(Owner.Chase);
             else
             {
                 Owner.FaceTarget();
-                if (attack.CanStart(Owner.Now)) attack.Begin(Owner.Target, Owner.Now);
+                if (attack.CanStart(Owner.Now)) 
+                    attack.Begin(Owner.Target, Owner.Now);
             }
         }
 
         public override void Exit()
         {
-            if (Owner.CurrentAttack.IsRunning) Owner.CurrentAttack.Cancel();
+            if (Owner.CurrentAttack.IsAttacking) Owner.CurrentAttack.Cancel();
             Owner.StopMove(); // 공격 한 주기가 끝나면 예약을 반환한 뒤 다시 경쟁한다.
         }
     }

@@ -7,7 +7,7 @@ namespace HybridShooter.Monster.Behaviour
 
         public override void Enter() => Owner.ResumeMove();
 
-        public override void Update()
+        public override void Tick()
         {
             if (Owner.HasTarget == false) Owner.ChangeState(Owner.Idle);
             else if (Owner.IsTargetInAttackRange && Owner.CanAttack) Owner.ChangeState(Owner.Attack);

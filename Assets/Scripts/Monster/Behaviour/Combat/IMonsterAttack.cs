@@ -20,7 +20,7 @@ namespace HybridShooter.Monster.Behaviour
         float Range { get; }
 
         /// <summary>예고·공격·회복 중 하나에 있으면 true</summary>
-        bool IsRunning { get; }
+        bool IsAttacking { get; }
 
         AttackResult LastResult { get; }
 

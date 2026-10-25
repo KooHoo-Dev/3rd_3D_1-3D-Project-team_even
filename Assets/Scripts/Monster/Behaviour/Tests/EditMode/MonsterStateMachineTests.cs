@@ -243,13 +243,13 @@ namespace HybridShooter.Monster.Behaviour.Tests
         private sealed class WallHitOnFirstTickAttack : IMonsterAttack
         {
             public float Range { get; set; }
-            public bool IsRunning { get; private set; }
+            public bool IsAttacking { get; private set; }
             public AttackResult LastResult { get; private set; }
             public float WallHitStunTime { get; set; }
             public bool CanStart(float now) => true;
-            public void Begin(IPlayerTarget target, float now) { IsRunning = true; LastResult = AttackResult.None; }
-            public void Tick(float now, float deltaTime) { IsRunning = false; LastResult = AttackResult.WallHit; }
-            public void Cancel() { IsRunning = false; LastResult = AttackResult.Cancelled; }
+            public void Begin(IPlayerTarget target, float now) { IsAttacking = true; LastResult = AttackResult.None; }
+            public void Tick(float now, float deltaTime) { IsAttacking = false; LastResult = AttackResult.WallHit; }
+            public void Cancel() { IsAttacking = false; LastResult = AttackResult.Cancelled; }
         }
     }
 }

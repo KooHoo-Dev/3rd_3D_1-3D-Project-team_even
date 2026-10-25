@@ -44,8 +44,8 @@ namespace HybridShooter.Monster.Behaviour.Tests
         private void StepUntilAttackRunning()
         {
             _stateMachine.SetTarget(target);
-            for (int i = 0; i < 10 && attack.IsRunning == false; i++) Step();
-            Assert.IsTrue(attack.IsRunning, "사전 조건: 공격이 진행 중이어야 한다");
+            for (int i = 0; i < 10 && attack.IsAttacking == false; i++) Step();
+            Assert.IsTrue(attack.IsAttacking, "사전 조건: 공격이 진행 중이어야 한다");
         }
 
         [Test]
@@ -56,7 +56,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             _stateMachine.SetTarget(null);
             for (int i = 0; i < 20; i++) Step();
 
-            Assert.IsFalse(attack.IsRunning);
+            Assert.IsFalse(attack.IsAttacking);
             Assert.AreEqual(0, target.Received.Count);
             Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
         }

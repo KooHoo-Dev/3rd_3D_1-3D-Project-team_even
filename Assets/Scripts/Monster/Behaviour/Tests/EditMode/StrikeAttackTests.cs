@@ -50,7 +50,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreEqual(SkillPhase.Recover, attack.Phase, "회복 시간 전");
 
             attack.Tick(0.8f, 0.1f);
-            Assert.IsFalse(attack.IsRunning);
+            Assert.IsFalse(attack.IsAttacking);
             Assert.AreEqual(AttackResult.Completed, attack.LastResult);
             CollectionAssert.AreEqual(
                 new[] { SkillPhase.Windup, SkillPhase.Active, SkillPhase.Recover, SkillPhase.Idle }, phases);
@@ -97,7 +97,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             brain.SetTarget(target);
             attack.Begin(target, 0f);
             brain.SetTarget(null);
-            Assert.IsFalse(attack.IsRunning);
+            Assert.IsFalse(attack.IsAttacking);
             Assert.AreEqual(AttackResult.Cancelled, attack.LastResult);
             Assert.AreEqual(0, target.Received.Count);
         }
@@ -112,7 +112,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             attack.Tick(0.4f, 0.4f);
             attack.Tick(0.5f, 0.1f);
             attack.Tick(0.8f, 0.3f);
-            Assert.IsFalse(attack.IsRunning);
+            Assert.IsFalse(attack.IsAttacking);
             Assert.IsFalse(attack.CanStart(1.1f));
             Assert.IsTrue(attack.CanStart(1.2f));
         }
@@ -122,7 +122,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         {
             attack.Begin(target, 0f);
             attack.Cancel();
-            Assert.IsFalse(attack.IsRunning);
+            Assert.IsFalse(attack.IsAttacking);
             Assert.AreEqual(AttackResult.Cancelled, attack.LastResult);
             Assert.AreEqual(SkillPhase.Idle, phases[phases.Count - 1]);
             Assert.AreEqual(0, target.Received.Count);

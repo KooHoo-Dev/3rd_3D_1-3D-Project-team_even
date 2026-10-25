@@ -19,7 +19,7 @@ namespace HybridShooter.Monster.Behaviour
 
         public AttackSpec Spec { get; }
         public SkillPhase Phase { get; private set; } = SkillPhase.Idle;
-        public bool IsRunning => Phase != SkillPhase.Idle;
+        public bool IsAttacking => Phase != SkillPhase.Idle;
         public AttackResult LastResult { get; private set; }
         public virtual float Range => Spec.Range;
         public float WallHitStunTime => Spec.WallHitStunTime;
@@ -38,11 +38,11 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>쿨다운 확인. 하위 클래스가 발동 조건을 더할 수 있다</summary>
-        public virtual bool CanStart(float now) => IsRunning == false && now >= nextReadyTime;
+        public virtual bool CanStart(float now) => IsAttacking == false && now >= nextReadyTime;
 
         public void Begin(IPlayerTarget target, float now)
         {
-            if (IsRunning) throw new InvalidOperationException("이미 진행 중인 공격이다");
+            if (IsAttacking) throw new InvalidOperationException("이미 진행 중인 공격이다");
             Target = target ?? throw new ArgumentNullException(nameof(target));
             LastResult = AttackResult.None;
             nextReadyTime = now + Spec.Cooldown;
@@ -73,7 +73,7 @@ namespace HybridShooter.Monster.Behaviour
 
         public void Cancel()
         {
-            if (IsRunning == false) return;
+            if (IsAttacking == false) return;
             OnCancel();
             Finish(AttackResult.Cancelled);
         }
@@ -96,6 +96,7 @@ namespace HybridShooter.Monster.Behaviour
         protected void EndEarly(AttackResult result) => Finish(result);
 
         /// <summary>대상에게 Damage × HitCount 피해. 대상이 이미 죽었으면 주지 않는다</summary>
+        /// 아직 전투시스템 관련 적용되지 않았음
         protected void Hit(IPlayerTarget target, Vector3 from)
         {
             var damageable = findDamageable(target)
@@ -106,6 +107,8 @@ namespace HybridShooter.Monster.Behaviour
             direction = direction.sqrMagnitude > 1e-8f ? direction.normalized : Vector3.zero;
             var info = new DamageInfo(Spec.Damage, DamageKind.MonsterAttack, Faction.Monster, null,
                                       target.PlayerTrackingInfo.Position, direction, Spec.SourceDefId);
+            
+            // 전투시스템 없어서 직접 피해주기
             for (int i = 0; i < Spec.HitCount; i++)
                 damageable.TakeDamage(in info);
         }
