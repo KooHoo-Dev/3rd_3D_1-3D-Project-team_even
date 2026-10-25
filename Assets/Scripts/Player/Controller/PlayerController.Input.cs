@@ -110,7 +110,7 @@ namespace HybridShooter.Player
             // delta 는 이미 "이번 프레임 이동량" 이라 deltaTime 을 곱하지 않는다
             Vector2 delta = mouse.delta.ReadValue() * (mouseSensitivity * aimSensitivity);
             lookYaw = Mathf.Repeat(lookYaw + delta.x, 360f);
-            lookPitch = Mathf.Clamp(lookPitch + (invertY ? delta.y : -delta.y), minPitch, maxPitch);
+            lookPitch = Mathf.Clamp(lookPitch + (invertY ? delta.y : -delta.y), minPitch, MaxPitch);
         }
 
         private void SetCursorLocked(bool locked)

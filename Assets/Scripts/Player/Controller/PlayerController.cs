@@ -23,11 +23,13 @@ namespace HybridShooter.Player
     ///  - PlayerController.UnityMethod   : Awake / Start / Update / FixedUpdate / LateUpdate 등 유니티 메시지
     ///  - PlayerController.Input         : 키보드·마우스 입력 → 이동·무기·아이템 요청
     ///  - PlayerController.InputSettings : 키 배치
-    ///  - PlayerController.ViewMode      : 1·3인칭 시점 전환 연출
+    ///  - PlayerController.ViewMode      : 1·3인칭 시점 전환 연출, 전환 시작·완료 알림(CameraModeChangedEvent)
+    ///  - PlayerController.BossView      : 보스 등장 시 3인칭 자동 전환, 보스전 카메라, 시점 고정
     ///  - PlayerController.CameraRig     : 카메라 리그 회전, 눈 위치, 3인칭 벽 충돌, 조준 확대, 1인칭 머리 숨김
     ///  - PlayerController.BodyVisual    : 보이는 몸 yaw 맞추기
     ///  - PlayerController.Movement      : 바닥 판정, 걷기·구르기·점프(물리), 속도 배율
     ///  - PlayerController.Health        : 체력, 회복, 피격, 사망
+    ///  - PlayerController.Stamina       : 스태미나 (달리기·구르기 소모, 회복)
     ///  - PlayerController.API           : 바깥에서 쓰는 이벤트·프로퍼티·메서드
     /// </summary>
     [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]

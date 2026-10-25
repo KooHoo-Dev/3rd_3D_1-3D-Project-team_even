@@ -14,6 +14,9 @@ namespace HybridShooter.Player
     ///  - 총 방향 = 눈 정면. 벽이 총 길이보다 가까우면 총을 몸 쪽으로 당기고 총구를 내린다
     ///  - 사격 반동(PlayerGunRecoil)은 이 총 자리에 더한다 (조준 중에는 줄여서)
     ///  - 오른손 = 총과 손의 지금 관계 그대로 (총은 오른손 아래 WeaponSocket 에 붙어 있다), 왼손 = 총의 LeftHandGrip
+    ///  - 팔꿈치: 손 효과기 회전을 쓰면 FBBIK 는 팔꿈치 방향을 손 회전에서 정한다 → 아래를 보면 손과 함께 돌아 팔이 안쪽으로 꺾인다.
+    ///    그래서 어깨에서 몸 기준(좌우 yaw 만, 위아래 시선은 따르지 않음) elbowDirection 쪽에 bend goal 을 두고 그 방향으로 접는다
+    ///    (가중치 = elbowWeight × 손 IK 가중치 → 3인칭·반동·재장전·던지기에는 영향 없음)
     ///  - 총별 값은 WeaponGripTable(fpHipSight, adsDistance), 없으면 여기 기본값. IK Pose Lab 에서 1인칭으로 보며 고친다
     ///  - 가중치 = 1인칭 정도(시점 전환 중 부드럽게) × 상체 자세 레이어 × 팔 동작 없음 (재장전·꺼내기는 애니메이션 그대로)
     /// 실행 순서: AimIK(9997, 척추가 시선을 따라감) → 이 스크립트(9998, 손 목표) → FullBodyBipedIK(9999)
@@ -38,6 +41,12 @@ namespace HybridShooter.Player
         [Tooltip("어깨 견착 조준: 조준기가 올 자리 (1인칭 눈 기준 m). 총이 화면 오른쪽 아래로 비켜 있고 중앙은 조준선 UI")]
         [SerializeField] private Vector3 shoulderSight = new Vector3(0.17f, -0.12f, 0.3f);
 
+        [Header("팔꿈치 방향")]
+        [Tooltip("오른 팔꿈치가 향할 방향 (몸 기준, x 바깥 y 위 z 앞. 왼팔은 x 를 뒤집는다). 위아래 시선은 따르지 않는다")]
+        [SerializeField] private Vector3 elbowDirection = new Vector3(0.5f, -1f, -0.3f);
+        [Tooltip("팔꿈치 방향을 덮어쓰는 정도 (× 손 IK 가중치). 1 = 손 회전에서 온 방향을 완전히 무시, 0 = 끔")]
+        [SerializeField, Range(0f, 1f)] private float elbowWeight = 1f;
+
         [Header("벽 가까이")]
         [Tooltip("총이 벽에 닿는지 검사할 레이어")]
         [SerializeField] private LayerMask wallMask = ~0;
@@ -51,6 +60,8 @@ namespace HybridShooter.Player
         private readonly RaycastHit[] hits = new RaycastHit[8];
         private float wallPull;
         private float wallPullVelocity;
+        private Transform rightElbowGoal;
+        private Transform leftElbowGoal;
 
         /// <summary>지금 1인칭 손 IK 가중치</summary>
         public float Weight { get; private set; }
@@ -74,16 +85,28 @@ namespace HybridShooter.Player
             if (bodyIK == null) bodyIK = GetComponent<PlayerBodyIK>();
             if (fbbik == null) fbbik = GetComponentInChildren<FullBodyBipedIK>();
             if (recoil == null) recoil = GetComponent<PlayerGunRecoil>();
+            // bend goal 은 씬에 두지 않고 실행할 때 만든다 (빌더를 다시 돌려도 남지 않게)
+            rightElbowGoal = new GameObject("FP_RightElbowGoal").transform;
+            rightElbowGoal.SetParent(transform, false);
+            leftElbowGoal = new GameObject("FP_LeftElbowGoal").transform;
+            leftElbowGoal.SetParent(transform, false);
         }
 
         private void OnEnable()
         {
-            if (fbbik != null) fbbik.solver.OnPostUpdate += MeasureAfterSolve;
+            if (fbbik == null) return;
+            fbbik.solver.OnPostUpdate += MeasureAfterSolve;
+            fbbik.solver.rightArmChain.bendConstraint.bendGoal = rightElbowGoal;
+            fbbik.solver.leftArmChain.bendConstraint.bendGoal = leftElbowGoal;
         }
 
         private void OnDisable()
         {
-            if (fbbik != null) fbbik.solver.OnPostUpdate -= MeasureAfterSolve;
+            if (fbbik == null) return;
+            fbbik.solver.OnPostUpdate -= MeasureAfterSolve;
+            SetElbowWeights(0f, 0f);
+            if (fbbik.solver.rightArmChain.bendConstraint.bendGoal == rightElbowGoal) fbbik.solver.rightArmChain.bendConstraint.bendGoal = null;
+            if (fbbik.solver.leftArmChain.bendConstraint.bendGoal == leftElbowGoal) fbbik.solver.leftArmChain.bendConstraint.bendGoal = null;
         }
 
         private void LateUpdate()
@@ -99,6 +122,7 @@ namespace HybridShooter.Player
             {
                 SetWeights(right, 0f);
                 SetWeights(left, 0f);
+                SetElbowWeights(0f, 0f);
                 wallPull = 0f;
                 return;
             }
@@ -135,6 +159,7 @@ namespace HybridShooter.Player
             SetWeights(right, Weight);
 
             Transform grip = bodyIK.LeftHandGrip;
+            float leftWeight = grip != null ? Weight * bodyIK.LeftHandWeight : 0f;
             if (grip != null)
             {
                 Vector3 leftPosition = gunPosition + gunRotation * (toGun * (grip.position - g.position));
@@ -142,9 +167,46 @@ namespace HybridShooter.Player
                 bodyIK.ApplyLeftHandOverride(ref leftPosition, ref leftRotation); // 아이템 사용 중이면 그 자리로
                 left.position = leftPosition;
                 left.rotation = leftRotation;
-                SetWeights(left, Weight * bodyIK.LeftHandWeight);
             }
-            else SetWeights(left, 0f);
+            SetWeights(left, leftWeight);
+
+            UpdateElbowGoals();
+            SetElbowWeights(elbowWeight * Weight, elbowWeight * leftWeight);
+        }
+
+        /// <summary>팔꿈치 bend goal: 어깨에서 몸 기준(시선 yaw 만) elbowDirection 쪽. 왼팔은 좌우 반전</summary>
+        private void UpdateElbowGoals()
+        {
+            RootMotion.BipedReferences refs = fbbik.references;
+            if (refs.rightUpperArm == null || refs.leftUpperArm == null) return;
+            Quaternion bodyYaw = Quaternion.Euler(0f, player.LookYaw, 0f);
+            Vector3 mirrored = new Vector3(-elbowDirection.x, elbowDirection.y, elbowDirection.z);
+            rightElbowGoal.position = refs.rightUpperArm.position + bodyYaw * elbowDirection.normalized * 0.4f;
+            leftElbowGoal.position = refs.leftUpperArm.position + bodyYaw * mirrored.normalized * 0.4f;
+        }
+
+        private void SetElbowWeights(float right, float left)
+        {
+            fbbik.solver.rightArmChain.bendConstraint.weight = right;
+            fbbik.solver.leftArmChain.bendConstraint.weight = left;
+        }
+
+        /// <summary>씬 뷰: 어깨 → 팔꿈치 bend goal (가중치가 있을 때만)</summary>
+        private void OnDrawGizmosSelected()
+        {
+            if (Application.isPlaying == false || fbbik == null || rightElbowGoal == null) return;
+            RootMotion.BipedReferences refs = fbbik.references;
+            Gizmos.color = Color.cyan;
+            if (refs.rightUpperArm != null && fbbik.solver.rightArmChain.bendConstraint.weight > 0f)
+            {
+                Gizmos.DrawLine(refs.rightUpperArm.position, rightElbowGoal.position);
+                Gizmos.DrawWireSphere(rightElbowGoal.position, 0.03f);
+            }
+            if (refs.leftUpperArm != null && fbbik.solver.leftArmChain.bendConstraint.weight > 0f)
+            {
+                Gizmos.DrawLine(refs.leftUpperArm.position, leftElbowGoal.position);
+                Gizmos.DrawWireSphere(leftElbowGoal.position, 0.03f);
+            }
         }
 
         private void MeasureAfterSolve()

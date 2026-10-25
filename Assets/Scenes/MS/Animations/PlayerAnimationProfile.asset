@@ -43,7 +43,16 @@ MonoBehaviour:
     useRotation: 0
     holdTime: 0.5
     moveTime: 0.2
-  grenadeInHandOffset: {x: 0.3209182, y: 0.06349015, z: -0.023533579}
+  grenadeInHandOffset: {x: 0, y: 0, z: 0}
+  footIK:
+    maxStep: 0.4
+    footRadius: 0.15
+    footSpeed: 2.5
+    pelvisSpeed: 5
+    lowerPelvisWeight: 1
+    liftPelvisWeight: 0
+    footRotationWeight: 1
+    maxFootRotationAngle: 45
   dodgeRecoveryTime: 0.35
   dodgeSpeedRange: {x: 0.8, y: 2.5}
   hitReactionWeight: 1

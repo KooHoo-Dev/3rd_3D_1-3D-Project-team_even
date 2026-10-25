@@ -30,8 +30,9 @@ namespace HybridShooter.Player
         /// <summary>발 → 발밑 땅 거리(m). 3m 보다 멀거나 땅이 없으면 무한대</summary>
         public float GroundDistance => groundDistance;
         public bool IsInvulnerable => isRolling && Time.time - rollStartTime < rollInvulnerableTime;
-        public bool IsSprinting => sprintRequested && isGrounded && isRolling == false && HorizontalSpeed > 0.1f;
-        public bool CanRoll => isRolling == false && isGrounded && Time.time >= rollReadyTime;
+        public bool IsSprinting => sprintRequested && CanSprint && isGrounded && isRolling == false && HorizontalSpeed > 0.1f;
+        /// <summary>구르는 중이 아니고, 지상이고, 쿨다운이 끝났고, 스태미나가 rollStaminaCost 이상</summary>
+        public bool CanRoll => isRolling == false && isGrounded && Time.time >= rollReadyTime && HasRollStamina;
         public Vector3 Velocity => rb.linearVelocity;
         public float HorizontalSpeed { get { var v = rb.linearVelocity; return new Vector2(v.x, v.z).magnitude; } }
         public float WalkSpeed { get => walkSpeed; set => walkSpeed = Mathf.Max(0f, value); }
@@ -99,7 +100,7 @@ namespace HybridShooter.Player
         public void AddLookOffset(float pitch, float yaw)
         {
             lookYaw = Mathf.Repeat(lookYaw + yaw, 360f);
-            lookPitch = Mathf.Clamp(lookPitch + pitch, minPitch, maxPitch);
+            lookPitch = Mathf.Clamp(lookPitch + pitch, minPitch, MaxPitch);
         }
 
         /// <summary>조준 확대. fovMultiplier 1 = 원래 시야, sensitivityMultiplier = 마우스 감도 배율</summary>
@@ -109,12 +110,13 @@ namespace HybridShooter.Player
             aimSensitivity = Mathf.Clamp(sensitivityMultiplier, 0.05f, 1f);
         }
 
-        /// <summary>방향은 호출 쪽이 정한다 (4방향 스냅 등). 지상이 아니거나 쿨다운이면 false</summary>
+        /// <summary>방향은 호출 쪽이 정한다 (4방향 스냅 등). 지상이 아니거나 쿨다운·스태미나 부족이면 false</summary>
         public bool TryRoll(Vector3 worldDirection)
         {
             worldDirection.y = 0f;
             if (CanRoll == false || worldDirection.sqrMagnitude < 0.0001f) return false;
 
+            SpendStamina(rollStaminaCost);
             isRolling = true;
             rollDirection = worldDirection.normalized;
             rollStartTime = Time.time;

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace HybridShooter.Player
 {
-    /// <summary>카메라 리그 회전, 1인칭 눈 위치, 3인칭 벽 충돌, 조준 확대, 1인칭 머리 숨김</summary>
+    /// <summary>카메라 리그 회전, 1인칭 눈 위치, 3인칭 벽 충돌(보스전 카메라 위치 포함), 조준 확대, 1인칭 머리 숨김</summary>
     public partial class PlayerController
     {
         #region 카메라 리그
@@ -40,12 +40,16 @@ namespace HybridShooter.Player
             currentCameraTransform = viewMode == ViewMode.FirstPerson ? FirstParsonCam : ThirdParsonCam;
         }
 
+        /// <summary>지금 아래로 볼 수 있는 최대 각도: 3인칭 maxPitch ↔ 1인칭 fpMaxPitch (시점 전환 중에는 진행도대로)</summary>
+        private float MaxPitch => Mathf.Lerp(maxPitch, Mathf.Min(maxPitch, fpMaxPitch), FirstPersonBlend);
+
         /// <summary>
         /// 리그 좌우 = 시선 yaw, 상하 = 시선 pitch.
         /// 리그는 Player 의 자식이지만 월드 yaw 를 직접 넣는다 → 몸(리지드바디 보간 회전)을 기다리지 않고 마우스에 바로 반응
         /// </summary>
         private void UpdateRigRotation()
         {
+            lookPitch = Mathf.Min(lookPitch, MaxPitch); // 1인칭으로 바뀌는 동안 아래 한계가 줄어들면 시선도 함께 올라온다
             Quaternion yaw = Quaternion.Euler(0f, lookYaw, 0f);
             Quaternion pitch = Quaternion.Euler(lookPitch, 0f, 0f);
             fpRig.rotation = yaw;
@@ -83,15 +87,16 @@ namespace HybridShooter.Player
             if (tpCameraArm == null) return;
             if (viewMode == ViewMode.FirstPerson && CameraChanging == false) return;
 
-            float maxDistance = Mathf.Max(0f, -tpArmHomePos.z);
-            Vector3 origin = tpPitch.TransformPoint(new Vector3(tpArmHomePos.x, tpArmHomePos.y, 0f));
+            Vector3 home = TpArmHome;
+            float maxDistance = Mathf.Max(0f, -home.z);
+            Vector3 origin = tpPitch.TransformPoint(new Vector3(home.x, home.y, 0f));
             Vector3 back = -tpPitch.forward;
             float target = CameraCollisionDistance(origin, back, maxDistance);
 
             tpArmDistance = target < tpArmDistance
                 ? target
                 : Mathf.MoveTowards(tpArmDistance, target, cameraReturnSpeed * dt);
-            tpCameraArm.localPosition = new Vector3(tpArmHomePos.x, tpArmHomePos.y, -tpArmDistance);
+            tpCameraArm.localPosition = new Vector3(home.x, home.y, -tpArmDistance);
         }
 
         /// <summary>총 조준 확대: 지금 카메라 FOV = 기본 FOV × 배율. 시점 전환 중에는 전환 연출이 FOV 를 쓰므로 건드리지 않는다</summary>
@@ -100,7 +105,7 @@ namespace HybridShooter.Player
             aimFovCurrent = Mathf.MoveTowards(aimFovCurrent, aimFovTarget, aimZoomSpeed * dt);
             if (CameraChanging) return;
             if (viewMode == ViewMode.FirstPerson || ScopeView) fpCamera.fieldOfView = fpFov * aimFovCurrent;
-            else tpCamera.fieldOfView = tpFov * aimFovCurrent;
+            else tpCamera.fieldOfView = TpFov * aimFovCurrent;
         }
 
         /// <summary>어깨 → 카메라 사이에 벽이 있으면 그 앞까지의 거리. 자기 콜라이더는 무시</summary>

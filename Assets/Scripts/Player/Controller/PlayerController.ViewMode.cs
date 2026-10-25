@@ -1,4 +1,6 @@
 ﻿using DG.Tweening;
+using HybridShooter.Core.Events;
+using HybridShooter.Core.GameFlow;
 using UnityEngine;
 
 namespace HybridShooter.Player
@@ -6,13 +8,32 @@ namespace HybridShooter.Player
     /// <summary>1·3인칭 시점 전환 연출</summary>
     public partial class PlayerController
     {
+        /// <summary>시점을 바꾼다 (인스펙터 viewTransitionTime 동안)</summary>
+        public void SwitchViewMode(ViewMode mode) => SwitchViewMode(mode, viewTransitionTime);
+
         /// <summary>
         /// 시점을 바꾼다. 출발 카메라가 도착 카메라 자리로 날아간 뒤 카메라를 교체한다.
-        /// 전환 중이거나 이미 그 시점이면 무시 (연타 방지)
+        /// 시작 / 완료 때 CameraModeChangedEvent(IsComplete false / true) 를 보낸다 (보스는 완료를 받고 등장 공격).
+        ///  - 이미 그 시점이면 시작·완료를 바로 보낸다 (기다리는 쪽이 멈추지 않게)
+        ///  - 같은 쪽으로 전환 중이면 무시 (완료 때 알림), 반대쪽으로 전환 중이면 출발 시점으로 되돌리고 다시 시작
+        ///  - duration 0 이하면 연출 없이 바로
         /// </summary>
-        public void SwitchViewMode(ViewMode mode)
+        public void SwitchViewMode(ViewMode mode, float duration)
         {
-            if (rigReady == false || CameraChanging || mode == viewMode) return;
+            if (CameraChanging)
+            {
+                if (transitionTarget == mode) return;
+                ApplyViewModeImmediate(viewMode); // viewMode 는 완료 때 바뀌므로 아직 출발 시점
+            }
+            if (mode == viewMode || rigReady == false || duration <= 0f)
+            {
+                bool changed = mode != viewMode;
+                if (changed) ApplyViewModeImmediate(mode);
+                PublishCameraMode(mode, false);
+                PublishCameraMode(mode, true);
+                if (changed) ViewModeChanged?.Invoke(viewMode);
+                return;
+            }
             if (ScopeView) SetScopeView(false);
 
             bool toFirst = mode == ViewMode.FirstPerson;
@@ -24,15 +45,16 @@ namespace HybridShooter.Player
             goalHomePos = toFirst ? fpCamHomePos : tpCamHomePos;
             goalHomeRot = toFirst ? fpCamHomeRot : tpCamHomeRot;
             moverCamera = toFirst ? tpCamera : fpCamera;
-            moverFovFrom = toFirst ? tpFov : fpFov;
-            moverFovTo = toFirst ? fpFov : tpFov;
+            moverFovFrom = toFirst ? TpFov : fpFov;
+            moverFovTo = toFirst ? fpFov : TpFov;
 
             LockFacing(lookYaw);
             CameraChanging = true;
             transitionT = 0f;
+            PublishCameraMode(mode, false);
 
             viewTween?.Kill();
-            viewTween = DOTween.To(transitionGetter, transitionSetter, 1f, viewTransitionTime)
+            viewTween = DOTween.To(transitionGetter, transitionSetter, 1f, duration)
                 .SetEase(Ease.InOutSine)
                 .SetUpdate(UpdateType.Late)
                 .OnComplete(transitionComplete);
@@ -60,8 +82,12 @@ namespace HybridShooter.Player
             viewPoint = currentCameraTransform;
         }
 
-        public void ToggleViewMode() =>
+        /// <summary>F1 전환. 전환 중(연타 방지)이거나 보스전 시점 고정 중이면 무시</summary>
+        public void ToggleViewMode()
+        {
+            if (CameraChanging || viewLocked) return;
             SwitchViewMode(viewMode == ViewMode.FirstPerson ? ViewMode.ThirdPerson : ViewMode.FirstPerson);
+        }
 
         /// <summary>
         /// 전환 중 매 프레임: 출발점·도착점을 둘 다 "각 카메라의 원래 자리(부모 기준 home 포즈)" 로 다시 계산해 보간한다.
@@ -93,7 +119,14 @@ namespace HybridShooter.Player
         private void OnViewTransitionComplete()
         {
             ApplyViewModeImmediate(transitionTarget);
+            PublishCameraMode(viewMode, true);
             ViewModeChanged?.Invoke(viewMode);
+        }
+
+        private static void PublishCameraMode(ViewMode mode, bool complete)
+        {
+            var cameraMode = mode == ViewMode.FirstPerson ? CameraMode.FirstPerson : CameraMode.ThirdPerson;
+            EventBus<CameraModeChangedEvent>.Publish(new CameraModeChangedEvent(cameraMode, complete));
         }
 
         /// <summary>
@@ -114,7 +147,7 @@ namespace HybridShooter.Player
             FirstParsonCam.SetLocalPositionAndRotation(fpCamHomePos, fpCamHomeRot);
             ThirdParsonCam.SetLocalPositionAndRotation(tpCamHomePos, tpCamHomeRot);
             fpCamera.fieldOfView = fpFov;
-            tpCamera.fieldOfView = tpFov;
+            tpCamera.fieldOfView = TpFov;
 
             FirstParsonCam.gameObject.SetActive(first);
             ThirdParsonCam.gameObject.SetActive(first == false);

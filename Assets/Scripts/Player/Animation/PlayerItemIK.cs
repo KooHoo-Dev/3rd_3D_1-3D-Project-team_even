@@ -1,3 +1,4 @@
+using RootMotion.FinalIK;
 using UnityEngine;
 
 namespace HybridShooter.Player
@@ -6,6 +7,8 @@ namespace HybridShooter.Player
     /// 아이템 사용 모습 (Player 루트에 붙인다).
     ///  - 수류탄: 던지기 시작(ThrowStarted)부터 손을 떠날 때(GrenadeReleased)까지 던지는 손에 수류탄 모형을 쥐여 준다
     ///    (던지는 손·놓는 순간은 드라이버가 클립 분석값으로 정한다. 모형 자리 = 프로필 grenadeInHandOffset)
+    ///    모형은 IK(AimIK·1인칭 손·FBBIK)가 손을 옮긴 뒤(FBBIK OnPostUpdate)에 붙인다 → 보이는 손과 Lab 에서 저장한 자리가 같은 기준.
+    ///    날아가는 수류탄도 이 모형 자리에서 출발한다 (PlayerItems.ThrowSpawn)
     ///  - 회복 팩: 사용(HealStarted) 때 총은 오른손에 든 채 왼손만 잠깐 프로필 healPose 자리로 갔다 온다 (PlayerBodyIK 왼손 목표에 섞는다)
     ///  - 다른 아이템(아드레날린 등)은 Play(자리) 로 같은 동작을 쓸 수 있다
     /// 자리는 IK Pose Lab 의 "아이템" 칸에서 보며 고친다 (HoldPose / HoldGrenade 로 자세를 붙잡아 둔다)
@@ -18,6 +21,8 @@ namespace HybridShooter.Player
         [SerializeField] private PlayerAnimationDriver driver;
         [SerializeField] private PlayerItems items;
         [SerializeField] private PlayerBodyIK bodyIK;
+        [Tooltip("몸(Body)의 FullBodyBipedIK. 손 IK 가 끝난 뒤 모형을 붙인다. 비워 두면 자식에서 찾는다")]
+        [SerializeField] private FullBodyBipedIK fbbik;
 
         private Transform body;
         private Transform chest;
@@ -42,6 +47,7 @@ namespace HybridShooter.Player
             if (driver == null) driver = GetComponent<PlayerAnimationDriver>();
             if (items == null) items = GetComponent<PlayerItems>();
             if (bodyIK == null) bodyIK = GetComponent<PlayerBodyIK>();
+            if (fbbik == null) fbbik = GetComponentInChildren<FullBodyBipedIK>();
             Animator animator = driver != null && driver.Animator != null ? driver.Animator : GetComponentInChildren<Animator>();
             if (animator != null && animator.isHuman)
             {
@@ -53,6 +59,7 @@ namespace HybridShooter.Player
 
         private void OnEnable()
         {
+            if (fbbik != null) fbbik.solver.OnPostUpdate += UpdateGrenadeModel;
             if (items == null) return;
             items.ThrowStarted += OnThrowStarted;
             items.GrenadeReleased += OnGrenadeReleased;
@@ -61,6 +68,7 @@ namespace HybridShooter.Player
 
         private void OnDisable()
         {
+            if (fbbik != null) fbbik.solver.OnPostUpdate -= UpdateGrenadeModel;
             if (items == null) return;
             items.ThrowStarted -= OnThrowStarted;
             items.GrenadeReleased -= OnGrenadeReleased;
@@ -99,7 +107,8 @@ namespace HybridShooter.Player
         {
             if (bodyIK == null) return;
             UpdateHandPose();
-            UpdateGrenadeModel();
+            // FBBIK 가 돌면 풀린 직후(OnPostUpdate)에 붙인다. 이 시점(9995)은 IK 전이라 손이 아직 애니메이션 자리다
+            if (fbbik == null || fbbik.isActiveAndEnabled == false) UpdateGrenadeModel();
         }
 
         private void UpdateHandPose()
@@ -130,7 +139,11 @@ namespace HybridShooter.Player
         private void UpdateGrenadeModel()
         {
             bool show = (grenadeShown || HoldGrenade) && items != null && items.ThrowHand != null && items.GrenadePrefab != null;
-            if (show && grenadeModel == null) grenadeModel = CreateGrenadeModel();
+            if (show && grenadeModel == null)
+            {
+                grenadeModel = CreateGrenadeModel();
+                items.ThrowSpawn = grenadeModel.transform;
+            }
             if (grenadeModel == null) return;
             if (grenadeModel.activeSelf != show) grenadeModel.SetActive(show);
             if (show == false || EditingModel) return;

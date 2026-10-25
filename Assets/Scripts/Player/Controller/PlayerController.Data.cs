@@ -64,6 +64,14 @@ namespace HybridShooter.Player
         [Tooltip("시작 시점")]
         [SerializeField] private ViewMode viewMode = ViewMode.ThirdPerson;
         [SerializeField] private float viewTransitionTime = 0.5f;
+        [Tooltip("보스 등장 등 자동 전환 시간(초). ConfigTable.CameraTransitionTime 이 있으면 그 값")]
+        [SerializeField] private float autoTransitionTime = 1.2f;
+
+        [Header("보스전 카메라")]
+        [Tooltip("보스전 3인칭 카메라 팔 위치 (TP_Pitch 기준). 어깨 시점보다 멀고 높게 → 플레이어·보스 전신·바닥 예고 범위가 한 화면에")]
+        [SerializeField] private Vector3 bossArmPosition = new Vector3(0.6f, 0.9f, -5.5f);
+        [Tooltip("보스전 3인칭 FOV 추가(도). ConfigTable.BossCameraFovAdd 가 있으면 그 값")]
+        [SerializeField] private float bossFovAdd = 10f;
 
         [Header("마우스 회전")]
         [Tooltip("마우스 이동 1픽셀당 회전 각도(도)")]
@@ -71,6 +79,8 @@ namespace HybridShooter.Player
         [SerializeField] private bool invertY = false;
         [SerializeField] private float minPitch = -70f;
         [SerializeField] private float maxPitch = 80f;
+        [Tooltip("1인칭에서 아래로 내려 볼 수 있는 최대 각도(도). 더 내리면 총 든 팔이 꺾여 화면에 들어온다 (maxPitch 보다 크면 maxPitch)")]
+        [SerializeField] private float fpMaxPitch = 55f;
 
         [Header("카메라 리그")]
         [Tooltip("1인칭 카메라 (FP_Pitch 의 자식)")]
@@ -139,6 +149,19 @@ namespace HybridShooter.Player
         [Header("체력")]
         [SerializeField] private int maxHealth = 100;
         [SerializeField] private int currentHealth = 100;
+
+        [Header("스태미나")]
+        [SerializeField] private float maxStamina = 100f;
+        [Tooltip("달리는 동안 초당 소모량")]
+        [SerializeField] private float sprintStaminaPerSecond = 20f;
+        [Tooltip("구르기 한 번에 드는 양. 이보다 적게 남았으면 구를 수 없다")]
+        [SerializeField] private float rollStaminaCost = 25f;
+        [Tooltip("초당 회복량 (걷기·정지)")]
+        [SerializeField] private float staminaRegenPerSecond = 15f;
+        [Tooltip("마지막으로 쓴 뒤 회복이 시작되기까지 걸리는 시간(초)")]
+        [SerializeField] private float staminaRegenDelay = 1f;
+        [Tooltip("바닥난 뒤 이 비율까지 회복해야 다시 달릴 수 있다")]
+        [SerializeField, Range(0f, 1f)] private float sprintResumeRatio = 0.2f;
 
         #endregion
 
@@ -209,6 +232,13 @@ namespace HybridShooter.Player
         private DOSetter<float> transitionSetter;
         private TweenCallback transitionComplete;
 
+        // 보스전 시점
+        private bool viewLocked;               // F1 전환 막힘 (BossIntro ~ 다음 CrowdBattle)
+        private bool bossView;
+        private float bossBlend;               // 0 = 어깨 시점, 1 = 보스전 카메라
+        private float bossBlendTarget;
+        private float bossBlendSpeed;
+
         // 머리 숨김
         private Renderer[] headRendererCache = Array.Empty<Renderer>();
         private bool headHidden;
@@ -227,6 +257,12 @@ namespace HybridShooter.Player
 
         // 체력
         private bool IsDead = false;
+
+        // 스태미나
+        private float stamina;
+        private float lastStaminaUseTime = float.NegativeInfinity;
+        private bool staminaExhausted;          // 바닥난 뒤 sprintResumeRatio 까지 회복 전 (달리기 막힘)
+        private float publishedStamina = -1f;
         #endregion
     }
 }
