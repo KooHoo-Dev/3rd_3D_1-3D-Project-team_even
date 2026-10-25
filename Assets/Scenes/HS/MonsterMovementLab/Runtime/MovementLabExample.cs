@@ -13,11 +13,17 @@ namespace HybridShooter.Monster.MovementLab
     public sealed class MovementLabExample : MonoBehaviour
     {
         [SerializeField] private CrowdCoordinator coordinator;
-        [SerializeField] private TransformMovementTarget target;
+        [SerializeField] private TestPlayer target;
         [SerializeField] private Transform monsterRoot;
         [SerializeField] private MovementLabGizmos gizmos;
         [SerializeField] private Transform ownedRoot;
         [SerializeField] private int crowdSpawnCount = 24;
+
+        [Header("Spawn Position")]
+        [Tooltip("군중 소환 원의 반지름 (m). 원의 중심은 소환하는 순간의 플레이어(target) 위치")]
+        [SerializeField, Min(0f)] private float spawnRadius = 12f;
+        [Tooltip("소환점에서 이 거리 (m) 안의 가장 가까운 NavMesh 위로 옮긴다. 못 찾으면 원래 점에 소환")]
+        [SerializeField, Min(0.1f)] private float spawnSampleDistance = 3f;
 
         [Header("Monster Prefabs")]
         [Tooltip("소환할 실제 몬스터 프리팹(모델만 있어도 됨). 이동 컴포넌트는 소환 시 코드로 붙인다. 순서대로 돌려 쓴다")]
@@ -31,6 +37,8 @@ namespace HybridShooter.Monster.MovementLab
 
         private readonly List<MovementLabOwnedMonster> ownedMonsters = new List<MovementLabOwnedMonster>();
         private int spawnSerial;
+        // 조립 중인 몬스터를 잠시 두는 비활성 부모. 이 밑에서는 Awake/OnEnable/OnDisable 이 한 번도 실행되지 않는다
+        private Transform spawnHolder;
 
         /// <summary>군중 소환 시 생성할 몬스터 수. 조작 창(MovementLabController)의 슬라이더가 Play 중 바꾼다</summary>
         public int CrowdSpawnCount
@@ -40,15 +48,20 @@ namespace HybridShooter.Monster.MovementLab
         }
 
         public CrowdCoordinator Coordinator => coordinator;
-        public TransformMovementTarget Target => target;
+        public TestPlayer Target => target;
         public Transform MonsterRoot => monsterRoot;
         /// <summary>소환된 몬스터 (사망해 비활성화된 개체 포함)</summary>
         public IReadOnlyList<MovementLabOwnedMonster> Monsters => ownedMonsters;
 
-        // 실험 조작 UI(MovementLabController)를 Play 시 자동으로 붙인다
+        // 실험 조작 UI(MovementLabController)를 Play 시 자동으로 붙이고, 몬스터 조립용 비활성 부모를 만든다
         private void Awake()
         {
             if (GetComponent<MovementLabController>() == null) gameObject.AddComponent<MovementLabController>();
+
+            var holder = new GameObject("Spawn Holder (inactive)");
+            holder.SetActive(false);
+            holder.transform.SetParent(transform, false);
+            spawnHolder = holder.transform;
         }
 
         // Play 시작 시 인스펙터 값을 코디네이터에 1회 반영 (씬에 저장된 코디네이터 값은 코드 기본값이 바뀌어도 그대로라서 필요)
@@ -87,7 +100,7 @@ namespace HybridShooter.Monster.MovementLab
 
             var targetObject = new GameObject("WASD Target (WASD)");
             targetObject.transform.SetParent(root.transform, false);
-            target = targetObject.AddComponent<TransformMovementTarget>();
+            target = targetObject.AddComponent<TestPlayer>();
             var targetVisual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             targetVisual.name = "Target Visual (pivot at feet)";
             targetVisual.transform.SetParent(targetObject.transform, false);
@@ -125,7 +138,7 @@ namespace HybridShooter.Monster.MovementLab
         {
             if (!ValidatePlaySetup()) return;
             ClearOwnedMonstersInternal();
-            SpawnMonster(MovementPolicyKind.Melee, Vector3.right * -5f, false);
+            SpawnMonster(MovementPolicyKind.Melee, GetSpawnPoint(Vector3.right * -5f), false);
         }
 
         [ContextMenu("Play/Spawn Crowd MVP")]
@@ -136,7 +149,8 @@ namespace HybridShooter.Monster.MovementLab
             for (int i = 0; i < crowdSpawnCount; i++)
             {
                 float angle = i * Mathf.PI * 2f / crowdSpawnCount;
-                SpawnMonster(MovementPolicyKind.Melee, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 12f, false);
+                Vector3 offsetFromTarget = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * spawnRadius;
+                SpawnMonster(MovementPolicyKind.Melee, GetSpawnPoint(offsetFromTarget), false);
             }
         }
 
@@ -163,8 +177,23 @@ namespace HybridShooter.Monster.MovementLab
                 float angle = i * Mathf.PI * 2f / crowdSpawnCount;
                 MovementPolicyKind kind = i % 7 == 0 ? MovementPolicyKind.KeepDistance
                     : i % 4 == 0 ? MovementPolicyKind.Flank : MovementPolicyKind.Melee;
-                SpawnMonster(kind, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 12f, true);
+                Vector3 offsetFromTarget = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * spawnRadius;
+                SpawnMonster(kind, GetSpawnPoint(offsetFromTarget), true);
             }
+        }
+
+        /// <summary>
+        /// 소환 위치를 정한다. 소환 버튼(ContextMenu, 조작 창)이 누를 때마다 부르므로 중심은 항상 그 순간의 플레이어 위치다.
+        /// 경사·계단 지형에서도 NavMeshAgent 가 NavMesh 위에 생기도록 가장 가까운 NavMesh 점으로 옮긴다.
+        /// </summary>
+        /// <param name="offsetFromTarget">플레이어(target) 위치에서의 수평 오프셋 (m)</param>
+        /// <returns>소환할 월드 좌표. 반경 spawnSampleDistance 안에 NavMesh 가 없으면 옮기지 않은 원래 점</returns>
+        private Vector3 GetSpawnPoint(Vector3 offsetFromTarget)
+        {
+            Vector3 point = target.transform.position + offsetFromTarget;
+            bool isOnNavMesh = NavMesh.SamplePosition(point, out NavMeshHit hit, spawnSampleDistance, NavMesh.AllAreas);
+            if (isOnNavMesh == false) return point;
+            return hit.position;
         }
 
         [ContextMenu("Play/Remove Assigned Monster")]
@@ -223,19 +252,31 @@ namespace HybridShooter.Monster.MovementLab
                 return;
             }
             var prefab = monsterPrefabs[spawnSerial++ % monsterPrefabs.Length];
-            var go = Instantiate(prefab, position, Quaternion.identity, monsterRoot);
-            go.SetActive(false);   // 이동 컴포넌트를 붙이고 Configure 할 때까지 OnEnable 을 막는다
+            // 비활성 부모 밑에 만들어 Configure 가 끝날 때까지 Awake/OnEnable 을 막는다.
+            // SetActive(false) 는 MonsterController.OnDisable 이 movement 를 꺼 버려서 쓰지 않는다
+            var go = Instantiate(prefab, position, Quaternion.identity, spawnHolder);
             go.name = $"Lab {kind} {prefab.name}";
             go.transform.localScale = prefab.transform.localScale * monsterVisualScale;
+            // 몬스터 프리팹 기준 스폰
             var ownedMonster = go.AddComponent<MovementLabOwnedMonster>();
-            var agent = go.AddComponent<NavMeshAgent>();
+            var movement = go.GetComponent<MonsterMovement>();
+            var agent = go.GetComponent<NavMeshAgent>();
             agent.radius = .45f; agent.height = 1.8f; agent.speed = 3.5f; agent.stoppingDistance = .1f;
             agent.avoidancePriority = Random.Range(20, 80);
-            go.AddComponent<NavMeshMoveExecutor>();
-            go.AddComponent<MonsterMovement>();
-            ownedMonster.Initialize(MovementLabProfiles.CreateRuntime(kind), useCoordinator ? coordinator : null, target);
+            // 프리팹의 Profile 은 프로젝트 에셋이다. 복사본을 넘겨야 Lab 이 파괴/교체(SetPolicy)해도 에셋이 안전하다
+            ownedMonster.Initialize(Instantiate(movement.Profile), useCoordinator ? coordinator : null, target);
             ownedMonsters.Add(ownedMonster);
-            go.SetActive(true);
+
+            // 빈 몬스터 프리팹 기준 스폰
+            // var ownedMonster = go.AddComponent<MovementLabOwnedMonster>();
+            // var agent = go.AddComponent<NavMeshAgent>();
+            // agent.radius = .45f; agent.height = 1.8f; agent.speed = 3.5f; agent.stoppingDistance = .1f;
+            // agent.avoidancePriority = Random.Range(20, 80);
+            // go.AddComponent<NavMeshMoveExecutor>();
+            // go.AddComponent<MonsterMovement>();
+            // ownedMonster.Initialize(MovementLabProfiles.CreateRuntime(kind), useCoordinator ? coordinator : null, target);
+            // ownedMonsters.Add(ownedMonster);
+            go.transform.SetParent(monsterRoot);   // 활성 부모로 옮기는 순간 Awake/OnEnable/Start 가 처음 실행된다 (월드 위치 유지)
         }
 
         private static GameObject CreateBox(Transform parent, string name, Vector3 position, Vector3 scale, Color color)

@@ -195,6 +195,29 @@ namespace HybridShooter.Weapon
             return null;
         }
 
+        /// <summary>
+        /// 편집 도구(IK Pose Lab)용: 지금 든 칸의 총을 다른 총으로 바꿔 든다. 슬롯에 있는 총이면 그 칸을 들고,
+        /// 예비 총이면 지금 칸의 총과 맞바꾼다 (원래 총은 예비로. 파괴하지 않는다)
+        /// </summary>
+        public bool DebugEquip(Gun gun)
+        {
+            if (gun == null || gun == CurrentGun || currentIndex < 0) return false;
+            int index = Array.IndexOf(slots, gun);
+            if (index >= 0) return Select(index);
+            if (reserve.Remove(gun) == false) return false;
+
+            Gun old = CurrentGun;
+            if (old != null)
+            {
+                old.Unequip();
+                reserve.Add(old);
+            }
+            slots[currentIndex] = gun;
+            gun.Equip();
+            GunChanged?.Invoke(currentIndex, gun);
+            return true;
+        }
+
         /// <summary>테스트용: 예비 총 중 첫 번째로 주무기 교체 (원래 주무기는 사라지므로 예비가 하나씩 줄어든다)</summary>
         public Gun ReplacePrimaryWithNextReserve()
         {

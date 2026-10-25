@@ -12,6 +12,8 @@ namespace HybridShooter.Monster.Movement
         // 현재 대기 중 선회할지 여부
         private bool orbiting;
 
+        /// <summary>개체별 난수를 준비한다. MovementPolicyFactory 가 개체마다 하나씩 만든다</summary>
+        /// <param name="seed">난수 시드 (개체 InstanceID)</param>
         public MeleePolicy(int seed)
         {
             rng = new System.Random(seed);
@@ -21,18 +23,20 @@ namespace HybridShooter.Monster.Movement
         /// 목표 무효 → 정지. 슬롯 대기 → 제자리 대기. Wait 지시 → 대기 위치에서 정지/선회.
         /// 그 외(Engage/Unrestricted) → 슬롯 또는 목표로 이동하고 도착하면 Engaged
         /// </summary>
+        /// <param name="ctx">자기·목표 위치, 군중 지시, 유형별 수치를 담은 판단 입력</param>
+        /// <returns>이번 판단의 이동 의도</returns>
         public MoveIntent Evaluate(in MovementContext ctx)
         {
             var dir = ctx.Directive;
 
-            if (!ctx.TargetValid)
+            if (ctx.TargetValid == false)
             {
                 lastKind = dir.Kind;
                 return MoveIntent.Stop(MovementState.Idle);
             }
 
             var t = ctx.Tuning;
-            if (dir.RequiresSlot && !dir.HasSlotPosition)
+            if (dir.RequiresSlot && dir.HasSlotPosition == false)
                 return MoveIntent.Stop(MovementState.Waiting);
             MoveIntent intent;
 

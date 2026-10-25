@@ -27,12 +27,23 @@ namespace HybridShooter.Monster.Movement
         private static bool[] s_slotTaken = new bool[0];   // 슬롯 번호별 사용 중 여부
 
         /// <summary>
-        /// agents[0..count) 를 판단해 results[0..count) 에 쓴다.
+        /// 토큰 모드 배분 진입점. CrowdCoordinator.Allocate 가 배분 주기마다 부른다.
+        /// agents[0..count) 를 판단해 results[0..count) 에 쓰고 집계를 돌려준다.
+        /// </summary>
+        /// <remarks>
         /// 규칙 순서: 입력 검증 -> 수평 거리 -> 비토큰 개체(Unrestricted, 과밀 집계)
         /// -> 기존 보유자 회수(ReleaseRadius 초과, 정원 초과 시 먼 순) -> 신규 배분(대기시간 자격, 거리 오름차순)
         /// -> 포위 슬롯(UseSlots) -> 결과 기록(Engage/Wait, WaitPoint, OrbitSign) -> 집계.
-        /// results.Length &lt; count 이거나 파라미터가 잘못되면 예외.
-        /// </summary>
+        /// 호출 간 정적 버퍼를 재사용하므로 여러 스레드에서 동시에 부르면 안 된다.
+        /// </remarks>
+        /// <param name="p">목표 위치·정원·반경·현재 시각 등 전역 파라미터</param>
+        /// <param name="agents">개체별 현재 상태. 앞쪽 count 개만 읽는다</param>
+        /// <param name="count">판단할 개체 수 (0 ~ agents.Length)</param>
+        /// <param name="results">개체별 결과를 쓸 배열. 인덱스는 agents 와 같다. 길이 ≥ count</param>
+        /// <returns>Engaged/Waiting/Unrestricted 수와 남은 자리 등 이번 배분의 집계</returns>
+        /// <exception cref="ArgumentNullException">agents 또는 results 가 null 일 때 (Validate 가 던짐)</exception>
+        /// <exception cref="ArgumentException">count 범위 밖, results.Length &lt; count, 반경 순서 위반일 때 (Validate 가 던짐)</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Capacity 가 음수일 때 (Validate 가 던짐)</exception>
         public static AllocationSummary Allocate(in AllocationParams p, AllocationAgent[] agents, int count, AllocationResult[] results)
         {
             Validate(p, agents, count, results);
@@ -44,7 +55,14 @@ namespace HybridShooter.Monster.Movement
             return WriteResults(p, agents, count, results, uncontrolledInside);
         }
 
-        /// <summary>입력이 잘못되면(null, 개수 범위, 음수 정원, 반경 순서 위반) 예외</summary>
+        /// <summary>Allocate 의 첫 단계. 입력이 잘못되면(null, 개수 범위, 음수 정원, 반경 순서 위반) 예외로 드러낸다.</summary>
+        /// <param name="p">Capacity 와 반경 순서(0 &lt;= Near &lt; Waiting &lt;= Release)를 검사한다</param>
+        /// <param name="agents">null 이 아니고 길이 ≥ count 여야 한다</param>
+        /// <param name="count">0 ~ agents.Length</param>
+        /// <param name="results">null 이 아니고 길이 ≥ count 여야 한다</param>
+        /// <exception cref="ArgumentNullException">agents 또는 results 가 null 일 때</exception>
+        /// <exception cref="ArgumentException">count 가 범위 밖, results.Length &lt; count, p.Slots 가 null 이거나 반경 순서 위반일 때</exception>
+        /// <exception cref="ArgumentOutOfRangeException">p.Capacity 가 음수일 때</exception>
         private static void Validate(in AllocationParams p, AllocationAgent[] agents, int count, AllocationResult[] results)
         {
             if (agents == null) throw new ArgumentNullException(nameof(agents));
@@ -55,12 +73,19 @@ namespace HybridShooter.Monster.Movement
                 throw new ArgumentException($"results.Length({results.Length}) < count({count})", nameof(results));
             if (p.Capacity < 0)
                 throw new ArgumentOutOfRangeException(nameof(p), $"Capacity({p.Capacity}) < 0");
-            if (p.Slots == null || !(0f <= p.NearRadius && p.NearRadius < p.Slots.WaitingRadius && p.Slots.WaitingRadius <= p.ReleaseRadius))
+            bool hasSlotSettings = p.Slots != null;
+            bool isNearRadiusNonNegative = 0f <= p.NearRadius;
+            bool isNearInsideWaiting = hasSlotSettings && p.NearRadius < p.Slots.WaitingRadius;
+            bool isWaitingInsideRelease = hasSlotSettings && p.Slots.WaitingRadius <= p.ReleaseRadius;
+            bool isRadiusOrderValid = isNearRadiusNonNegative && isNearInsideWaiting && isWaitingInsideRelease;
+            if (isRadiusOrderValid == false)
                 throw new ArgumentException(
                     $"반경 순서 위반: 0 <= Near({p.NearRadius}) < Waiting({p.Slots?.WaitingRadius}) <= Release({p.ReleaseRadius})", nameof(p));
         }
 
-        /// <summary>정적 버퍼가 count / slotCount 보다 작으면 키운다</summary>
+        /// <summary>정적 버퍼가 count / slotCount 보다 작으면 키운다. 키울 때 이전 내용은 버린다.</summary>
+        /// <param name="count">이번에 판단할 개체 수. 개체별 버퍼의 최소 길이</param>
+        /// <param name="slotCount">포위 슬롯 수 (UseSlots 가 아니면 0). s_slotTaken 의 최소 길이</param>
         private static void EnsureCapacity(int count, int slotCount)
         {
             if (s_dist.Length < count)
@@ -74,7 +99,16 @@ namespace HybridShooter.Monster.Movement
             if (s_slotTaken.Length < slotCount) s_slotTaken = new bool[slotCount];
         }
 
-        /// <summary>거리 계산, 비토큰 집계, 기존 보유자 회수(범위 이탈 + 정원 초과). UncontrolledInside 반환</summary>
+        /// <summary>
+        /// 거리 계산, 비토큰 집계, 기존 보유자 회수(범위 이탈 + 정원 초과).
+        /// 남은 보유자는 s_kind = KindEngage, 회수된 개체는 s_revoked = true 로 표시해 다음 단계에 넘긴다.
+        /// </summary>
+        /// <param name="p">목표 위치, NearRadius, ReleaseRadius, Capacity 를 쓴다</param>
+        /// <param name="agents">개체별 현재 상태 (Position, UsesToken, HasToken)</param>
+        /// <param name="count">판단할 개체 수</param>
+        /// <param name="maxHolders">토큰 보유 가능 수 = Capacity - UncontrolledInside (0 이상)</param>
+        /// <param name="keptHolders">회수 후 남은 기존 보유자 수</param>
+        /// <returns>UncontrolledInside: 토큰 대상이 아닌데 NearRadius 안에 있는 개체 수</returns>
         private static int ResolveHolders(in AllocationParams p, AllocationAgent[] agents, int count, out int maxHolders, out int keptHolders)
         {
             int uncontrolledInside = 0;
@@ -87,7 +121,7 @@ namespace HybridShooter.Monster.Movement
                 s_revoked[i] = false;
                 s_slotOf[i] = -1;
                 s_kind[i] = agents[i].UsesToken ? KindWait : KindUnrestricted;
-                if (!agents[i].UsesToken && dist <= p.NearRadius) uncontrolledInside++;
+                if (agents[i].UsesToken == false && dist <= p.NearRadius) uncontrolledInside++;
             }
 
             maxHolders = Mathf.Max(0, p.Capacity - uncontrolledInside);
@@ -96,7 +130,8 @@ namespace HybridShooter.Monster.Movement
             int n = 0;
             for (int i = 0; i < count; i++)
             {
-                if (!agents[i].UsesToken || !agents[i].HasToken) continue;
+                bool isTokenHolder = agents[i].UsesToken && agents[i].HasToken;
+                if (isTokenHolder == false) continue;
                 if (s_dist[i] > p.ReleaseRadius) s_revoked[i] = true;
                 else s_sortBuffer[n++] = i;
             }
@@ -114,7 +149,15 @@ namespace HybridShooter.Monster.Movement
             return uncontrolledInside;
         }
 
-        /// <summary>자격 있는 미보유자에게 빈 자리만큼 가까운 순으로 토큰 배분</summary>
+        /// <summary>
+        /// 자격 있는 미보유자에게 빈 자리만큼 가까운 순으로 토큰을 배분한다 (s_kind = KindEngage).
+        /// 자격 = 대기 중이 아니거나(WaitingSince 음수) MinWaitSeconds 이상 기다렸음.
+        /// </summary>
+        /// <param name="p">현재 시각(Now)을 쓴다</param>
+        /// <param name="agents">개체별 현재 상태 (UsesToken, HasToken, WaitingSince, MinWaitSeconds)</param>
+        /// <param name="count">판단할 개체 수</param>
+        /// <param name="maxHolders">토큰 보유 가능 수 (ResolveHolders 결과)</param>
+        /// <param name="keptHolders">남은 기존 보유자 수 (ResolveHolders 결과)</param>
         private static void GrantTokens(in AllocationParams p, AllocationAgent[] agents, int count, int maxHolders, int keptHolders)
         {
             int free = Mathf.Max(0, maxHolders - keptHolders);
@@ -123,7 +166,8 @@ namespace HybridShooter.Monster.Movement
             int n = 0;
             for (int i = 0; i < count; i++)
             {
-                if (!agents[i].UsesToken || agents[i].HasToken) continue; // 회수된 개체는 HasToken 이므로 자연히 제외
+                bool isTokenSeeker = agents[i].UsesToken && agents[i].HasToken == false;
+                if (isTokenSeeker == false) continue; // 회수된 개체는 HasToken 이므로 자연히 제외
                 float since = agents[i].WaitingSince;
                 if (since < 0f || p.Now - since >= agents[i].MinWaitSeconds) s_sortBuffer[n++] = i;
             }
@@ -133,10 +177,17 @@ namespace HybridShooter.Monster.Movement
             for (int k = 0; k < grant; k++) s_kind[s_sortBuffer[k]] = KindEngage;
         }
 
-        /// <summary>토큰 보유자에게 포위 슬롯 배정 (UseSlots 일 때만)</summary>
+        /// <summary>
+        /// 토큰 보유자(KindEngage)에게 360/Capacity 간격 포위 슬롯을 배정해 s_slotOf 에 쓴다 (UseSlots 일 때만).
+        /// 기존 슬롯은 유지하고, 나머지는 가까운 순으로 자기 방위에 가장 가까운 빈 슬롯을 고른다.
+        /// </summary>
+        /// <param name="p">UseSlots, Capacity(슬롯 수), 목표 위치를 쓴다</param>
+        /// <param name="agents">개체별 현재 상태 (SlotIndex, Position)</param>
+        /// <param name="count">판단할 개체 수</param>
         private static void AssignSlots(in AllocationParams p, AllocationAgent[] agents, int count)
         {
-            if (!p.UseSlots || p.Capacity == 0) return;
+            if (p.UseSlots == false) return;
+            if (p.Capacity == 0) return;
 
             for (int s = 0; s < p.Capacity; s++) s_slotTaken[s] = false;
 
@@ -146,7 +197,9 @@ namespace HybridShooter.Monster.Movement
             {
                 if (s_kind[i] != KindEngage) continue;
                 int old = agents[i].SlotIndex;
-                if (old >= 0 && old < p.Capacity && !s_slotTaken[old])
+                bool isOldSlotInRange = old >= 0 && old < p.Capacity;
+                bool canKeepOldSlot = isOldSlotInRange && s_slotTaken[old] == false;
+                if (canKeepOldSlot)
                 {
                     s_slotTaken[old] = true;
                     s_slotOf[i] = old;
@@ -181,7 +234,13 @@ namespace HybridShooter.Monster.Movement
             }
         }
 
-        /// <summary>판정(s_kind)을 개체별 AllocationResult(지시 + 다음 판단용 상태)로 기록하고 집계를 만든다</summary>
+        /// <summary>판정(s_kind)을 개체별 AllocationResult(지시 + 다음 판단용 상태)로 기록하고 집계를 만든다. Allocate 의 마지막 단계.</summary>
+        /// <param name="p">Capacity(슬롯 각도 간격), Now(대기 시작 시각), 대기 링 계산값을 쓴다</param>
+        /// <param name="agents">개체별 현재 상태 (OrbitSign, WaitingSince, Position)</param>
+        /// <param name="count">판단할 개체 수</param>
+        /// <param name="results">개체별 결과를 쓸 배열 (인덱스 = agents 인덱스)</param>
+        /// <param name="uncontrolledInside">ResolveHolders 가 센 비토큰 근접 개체 수. 집계와 남은 자리 계산에 쓴다</param>
+        /// <returns>Engaged/Waiting/Unrestricted 수, UncontrolledInside, 남은 자리(FreeCapacity)</returns>
         private static AllocationSummary WriteResults(in AllocationParams p, AllocationAgent[] agents, int count,
                                                       AllocationResult[] results, int uncontrolledInside)
         {
@@ -208,7 +267,7 @@ namespace HybridShooter.Monster.Movement
                 }
 
                 // B) 토큰 보유(Engage): 배정된 슬롯 방위와 함께 근접 허용. 선회 방향은 기존 값 유지, 없으면 index 홀짝으로 분산
-                int orbit = agents[i].OrbitSign != 0 ? agents[i].OrbitSign : ((i & 1) == 0 ? 1 : -1);
+                int orbit = ResolveOrbitSign(agents[i].OrbitSign, i);
 
                 if (kind == KindEngage)
                 {
@@ -229,7 +288,8 @@ namespace HybridShooter.Monster.Movement
                 // C) 토큰 없음(Wait): 대기 링 위 지점으로 보내고 대기 시작 시각을 기록
                 waiting++;
                 // 회수된 개체는 이번 판단 시각부터 대기 시작
-                float since = !s_revoked[i] && agents[i].WaitingSince >= 0f ? agents[i].WaitingSince : p.Now;
+                bool keepsWaitingSince = s_revoked[i] == false && agents[i].WaitingSince >= 0f;
+                float since = keepsWaitingSince ? agents[i].WaitingSince : p.Now;
                 results[i] = new AllocationResult
                 {
                     Directive = new CrowdDirective(DirectiveKind.Wait, WaitPoint(p, agents[i].Position, s_dist[i], i), orbit, false, 0f),
@@ -250,7 +310,25 @@ namespace HybridShooter.Monster.Movement
             };
         }
 
-        /// <summary>대기 링 위 지점. 목표와 수평 위치가 같으면 index 기반 황금각 방위 사용</summary>
+        /// <summary>WriteResults 가 Engage/Wait 개체의 선회 방향을 정할 때 쓴다. 기존 방향이 있으면 유지하고, 없으면 index 홀짝으로 나눠 군중이 양쪽으로 분산되게 한다.</summary>
+        /// <param name="currentSign">개체의 기존 선회 방향 (+1/-1, 0 = 미지정)</param>
+        /// <param name="index">개체 인덱스. 미지정일 때 짝수 = +1, 홀수 = -1</param>
+        /// <returns>선회 방향 (+1 또는 -1)</returns>
+        private static int ResolveOrbitSign(int currentSign, int index)
+        {
+            if (currentSign != 0) return currentSign;
+            return (index & 1) == 0 ? 1 : -1;
+        }
+
+        /// <summary>
+        /// 토큰 없는 개체를 보낼 대기 링(Slots.WaitingRadius) 위 지점을 구한다.
+        /// 목표에서 개체 쪽 방향으로 링 위 점을 잡고, 목표와 수평 위치가 같으면 index 기반 황금각 방위를 쓴다.
+        /// </summary>
+        /// <param name="p">목표 위치와 Slots.WaitingRadius 를 쓴다</param>
+        /// <param name="pos">개체 위치</param>
+        /// <param name="dist">개체와 목표의 수평 거리 (m)</param>
+        /// <param name="index">개체 인덱스. 같은 위치일 때 방위를 흩뿌리는 데 쓴다</param>
+        /// <returns>대기 링 위 지점 (y = 목표 높이)</returns>
         private static Vector3 WaitPoint(in AllocationParams p, Vector3 pos, float dist, int index)
         {
             float dirX, dirZ;
@@ -268,7 +346,10 @@ namespace HybridShooter.Monster.Movement
             return new Vector3(p.TargetPosition.x + dirX * p.Slots.WaitingRadius, p.TargetPosition.y, p.TargetPosition.z + dirZ * p.Slots.WaitingRadius);
         }
 
-        /// <summary>목표 기준 방위각 [0, 360) 도, atan2(dx, dz)</summary>
+        /// <summary>AssignSlots 가 개체에 가장 가까운 슬롯을 고를 때 쓰는 목표 기준 방위각.</summary>
+        /// <param name="pos">개체 위치</param>
+        /// <param name="target">목표 위치</param>
+        /// <returns>방위각 [0, 360) 도, atan2(dx, dz). +Z = 0도</returns>
         private static float Bearing(Vector3 pos, Vector3 target)
         {
             float deg = Mathf.Atan2(pos.x - target.x, pos.z - target.z) * Mathf.Rad2Deg;
@@ -277,14 +358,18 @@ namespace HybridShooter.Monster.Movement
             return deg;
         }
 
-        /// <summary>원형 최소 각도 차 (0~180)</summary>
+        /// <summary>두 방위각의 원형 최소 차이. AssignSlots 의 슬롯 선택 기준.</summary>
+        /// <param name="a">각도 (도)</param>
+        /// <param name="b">각도 (도)</param>
+        /// <returns>원형 최소 각도 차 (0~180 도)</returns>
         private static float AngleDiff(float a, float b)
         {
             float d = Mathf.Abs(a - b) % 360f;
             return d > 180f ? 360f - d : d;
         }
 
-        /// <summary>s_order[0..n) 을 (거리, index) 오름차순으로 삽입 정렬 (할당 없음)</summary>
+        /// <summary>s_sortBuffer[0..n) 의 개체 인덱스를 (s_dist 거리, index) 오름차순으로 삽입 정렬한다 (할당 없음).</summary>
+        /// <param name="n">정렬할 앞쪽 원소 수</param>
         private static void SortByDistance(int n)
         {
             for (int i = 1; i < n; i++)
@@ -301,10 +386,18 @@ namespace HybridShooter.Monster.Movement
             }
         }
 
-        /// <summary>(거리, index) 순서 비교. 거리가 같으면 index 작은 쪽이 앞 (결정적 정렬)</summary>
+        /// <summary>SortByDistance 의 (거리, index) 순서 비교. 거리가 같으면 index 작은 쪽이 앞 (결정적 정렬)</summary>
+        /// <param name="distA">A 의 거리 (m)</param>
+        /// <param name="indexA">A 의 개체 인덱스</param>
+        /// <param name="distB">B 의 거리 (m)</param>
+        /// <param name="indexB">B 의 개체 인덱스</param>
+        /// <returns>A 가 B 보다 앞이면 true</returns>
         private static bool Less(float distA, int indexA, float distB, int indexB)
         {
-            return distA < distB || (distA == distB && indexA < indexB);
+            bool isCloser = distA < distB;
+            bool isSameDistance = distA == distB;
+            bool hasSmallerIndex = indexA < indexB;
+            return isCloser || (isSameDistance && hasSmallerIndex);
         }
     }
 }

@@ -17,12 +17,12 @@ namespace HybridShooter.Player
     ///  - PlayerController 입력 → TryThrowGrenade (G) / TryUseHeal (H)
     ///  - 수치 = 원본(GrenadeTable / 인스펙터) + 강화(IUpgradeState). 강화를 사면(UpgradePurchasedEvent) 다시 계산
     ///
-    /// 애니메이션 · IK 연결 지점 (나중에)
-    ///  - ThrowStarted → 애니메이터 Throw 트리거. throwDuration 동안 IsThrowing = true (이때 왼손 IK 를 끄면 된다)
-    ///  - 손을 떠나는 순간: 기본은 releaseTime 타이머. releaseByAnimationEvent 를 켜면 애니메이션 이벤트가 ReleaseGrenade() 를 부른다
-    ///    (이벤트가 안 오면 throwDuration 끝에 자동으로 던진다)
-    ///  - throwHand 에 왼손 뼈를 넣으면 손에서 날아간다 (비우면 카메라 앞)
-    ///  - HealStarted / HealEnded → 회복 애니메이션 · 이펙트
+    /// 애니메이션 · IK 연결
+    ///  - ThrowStarted → PlayerAnimationDriver 가 Throw 동작을 throwDuration 에 맞춰 재생 (그동안 조준·왼손 IK 는 꺼진다)
+    ///  - 손을 떠나는 순간: 던지기 클립이 있으면 드라이버가 ReleaseByAnimation 을 켜고, 클립 분석으로 찾은 순간에 ReleaseGrenade() 를 부른다
+    ///    (안 오면 throwDuration 끝에 자동으로 던진다). 클립이 없으면 releaseTime 타이머
+    ///  - ThrowHand = 드라이버가 넣는 던지는 손 뼈 (비우면 카메라 앞). 손에 든 수류탄 모형은 PlayerItemIK (모형이 보이면 그 자리에서 날아간다)
+    ///  - HealStarted → PlayerItemIK 가 왼손을 잠깐 회복 자리로 / HealEnded → 이펙트
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
     public sealed class PlayerItems : MonoBehaviour, IItemUser
@@ -110,6 +110,16 @@ namespace HybridShooter.Player
         public HealStats HealStats { get; private set; }
 
         public bool IsThrowing => throwing;
+        /// <summary>던지는 동작 전체 시간 (애니메이션 재생 속도를 여기에 맞춘다)</summary>
+        public float ThrowDuration => throwDuration;
+        /// <summary>true 면 타이머 대신 애니메이션(드라이버)이 ReleaseGrenade() 를 부른다</summary>
+        public bool ReleaseByAnimation { get => releaseByAnimationEvent; set => releaseByAnimationEvent = value; }
+        /// <summary>수류탄이 생성될 손 (드라이버가 던지는 손 뼈를 넣는다)</summary>
+        public Transform ThrowHand { get => throwHand; set => throwHand = value; }
+        /// <summary>손에 든 수류탄 모형 (PlayerItemIK 가 넣는다). 보이는 동안은 손 뼈 대신 여기서 날아간다</summary>
+        public Transform ThrowSpawn { get; set; }
+        /// <summary>던질 수류탄 프리팹 (손에 든 모형을 만들 때 쓴다)</summary>
+        public Grenade GrenadePrefab => grenadePrefab;
         public bool IsHealing => healing;
         /// <summary>회복 효과가 끝날 때까지 남은 시간(초)</summary>
         public float HealRemainingTime => healing ? Mathf.Max(0f, healEndTime - Time.time) : 0f;
@@ -239,7 +249,8 @@ namespace HybridShooter.Player
         #endregion
 
         #region 내부
-        private bool CanAct => player.IsAlive && player.IsRolling == false && player.IsExternallyControlled == false;
+        // 공중(발이 땅에 닿지 않음)에서는 수류탄·회복을 쓸 수 없다
+        private bool CanAct => player.IsAlive && player.IsRolling == false && player.IsExternallyControlled == false && player.IsOnGround;
 
         private void UpdateThrow()
         {
@@ -289,10 +300,12 @@ namespace HybridShooter.Player
             HealEnded?.Invoke();
         }
 
-        /// <summary>수류탄 생성 위치. 손이 있으면 손, 없으면 조준선 앞. 벽 너머에 생기지 않게 막는다</summary>
+        /// <summary>수류탄 생성 위치. 손에 든 모형이 보이면 그 자리, 아니면 손, 둘 다 없으면 조준선 앞. 벽 너머에 생기지 않게 막는다</summary>
         private Vector3 SpawnPoint(Ray aim)
         {
-            Vector3 target = throwHand != null ? throwHand.position : aim.GetPoint(spawnForward);
+            Vector3 target = ThrowSpawn != null && ThrowSpawn.gameObject.activeInHierarchy ? ThrowSpawn.position
+                : throwHand != null ? throwHand.position
+                : aim.GetPoint(spawnForward);
             Vector3 from = aim.origin;
             Vector3 delta = target - from;
             float distance = delta.magnitude;

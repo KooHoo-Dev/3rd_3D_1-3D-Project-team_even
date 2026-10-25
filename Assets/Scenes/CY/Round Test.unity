@@ -575,7 +575,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01e38acd34733f441b8596f1a24e2c61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoundTester
-  roundManager: {fileID: 172972612}
+  roundSequencer: {fileID: 172972612}
 --- !u!4 &1380797053
 Transform:
   m_ObjectHideFlags: 0
@@ -2019,6 +2019,16 @@ MonoBehaviour:
   sprintMultiplier: 2.5
   startHealPacks: 1
   maxHealPacks: 3
+  groundOffset: 1
+  maxStepUp: 2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  lookSensitivity: 0.15
+  minPitch: 10
+  maxPitch: 85
+  startPitch: 48
+  debugGround: 0
 --- !u!43 &1811545216
 Mesh:
   m_ObjectHideFlags: 0
