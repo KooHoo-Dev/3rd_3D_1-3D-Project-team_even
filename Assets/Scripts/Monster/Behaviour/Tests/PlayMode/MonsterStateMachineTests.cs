@@ -313,6 +313,140 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.Throws<ArgumentOutOfRangeException>(() => _stateMachine.Stun(-1f));
         }
 
+        // ── 공격 뒤 행동 (AfterAttack) ──
+
+        private ConfigurableAfterAttack UseAfterAttack(AfterAttack after)
+        {
+            var afterAttack = new ConfigurableAfterAttack(Bite) { AfterValue = after };
+            _stateMachine = new MonsterStateMachine(movement, body, afterAttack);
+            return afterAttack;
+        }
+
+        /// <summary>Attack 진입 → Begin → 한 주기 완료까지. 완료 틱에 FinishAttackCycle 이 행선지를 정한다</summary>
+        private void CompleteOneCycle()
+        {
+            EnterAttack();
+            Step(); // Begin
+            FinishRunningAttack();
+        }
+
+        [Test]
+        public void RestInIdleAttackGoesIdleAndRests()
+        {
+            var afterAttack = UseAfterAttack(AfterAttack.RestInIdle);
+            CompleteOneCycle();
+            Assert.AreEqual(AttackResult.Completed, afterAttack.LastResult);
+            Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
+            Assert.IsTrue(_stateMachine.IsResting);
+        }
+
+        [Test]
+        public void RestingIdleRunsPreparationUntilPrepared()
+        {
+            var afterAttack = UseAfterAttack(AfterAttack.RestInIdle);
+            afterAttack.PreparedValue = false;
+            CompleteOneCycle();
+
+            Step();
+            Step();
+            Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
+            Assert.AreEqual(2, afterAttack.PreparationCount);
+            Assert.IsTrue(_stateMachine.IsResting);
+        }
+
+        [Test]
+        public void PreparedRestInRangeGoesAttack()
+        {
+            UseAfterAttack(AfterAttack.RestInIdle);
+            CompleteOneCycle();
+
+            Step();
+            Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
+            Assert.IsFalse(_stateMachine.IsResting);
+        }
+
+        [Test]
+        public void PreparedRestOutOfRangeGoesChase()
+        {
+            UseAfterAttack(AfterAttack.RestInIdle);
+            CompleteOneCycle();
+            target.Position = new Vector3(0f, 0f, 10f);
+
+            Step();
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current);
+            Assert.IsFalse(_stateMachine.IsResting);
+        }
+
+        [Test]
+        public void IdleWithoutRestStillGoesChaseInRange()
+        {
+            UseAfterAttack(AfterAttack.RestInIdle);
+            target.Position = new Vector3(0f, 0f, 1f);
+            _stateMachine.SetTarget(target);
+            Step();
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current, "휴식 중이 아니면 Idle 에서 바로 Attack 으로 가지 않는다");
+        }
+
+        [Test]
+        public void RepositionBlocksAttackUntilRepositioned()
+        {
+            var afterAttack = UseAfterAttack(AfterAttack.RepositionInChase);
+            afterAttack.RepositionedValue = false;
+            CompleteOneCycle();
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current);
+            Assert.IsTrue(_stateMachine.IsRepositioning);
+
+            Step();
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current, "재정비 중에는 사거리 안이어도 Attack 으로 가지 않는다");
+
+            afterAttack.RepositionedValue = true;
+            Step();
+            Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
+            Assert.IsFalse(_stateMachine.IsRepositioning);
+        }
+
+        [Test]
+        public void StunClearsRest()
+        {
+            var afterAttack = UseAfterAttack(AfterAttack.RestInIdle);
+            afterAttack.PreparedValue = false;
+            CompleteOneCycle();
+
+            _stateMachine.Stun(1f);
+            Assert.IsFalse(_stateMachine.IsResting);
+        }
+
+        [Test]
+        public void TargetLossClearsReposition()
+        {
+            var afterAttack = UseAfterAttack(AfterAttack.RepositionInChase);
+            afterAttack.RepositionedValue = false;
+            CompleteOneCycle();
+
+            _stateMachine.SetTarget(null);
+            Assert.IsFalse(_stateMachine.IsRepositioning);
+            Step();
+            Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
+        }
+
+        /// <summary>After·준비·재정비 값을 테스트가 바꿀 수 있는 공격 (돌진·공중형 대역). 판정 시각에 바로 끝난다</summary>
+        private sealed class ConfigurableAfterAttack : MonsterAttack
+        {
+            public AfterAttack AfterValue;
+            public bool PreparedValue = true;
+            public bool RepositionedValue = true;
+            public int PreparationCount;
+
+            public ConfigurableAfterAttack(in AttackSpec spec) : base(spec, t => (IDamageable)t) { }
+
+            public override AfterAttack After => AfterValue;
+            public override bool IsPrepared => PreparedValue;
+            public override void TickPreparation(IPlayerTarget target, float deltaTime) => PreparationCount++;
+            public override bool IsRepositioned(IPlayerTarget target, float now) => RepositionedValue;
+
+            protected override bool OnActive(float now, float deltaTime) => true;
+        }
+
         /// <summary>공격 단계 첫 Tick 에서 벽 충돌로 끝나는 공격 (돌진형 대역)</summary>
         private sealed class WallHitOnFirstActiveAttack : MonsterAttack
         {

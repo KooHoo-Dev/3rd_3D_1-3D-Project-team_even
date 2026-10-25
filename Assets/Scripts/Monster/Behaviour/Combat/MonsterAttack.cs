@@ -47,6 +47,13 @@ namespace HybridShooter.Monster.Behaviour
         // LastResult 가 WallHit 일 때 기절 시간 (s)
         public float WallHitStunTime => Spec.WallHitStunTime;
 
+        // ── 공격 뒤 행동 (공통 상태가 읽는 값. 하위 클래스가 바꾼다) ──
+        // 정상 완료 뒤 갈 곳. 기본 = Attack 에 머문다
+        public virtual AfterAttack After => AfterAttack.StayInAttack;
+
+        // Idle 휴식 중 준비 동작이 끝났으면 true. 준비 동작이 없는 공격은 항상 true
+        public virtual bool IsPrepared => true;
+
         // 단계 변경 알림 (애니메이션·예고 표시·보스 이벤트). Idle = 종료
         public event Action<MonsterAttack, SkillPhase> PhaseChanged;
 
@@ -143,6 +150,22 @@ namespace HybridShooter.Monster.Behaviour
             OnCancel();
             Finish(AttackResult.Cancelled);
         }
+
+        /// <summary>
+        /// Idle 휴식 중 준비 동작 1틱 (돌진의 방향 정렬 등). IdleState 가 IsPrepared 가 될 때까지 매 틱 부른다.
+        /// 기본은 아무것도 하지 않는다.
+        /// </summary>
+        /// <param name="target">공격 대상</param>
+        /// <param name="deltaTime">지난 틱부터 경과 시간 (s)</param>
+        public virtual void TickPreparation(IPlayerTarget target, float deltaTime) { }
+
+        /// <summary>
+        /// Chase 재정비가 끝났는지 판단한다 (공중의 선회 시간·고도·거리 등). ChaseState 가 재정비 중 매 틱 부른다.
+        /// </summary>
+        /// <param name="target">공격 대상</param>
+        /// <param name="now">현재 시각 (s)</param>
+        /// <returns>true = 재정비 끝, 다시 공격할 수 있다. 기본은 항상 true</returns>
+        public virtual bool IsRepositioned(IPlayerTarget target, float now) => true;
 
         // ── 하위 클래스 훅 ──
 
