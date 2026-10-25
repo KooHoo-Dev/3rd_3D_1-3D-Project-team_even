@@ -187,5 +187,23 @@ namespace HybridShooter.Monster.Movement
             agent.velocity = Vector3.zero;
             agent.nextPosition = transform.position;
         }
+
+        /// <summary>
+        /// 경로 없이 몸을 정해진 양만큼 옮긴다. 이동 구간에 NavMesh 경계(벽)가 있으면 경계까지만 옮긴다.
+        /// MonsterMovement.MoveDuringAttack 이 돌진·준비 동작 중에 호출한다.
+        /// </summary>
+        /// <param name="displacement">이번 틱 이동량 (월드, m). 높이는 NavMesh 표면을 따른다</param>
+        /// <returns>true = NavMesh 경계에 막혔다</returns>
+        public bool MoveBy(Vector3 displacement)
+        {
+            Vector3 from = agent.nextPosition;
+            Vector3 to = from + displacement;
+            bool hitWall = NavMesh.Raycast(from, to, out NavMeshHit hit, agent.areaMask);
+            Vector3 allowedDisplacement = displacement;
+            if (hitWall) allowedDisplacement = hit.position - from;
+
+            agent.Move(allowedDisplacement);
+            return hitWall;
+        }
     }
 }

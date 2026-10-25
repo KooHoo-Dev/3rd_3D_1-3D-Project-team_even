@@ -39,6 +39,13 @@ namespace HybridShooter.Monster.Movement
         MoveApplyResult Apply(in MoveIntent intent);
         /// <summary>즉시 정지하고 경로를 비운다</summary>
         void Stop();
+        /// <summary>
+        /// 경로 없이 몸을 정해진 양만큼 직접 옮긴다. 벽(이동 가능 영역 경계)에 막히면 막힌 지점까지만 옮긴다.
+        /// MonsterMovement.MoveDuringAttack 이 공격·준비 동작 중(정지 상태)에 호출한다.
+        /// </summary>
+        /// <param name="displacement">이번 틱 이동량 (월드, m)</param>
+        /// <returns>true = 벽에 막혔다</returns>
+        bool MoveBy(UnityEngine.Vector3 displacement);
         // 현재 속도 (m/s). 애니메이션 연결용
         UnityEngine.Vector3 Velocity { get; }
         // 실행기의 현재 진행 상태 (도착·도달 불가 감지용)

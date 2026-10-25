@@ -5,7 +5,7 @@ Id	MonsterId	AttackKey	Name	PatternTag	Damage	HitCount	Cooldown	TelegraphTime	Re
 100201	1002	TailSting	꼬리 찌르기	None	5	1	1.3	0.5	0.3	Melee	1.8	0	0	0	0	0	0	0	0	None	0	FALSE	Attack_Tail
 100301	1003	DiveClaw	급강하 할퀴기	None	4	1	1.5	0.5	0.4	Melee	1.5	0	0	0	0	0	0	0	0	None	0	FALSE	Fly_Attack
 100401	1004	DiveBite	급강하 물기	None	4	1	1.5	0.5	0.4	Melee	1.5	0	0	0	0	0	0	0	0	None	0	FALSE	Fly_Attack
-200101	2001	HeadRam	머리 박치기 돌진	None	25	1	10	1.2	1	Line	15	0	0	2.5	0	0	5	2	0	None	0	FALSE	Charge
+200101	2001	HeadRam	머리 박치기 돌진	None	25	1	10	1.2	0	Line	15	0	0	2.5	0	0	5	2	0	None	0	FALSE	Charge
 200201	2002	Pounce	시야 밖 기습 도약	None	18	1	8	0.6	1.2	Circle	8	2	0	0	0	0	2	0	0	None	0	FALSE	Attack_Pounce
 200301	2003	PoisonMortar	원거리 독안개 포격	None	6	1	10	1.5	1	Circle	25	4	0	0	12	1	0	0	1	PlayerStationary	4	FALSE	Attack_Spit
 300101	3001	Claw	앞발 할퀴기	None	30	1	3.2	0.8	0.7	Cone	5	0	100	0	0	0	2	0	0	None	0	FALSE	Attack1
