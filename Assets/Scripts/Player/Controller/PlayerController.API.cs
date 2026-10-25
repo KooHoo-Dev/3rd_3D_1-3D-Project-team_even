@@ -68,7 +68,9 @@ namespace HybridShooter.Player
         public Transform AimPoint => aimPoint;
         public Transform ViewPoint => viewPoint != null ? viewPoint : (aimPoint != null ? aimPoint : transform);
         
-        public PlayerTrackingInfo playerTrackingInfo { get; } =  new PlayerTrackingInfo();
+        private readonly PlayerTrackingInfo playerTrackingInfo = new PlayerTrackingInfo();
+        /// <summary>몬스터가 읽는 위치·방향·회전. FixedUpdate 에서 SetPlayerTrackingInfo 로 갱신된다</summary>
+        public PlayerTrackingInfo PlayerTrackingInfo => playerTrackingInfo;
 
         public void SetPlayerTrackingInfo()
         {
