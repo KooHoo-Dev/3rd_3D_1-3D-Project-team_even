@@ -429,6 +429,18 @@ namespace HybridShooter.Player.EditorTools
                 if (editGrenade == false) SaveProfile();
             }
             if (editGrenade && items.ThrowHand == null) EditorGUILayout.HelpBox("던지는 손이 정해지지 않았습니다 (던지기 동작 필요)", MessageType.Warning);
+            float offsetCm = profile.grenadeInHandOffset.magnitude * 100f;
+            EditorGUILayout.LabelField("수류탄 모형 ↔ 손바닥 중심", $"{offsetCm:0.0} cm");
+            if (offsetCm > 15f)
+                EditorGUILayout.HelpBox("손바닥에서 15cm 넘게 떨어져 있습니다. 초기화한 뒤 다시 맞추세요", MessageType.Warning);
+            if (GUILayout.Button("수류탄 모형 위치 초기화 (손바닥 중심)"))
+            {
+                Undo.RecordObject(profile, "수류탄 모형 위치 초기화");
+                profile.grenadeInHandOffset = Vector3.zero;
+                itemIK.EditingModel = false; // 편집 중이면 손바닥에 다시 붙인 뒤 이어서 옮긴다
+                EditorUtility.SetDirty(profile);
+                SaveProfile();
+            }
             EditorGUILayout.LabelField("왼손 아이템 자세", $"{itemIK.PoseWeight:0.00}");
         }
 

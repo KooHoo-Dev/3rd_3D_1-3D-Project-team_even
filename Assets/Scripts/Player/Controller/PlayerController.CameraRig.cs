@@ -40,12 +40,16 @@ namespace HybridShooter.Player
             currentCameraTransform = viewMode == ViewMode.FirstPerson ? FirstParsonCam : ThirdParsonCam;
         }
 
+        /// <summary>지금 아래로 볼 수 있는 최대 각도: 3인칭 maxPitch ↔ 1인칭 fpMaxPitch (시점 전환 중에는 진행도대로)</summary>
+        private float MaxPitch => Mathf.Lerp(maxPitch, Mathf.Min(maxPitch, fpMaxPitch), FirstPersonBlend);
+
         /// <summary>
         /// 리그 좌우 = 시선 yaw, 상하 = 시선 pitch.
         /// 리그는 Player 의 자식이지만 월드 yaw 를 직접 넣는다 → 몸(리지드바디 보간 회전)을 기다리지 않고 마우스에 바로 반응
         /// </summary>
         private void UpdateRigRotation()
         {
+            lookPitch = Mathf.Min(lookPitch, MaxPitch); // 1인칭으로 바뀌는 동안 아래 한계가 줄어들면 시선도 함께 올라온다
             Quaternion yaw = Quaternion.Euler(0f, lookYaw, 0f);
             Quaternion pitch = Quaternion.Euler(lookPitch, 0f, 0f);
             fpRig.rotation = yaw;

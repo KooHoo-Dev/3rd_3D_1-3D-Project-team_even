@@ -100,7 +100,7 @@ namespace HybridShooter.Player
         public void AddLookOffset(float pitch, float yaw)
         {
             lookYaw = Mathf.Repeat(lookYaw + yaw, 360f);
-            lookPitch = Mathf.Clamp(lookPitch + pitch, minPitch, maxPitch);
+            lookPitch = Mathf.Clamp(lookPitch + pitch, minPitch, MaxPitch);
         }
 
         /// <summary>조준 확대. fovMultiplier 1 = 원래 시야, sensitivityMultiplier = 마우스 감도 배율</summary>

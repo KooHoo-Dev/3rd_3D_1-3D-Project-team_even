@@ -79,6 +79,8 @@ namespace HybridShooter.Player
         [SerializeField] private bool invertY = false;
         [SerializeField] private float minPitch = -70f;
         [SerializeField] private float maxPitch = 80f;
+        [Tooltip("1인칭에서 아래로 내려 볼 수 있는 최대 각도(도). 더 내리면 총 든 팔이 꺾여 화면에 들어온다 (maxPitch 보다 크면 maxPitch)")]
+        [SerializeField] private float fpMaxPitch = 55f;
 
         [Header("카메라 리그")]
         [Tooltip("1인칭 카메라 (FP_Pitch 의 자식)")]
