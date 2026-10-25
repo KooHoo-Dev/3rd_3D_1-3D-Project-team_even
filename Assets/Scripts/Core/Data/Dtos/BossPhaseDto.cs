@@ -1,3 +1,5 @@
+// 구형 보스 페이즈 호환용 타입. 현재 DataManager에서는 로드하지 않는다.
+// 팀원 코드의 타입 참조를 위해 선언을 유지하며, 원본 데이터는 BossPhaseTable.tsv의 주석에 보관한다.
 namespace HybridShooter.Core.Data.Dtos
 {
     /// <summary>

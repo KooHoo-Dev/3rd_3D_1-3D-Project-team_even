@@ -114,7 +114,9 @@ namespace HybridShooter.Core.Data
             monsters        = Build<MonsterDto, int, MonsterDef>(folder, MonsterDef.Table, r, d => d.Id, d => new MonsterDef(d, r));
             monsterAttacks  = Build<MonsterAttackDto, int, MonsterAttackDef>(folder, MonsterAttackDef.Table, r, d => d.Id, d => new MonsterAttackDef(d, r));
             monsterParts    = Build<MonsterPartDto, int, MonsterPartDef>(folder, MonsterPartDef.Table, r, d => d.Id, d => new MonsterPartDef(d, r));
-            bossPhases      = Build<BossPhaseDto, int, BossPhaseDef>(folder, BossPhaseDef.Table, r, d => d.Id, d => new BossPhaseDef(d, r));
+            // 구형 보스 페이즈 로딩은 중단한다. 팀원 코드의 공개 타입·접근자 호환을 위해 빈 테이블은 유지한다.
+            // bossPhases = Build<BossPhaseDto, int, BossPhaseDef>(folder, BossPhaseDef.Table, r, d => d.Id, d => new BossPhaseDef(d, r));
+            bossPhases = new DefTable<int, BossPhaseDef>(BossPhaseDef.Table);
             statusEffects   = Build<StatusEffectDto, int, StatusEffectDef>(folder, StatusEffectDef.Table, r, d => d.Id, d => new StatusEffectDef(d, r));
             rounds          = Build<RoundDto, int, RoundDef>(folder, RoundDef.Table, r, d => d.Round, d => new RoundDef(d, r));
             crowdSpawnRules = Build<CrowdSpawnDto, int, CrowdSpawnRuleDef>(folder, CrowdSpawnRuleDef.Table, r, d => d.Id, d => new CrowdSpawnRuleDef(d, r));
@@ -256,6 +258,8 @@ namespace HybridShooter.Core.Data
                 }
             }
 
+            // 구형 보스 페이즈 연결은 후속 작업 참고용으로 주석 보관한다.
+            /*
             foreach (var ph in bossPhases)
             {
                 if (monsters.TryGet(ph.MonsterId, out var m))
@@ -277,6 +281,7 @@ namespace HybridShooter.Core.Data
                 }
                 ph.PatternSequence = seq;
             }
+            */
 
             var attacksBy = monsterAttacks.Where(a => a.Owner != null).GroupBy(a => a.MonsterId).ToDictionary(g => g.Key, g => g.ToList());
             var partsBy = monsterParts.Where(p => p.Owner != null).GroupBy(p => p.MonsterId).ToDictionary(g => g.Key, g => g.ToList());
@@ -323,10 +328,14 @@ namespace HybridShooter.Core.Data
 
             foreach (var round in rounds)
             {
+                // 기존 MonsterTable 보스 연결은 라운드 연동 시 새 BossDef 기준으로 교체한다.
+                // 주석 보관 중인 보스 행을 조회하지 않도록 기존 연결·검증을 함께 보류한다.
+                /*
                 if (monsters.TryGet(round.BossId, out var boss)) round.Boss = boss;
                 else r.Error(RoundDef.Table, round.Round, $"BossId {round.BossId} 가 MonsterTable 에 없습니다");
                 if (round.Boss != null && round.Boss.IsBoss == false)
                     r.Error(RoundDef.Table, round.Round, $"BossId {round.BossId} 의 Role 이 Boss 가 아닙니다");
+                */
 
                 round.SpawnRules = crowdSpawnRules
                     .Where(x => x.Round == 0 || x.Round == round.Round)
@@ -394,6 +403,8 @@ namespace HybridShooter.Core.Data
                     if (p.TransformTo != null && p.TransformTo.Prefab != m.Prefab)
                         r.Warn(MonsterPartDef.Table, p.Id, $"전환 대상 {p.TransformTo.Id} 의 Prefab 이 달라 같은 프리팹 변종이 아닙니다");
 
+                // 구형 보스 등장 공격·페이즈 검증은 주석 보관한다. 일반 몬스터 검증은 위에서 유지한다.
+                /*
                 if (m.IsBoss == false) continue;
 
                 if (m.EntranceAttack == null) r.Warn(MonsterDef.Table, m.Id, "보스에 Entrance(등장 공격) 가 없습니다 (BL-023)");
@@ -406,6 +417,7 @@ namespace HybridShooter.Core.Data
                     if (i == 0 && ph.HpThresholdPercent != 100) r.Error(BossPhaseDef.Table, ph.Id, "1 페이즈의 HpThresholdPercent 는 100 이어야 합니다");
                     if (i > 0 && ph.HpThresholdPercent >= m.Phases[i - 1].HpThresholdPercent) r.Error(BossPhaseDef.Table, ph.Id, "HpThresholdPercent 는 페이즈가 올라갈수록 작아져야 합니다");
                 }
+                */
             }
         }
     }
