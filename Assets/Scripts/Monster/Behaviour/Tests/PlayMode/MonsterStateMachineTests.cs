@@ -85,11 +85,15 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
         }
 
-        /// <summary>진행 중인 공격을 끝까지 진행한다: 예고 → 공격 → 회복 → 종료 (Tick 1번에 단계 1개)</summary>
+        /// <summary>
+        /// 진행 중인 공격을 끝까지 진행한다: 예고 → 공격 → 회복 → 종료.
+        /// Bite 기준 Active = 1.2 − 0.4 − 0.3 = 0.5s, 판정은 Active 시작 +0.25s. 경계값을 피해 간격을 잡는다.
+        /// </summary>
         private void FinishRunningAttack()
         {
-            Step(0.5f); // 예고 끝 → 공격
-            Step(0.1f); // 공격 판정 → 회복
+            Step(0.5f); // 예고 끝 → 공격(Active)
+            Step(0.3f); // 판정 (+0.3s ≥ 0.25s)
+            Step(0.3f); // Active 끝 (+0.6s ≥ 0.5s) → 회복
             Step(0.5f); // 회복 끝 → 종료
         }
 
@@ -165,17 +169,20 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [Test]
-        public void AttackWaitsWhileNotReady()
+        public void ConsecutiveAttackStaysInAttackWithoutStateChange()
         {
-            UseAttack(new AttackSpec(AttackShape.Melee, damage: 5, hitCount: 1, cooldown: 10f,
-                                     telegraphTime: 0.4f, recoveryTime: 0.3f, range: 1.5f));
             EnterAttack();
+            int stateChangedCount = 0;
+            _stateMachine.StateChanged += (previous, current) => stateChangedCount++;
+
             Step(); // Begin
-            FinishRunningAttack(); // → Chase
-            Step(); // Chase → Attack
-            Step(); // 쿨다운 중: 시작하지 않고 대기
-            Step();
-            Assert.AreEqual(1, beginCount);
+            FinishRunningAttack();
+            Assert.AreEqual(AttackResult.Completed, attack.LastResult);
+            Assert.AreSame(_stateMachine.Attack, _stateMachine.Current, "완료 틱에 상태를 바꾸지 않는다");
+
+            Step(); // 다음 틱: 사거리 안 + 쿨다운 끝 → 다시 Begin
+            Assert.AreEqual(2, beginCount);
+            Assert.AreEqual(0, stateChangedCount, "연속 공격 중 Attack ↔ Chase 왕복이 없다");
             Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
         }
 
@@ -199,6 +206,9 @@ namespace HybridShooter.Monster.Behaviour.Tests
             target.Position = new Vector3(0f, 0f, 10f);
             FinishRunningAttack();
             Assert.AreEqual(AttackResult.Completed, attack.LastResult);
+            Assert.AreSame(_stateMachine.Attack, _stateMachine.Current, "완료 틱에는 Attack 에 머문다");
+
+            Step(); // 다음 틱에 사거리 밖 → Chase
             Assert.AreSame(_stateMachine.Chase, _stateMachine.Current);
             Assert.IsFalse(movement.IsSuspended);
         }
@@ -236,6 +246,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             var wallSpec = new AttackSpec(AttackShape.Melee, damage: 5, hitCount: 1, cooldown: 1f,
                                           telegraphTime: 0f, recoveryTime: 0.3f, range: 1.5f, wallHitStunTime: 1f);
             var wallAttack = new WallHitOnFirstActiveAttack(wallSpec);
+            wallAttack.HitTimeRatio = 0f; // 판정 대기 없이 Active 첫 판정 틱에 OnActive
             _stateMachine = new MonsterStateMachine(movement, body, wallAttack);
             _stateMachine.SetTarget(target);
             Step();

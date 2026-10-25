@@ -3,6 +3,8 @@ namespace HybridShooter.Monster.Behaviour
     /// <summary>
     /// 사거리 안에서 공격. 공격이 진행 중(예고·공격·회복)이면 사거리를 벗어나도 끝까지 진행한다.
     /// 예고 중 피하기와 회복 중 반격이 명세의 대응 수단이기 때문이다.
+    /// 공격이 끝나도 Attack 에 머문다. 다음 틱에 아래 분기가 판단한다 (대상 없음 → Idle, 사거리 밖·공격 불허 → Chase, 그 외 → 다시 Begin).
+    /// 그래서 연속 공격 중에는 상태 변경(StateChanged)이 일어나지 않는다.
     /// </summary>
     public sealed class AttackState : MonsterState
     {
@@ -10,6 +12,7 @@ namespace HybridShooter.Monster.Behaviour
 
         public override void Enter() => Owner.StopForAttack();
 
+        /// <summary>진행 중인 공격을 진행하고(벽 충돌이면 기절), 공격 중이 아니면 상태 유지·전이·다음 공격 시작을 정한다</summary>
         public override void Tick()
         {
             var attack = Owner.CurrentAttack;
@@ -18,9 +21,7 @@ namespace HybridShooter.Monster.Behaviour
                 attack.Tick(Owner.Now, Owner.DeltaTime);
                 if (attack.IsAttacking == false && attack.LastResult == AttackResult.WallHit)
                     Owner.Stun(attack.WallHitStunTime);
-                else if (attack.IsAttacking == false)
-                    Owner.ChangeState(Owner.HasTarget ? Owner.Chase : Owner.Idle);
-                return;
+                return; // 그 외 완료는 상태를 바꾸지 않는다. 다음 틱에 아래 분기가 판단한다.
             }
 
             if (Owner.HasTarget == false) 
@@ -38,7 +39,7 @@ namespace HybridShooter.Monster.Behaviour
         public override void Exit()
         {
             if (Owner.CurrentAttack.IsAttacking) Owner.CurrentAttack.Cancel();
-            Owner.StopMove(); // 공격 한 주기가 끝나면 예약을 반환한 뒤 다시 경쟁한다.
+            Owner.StopMove(); // Attack 을 떠날 때 예약을 반환한 뒤 다시 경쟁한다.
         }
     }
 }

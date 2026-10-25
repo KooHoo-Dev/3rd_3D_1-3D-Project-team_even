@@ -3,6 +3,7 @@ using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
+using HybridShooter.Core.GameFlow;
 using HybridShooter.Core.Services;
 using HybridShooter.Monster.Movement;
 using UnityEngine;
@@ -30,6 +31,14 @@ namespace HybridShooter.Monster.Behaviour
         [Tooltip("Chase 중 이 속도 미만이면 Idle 애니를 재생 (m/s)")]
         [SerializeField, Min(0f)] private float idleSpeedThreshold = 0.1f;
 
+        [Header("공격")]
+        [Tooltip("켜면 데이터 테이블 Cooldown 대신 아래 값을 쓴다. 다음 공격 시작부터 반영")]
+        [SerializeField] private bool useCooldownOverride;
+        [Tooltip("공격 한 주기 총 시간 (s). 예고+회복보다 커야 한다 (같거나 작으면 예외)")]
+        [SerializeField, Min(0f)] private float cooldownOverrideSeconds = 1f;
+        [Tooltip("Active 구간 중 판정 시점 비율. 0 = Active 시작, 1 = Active 끝. 다음 공격 시작부터 반영")]
+        [SerializeField, Range(0f, 1f)] private float hitTimeRatio = 0.5f;
+
         /// <summary>Base Controller 의 Attack 상태 원본 클립 이름. Override 인덱서는 원본 클립 이름으로 찾는다</summary>
         private const string BaseAttackClipName = "Placeholder_Attack";
 
@@ -40,7 +49,6 @@ namespace HybridShooter.Monster.Behaviour
 
         // ── 애니메이션 ──
         private Animator animator;
-        private float attackAnimationSpeed; // 공격 클립이 예고+회복 시간에 끝나는 재생 배율
 
         public MonsterDef Def { get; private set; }
         public MonsterStateMachine StateMachine { get; private set; }
@@ -65,13 +73,13 @@ namespace HybridShooter.Monster.Behaviour
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
             var body = new MonsterBody(transform);
             var attackSpec = AttackSpec.From(SingleBasicAttack(Def));
-            var attack = MonsterBrainFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable);
+            var attack = MonsterAttackFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable);
             movement.SetCombatTuning(Def.MoveSpeed, attack.Range);
             StateMachine = new MonsterStateMachine(movement, body, attack);
-            attackAnimationSpeed = ReadAttackClipSeconds() / (attackSpec.TelegraphTime + attackSpec.RecoveryTime);
 
             StateMachine.Died += OnStateMachineDied;
             StateMachine.StateChanged += OnStateChanged;
+            StateMachine.CurrentAttack.PhaseChanged += OnAttackPhaseChanged;
             Subscribe();
         }
 
@@ -107,13 +115,32 @@ namespace HybridShooter.Monster.Behaviour
             }
 
             AcquireTarget();
+            ApplyAttackTuning();
             StateMachine.Update(Time.time, Time.deltaTime);
             UpdateMoveAnimation();
         }
 
         /// <summary>
-        /// 상태가 바뀔 때 애니를 바꾼다. Attack/Stunned/Death 는 같은 이름 Trigger 로 들어가고(Attack 은 공격 시간에 맞춘 배율),
-        /// Attack/Stunned 에서 Idle/Chase 로 나올 때만 Idle Trigger 를 보낸다. 받을 전이가 있을 때만 보내야 Trigger 가 소비되지 않고 남지 않는다.
+        /// 인스펙터의 쿨다운(덮어쓰기 꺼짐 = 데이터 값)과 판정 비율을 매 프레임 공격에 넣는다.
+        /// 공격은 Begin 때 값을 고정하므로 실제 반영은 다음 공격부터다. 쿨다운이 예고+회복 이하면 Active 길이가 없으므로 예외.
+        /// </summary>
+        private void ApplyAttackTuning()
+        {
+            MonsterAttack attack = StateMachine.CurrentAttack;
+            float cooldown = attack.Spec.Cooldown;
+            if (useCooldownOverride) cooldown = cooldownOverrideSeconds;
+
+            float windupAndRecoverySeconds = attack.Spec.TelegraphTime + attack.Spec.RecoveryTime;
+            if (cooldown <= windupAndRecoverySeconds)
+                throw new InvalidOperationException($"{name}: 쿨다운({cooldown}s)은 예고+회복({windupAndRecoverySeconds}s)보다 커야 한다");
+
+            attack.Cooldown = cooldown;
+            attack.HitTimeRatio = hitTimeRatio;
+        }
+
+        /// <summary>
+        /// 상태가 바뀔 때 Animator 의 Bool/Trigger 를 맞춘다. Attack 신호는 여기서 보내지 않는다(OnAttackPhaseChanged 담당).
+        /// Stunned 진입/이탈은 IsStunned, Dead 진입은 IsDead + Death Trigger. IsDead 가 Any State 전이를 막아 Death 에서 나가지 않는다.
         /// Idle/Chase 안의 정지·이동은 UpdateMoveAnimation 이 IsMoving 으로 정한다.
         /// </summary>
         private void OnStateChanged(MonsterState previous, MonsterState current)
@@ -121,26 +148,34 @@ namespace HybridShooter.Monster.Behaviour
             animator.speed = 1f;
             animator.SetBool("IsMoving", false);
 
-            if (current == StateMachine.Attack)
-            {
-                animator.SetTrigger("Attack");
-                animator.speed = attackAnimationSpeed;
-                return;
-            }
             if (current == StateMachine.Stunned)
             {
-                animator.SetTrigger("Stunned");
+                animator.SetBool("IsStunned", true);
                 return;
             }
             if (current == StateMachine.Dead)
             {
+                animator.SetBool("IsStunned", false);
+                animator.SetBool("IsDead", true);
                 animator.SetTrigger("Death");
                 return;
             }
+            if (current == StateMachine.Attack) return;
 
-            // 여기부터 Idle / Chase 진입
-            bool cameFromAttackOrStunned = previous == StateMachine.Attack || previous == StateMachine.Stunned;
-            if (cameFromAttackOrStunned) animator.SetTrigger("Idle");
+            // 여기부터 Idle / Chase 진입: 기절에서 나왔으면 Stunned → Idle 전이가 일어난다
+            animator.SetBool("IsStunned", false);
+        }
+
+        /// <summary>
+        /// 공격 Active 시작에 Attack 클립을 재생한다. 배율 = 클립 길이 ÷ Active 길이 → 클립이 Active 동안 정확히 1번 재생된다.
+        /// 예고·회복·종료 단계에서는 아무것도 하지 않는다 (Animator 는 Exit Time 으로 Idle 에 돌아가 있다).
+        /// </summary>
+        private void OnAttackPhaseChanged(MonsterAttack attack, SkillPhase phase)
+        {
+            if (phase != SkillPhase.Active) return;
+
+            animator.SetFloat("AttackSpeed", ReadAttackClipSeconds() / attack.ActiveDuration);
+            animator.SetTrigger("Attack");
         }
 
         /// <summary>

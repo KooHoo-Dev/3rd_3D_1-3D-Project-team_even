@@ -75,13 +75,17 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreEqual(SkillPhase.Active, attack.Phase);
             Assert.AreEqual(0, target.Received.Count, "Active 로 넘어간 Tick 에서는 아직 판정하지 않는다");
 
-            attack.Tick(0.5f, 0.1f);
+            // Active = 1.2 − 0.4 − 0.3 = 0.5s (0.4 ~ 0.9), 판정 0.65
+            attack.Tick(0.7f, 0.3f);
+            Assert.AreEqual(SkillPhase.Active, attack.Phase, "판정 뒤에도 Active 시간이 끝날 때까지 유지");
+
+            attack.Tick(1.0f, 0.3f);
             Assert.AreEqual(SkillPhase.Recover, attack.Phase);
 
-            attack.Tick(0.7f, 0.2f);
+            attack.Tick(1.2f, 0.2f);
             Assert.AreEqual(SkillPhase.Recover, attack.Phase, "회복 시간 전");
 
-            attack.Tick(0.8f, 0.1f);
+            attack.Tick(1.35f, 0.15f);
             Assert.IsFalse(attack.IsAttacking);
             Assert.AreEqual(AttackResult.Completed, attack.LastResult);
             CollectionAssert.AreEqual(
@@ -115,7 +119,8 @@ namespace HybridShooter.Monster.Behaviour.Tests
             attack.Begin(target, 0f);
             target.Position = new Vector3(0f, 0f, 3f);
             attack.Tick(0.4f, 0.4f);
-            attack.Tick(0.5f, 0.1f);
+            attack.Tick(0.7f, 0.3f);
+            attack.Tick(1.0f, 0.3f);
             Assert.AreEqual(0, target.Received.Count);
             Assert.AreEqual(SkillPhase.Recover, attack.Phase, "빗나가도 회복(반격 시간)은 진행");
         }
@@ -141,8 +146,9 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.IsFalse(attack.CanStart(0.1f), "진행 중");
 
             attack.Tick(0.4f, 0.4f);
-            attack.Tick(0.5f, 0.1f);
-            attack.Tick(0.8f, 0.3f);
+            attack.Tick(0.7f, 0.3f);
+            attack.Tick(0.95f, 0.25f);
+            attack.Tick(1.3f, 0.35f);
             Assert.IsFalse(attack.IsAttacking);
             Assert.IsFalse(attack.CanStart(1.1f));
             Assert.IsTrue(attack.CanStart(1.2f));
@@ -186,7 +192,43 @@ namespace HybridShooter.Monster.Behaviour.Tests
             attack = new StrikeAttack(Bite, body, _ => null);
             attack.Begin(target, 0f);
             attack.Tick(0.4f, 0.4f);
-            Assert.Throws<InvalidOperationException>(() => attack.Tick(0.5f, 0.1f));
+            Assert.Throws<InvalidOperationException>(() => attack.Tick(0.7f, 0.3f));
+        }
+
+        [Test]
+        public void HitHappensOnceAtActiveMiddle()
+        {
+            attack.Begin(target, 0f);
+            attack.Tick(0.4f, 0.4f); // → Active (0.4 ~ 0.9), 판정 0.65
+
+            attack.Tick(0.6f, 0.2f);
+            Assert.AreEqual(0, target.Received.Count, "판정 시각 전");
+
+            attack.Tick(0.7f, 0.1f);
+            Assert.AreEqual(2, target.Received.Count, "판정 1번 × HitCount 2");
+
+            attack.Tick(0.8f, 0.1f);
+            attack.Tick(0.95f, 0.15f);
+            Assert.AreEqual(SkillPhase.Recover, attack.Phase);
+            Assert.AreEqual(2, target.Received.Count, "Active 끝까지 다시 판정하지 않는다");
+        }
+
+        [Test]
+        public void CooldownChangeAppliesFromNextBegin()
+        {
+            attack.Begin(target, 0f);
+            attack.Cooldown = 2f;
+            Assert.AreEqual(0.5f, attack.ActiveDuration, 1e-4f, "진행 중 주기는 Begin 때 쿨다운(1.2)을 쓴다");
+
+            attack.Tick(0.4f, 0.4f);
+            attack.Tick(0.7f, 0.3f);
+            attack.Tick(0.95f, 0.25f);
+            attack.Tick(1.3f, 0.35f);
+            Assert.IsFalse(attack.IsAttacking);
+            Assert.IsTrue(attack.CanStart(1.3f));
+
+            attack.Begin(target, 1.3f);
+            Assert.AreEqual(1.3f, attack.ActiveDuration, 1e-4f, "다음 주기부터 2 − 0.4 − 0.3");
         }
 
         [Test]
@@ -201,22 +243,24 @@ namespace HybridShooter.Monster.Behaviour.Tests
             var brain = new MonsterStateMachine(movement, body, attack);
             brain.SetTarget(target);
             float now = 0f;
-            for (int i = 0; i < 25; i++)
+            for (int i = 0; i < 30; i++)
             {
                 now += 0.1f;
                 brain.Update(now, 0.1f);
             }
 
-            // 0.1 Chase, 0.2 Attack, 0.3 Begin, ~0.7 Active, ~0.8 판정, ~1.5 재시작(쿨다운 1.2), ~2.0 판정, 다음 시작은 ~2.7
-            Assert.AreEqual(4, target.Received.Count, "2.5s 동안 2번 공격 × HitCount 2");
+            // 0.1 Chase, 0.2 Attack, 0.3 Begin, ~0.7 Active, ~1.0 판정, ~1.2 회복, ~1.5 종료 → 다음 틱 재시작(주기 = 쿨다운 1.2),
+            // ~2.3 판정, ~2.9 종료 → 다음 판정은 3.0s 이후
+            Assert.AreEqual(4, target.Received.Count, "3.0s 동안 2번 공격 × HitCount 2");
             Assert.AreSame(brain.Attack, brain.Current);
         }
 
         private void RunToRecover()
         {
             attack.Begin(target, 0f);
-            attack.Tick(0.4f, 0.4f);
-            attack.Tick(0.5f, 0.1f);
+            attack.Tick(0.4f, 0.4f); // → Active
+            attack.Tick(0.7f, 0.3f); // 판정
+            attack.Tick(1.0f, 0.3f); // → 회복
         }
     }
 }

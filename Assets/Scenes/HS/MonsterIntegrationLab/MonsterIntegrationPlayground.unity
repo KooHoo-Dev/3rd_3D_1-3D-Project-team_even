@@ -1279,6 +1279,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3673681119355232943, guid: 7df4d2beaf77cfd43940ad8332fc655c, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7794425194075702535, guid: 7df4d2beaf77cfd43940ad8332fc655c, type: 3}
       propertyPath: m_Name
       value: Muscomorph

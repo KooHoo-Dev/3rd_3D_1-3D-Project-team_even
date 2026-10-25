@@ -7,7 +7,7 @@ namespace HybridShooter.Monster.Behaviour
     /// <summary>
     /// 역할(Role) → 공격 전략. 새 공격 방식 = 전략 클래스 1개 + case 1줄.
     /// </summary>
-    public static class MonsterBrainFactory
+    public static class MonsterAttackFactory
     {
         public static MonsterAttack CreateAttack(MonsterRole role, in AttackSpec spec, MonsterBody body,
                                                   Func<IPlayerTarget, IDamageable> findDamageable)

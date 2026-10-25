@@ -18,9 +18,13 @@ public static class MonsterAnimatorAssetCreator
     private static readonly string[] stateNames = { "Idle", "Move", "Attack", "Stunned", "Death" };
 
     // ── 파라미터 ──
-    // Idle 트리거 = Attack/Stunned 에서 Idle 로 돌아가는 신호. 나머지 트리거 = Any State 에서 그 상태로 들어가는 신호
-    private static readonly string[] triggerNames = { "Idle", "Attack", "Stunned", "Death" };
+    // 트리거 = Any State 에서 그 상태로 들어가는 신호 (Attack = 공격 Active 시작, Death = 사망)
+    private static readonly string[] triggerNames = { "Attack", "Death" };
     private const string IsMovingParameter = "IsMoving"; // Bool. Idle ↔ Move 전이 조건
+    private const string IsStunnedParameter = "IsStunned"; // Bool. true 동안 Stunned, false 가 되면 Idle 로
+    private const string IsDeadParameter = "IsDead"; // Bool. true 면 Any State → Attack/Stunned 를 막아 Death 에 고정
+    private const string AttackSpeedParameter = "AttackSpeed"; // Float. Attack 상태 재생 배율 (클립 길이 ÷ Active 길이)
+    private const float AttackExitTime = 1f; // Attack → Idle 이 시작되는 클립 정규화 시간. Play Mode 에서 조정
 
     private static readonly string[] monsterNames =
     {
@@ -110,9 +114,10 @@ public static class MonsterAnimatorAssetCreator
     }
 
     /// <summary>
-    /// 전이 규칙 전체. 모두 Exit Time 없이 조건으로만 넘어간다.
-    /// Idle ↔ Move 는 IsMoving Bool, Attack/Stunned/Death 진입은 Any State + 트리거,
-    /// Attack/Stunned 에서 나갈 때는 Idle 트리거로 항상 Idle 을 거친다. Death 는 나가는 전이가 없다.
+    /// 전이 규칙 전체. Attack → Idle 만 Exit Time(클립이 끝나면 스스로 복귀)이고 나머지는 조건으로만 넘어간다.
+    /// Idle ↔ Move 는 IsMoving, Stunned 는 IsStunned 가 true 인 동안 유지되고 false 면 Idle 로 나온다.
+    /// Attack/Stunned/Death 진입은 Any State. Any State 전이는 Death 에서도 검사되므로 Attack/Stunned 진입에 IsDead == false 를 붙여 Death 에서 나가지 않게 한다.
+    /// Attack 상태 재생 배율은 AttackSpeed 파라미터가 정한다.
     /// </summary>
     private static void BuildParametersAndTransitions(AnimatorController controller)
     {
@@ -123,22 +128,47 @@ public static class MonsterAnimatorAssetCreator
         AnimatorState stunnedState = FindState(rootStateMachine, "Stunned");
         AnimatorState deathState = FindState(rootStateMachine, "Death");
 
+        // 파라미터
         foreach (string triggerName in triggerNames)
             controller.AddParameter(triggerName, AnimatorControllerParameterType.Trigger);
         controller.AddParameter(IsMovingParameter, AnimatorControllerParameterType.Bool);
+        controller.AddParameter(IsStunnedParameter, AnimatorControllerParameterType.Bool);
+        controller.AddParameter(IsDeadParameter, AnimatorControllerParameterType.Bool);
+        controller.AddParameter(new AnimatorControllerParameter
+        {
+            name = AttackSpeedParameter,
+            type = AnimatorControllerParameterType.Float,
+            defaultFloat = 1f,
+        });
+
+        // Attack 상태 재생 배율
+        attackState.speedParameter = AttackSpeedParameter;
+        attackState.speedParameterActive = true;
 
         // Idle ↔ Move
         AddStateTransition(idleState, moveState).AddCondition(AnimatorConditionMode.If, 0f, IsMovingParameter);
         AddStateTransition(moveState, idleState).AddCondition(AnimatorConditionMode.IfNot, 0f, IsMovingParameter);
 
-        // Attack / Stunned → Idle
-        AddStateTransition(attackState, idleState).AddCondition(AnimatorConditionMode.If, 0f, "Idle");
-        AddStateTransition(stunnedState, idleState).AddCondition(AnimatorConditionMode.If, 0f, "Idle");
+        // Attack → Idle: 조건 없이 클립이 끝나면 (Exit Time)
+        AnimatorStateTransition attackToIdle = attackState.AddTransition(idleState);
+        attackToIdle.hasExitTime = true;
+        attackToIdle.exitTime = AttackExitTime;
+        attackToIdle.duration = TransitionDuration;
+
+        // Stunned → Idle: 기절 시간이 끝나 코드가 IsStunned 를 false 로 넣으면
+        AddStateTransition(stunnedState, idleState).AddCondition(AnimatorConditionMode.IfNot, 0f, IsStunnedParameter);
 
         // Any State → Attack / Stunned / Death
-        AddAnyStateTransition(rootStateMachine, attackState, "Attack");
-        AddAnyStateTransition(rootStateMachine, stunnedState, "Stunned");
-        AddAnyStateTransition(rootStateMachine, deathState, "Death");
+        AnimatorStateTransition anyToAttack = AddAnyStateTransition(rootStateMachine, attackState);
+        anyToAttack.AddCondition(AnimatorConditionMode.If, 0f, "Attack");
+        anyToAttack.AddCondition(AnimatorConditionMode.IfNot, 0f, IsDeadParameter);
+
+        AnimatorStateTransition anyToStunned = AddAnyStateTransition(rootStateMachine, stunnedState);
+        anyToStunned.AddCondition(AnimatorConditionMode.If, 0f, IsStunnedParameter);
+        anyToStunned.AddCondition(AnimatorConditionMode.IfNot, 0f, IsDeadParameter);
+
+        AnimatorStateTransition anyToDeath = AddAnyStateTransition(rootStateMachine, deathState);
+        anyToDeath.AddCondition(AnimatorConditionMode.If, 0f, "Death");
     }
 
     /// <summary>재구성 전에 기존 파라미터, Any State 전이, 상태 간 전이를 모두 지운다</summary>
@@ -178,14 +208,17 @@ public static class MonsterAnimatorAssetCreator
         return transition;
     }
 
-    /// <summary>Any State → 상태 전이. 같은 상태로 다시 들어가지 않는다</summary>
-    private static void AddAnyStateTransition(AnimatorStateMachine rootStateMachine, AnimatorState to, string triggerName)
+    /// <summary>
+    /// Any State → 상태 전이의 공통 설정만 한다 (같은 상태로 다시 들어가지 않음, Exit Time 없음, 블렌드 시간). 조건은 호출부에서 붙인다.
+    /// 재진입 금지가 없으면 IsStunned 처럼 계속 참인 Bool 조건에서 매 프레임 처음부터 다시 들어간다.
+    /// </summary>
+    private static AnimatorStateTransition AddAnyStateTransition(AnimatorStateMachine rootStateMachine, AnimatorState to)
     {
         AnimatorStateTransition transition = rootStateMachine.AddAnyStateTransition(to);
-        transition.AddCondition(AnimatorConditionMode.If, 0f, triggerName);
         transition.canTransitionToSelf = false;
         transition.hasExitTime = false;
         transition.duration = TransitionDuration;
+        return transition;
     }
 
     /// <summary>몬스터별 Override 컨트롤러를 만든다. 클립 칸은 비워 두고, 파일이 이미 있으면 건너뛴다</summary>

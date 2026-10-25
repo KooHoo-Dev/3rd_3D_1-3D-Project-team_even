@@ -1849,10 +1849,11 @@ GameObject:
   m_Component:
   - component: {fileID: 1282629706231557258}
   - component: {fileID: 2645137613515556809}
-  - component: {fileID: 6684576620808380083}
   - component: {fileID: 4993678701147813813}
+  - component: {fileID: 6684576620808380083}
   - component: {fileID: -5282420452375643821}
   - component: {fileID: -6963252850141782799}
+  - component: {fileID: 3673681119355232943}
   m_Layer: 0
   m_Name: Muscomorph
   m_TagString: Untagged
@@ -1905,22 +1906,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &6684576620808380083
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7794425194075702535}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0f483ab3958142c0883214bbb5a4f607, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
-  profile: {fileID: 11400000, guid: c619edd1badc47247a173191b35665e2, type: 2}
-  coordinator: {fileID: 0}
-  directTargetSource: {fileID: 0}
-  turnSpeed: 8
 --- !u!195 &4993678701147813813
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1943,6 +1928,22 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &6684576620808380083
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7794425194075702535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f483ab3958142c0883214bbb5a4f607, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
+  profile: {fileID: 11400000, guid: c619edd1badc47247a173191b35665e2, type: 2}
+  coordinator: {fileID: 0}
+  directTargetSource: {fileID: 0}
+  turnSpeed: 8
 --- !u!114 &-5282420452375643821
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1976,6 +1977,23 @@ MonoBehaviour:
   despawnDelay: 2
   moveClipSpeed: 3
   idleSpeedThreshold: 0.1
+  useCooldownOverride: 0
+  cooldownOverrideSeconds: 1
+  hitTimeRatio: 0.5
+--- !u!114 &3673681119355232943
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7794425194075702535}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f100bc9e0ca917a4fb434a334a8662c5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterDebugActions
+  damageAmount: 10
+  stunSeconds: 2
 --- !u!1 &7960356510021968820
 GameObject:
   m_ObjectHideFlags: 0

@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace HybridShooter.Monster.Behaviour.Tests
 {
-    public sealed class MonsterBrainFactoryTests
+    public sealed class MonsterAttackFactoryTests
     {
         private static readonly AttackSpec Bite = new AttackSpec(AttackShape.Melee, 5, 1, 1.2f, 0.4f, 0.3f, 1.5f);
 
@@ -26,7 +26,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [Test]
         public void MeleeGetsStrikeAttack()
         {
-            var attack = MonsterBrainFactory.CreateAttack(MonsterRole.Melee, Bite, body, t => (IDamageable)t);
+            var attack = MonsterAttackFactory.CreateAttack(MonsterRole.Melee, Bite, body, t => (IDamageable)t);
             Assert.IsInstanceOf<StrikeAttack>(attack);
             Assert.AreEqual(1.5f, attack.Range);
         }
@@ -39,7 +39,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         public void UnimplementedRolesThrow(MonsterRole role)
         {
             Assert.Throws<NotSupportedException>(() =>
-                MonsterBrainFactory.CreateAttack(role, Bite, body, t => (IDamageable)t));
+                MonsterAttackFactory.CreateAttack(role, Bite, body, t => (IDamageable)t));
         }
     }
 }
