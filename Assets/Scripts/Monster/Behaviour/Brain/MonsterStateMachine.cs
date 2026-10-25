@@ -1,5 +1,6 @@
 using System;
 using HybridShooter.Core.Contracts;
+using HybridShooter.Monster.Movement;
 using UnityEngine;
 
 namespace HybridShooter.Monster.Behaviour
@@ -7,11 +8,12 @@ namespace HybridShooter.Monster.Behaviour
     /// <summary>
     /// 몬스터 1마리의 상태 머신 본체 (상태 패턴의 Owner). Unity 컴포넌트가 아니라 순수 C# 이다.
     /// MonoBehaviour 껍데기가 Update(now, dt) 를 매 프레임 호출하고, 대상·처치 같은 외부 사건을 전달한다.
+    /// 이동은 MonsterMovement 의 정지/재개(SetSuspended)와 공격 허가(CanAttack)로만 제어한다.
     /// </summary>
     public sealed class MonsterStateMachine
     {
-        private readonly IMonsterMover mover;
-        private readonly IMonsterBody body;
+        private readonly MonsterMovement movement;
+        private readonly MonsterBody body;
 
         public MonsterState Idle { get; }
         public MonsterState Chase { get; }
@@ -20,7 +22,7 @@ namespace HybridShooter.Monster.Behaviour
         public MonsterState Dead { get; }
 
         public MonsterState Current { get; private set; }
-        public IMonsterAttack CurrentAttack { get; }
+        public MonsterAttack CurrentAttack { get; }
         public IPlayerTarget Target { get; private set; }
 
         /// <summary>마지막 Update 시각 (s)</summary>
@@ -38,9 +40,9 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>DeadState 진입 시 1번. 인자 = 보상 지급 여부</summary>
         public event Action<bool> Died;
 
-        public MonsterStateMachine(IMonsterMover mover, IMonsterBody body, IMonsterAttack attack)
+        public MonsterStateMachine(MonsterMovement movement, MonsterBody body, MonsterAttack attack)
         {
-            this.mover = mover ?? throw new ArgumentNullException(nameof(mover));
+            this.movement = movement != null ? movement : throw new ArgumentNullException(nameof(movement));
             this.body = body ?? throw new ArgumentNullException(nameof(body));
             CurrentAttack = attack ?? throw new ArgumentNullException(nameof(attack));
 
@@ -56,7 +58,8 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>대상이 있으면 true. 대상 상실(사망 등)은 소유자(MonsterController)가 SetTarget(null)로 알린다</summary>
         public bool HasTarget => Target != null;
-        public bool CanAttack => !(mover is IMonsterCombatMover combatMover) || combatMover.CanAttack;
+        /// <summary>군중 이동의 공격 허가 (슬롯 예약·토큰). 직접 추적 모드는 대상이 있으면 true</summary>
+        public bool CanAttack => movement.CanAttack;
 
         /// <summary>대상까지 수평 거리 ≤ 현재 공격 사거리</summary>
         public bool IsTargetInAttackRange
@@ -128,17 +131,14 @@ namespace HybridShooter.Monster.Behaviour
             SetTarget(null);
             if (CurrentAttack.IsAttacking) CurrentAttack.Cancel();
             if (!IsDead) ChangeState(Idle);
-            mover.Stop();
+            movement.SetSuspended(true);
         }
 
         // ── 상태 전용 ──
-        internal void StopMove() => mover.Stop();
-        internal void StopForAttack()
-        {
-            if (mover is IMonsterCombatMover combatMover) combatMover.StopForAttack();
-            else mover.Stop();
-        }
-        internal void ResumeMove() => mover.Resume();
+        internal void StopMove() => movement.SetSuspended(true);
+        /// <summary>공격하려고 멈춘다. 군중 이동의 공격 슬롯 예약은 유지한다</summary>
+        internal void StopForAttack() => movement.SetSuspended(true, retainReservation: true);
+        internal void ResumeMove() => movement.SetSuspended(false);
         internal void FaceTarget() => body.Face(Target.PlayerTrackingInfo.Position);
         internal void NotifyDied() => Died?.Invoke(GrantReward);
     }

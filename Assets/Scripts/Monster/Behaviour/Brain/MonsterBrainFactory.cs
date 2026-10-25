@@ -9,7 +9,7 @@ namespace HybridShooter.Monster.Behaviour
     /// </summary>
     public static class MonsterBrainFactory
     {
-        public static IMonsterAttack CreateAttack(MonsterRole role, in AttackSpec spec, IMonsterBody body,
+        public static MonsterAttack CreateAttack(MonsterRole role, in AttackSpec spec, MonsterBody body,
                                                   Func<IPlayerTarget, IDamageable> findDamageable)
         {
             switch (role)

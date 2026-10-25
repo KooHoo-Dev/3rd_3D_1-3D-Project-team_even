@@ -3,19 +3,26 @@ using UnityEngine;
 
 namespace HybridShooter.Monster.Behaviour
 {
-    /// <summary>Transform 을 IMonsterBody 로 쓰는 어댑터. 회전은 수평으로만 한다</summary>
-    public sealed class TransformMonsterBody : IMonsterBody
+    /// <summary>
+    /// 브레인(상태 머신)과 공격이 읽고 조작하는 몬스터 몸체 (위치·방향). Transform 을 감싼다.
+    /// 회전은 수평으로만 한다
+    /// </summary>
+    public sealed class MonsterBody
     {
         private readonly Transform transform;
 
-        public TransformMonsterBody(Transform transform)
+        public MonsterBody(Transform transform)
         {
             this.transform = transform != null ? transform : throw new ArgumentNullException(nameof(transform));
         }
 
+        /// <summary>월드 좌표 (m)</summary>
         public Vector3 Position => transform.position;
+
+        /// <summary>정면 방향 (공격 판정 기준)</summary>
         public Vector3 Forward => transform.forward;
 
+        /// <summary>대상 지점을 수평으로 바라본다</summary>
         public void Face(Vector3 worldPoint)
         {
             Vector3 toPoint = worldPoint - transform.position;

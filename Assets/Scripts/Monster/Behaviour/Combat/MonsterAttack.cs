@@ -6,12 +6,12 @@ using UnityEngine;
 namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
-    /// 공격 전략의 기반 (Template Method).
+    /// AttackState 가 쓰는 공격 전략의 기반 (Template Method). 상태 머신은 이 타입으로 공격을 다룬다.
     /// 진행 순서 "예고(TelegraphTime) → 공격(Active) → 회복(RecoveryTime)" 은 이 클래스가 고정하고,
     /// 하위 클래스는 각 단계의 내용(OnWindup / OnActive / OnRecover / OnCancel)만 정한다.
     /// 단계는 Tick 1번에 최대 1개씩 넘어간다.
     /// </summary>
-    public abstract class MonsterAttack : IMonsterAttack
+    public abstract class MonsterAttack
     {
         private readonly Func<IPlayerTarget, IDamageable> findDamageable;
         private float phaseEndTime;
@@ -19,9 +19,16 @@ namespace HybridShooter.Monster.Behaviour
 
         public AttackSpec Spec { get; }
         public SkillPhase Phase { get; private set; } = SkillPhase.Idle;
+
+        /// <summary>예고·공격·회복 중 하나에 있으면 true</summary>
         public bool IsAttacking => Phase != SkillPhase.Idle;
+
         public AttackResult LastResult { get; private set; }
+
+        /// <summary>공격 상태로 들어가는 수평 거리 (m)</summary>
         public virtual float Range => Spec.Range;
+
+        /// <summary>LastResult 가 WallHit 일 때 기절 시간 (s)</summary>
         public float WallHitStunTime => Spec.WallHitStunTime;
 
         /// <summary>단계 변경 알림 (애니메이션·예고 표시·보스 이벤트). Idle = 종료</summary>

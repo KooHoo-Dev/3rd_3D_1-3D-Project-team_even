@@ -60,13 +60,4 @@ namespace HybridShooter.Monster.Movement
         public SlotObstacle(int ownerId, Vector3 position, float radius)
         { OwnerId = ownerId; Position = position; Radius = radius; }
     }
-
-    /// <summary>기하 후보의 실제 이동 가능성. 런타임은 NavMesh, 논리 테스트는 결정적 구현을 사용한다.</summary>
-    public interface ISlotNavigation
-    {
-        /// <summary>후보를 이동 가능한 지점으로 투영. 투영할 곳이 없으면 false</summary>
-        bool TryProject(Vector3 candidate, out Vector3 position);
-        /// <summary>origin 에서 destination 까지 끊기지 않는 경로가 있는가</summary>
-        bool CanReach(Vector3 origin, Vector3 destination);
-    }
 }

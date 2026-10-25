@@ -33,7 +33,6 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>Base Controller 의 Attack 상태 원본 클립 이름. Override 인덱서는 원본 클립 이름으로 찾는다</summary>
         private const string BaseAttackClipName = "Placeholder_Attack";
 
-        private MonsterMover mover;
         private MonsterMovement movement;
         private bool playerDead;
         private float despawnTime = -1f;
@@ -56,8 +55,6 @@ namespace HybridShooter.Monster.Behaviour
         {
             movement = GetComponent<MonsterMovement>();
             animator = GetComponent<Animator>();
-            if (TryGetComponent<SimpleChaseMover>(out var legacy) && legacy.enabled)
-                throw new InvalidOperationException("MonsterController의 SimpleChaseMover를 제거하거나 비활성화해야 한다");
 
             Def = DataManager.Monsters.Get(monsterId);
             InitializeHealth(Def.MaxHp);
@@ -66,13 +63,11 @@ namespace HybridShooter.Monster.Behaviour
         private void Start()
         {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
-            mover = new MonsterMover(movement);
-
-            var body = new TransformMonsterBody(transform);
+            var body = new MonsterBody(transform);
             var attackSpec = AttackSpec.From(SingleBasicAttack(Def));
             var attack = MonsterBrainFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable);
             movement.SetCombatTuning(Def.MoveSpeed, attack.Range);
-            StateMachine = new MonsterStateMachine(mover, body, attack);
+            StateMachine = new MonsterStateMachine(movement, body, attack);
             attackAnimationSpeed = ReadAttackClipSeconds() / (attackSpec.TelegraphTime + attackSpec.RecoveryTime);
 
             StateMachine.Died += OnStateMachineDied;
@@ -180,7 +175,17 @@ namespace HybridShooter.Monster.Behaviour
             if (playerDead || StateMachine.HasTarget) return;
             if (ServiceLocator.TryGet(out IPlayerTarget player) == false) return; // 플레이어 등록 전
             StateMachine.SetTarget(player);
-            mover.SetTarget(player);
+            SetMovementTarget(player);
+        }
+
+        /// <summary>
+        /// 이동(군중)에 목표를 넣는다. null = 대상 상실(사망 등).
+        /// 군중 전체가 같은 목표를 공유하고 CrowdCoordinator.SetTarget 은 호출마다 슬롯 예약을 비우므로, 같은 값이면 다시 설정하지 않는다.
+        /// </summary>
+        private void SetMovementTarget(IPlayerTarget target)
+        {
+            if (ReferenceEquals(movement.Target, target)) return;
+            movement.SetTarget(target);
         }
 
         /// <summary>Awake 에서 테이블 MaxHp 로 체력을 채운다</summary>
@@ -224,7 +229,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             playerDead = true;
             StateMachine.SetTarget(null);
-            mover.SetTarget(null);
+            SetMovementTarget(null);
         }
 
         private void Despawn()

@@ -1,16 +1,23 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.GameFlow;
+using HybridShooter.Monster.Movement;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.TestTools;
 
 namespace HybridShooter.Monster.Behaviour.Tests
 {
     public sealed class StrikeAttackTests
     {
-        private FakeBody body;
+        private GameObject monsterObject;
+        private MonsterMovement movement;
+        private MovementProfile profile;
+        private MonsterBody body;
         private FakeTarget target;
         private StrikeAttack attack;
         private List<SkillPhase> phases;
@@ -20,14 +27,39 @@ namespace HybridShooter.Monster.Behaviour.Tests
             AttackShape.Melee, damage: 5, hitCount: 2, cooldown: 1.2f,
             telegraphTime: 0.4f, recoveryTime: 0.3f, range: 1.5f, sourceDefId: 100101);
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
-            body = new FakeBody { Position = Vector3.zero };
             target = new FakeTarget { Position = new Vector3(0f, 0f, 1f) };
+            yield return CreateMonsterWithMovement();
+            body = new MonsterBody(monsterObject.transform);
             attack = new StrikeAttack(Bite, body, t => (IDamageable)t);
             phases = new List<SkillPhase>();
             attack.PhaseChanged += (_, p) => phases.Add(p);
+        }
+
+        /// <summary>
+        /// 몬스터 오브젝트에 실제 이동 부품(NavMeshAgent·NavMeshMoveExecutor·MonsterMovement)을 붙이고 직접 추적 모드로 켠다.
+        /// NavMesh 가 없어서 실제로 움직이지는 않는다(Stop 은 조기 반환, Apply 는 경고 1회). 다음 프레임에 Start 가 돌아 직접 모드 허가가 정해진다.
+        /// </summary>
+        private IEnumerator CreateMonsterWithMovement()
+        {
+            monsterObject = new GameObject("StrikeAttackTests");
+            monsterObject.SetActive(false);
+            monsterObject.AddComponent<NavMeshAgent>();
+            monsterObject.AddComponent<NavMeshMoveExecutor>();
+            movement = monsterObject.AddComponent<MonsterMovement>();
+            profile = ScriptableObject.CreateInstance<MovementProfile>();
+            movement.ConfigureDirect(profile, target);
+            monsterObject.SetActive(true);
+            yield return null;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            UnityEngine.Object.DestroyImmediate(monsterObject);
+            UnityEngine.Object.DestroyImmediate(profile);
         }
 
         [Test]
@@ -74,8 +106,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         {
             target.Position = new Vector3(1f, 0f, 0f);
             attack.Begin(target, 0f);
-            Assert.AreEqual(target.Position, body.LastFaced);
-            Assert.AreEqual(Vector3.right, body.Forward);
+            Assert.IsTrue(body.Forward == Vector3.right);
         }
 
         [Test]
@@ -93,7 +124,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         public void DeadTargetIsNotDamaged()
         {
             // 생존 판정은 공격이 아니라 소유자 몫이다: 사망 = Brain.SetTarget(null) 이 진행 중인 공격을 취소한다
-            var brain = new MonsterStateMachine(new FakeMover(), body, attack);
+            var brain = new MonsterStateMachine(movement, body, attack);
             brain.SetTarget(target);
             attack.Begin(target, 0f);
             brain.SetTarget(null);
@@ -167,7 +198,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [Test]
         public void BrainWithStrikeAttackDamagesTarget()
         {
-            var brain = new MonsterStateMachine(new FakeMover(), body, attack);
+            var brain = new MonsterStateMachine(movement, body, attack);
             brain.SetTarget(target);
             float now = 0f;
             for (int i = 0; i < 25; i++)

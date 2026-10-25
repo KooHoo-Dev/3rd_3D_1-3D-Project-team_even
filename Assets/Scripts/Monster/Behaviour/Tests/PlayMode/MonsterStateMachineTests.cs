@@ -1,28 +1,73 @@
 using System;
+using System.Collections;
 using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Data;
+using HybridShooter.Core.GameFlow;
+using HybridShooter.Monster.Movement;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.TestTools;
 
 namespace HybridShooter.Monster.Behaviour.Tests
 {
     public sealed class MonsterStateMachineTests
     {
-        private FakeMover mover;
-        private FakeBody body;
-        private FakeAttack attack;
+        private GameObject monsterObject;
+        private MonsterMovement movement;
+        private MovementProfile profile;
+        private MonsterBody body;
+        private StrikeAttack attack;
+        private int beginCount; // 공격 시작(예고 진입) 횟수
         private FakeTarget target;
         private MonsterStateMachine _stateMachine;
         private float now;
 
-        [SetUp]
-        public void SetUp()
+        // 예고 0.4s, 회복 0.3s, 쿨다운 1.2s, 사거리 1.5m
+        private static readonly AttackSpec Bite = new AttackSpec(
+            AttackShape.Melee, damage: 5, hitCount: 1, cooldown: 1.2f,
+            telegraphTime: 0.4f, recoveryTime: 0.3f, range: 1.5f);
+
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
-            mover = new FakeMover();
-            body = new FakeBody { Position = Vector3.zero };
-            attack = new FakeAttack { Range = 1.5f };
             target = new FakeTarget { Position = new Vector3(0f, 0f, 10f) };
-            _stateMachine = new MonsterStateMachine(mover, body, attack);
+            yield return CreateMonsterWithMovement();
+            body = new MonsterBody(monsterObject.transform);
+            UseAttack(Bite);
             now = 0f;
+        }
+
+        /// <summary>
+        /// 몬스터 오브젝트에 실제 이동 부품(NavMeshAgent·NavMeshMoveExecutor·MonsterMovement)을 붙이고 직접 추적 모드로 켠다.
+        /// NavMesh 가 없어서 실제로 움직이지는 않는다(Stop 은 조기 반환, Apply 는 경고 1회). 다음 프레임에 Start 가 돌아 직접 모드 허가가 정해진다.
+        /// </summary>
+        private IEnumerator CreateMonsterWithMovement()
+        {
+            monsterObject = new GameObject("MonsterStateMachineTests");
+            monsterObject.SetActive(false);
+            monsterObject.AddComponent<NavMeshAgent>();
+            monsterObject.AddComponent<NavMeshMoveExecutor>();
+            movement = monsterObject.AddComponent<MonsterMovement>();
+            profile = ScriptableObject.CreateInstance<MovementProfile>();
+            movement.ConfigureDirect(profile, target);
+            monsterObject.SetActive(true);
+            yield return null;
+        }
+
+        private void UseAttack(in AttackSpec spec)
+        {
+            attack = new StrikeAttack(spec, body, t => (IDamageable)t);
+            beginCount = 0;
+            attack.PhaseChanged += (_, phase) => { if (phase == SkillPhase.Windup) beginCount++; };
+            _stateMachine = new MonsterStateMachine(movement, body, attack);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            UnityEngine.Object.DestroyImmediate(monsterObject);
+            UnityEngine.Object.DestroyImmediate(profile);
         }
 
         private void Step(float dt = 0.1f)
@@ -40,11 +85,19 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
         }
 
+        /// <summary>진행 중인 공격을 끝까지 진행한다: 예고 → 공격 → 회복 → 종료 (Tick 1번에 단계 1개)</summary>
+        private void FinishRunningAttack()
+        {
+            Step(0.5f); // 예고 끝 → 공격
+            Step(0.1f); // 공격 판정 → 회복
+            Step(0.5f); // 회복 끝 → 종료
+        }
+
         [Test]
         public void StartsIdleAndStopsMover()
         {
             Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
-            Assert.IsTrue(mover.IsStopped);
+            Assert.IsTrue(movement.IsSuspended);
         }
 
         [Test]
@@ -60,7 +113,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             _stateMachine.SetTarget(target);
             Step();
             Assert.AreSame(_stateMachine.Chase, _stateMachine.Current);
-            Assert.IsFalse(mover.IsStopped);
+            Assert.IsFalse(movement.IsSuspended);
         }
 
         [Test]
@@ -71,7 +124,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             _stateMachine.SetTarget(null);
             Step();
             Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
-            Assert.IsTrue(mover.IsStopped);
+            Assert.IsTrue(movement.IsSuspended);
         }
 
         [Test]
@@ -97,27 +150,32 @@ namespace HybridShooter.Monster.Behaviour.Tests
         public void ChaseToAttackInRangeStopsMover()
         {
             EnterAttack();
-            Assert.IsTrue(mover.IsStopped);
-            Assert.AreEqual(0, attack.BeginCount, "전환한 판단에서는 공격을 시작하지 않는다");
+            Assert.IsTrue(movement.IsSuspended);
+            Assert.AreEqual(0, beginCount, "전환한 판단에서는 공격을 시작하지 않는다");
         }
 
         [Test]
         public void AttackBeginsWhenReadyAndFacesTarget()
         {
             EnterAttack();
+            target.Position = new Vector3(1f, 0f, 0f); // 사거리 안 측면: 바라보면 정면이 오른쪽이 된다
             Step();
-            Assert.AreEqual(1, attack.BeginCount);
-            Assert.AreEqual(target.Position, body.LastFaced);
+            Assert.AreEqual(1, beginCount);
+            Assert.IsTrue(body.Forward == Vector3.right);
         }
 
         [Test]
         public void AttackWaitsWhileNotReady()
         {
-            attack.Ready = false;
+            UseAttack(new AttackSpec(AttackShape.Melee, damage: 5, hitCount: 1, cooldown: 10f,
+                                     telegraphTime: 0.4f, recoveryTime: 0.3f, range: 1.5f));
             EnterAttack();
+            Step(); // Begin
+            FinishRunningAttack(); // → Chase
+            Step(); // Chase → Attack
+            Step(); // 쿨다운 중: 시작하지 않고 대기
             Step();
-            Step();
-            Assert.AreEqual(0, attack.BeginCount);
+            Assert.AreEqual(1, beginCount);
             Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
         }
 
@@ -129,8 +187,8 @@ namespace HybridShooter.Monster.Behaviour.Tests
             target.Position = new Vector3(0f, 0f, 10f);
             Step();
             Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
-            Assert.AreEqual(1, attack.TickCount);
-            Assert.AreEqual(0, attack.CancelCount);
+            Assert.IsTrue(attack.IsAttacking);
+            Assert.AreEqual(AttackResult.None, attack.LastResult, "취소되지 않았다");
         }
 
         [Test]
@@ -139,10 +197,10 @@ namespace HybridShooter.Monster.Behaviour.Tests
             EnterAttack();
             Step(); // Begin
             target.Position = new Vector3(0f, 0f, 10f);
-            attack.Finish(AttackResult.Completed);
-            Step();
+            FinishRunningAttack();
+            Assert.AreEqual(AttackResult.Completed, attack.LastResult);
             Assert.AreSame(_stateMachine.Chase, _stateMachine.Current);
-            Assert.IsFalse(mover.IsStopped);
+            Assert.IsFalse(movement.IsSuspended);
         }
 
         [Test]
@@ -150,7 +208,8 @@ namespace HybridShooter.Monster.Behaviour.Tests
         {
             EnterAttack();
             Step(); // Begin
-            attack.Finish(AttackResult.Completed);
+            FinishRunningAttack();
+            Assert.AreEqual(AttackResult.Completed, attack.LastResult);
             _stateMachine.SetTarget(null);
             Step();
             Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
@@ -163,7 +222,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Step(); // → Chase
             _stateMachine.Stun(2f);
             Assert.AreSame(_stateMachine.Stunned, _stateMachine.Current);
-            Assert.IsTrue(mover.IsStopped);
+            Assert.IsTrue(movement.IsSuspended);
 
             Step(1.9f);
             Assert.AreSame(_stateMachine.Stunned, _stateMachine.Current);
@@ -174,14 +233,17 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [Test]
         public void AttackStateStunsWhenTickEndsWithWallHit()
         {
-            var wallAttack = new WallHitOnFirstTickAttack { Range = 1.5f, WallHitStunTime = 1f };
-            _stateMachine = new MonsterStateMachine(mover, body, wallAttack);
+            var wallSpec = new AttackSpec(AttackShape.Melee, damage: 5, hitCount: 1, cooldown: 1f,
+                                          telegraphTime: 0f, recoveryTime: 0.3f, range: 1.5f, wallHitStunTime: 1f);
+            var wallAttack = new WallHitOnFirstActiveAttack(wallSpec);
+            _stateMachine = new MonsterStateMachine(movement, body, wallAttack);
             _stateMachine.SetTarget(target);
             Step();
             target.Position = new Vector3(0f, 0f, 1f);
             Step(); // → Attack
             Step(); // Begin
-            Step(); // Tick → WallHit → Stunned
+            Step(); // 예고(0s) 끝 → 공격
+            Step(); // 공격 → WallHit → Stunned
             Assert.AreSame(_stateMachine.Stunned, _stateMachine.Current);
             Assert.AreEqual(1f, _stateMachine.StunDuration);
         }
@@ -198,8 +260,9 @@ namespace HybridShooter.Monster.Behaviour.Tests
             _stateMachine.Die(false);
 
             Assert.AreSame(_stateMachine.Dead, _stateMachine.Current);
-            Assert.AreEqual(1, attack.CancelCount);
-            Assert.IsTrue(mover.IsStopped);
+            Assert.IsFalse(attack.IsAttacking);
+            Assert.AreEqual(AttackResult.Cancelled, attack.LastResult);
+            Assert.IsTrue(movement.IsSuspended);
             Assert.AreEqual(1, diedCount);
             Assert.AreEqual(false, reward);
         }
@@ -239,17 +302,16 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.Throws<ArgumentOutOfRangeException>(() => _stateMachine.Stun(-1f));
         }
 
-        /// <summary>시작 후 첫 Tick 에서 벽 충돌로 끝나는 공격</summary>
-        private sealed class WallHitOnFirstTickAttack : IMonsterAttack
+        /// <summary>공격 단계 첫 Tick 에서 벽 충돌로 끝나는 공격 (돌진형 대역)</summary>
+        private sealed class WallHitOnFirstActiveAttack : MonsterAttack
         {
-            public float Range { get; set; }
-            public bool IsAttacking { get; private set; }
-            public AttackResult LastResult { get; private set; }
-            public float WallHitStunTime { get; set; }
-            public bool CanStart(float now) => true;
-            public void Begin(IPlayerTarget target, float now) { IsAttacking = true; LastResult = AttackResult.None; }
-            public void Tick(float now, float deltaTime) { IsAttacking = false; LastResult = AttackResult.WallHit; }
-            public void Cancel() { IsAttacking = false; LastResult = AttackResult.Cancelled; }
+            public WallHitOnFirstActiveAttack(in AttackSpec spec) : base(spec, t => (IDamageable)t) { }
+
+            protected override bool OnActive(float now, float deltaTime)
+            {
+                EndEarly(AttackResult.WallHit);
+                return false;
+            }
         }
     }
 }

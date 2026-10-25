@@ -9,10 +9,10 @@ namespace HybridShooter.Monster.Behaviour
     /// </summary>
     public sealed class StrikeAttack : MonsterAttack
     {
-        private readonly IMonsterBody body;
+        private readonly MonsterBody body;
         private readonly IHitArea area;
 
-        public StrikeAttack(in AttackSpec spec, IMonsterBody body, Func<IPlayerTarget, IDamageable> findDamageable)
+        public StrikeAttack(in AttackSpec spec, MonsterBody body, Func<IPlayerTarget, IDamageable> findDamageable)
             : base(spec, findDamageable)
         {
             this.body = body ?? throw new ArgumentNullException(nameof(body));

@@ -7,7 +7,7 @@ namespace HybridShooter.Monster.Movement
     /// <summary>
     /// 목표 둘레 동심원(링) 위 슬롯 후보를 만들고, 몬스터에게 슬롯을 예약·회수하는 관리자.
     /// 슬롯 id 는 0번 링부터 순서대로 이어 붙인 번호이며, id &lt; approachCount 이면 접근 링(0번, 인원 제한 대상).
-    /// 한 몬스터는 슬롯 1개만 가진다. Unity 객체 대신 ISlotNavigation 을 받아 NavMesh 없이도 테스트할 수 있다.
+    /// 한 몬스터는 슬롯 1개만 가진다. 슬롯 위치 투영과 도달 가능성은 NavMeshSlotNavigation 으로 판단한다.
     /// </summary>
     public sealed class SlotRegistry
     {
@@ -53,7 +53,7 @@ namespace HybridShooter.Monster.Movement
 
         // ════════ 설정·의존성 (생성 시 고정) ════════
         private readonly SlotSettings settings;
-        private readonly ISlotNavigation navigation;   // 투영·도달 가능성 판단 (런타임은 NavMesh)
+        private readonly NavMeshSlotNavigation navigation;   // 투영·도달 가능성 판단
         private readonly int approachCount;            // 0번(접근) 링의 슬롯 수
         private readonly float approachRadius;         // 0번 링 반경
         private readonly float minimumRingGap;         // 링 사이 최소 간격
@@ -97,7 +97,7 @@ namespace HybridShooter.Monster.Movement
             ownerSlots.TryGetValue(ownerId, out int id) && id < approachCount;
 
         /// <summary>설정을 검증하고 링 간격에 맞는 슬롯 증가 수(countStep)를 계산한 뒤 시작 링 2개를 만든다</summary>
-        public SlotRegistry(SlotSettings settings, ISlotNavigation navigation)
+        public SlotRegistry(SlotSettings settings, NavMeshSlotNavigation navigation)
         {
             this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
             this.navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));

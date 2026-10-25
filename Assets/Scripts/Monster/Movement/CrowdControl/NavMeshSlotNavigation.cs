@@ -3,8 +3,11 @@ using UnityEngine.AI;
 
 namespace HybridShooter.Monster.Movement
 {
-    /// <summary>후보 투영과 요청 개체의 완전 경로 확인.</summary>
-    public sealed class NavMeshSlotNavigation : ISlotNavigation
+    /// <summary>
+    /// 슬롯 기하 후보의 실제 이동 가능성 판단: 후보 투영과 요청 개체의 완전 경로 확인.
+    /// SlotRegistry 가 슬롯 위치 투영(TryProject)과 도달 가능성(CanReach)에 쓴다.
+    /// </summary>
+    public sealed class NavMeshSlotNavigation
     {
         private readonly SlotSettings settings;
         private readonly NavMeshPath path;
