@@ -4818,8 +4818,6 @@ GameObject:
   - component: {fileID: 749948023}
   - component: {fileID: 749948021}
   - component: {fileID: 749948026}
-  - component: {fileID: 749948028}
-  - component: {fileID: 749948027}
   m_Layer: 0
   m_Name: MainCamera
   m_TagString: Untagged
@@ -4953,30 +4951,6 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!114 &749948027
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 749948020}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7c6cebc306c116045922778c52d8a58d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.CameraModeSwitcher
---- !u!114 &749948028
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 749948020}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 568be4e2e0676e4438128cb49fa3325d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerCameraRig
 --- !u!4 &757139161 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 461648, guid: e9bfef7d495164e9fb1e0abf1ac0220f, type: 3}
@@ -6387,6 +6361,10 @@ GameObject:
   - component: {fileID: 2100000202}
   - component: {fileID: 2100000204}
   - component: {fileID: 2100000205}
+  - component: {fileID: 2100000206}
+  - component: {fileID: 2100000207}
+  - component: {fileID: 2100000208}
+  - component: {fileID: 2100000209}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -7401,12 +7379,12 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: 4389806577314704932, guid: 26675d109dc1740488f7765420f93631, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2100000044}
     - targetCorrespondingSourceObject: {fileID: 4170859316936178749, guid: 26675d109dc1740488f7765420f93631, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1966607643}
+    - targetCorrespondingSourceObject: {fileID: 4170859316936178749, guid: 26675d109dc1740488f7765420f93631, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2100000044}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 7657328839503909208, guid: 26675d109dc1740488f7765420f93631, type: 3}
       insertIndex: -1
@@ -7417,9 +7395,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7657328839503909208, guid: 26675d109dc1740488f7765420f93631, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1820536768}
-    - targetCorrespondingSourceObject: {fileID: 7657328839503909208, guid: 26675d109dc1740488f7765420f93631, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1820536769}
     - targetCorrespondingSourceObject: {fileID: 7657328839503909208, guid: 26675d109dc1740488f7765420f93631, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1820536770}
@@ -11475,7 +11450,7 @@ MonoBehaviour:
     - {fileID: 1268416600}
     eyes: []
   solver:
-    executedInEditor: 1
+    executedInEditor: 0
     IKPosition: {x: 0, y: 0, z: 0}
     IKPositionWeight: 1
     root: {fileID: 1268416598}
@@ -11938,72 +11913,6 @@ MonoBehaviour:
   spineBend: 2
   spineSpeed: 3
   spine: []
---- !u!114 &1820536769
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1268416602}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2c613189034e145e5abecee53af1ce0e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp-firstpass::RootMotion.FinalIK.Recoil
-  weight: 1
-  ik: {fileID: 1820536767}
-  aimIK: {fileID: 1820536765}
-  headIK: {fileID: 0}
-  aimIKSolvedLast: 0
-  handedness: 0
-  twoHanded: 1
-  recoilWeight:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.033
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.22
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  magnitudeRandom: 0.1
-  rotationRandom: {x: 0, y: 10, z: 0}
-  handRotationOffset: {x: 0, y: 7, z: 0}
-  blendTime: 0.1
-  offsets:
-  - offset: {x: 0.02, y: 0, z: -0.05}
-    additivity: 0.5
-    maxAdditiveOffsetMag: 0.2
-    effectorLinks:
-    - effector: 6
-      weight: 1
-    - effector: 2
-      weight: 0.3
-  rotationOffset: {x: 0, y: 0, z: 0, w: 1}
 --- !u!114 &1820536770
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13552,9 +13461,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2100000043}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.6161643, y: 0.733534, z: -0.16824275, w: -0.23230143}
-  m_LocalPosition: {x: -0.037508953, y: -0.23298156, z: -0.012000956}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: -0.412707, y: -0.62157226, z: -0.5578935, w: -0.36342227}
+  m_LocalPosition: {x: 0.00000361737, y: -0.000008177929, z: 0.0000005156935}
+  m_LocalScale: {x: 0.9999993, y: 0.99999964, z: 0.9999995}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2100000046}
@@ -13565,7 +13474,7 @@ Transform:
   - {fileID: 2100000152}
   - {fileID: 2100000162}
   - {fileID: 2100000172}
-  m_Father: {fileID: 1268416599}
+  m_Father: {fileID: 2100000042}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2100000045
 GameObject:
@@ -13577,7 +13486,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2100000046}
   - component: {fileID: 2100000061}
-  - component: {fileID: 2100000062}
   m_Layer: 12
   m_Name: Weapon_Rifle
   m_TagString: Untagged
@@ -13594,7 +13502,7 @@ Transform:
   m_GameObject: {fileID: 2100000045}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.000017017126, y: 0.04389102, z: 0.19530025}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -13923,18 +13831,6 @@ MonoBehaviour:
   burstCooldown: 0.25
   burstRecoilMultiplier: 0.6
   singleSpreadMultiplier: 0.6
---- !u!114 &2100000062
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000045}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 764e8b1cf7bf4e8c97834b9522f19424, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.WeaponHoldPose
 --- !u!1 &2100000111
 GameObject:
   m_ObjectHideFlags: 0
@@ -13945,7 +13841,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2100000112}
   - component: {fileID: 2100000113}
-  - component: {fileID: 2100000116}
   m_Layer: 12
   m_Name: Weapon_AssaultRifle
   m_TagString: Untagged
@@ -14083,18 +13978,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3881929508335417695, guid: f3ac071e2f64e824bbd7e82cb1be2297, type: 3}
   m_PrefabInstance: {fileID: 2100000114}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2100000116
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000111}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 764e8b1cf7bf4e8c97834b9522f19424, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.WeaponHoldPose
 --- !u!1 &2100000121
 GameObject:
   m_ObjectHideFlags: 0
@@ -14105,7 +13988,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2100000122}
   - component: {fileID: 2100000123}
-  - component: {fileID: 2100000126}
   m_Layer: 12
   m_Name: Weapon_Pistol
   m_TagString: Untagged
@@ -14225,18 +14107,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7934650066929507806, guid: bd38e53a8785027468800a2cce634c85, type: 3}
   m_PrefabInstance: {fileID: 2100000124}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2100000126
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000121}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 764e8b1cf7bf4e8c97834b9522f19424, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.WeaponHoldPose
 --- !u!1 &2100000131
 GameObject:
   m_ObjectHideFlags: 0
@@ -14247,7 +14117,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2100000132}
   - component: {fileID: 2100000133}
-  - component: {fileID: 2100000136}
   m_Layer: 12
   m_Name: Weapon_SMG
   m_TagString: Untagged
@@ -14368,18 +14237,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3306359323807155873, guid: f64358b2b8ee9f246865c56727b55b43, type: 3}
   m_PrefabInstance: {fileID: 2100000134}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2100000136
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000131}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 764e8b1cf7bf4e8c97834b9522f19424, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.WeaponHoldPose
 --- !u!1 &2100000141
 GameObject:
   m_ObjectHideFlags: 0
@@ -14390,7 +14247,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2100000142}
   - component: {fileID: 2100000143}
-  - component: {fileID: 2100000146}
   m_Layer: 12
   m_Name: Weapon_ShotGun
   m_TagString: Untagged
@@ -14514,18 +14370,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5467183551725303532, guid: f8ff7e9122ed1fa4e8200eaa7a8db70e, type: 3}
   m_PrefabInstance: {fileID: 2100000144}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2100000146
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000141}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 764e8b1cf7bf4e8c97834b9522f19424, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.WeaponHoldPose
 --- !u!1 &2100000151
 GameObject:
   m_ObjectHideFlags: 0
@@ -14536,7 +14380,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2100000152}
   - component: {fileID: 2100000153}
-  - component: {fileID: 2100000156}
   m_Layer: 12
   m_Name: Weapon_SniperRifle
   m_TagString: Untagged
@@ -14605,7 +14448,7 @@ MonoBehaviour:
   scopedMoveSpreadMultiplier: 0.5
   maxPenetration: 3
   penetrationDamageRatio: 0.7
-  unscopeWhileBolting: 1
+  unscopeWhileBolting: 0
 --- !u!1001 &2100000154
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -14660,18 +14503,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5871223398870298160, guid: 794af8ab6b37dc7429d4557344377f05, type: 3}
   m_PrefabInstance: {fileID: 2100000154}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2100000156
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000151}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 764e8b1cf7bf4e8c97834b9522f19424, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.WeaponHoldPose
 --- !u!1 &2100000161
 GameObject:
   m_ObjectHideFlags: 0
@@ -14682,7 +14513,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2100000162}
   - component: {fileID: 2100000163}
-  - component: {fileID: 2100000166}
   m_Layer: 12
   m_Name: Weapon_RocketLauncher
   m_TagString: Untagged
@@ -14813,18 +14643,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 422595475748251839, guid: 2f14b752d79597f4b926bdd464472944, type: 3}
   m_PrefabInstance: {fileID: 2100000164}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2100000166
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000161}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 764e8b1cf7bf4e8c97834b9522f19424, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.WeaponHoldPose
 --- !u!1 &2100000171
 GameObject:
   m_ObjectHideFlags: 0
@@ -14835,7 +14653,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2100000172}
   - component: {fileID: 2100000173}
-  - component: {fileID: 2100000176}
   m_Layer: 12
   m_Name: Weapon_GrenadeLauncher
   m_TagString: Untagged
@@ -14970,18 +14787,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1626650434582979196, guid: 1df8118404a186c4cae3922da0346fc7, type: 3}
   m_PrefabInstance: {fileID: 2100000174}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2100000176
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000171}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 764e8b1cf7bf4e8c97834b9522f19424, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.WeaponHoldPose
 --- !u!114 &2100000200
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15082,13 +14887,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerAimIK
   player: {fileID: 1209679395}
   driver: {fileID: 2100000203}
+  gunSlot: {fileID: 0}
   aimIK: {fileID: 1820536765}
-  recoil: {fileID: 1820536769}
   aimMask:
     serializedVersion: 2
     m_Bits: 4294967295
   maxAimDistance: 100
   minAimDistance: 2
+  firstPersonSpineWeight: 0.7
 --- !u!114 &2100000205
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15109,6 +14915,91 @@ MonoBehaviour:
   grounder: {fileID: 1820536768}
   leftHandBlendTime: 0.15
   footBlendTime: 0.2
+--- !u!114 &2100000206
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1209679392}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c54f99368f83bd42a4cc307f9127d27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerFirstPersonIK
+  player: {fileID: 0}
+  driver: {fileID: 0}
+  bodyIK: {fileID: 0}
+  fbbik: {fileID: 0}
+  recoil: {fileID: 0}
+  hipSight: {x: 0.13, y: -0.14, z: 0.32}
+  adsDistance: 0.15
+  shoulderSight: {x: 0.17, y: -0.12, z: 0.3}
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  wallProbeRadius: 0.05
+  maxWallPull: 0.35
+  wallPitch: 40
+  wallSmoothTime: 0.08
+--- !u!114 &2100000207
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1209679392}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a4beb11f8f3e8b4ab61be1964640ede, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerItemIK
+  driver: {fileID: 0}
+  items: {fileID: 0}
+  bodyIK: {fileID: 0}
+--- !u!114 &2100000208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1209679392}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: badc2a38801f5d646bf0cf76f1cc18db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerGunRecoil
+  driver: {fileID: 0}
+  bodyIK: {fileID: 0}
+  firstPersonIK: {fileID: 0}
+  fbbik: {fileID: 0}
+  shoulderShare: 0.4
+  adsScale: 0.5
+  magnitudeRandom: 0.1
+--- !u!114 &2100000209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1209679392}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cd3762330fa94945805b032a77a8d72, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerAimView
+  player: {fileID: 0}
+  driver: {fileID: 0}
+  gunSlot: {fileID: 0}
+  bodyIK: {fileID: 0}
+  aimIK: {fileID: 0}
+  scopeRing: {fileID: 21300000, guid: ac45c16fa8a0fe34d9fda5a5e77bdcd3, type: 3}
+  launcherRing: {fileID: 21300000, guid: 9a0df22cc61528d438bcc3261972e06c, type: 3}
+  scopeSwitchTime: 0.5
+  scopeFadeTime: 0.18
+  hideWhenScoped:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!1001 &2102522460
 PrefabInstance:
   m_ObjectHideFlags: 0

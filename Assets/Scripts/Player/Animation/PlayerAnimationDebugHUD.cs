@@ -21,6 +21,8 @@ namespace HybridShooter.Player
         private PlayerController player;
         private AimIK aimIK;
         private PlayerBodyIK bodyIK;
+        private PlayerAimIK playerAimIK;
+        private PlayerFirstPersonIK fpIK;
         private Dictionary<int, string> stateNames;
         private readonly StringBuilder sb = new StringBuilder(512);
         private GUIStyle style;
@@ -31,6 +33,8 @@ namespace HybridShooter.Player
             player = GetComponent<PlayerController>();
             aimIK = GetComponentInChildren<AimIK>();
             bodyIK = GetComponent<PlayerBodyIK>();
+            playerAimIK = GetComponent<PlayerAimIK>();
+            fpIK = GetComponent<PlayerFirstPersonIK>();
             stateNames = new Dictionary<int, string>();
             foreach (string state in PlayerAnimNames.States.All) stateNames[Animator.StringToHash(state)] = state;
         }
@@ -66,7 +70,10 @@ namespace HybridShooter.Player
                           $"ActionBlend {driver.ActionBlend:0.00}  ActionSpeed {anim.GetFloat(PlayerAnimNames.Hash.ActionSpeed):0.00}");
             sb.AppendLine($"Rolling {anim.GetBool(PlayerAnimNames.Hash.Rolling)}  Dodge ({anim.GetFloat(PlayerAnimNames.Hash.DodgeX):0.0},{anim.GetFloat(PlayerAnimNames.Hash.DodgeY):0.0}) x{anim.GetFloat(PlayerAnimNames.Hash.DodgeSpeed):0.00}  " +
                           $"Hit ({anim.GetFloat(PlayerAnimNames.Hash.HitX):0.0},{anim.GetFloat(PlayerAnimNames.Hash.HitY):0.0})  Dead {anim.GetBool(PlayerAnimNames.Hash.Dead)} dir {anim.GetInteger(PlayerAnimNames.Hash.DeathDir)}");
-            if (bodyIK != null) sb.AppendLine($"LeftHand IK w{bodyIK.LeftHandWeight:0.00}  Foot IK w{bodyIK.FootWeight:0.00}");
+            if (bodyIK != null) sb.Append($"LeftHand IK w{bodyIK.LeftHandWeight:0.00}  Foot IK w{bodyIK.FootWeight:0.00}");
+            if (playerAimIK != null) sb.Append($"  Muzzle err {playerAimIK.MuzzleError:0.0}°");
+            if (fpIK != null) sb.Append($"  FP IK w{fpIK.Weight:0.00} wall {fpIK.WallPull * 100f:0}cm hand err {fpIK.HandPositionError:0.0}cm {fpIK.HandRotationError:0}° gun {fpIK.GunAngleError:0}°");
+            if (bodyIK != null || playerAimIK != null) sb.AppendLine();
             if (player != null)
                 sb.AppendLine($"speed {player.HorizontalSpeed:0.00} m/s  grounded {player.IsGrounded}  sliding {player.IsSliding}  " +
                               $"ground {(float.IsInfinity(player.GroundDistance) ? "-" : player.GroundDistance.ToString("0.00"))} m  vy {player.Velocity.y:0.00}");

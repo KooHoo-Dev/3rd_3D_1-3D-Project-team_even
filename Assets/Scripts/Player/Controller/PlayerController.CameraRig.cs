@@ -99,7 +99,7 @@ namespace HybridShooter.Player
         {
             aimFovCurrent = Mathf.MoveTowards(aimFovCurrent, aimFovTarget, aimZoomSpeed * dt);
             if (CameraChanging) return;
-            if (viewMode == ViewMode.FirstPerson) fpCamera.fieldOfView = fpFov * aimFovCurrent;
+            if (viewMode == ViewMode.FirstPerson || ScopeView) fpCamera.fieldOfView = fpFov * aimFovCurrent;
             else tpCamera.fieldOfView = tpFov * aimFovCurrent;
         }
 

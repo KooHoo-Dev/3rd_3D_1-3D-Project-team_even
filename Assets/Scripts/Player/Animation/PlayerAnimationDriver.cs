@@ -20,6 +20,8 @@ namespace HybridShooter.Player
     ///    → 이동·점프 동작은 다리·몸통에만 보이고 팔과 총은 이 자세
     ///  - Reload / Draw = 재장전 시작(EventBus) / 무기 교체(GunSlot.GunChanged). ActionSpeed 로 실제 시간에 맞춤.
     ///    ActionEnd = 장전 종료·취소, 꺼내기 중 조준·사격. 동작 중에는 ActionBlend 가 0 → 조준 IK 를 푼다
+    ///  - Throw = PlayerItems.ThrowStarted. 던지는 동작 시간에 맞춰 재생하고, 클립 분석으로 찾은 순간(throwRelease)에 수류탄을 놓는다
+    ///    (던지는 손 뼈를 PlayerItems.ThrowHand 로 넘겨 수류탄이 손에서 날아가게 한다)
     ///  - Dodge = RollStarted (방향은 몸 기준, 재생 속도 = 구르기 + 회복 시간), Rolling = 물리 구르기 중
     ///  - Hit = PlayerDamagedEvent (살아 있을 때만, 맞은 쪽 방향), Die·Dead·DeathDir = PlayerController.Died (마지막으로 맞은 방향)
     /// 설계: Assets/Scenes/MS/Docs/AnimationDesign.md
@@ -47,6 +49,8 @@ namespace HybridShooter.Player
         private float airMinVerticalSpeed;     // 공중에 있는 동안 가장 빠르게 떨어진 속도 (음수)
         private bool reloading;
         private bool drawing;
+        private bool throwing;
+        private PlayerItems items;
         private float drawEndTime;
         private float actionBlend = 1f;        // 1 = 동작 없음, 0 = 재장전·꺼내기 중
         private int hitReactionLayer = -1;
@@ -61,12 +65,15 @@ namespace HybridShooter.Player
         /// <summary>1 = 팔 동작 없음, 0 = 재장전·꺼내기 중 (조준 IK 를 이 비율로 줄인다)</summary>
         public float ActionBlend => actionBlend;
         public PlayerAnimationProfile Profile => profile;
+        /// <summary>편집 도구(IK Pose Lab)용: true = 조준 자세 고정, false = 들고 다니기 자세 고정, null = 평소대로</summary>
+        public bool? DebugAimOverride { get; set; }
 
         private void Awake()
         {
             if (player == null) player = GetComponent<PlayerController>();
             if (animator == null) animator = GetComponentInChildren<Animator>();
             if (gunSlot == null) gunSlot = GetComponent<GunSlot>();
+            items = GetComponent<PlayerItems>();
 
             ready = player != null && animator != null && animator.runtimeAnimatorController != null && profile != null;
             if (ready == false)
@@ -86,6 +93,15 @@ namespace HybridShooter.Player
             hitReactionLayer = animator.GetLayerIndex(PlayerAnimNames.Layers.HitReaction);
             animator.SetFloat(PlayerAnimNames.Hash.DodgeSpeed, 1f);
             animator.SetFloat(PlayerAnimNames.Hash.ActionSpeed, 1f);
+            SetupThrow();
+        }
+
+        /// <summary>던지기 클립이 있으면 수류탄을 애니메이션 순간에 놓고, 던지는 손에서 날아가게 한다</summary>
+        private void SetupThrow()
+        {
+            if (items == null || currentSet == null || currentSet.throwClipLength <= 0f || animator.isHuman == false) return;
+            items.ReleaseByAnimation = true;
+            items.ThrowHand = animator.GetBoneTransform(currentSet.throwWithLeftHand ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand);
         }
 
         private void OnEnable()
@@ -99,6 +115,7 @@ namespace HybridShooter.Player
             EventBus<ReloadStartedEvent>.Subscribe(OnReloadStarted);
             EventBus<ReloadFinishedEvent>.Subscribe(OnReloadFinished);
             if (gunSlot != null) gunSlot.GunChanged += OnGunChanged;
+            if (items != null) items.ThrowStarted += OnThrowStarted;
         }
 
         private void OnDisable()
@@ -114,6 +131,7 @@ namespace HybridShooter.Player
             EventBus<ReloadStartedEvent>.Unsubscribe(OnReloadStarted);
             EventBus<ReloadFinishedEvent>.Unsubscribe(OnReloadFinished);
             if (gunSlot != null) gunSlot.GunChanged -= OnGunChanged;
+            if (items != null) items.ThrowStarted -= OnThrowStarted;
         }
 
         private void Update()
@@ -220,6 +238,27 @@ namespace HybridShooter.Player
             drawEndTime = Time.time + profile.drawDuration;
         }
 
+        /// <summary>수류탄 던지기: 던지는 동작 시간에 맞춰 재생 (재장전·꺼내기는 끊긴다)</summary>
+        private void OnThrowStarted()
+        {
+            if (currentSet == null || currentSet.throwClipLength <= 0f) return;
+            StartAction(PlayerAnimNames.Hash.Throw, currentSet.throwClipLength, items.ThrowDuration);
+            reloading = false;
+            drawing = false;
+            throwing = true;
+        }
+
+        /// <summary>던지기 상태가 놓는 순간을 지나면 수류탄을 놓는다 (한 번만. 끝까지 못 가면 PlayerItems 가 마지막에 놓는다)</summary>
+        private void UpdateThrowRelease()
+        {
+            if (throwing == false) return;
+            if (items.IsThrowing == false) { throwing = false; return; }
+            AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(upperActionLayer);
+            if (state.shortNameHash != PlayerAnimNames.Hash.ThrowState && animator.IsInTransition(upperActionLayer))
+                state = animator.GetNextAnimatorStateInfo(upperActionLayer);
+            if (state.shortNameHash == PlayerAnimNames.Hash.ThrowState && state.normalizedTime >= currentSet.throwRelease) items.ReleaseGrenade();
+        }
+
         private void StartAction(int trigger, float clipLength, float duration)
         {
             float speed = duration > 0f && clipLength > 0f ? clipLength / duration : 1f;
@@ -227,6 +266,7 @@ namespace HybridShooter.Player
             animator.ResetTrigger(PlayerAnimNames.Hash.ActionEnd);
             animator.ResetTrigger(PlayerAnimNames.Hash.Reload);
             animator.ResetTrigger(PlayerAnimNames.Hash.Draw);
+            animator.ResetTrigger(PlayerAnimNames.Hash.Throw);
             animator.SetTrigger(trigger);
         }
 
@@ -235,6 +275,7 @@ namespace HybridShooter.Player
             drawing = false;
             animator.ResetTrigger(PlayerAnimNames.Hash.Reload);
             animator.ResetTrigger(PlayerAnimNames.Hash.Draw);
+            animator.ResetTrigger(PlayerAnimNames.Hash.Throw);
             animator.SetTrigger(PlayerAnimNames.Hash.ActionEnd);
         }
 
@@ -245,6 +286,7 @@ namespace HybridShooter.Player
         private void UpdateActions(float dt)
         {
             if (drawing && (gunSlot != null && gunSlot.IsAiming || Time.time > drawEndTime + 0.1f)) EndAction();
+            if (upperActionLayer >= 0) UpdateThrowRelease();
 
             bool acting = false;
             if (upperActionLayer >= 0)
@@ -266,7 +308,7 @@ namespace HybridShooter.Player
         private void UpdateUpperPose(float dt)
         {
             bool hasGun = gunSlot != null && gunSlot.CurrentGun != null;
-            bool wantAim = hasGun && (gunSlot.IsAiming || Time.time < aimPoseUntil);
+            bool wantAim = DebugAimOverride ?? (hasGun && (gunSlot.IsAiming || Time.time < aimPoseUntil));
             float aimStep = profile.aimBlendTime > 0f ? dt / profile.aimBlendTime : 1f;
             aimWeight = Mathf.MoveTowards(aimWeight, wantAim ? 1f : 0f, aimStep);
             animator.SetFloat(PlayerAnimNames.Hash.Aim, aimWeight);

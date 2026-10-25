@@ -1,4 +1,4 @@
-using HybridShooter.Core.Data.Defs;
+﻿using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using HybridShooter.Weapon;
 using UnityEngine;
@@ -41,6 +41,7 @@ namespace HybridShooter.Player
         {
             body = GetComponent<Rigidbody>();
             if (launched == false) body.isKinematic = true;
+            body.transform.localScale = new Vector3(0.6f, 0.6f, 0.6f); // BL-005 모델이 너무 커서 줄임
         }
 
         /// <summary>던지기. ignoreColliders = 던진 사람 몸 (처음에 부딪혀 튕기지 않게)</summary>

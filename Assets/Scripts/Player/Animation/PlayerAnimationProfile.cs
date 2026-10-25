@@ -30,6 +30,12 @@ namespace HybridShooter.Player
             public float drawClipLength = 2.17f;
             [Tooltip("구르기 클립 4방향 평균 길이(초)")]
             public float dodgeClipLength = 1.5f;
+            [Tooltip("수류탄 던지기 클립 길이(초). 0 = 던지기 동작 없음")]
+            public float throwClipLength;
+            [Tooltip("던지기 클립에서 수류탄이 손을 떠나는 순간 (0~1, 손이 가장 빠른 프레임)")]
+            [Range(0f, 1f)] public float throwRelease = 0.5f;
+            [Tooltip("던지는 손이 왼손인지 (클립을 분석해 정한다)")]
+            public bool throwWithLeftHand = true;
         }
 
         [Tooltip("무기 세트 목록. 첫 번째가 기본(라이플)")]
@@ -62,8 +68,56 @@ namespace HybridShooter.Player
         public Vector2 actionSpeedRange = new Vector2(0.5f, 3f);
         [Tooltip("재장전·꺼내기 동작이 들어오고 나갈 때 조준 IK 를 풀고 다시 거는 시간(초)")]
         public float actionBlendTime = 0.15f;
-        [Tooltip("사격 한 발마다 Final IK Recoil 세기 (1 = 기본)")]
+        [Tooltip("사격 반동 전체 배수 (PlayerGunRecoil, 총별 값 × 이 값. 1 = 기본)")]
         public float recoilMagnitude = 1f;
+
+        [Header("IK")]
+        [Tooltip("총별 손 위치 데이터. IK Pose Lab 창이 만들고 연결한다")]
+        public WeaponGripTable gripTable;
+        [Tooltip("회복 팩 사용: 왼손을 가져가는 자리 (PlayerItemIK). IK Pose Lab 에서 고친다")]
+        public ItemHandPose healPose = new ItemHandPose();
+        [Tooltip("손에 든 수류탄 모형 자리 (던지는 손 바닥 중심 기준, 손 뼈 축, m)")]
+        public Vector3 grenadeInHandOffset;
+        [Tooltip("발 IK(GrounderFBBIK) 설정. 시작할 때 PlayerBodyIK 가 입힌다 (씬 컴포넌트 값 대신). IK Pose Lab 에서 고친다")]
+        public FootIKSettings footIK = new FootIKSettings();
+
+        /// <summary>발 IK 설정 (Final IK Grounding 의 주요 값)</summary>
+        [Serializable]
+        public class FootIKSettings
+        {
+            [Tooltip("발이 올라가거나 내려갈 수 있는 최대 높이(m). 이보다 높은 턱은 무시")]
+            public float maxStep = 0.4f;
+            [Tooltip("발 크기(m). 발 끝·뒤꿈치가 걸치는 판정")]
+            public float footRadius = 0.15f;
+            [Tooltip("발이 새 높이로 가는 속도")]
+            public float footSpeed = 2.5f;
+            [Tooltip("골반이 내려가고 올라가는 속도")]
+            public float pelvisSpeed = 5f;
+            [Tooltip("낮은 쪽 발에 맞춰 골반을 내리는 정도 (0~1)")]
+            [Range(0f, 1f)] public float lowerPelvisWeight = 1f;
+            [Tooltip("높은 쪽 발에 맞춰 골반을 올리는 정도 (0~1)")]
+            [Range(0f, 1f)] public float liftPelvisWeight;
+            [Tooltip("경사에 맞춰 발을 돌리는 정도 (0~1)")]
+            [Range(0f, 1f)] public float footRotationWeight = 1f;
+            [Tooltip("발을 돌리는 최대 각도(도)")]
+            public float maxFootRotationAngle = 45f;
+        }
+
+        /// <summary>
+        /// 아이템을 쓸 때 왼손이 잠깐 가는 자리 (총은 오른손에 든 채). 위치 = 가슴 뼈 위치 + 몸 회전 × offset (몸 기준 m: x 오른쪽 y 위 z 앞).
+        /// 회전 = 몸 회전 × rotation (useRotation 이 꺼져 있으면 손 회전은 그대로)
+        /// </summary>
+        [Serializable]
+        public class ItemHandPose
+        {
+            public Vector3 offset = new Vector3(0.05f, -0.1f, 0.25f);
+            public Quaternion rotation = Quaternion.identity;
+            public bool useRotation;
+            [Tooltip("손이 가서 머무는 시간(초, 오가는 시간 제외)")]
+            public float holdTime = 0.5f;
+            [Tooltip("손이 오가는 시간(초)")]
+            public float moveTime = 0.2f;
+        }
 
         [Header("구르기 · 피격 · 사망")]
         [Tooltip("물리 구르기(PlayerController.rollDuration)가 끝난 뒤 일어나는 동작에 줄 시간(초). 구르기 동작 = 구르기 + 이 시간")]

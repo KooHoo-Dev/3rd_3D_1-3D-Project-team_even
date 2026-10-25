@@ -48,6 +48,16 @@ namespace HybridShooter.Player
         public bool CameraChanging { get; private set; }
         /// <summary>지금 화면을 그리는 카메라의 Transform</summary>
         public Transform CurrentCameraTransform => currentCameraTransform;
+        /// <summary>0 = 3인칭, 1 = 1인칭. 시점 전환 연출 중에는 그 진행도를 따라 부드럽게 변한다 (1인칭 무기 IK 가중치)</summary>
+        public float FirstPersonBlend => CameraChanging
+            ? (transitionTarget == ViewMode.FirstPerson ? transitionT : 1f - transitionT)
+            : (IsFirstPerson ? 1f : 0f);
+        /// <summary>1인칭 눈(FP 카메라의 원래 자리). 전환 연출로 카메라가 날아가는 중에도 눈 자리는 그대로다</summary>
+        public Pose FirstPersonEyePose => rigReady
+            ? new Pose(FirstParsonCam.parent.TransformPoint(fpCamHomePos), FirstParsonCam.parent.rotation * fpCamHomeRot)
+            : new Pose(transform.position, transform.rotation);
+        /// <summary>1인칭 카메라</summary>
+        public Camera FirstPersonCamera => fpCamera;
 
         public float LookYaw => lookYaw;
         public float LookPitch => lookPitch;

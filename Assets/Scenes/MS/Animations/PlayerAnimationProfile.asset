@@ -21,6 +21,9 @@ MonoBehaviour:
     reloadClipLength: 5.0000005
     drawClipLength: 2.1666667
     dodgeClipLength: 1.5083334
+    throwClipLength: 2.6666667
+    throwRelease: 0.7
+    throwWithLeftHand: 1
   maxPlaybackScale: 1.25
   moveDampTime: 0.1
   sprintForwardDot: 0.7
@@ -33,6 +36,14 @@ MonoBehaviour:
   actionSpeedRange: {x: 0.5, y: 3}
   actionBlendTime: 0.15
   recoilMagnitude: 1
+  gripTable: {fileID: 11400000, guid: b7213f8890f812f4d86bd4aa2b12d6b2, type: 2}
+  healPose:
+    offset: {x: 0.05, y: -0.1, z: 0.25}
+    rotation: {x: 0, y: 0, z: 0, w: 1}
+    useRotation: 0
+    holdTime: 0.5
+    moveTime: 0.2
+  grenadeInHandOffset: {x: 0.3209182, y: 0.06349015, z: -0.023533579}
   dodgeRecoveryTime: 0.35
   dodgeSpeedRange: {x: 0.8, y: 2.5}
   hitReactionWeight: 1

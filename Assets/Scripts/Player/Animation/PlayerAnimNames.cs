@@ -32,6 +32,7 @@ namespace HybridShooter.Player
             public const string Empty = "Empty";
             public const string Reload = "Reload";
             public const string Draw = "Draw";
+            public const string Throw = "Throw";
             public const string Dodge = "Dodge";
             public const string Hit = "Hit";
             public const string DeathFront = "Death Front";
@@ -40,7 +41,7 @@ namespace HybridShooter.Player
             public const string DeathRight = "Death Right";
 
             /// <summary>디버그 HUD 가 상태 해시 → 이름을 찾을 때 쓰는 목록</summary>
-            public static readonly string[] All = { Locomotion, Sprint, JumpStart, Fall, LandLight, LandMedium, LandHeavy, Pose, Empty, Reload, Draw, Dodge, Hit, DeathFront, DeathBack, DeathLeft, DeathRight };
+            public static readonly string[] All = { Locomotion, Sprint, JumpStart, Fall, LandLight, LandMedium, LandHeavy, Pose, Empty, Reload, Draw, Throw, Dodge, Hit, DeathFront, DeathBack, DeathLeft, DeathRight };
         }
 
         public static class Params
@@ -59,6 +60,8 @@ namespace HybridShooter.Player
             public const string Aim = "Aim";
             public const string Reload = "Reload";
             public const string Draw = "Draw";
+            /// <summary>수류탄 던지기 (Upper Action 레이어)</summary>
+            public const string Throw = "Throw";
             /// <summary>재장전·꺼내기를 중간에 끝낸다 (장전 취소·완료, 조준·사격으로 꺼내기 끊기)</summary>
             public const string ActionEnd = "ActionEnd";
             /// <summary>재장전·꺼내기 재생 속도 (실제 시간에 맞춤)</summary>
@@ -93,6 +96,8 @@ namespace HybridShooter.Player
             public static readonly int Aim = Animator.StringToHash(Params.Aim);
             public static readonly int Reload = Animator.StringToHash(Params.Reload);
             public static readonly int Draw = Animator.StringToHash(Params.Draw);
+            public static readonly int Throw = Animator.StringToHash(Params.Throw);
+            public static readonly int ThrowState = Animator.StringToHash(States.Throw);
             public static readonly int ActionEnd = Animator.StringToHash(Params.ActionEnd);
             public static readonly int ActionSpeed = Animator.StringToHash(Params.ActionSpeed);
             public static readonly int EmptyState = Animator.StringToHash(States.Empty);

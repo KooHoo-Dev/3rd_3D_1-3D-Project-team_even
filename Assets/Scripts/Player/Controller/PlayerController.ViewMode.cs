@@ -13,6 +13,7 @@ namespace HybridShooter.Player
         public void SwitchViewMode(ViewMode mode)
         {
             if (rigReady == false || CameraChanging || mode == viewMode) return;
+            if (ScopeView) SetScopeView(false);
 
             bool toFirst = mode == ViewMode.FirstPerson;
             transitionTarget = mode;
@@ -35,6 +36,28 @@ namespace HybridShooter.Player
                 .SetEase(Ease.InOutSine)
                 .SetUpdate(UpdateType.Late)
                 .OnComplete(transitionComplete);
+        }
+
+        /// <summary>스코프 화면 중 (3인칭이어도 1인칭 눈 카메라로 본다)</summary>
+        public bool ScopeView { get; private set; }
+
+        /// <summary>
+        /// 저격 스코프 화면: 3인칭에서도 1인칭 카메라(눈)로 보게 바꾼다 → 화면 중앙 = 사격 광선(GunSlot.AimRay 는 지금 카메라 기준).
+        /// 1인칭은 이미 눈 카메라라 표시만 바꾼다. 시점 전환 중에는 켜지 않는다 (전환을 시작하면 꺼진다)
+        /// </summary>
+        public void SetScopeView(bool on)
+        {
+            if (rigReady == false || on == ScopeView) return;
+            if (on && CameraChanging) return;
+            ScopeView = on;
+            if (viewMode == ViewMode.FirstPerson) return;
+
+            FirstParsonCam.SetLocalPositionAndRotation(fpCamHomePos, fpCamHomeRot);
+            fpCamera.fieldOfView = on ? fpFov * aimFovCurrent : fpFov;
+            FirstParsonCam.gameObject.SetActive(on);
+            ThirdParsonCam.gameObject.SetActive(on == false);
+            currentCameraTransform = on ? FirstParsonCam : ThirdParsonCam;
+            viewPoint = currentCameraTransform;
         }
 
         public void ToggleViewMode() =>
@@ -82,6 +105,7 @@ namespace HybridShooter.Player
             viewTween?.Kill();
             viewTween = null;
             CameraChanging = false;
+            ScopeView = false;
             viewMode = mode;
             if (rigReady == false) return;
 
