@@ -44,6 +44,9 @@ namespace HybridShooter.Core.Data
         private static DefTable<UpgradeType, UpgradeTrackDef> upgradeTracks;
         private static DefTable<string, SoundDef> sounds;
         private static GameConfig config;
+        private static DefTable<int, BossDef> bosses;
+        private static ClypeosaurusDef clypeosaurus;
+        
 
         public static DefTable<int, PlayerDef> Players { get { EnsureLoaded(); return players; } }
         public static DefTable<int, WeaponDef> Weapons { get { EnsureLoaded(); return weapons; } }
@@ -63,6 +66,9 @@ namespace HybridShooter.Core.Data
         public static DefTable<string, SoundDef> Sounds { get { EnsureLoaded(); return sounds; } }
         public static GameConfig Config { get { EnsureLoaded(); return config; } }
 
+        public static DefTable<int, BossDef> Bosses { get { EnsureLoaded(); return bosses; } }
+        public static ClypeosaurusDef Clypeosaurus { get { EnsureLoaded(); return clypeosaurus; } }
+        
         /// <summary>플레이어 정의 (테이블 첫 행)</summary>
         public static PlayerDef Player => Players.All.Count > 0 ? Players.All[0] : null;
 
@@ -115,10 +121,11 @@ namespace HybridShooter.Core.Data
             supplies        = Build<SupplyDto, int, SupplyDef>(folder, SupplyDef.Table, r, d => d.Id, d => new SupplyDef(d, r));
             upgrades        = Build<UpgradeDto, int, UpgradeDef>(folder, UpgradeDef.Table, r, d => d.Id, d => new UpgradeDef(d, r));
             sounds          = Build<SoundDto, string, SoundDef>(folder, SoundDef.Table, r, d => d.Key, d => new SoundDef(d, r));
-
             config = new GameConfig();
             foreach (var dto in TsvTableReader.Read<ConfigDto>(folder, GameConfig.Table, r)) config.Add(dto, r);
-
+            bosses          = Build<BossDTO, int, BossDef>(folder, BossDef.Table, r, dto => dto.Id, dto => new BossDef(dto, r));
+            clypeosaurus    = ReadSingle<ClypeosaurusDto, ClypeosaurusDef>(folder, ClypeosaurusDef.Table, r, dto => new ClypeosaurusDef(dto, r));
+            
             // 2) Link + Group : Id 참조 → Def 참조, 여러 행 → 상위 Def
             LinkSounds(r);
             LinkPlayer(r);
@@ -148,6 +155,26 @@ namespace HybridShooter.Core.Data
             foreach (var dto in TsvTableReader.Read<TDto>(folder, tableName, r))
                 table.Add(keyOf(dto), create(dto), r);
             return table;
+        }
+        
+        // 데이터가 한 행뿐인 테이블을 읽어오기 위한 메서드 (이찬영 추가) 
+        private static TDef ReadSingle<TDto, TDef>(
+            string folder, string tableName, DataLoadReport report, Func<TDto, TDef> create)
+            where TDef : class
+        {
+            int errorCount = report.Errors.Count;
+
+            var rows = TsvTableReader.Read<TDto>(folder, tableName, report);
+
+            if (!report.Check(rows.Count == 1, tableName, "-", $"데이터는 정확히 1행이어야 합니다. 현재 {rows.Count}행입니다."))
+            {
+                return null;
+            }
+
+            var def = create(rows[0]);
+
+            // 해당 데이터를 읽거나 검증하는 중 오류가 발생했다면 사용하지 않는다.
+            return report.Errors.Count == errorCount ? def : null;
         }
 
         // ───────────────────────── Link / Group ─────────────────────────
@@ -331,7 +358,8 @@ namespace HybridShooter.Core.Data
             r.Check(players.Count > 0, PlayerDef.Table, "-", "플레이어 데이터가 최소 1개 필요합니다");
             r.Check(rounds.Count > 0, RoundDef.Table, "-", "라운드 데이터가 최소 1개 필요합니다");
             r.Check(supplies.Count > 0, SupplyDef.Table, "-", "보급 데이터가 최소 1개 필요합니다");
-
+            r.Check(bosses.Count > 0, BossDef.Table, "-", "공통 보스 데이터가 최소 1개 필요합니다.");
+            
             var roundList = rounds.All;
             for (int i = 0; i < roundList.Count; i++)
                 if (roundList[i].Round != i + 1)
@@ -351,7 +379,8 @@ namespace HybridShooter.Core.Data
 
             float reloadTotal = upgradeTracks.TryGet(UpgradeType.ReloadSpeed, out var reload) ? reload.GetTotalValue(reload.MaxLevel) : 0f;
             r.Check(reloadTotal < 1f, UpgradeDef.Table, UpgradeType.ReloadSpeed, $"재장전 감소율 합계가 {reloadTotal} 입니다 (1 미만이어야 함)");
-
+    
+            if (clypeosaurus != null) r.Check(bosses.Contains(clypeosaurus.BossId), ClypeosaurusDef.Table, clypeosaurus.BossId, $"BossTable에 Id {clypeosaurus.BossId}인 보스가 없습니다.");
         }
 
         private static void ValidateMonsters(DataLoadReport r)

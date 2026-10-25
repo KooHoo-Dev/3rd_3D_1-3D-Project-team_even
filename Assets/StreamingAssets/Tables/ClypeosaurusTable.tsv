@@ -1,0 +1,2 @@
+BossId	StompDamage	StompTelegraphTime	StompRadius	StompRecoveryTime	StompCooldown	BarrageDamage	BarrageRadius	BarrageTelegraphTime	BarrageInterval	BarrageRecoveryTime	BarrageCooldown	ElectricDamage	ElectricRange	ElectricWidth	ElectricChargeTime	ElectricRecoveryTime	ElectricCooldown	FourOpenHpRatio	SixOpenHpRatio
+1	38	1.8	10	3	10	25	4	1.5	0.3	2.5	12	30	25	2	1.5	1	11	0.7	0.4
