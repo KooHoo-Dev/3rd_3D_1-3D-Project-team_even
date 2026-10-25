@@ -32,6 +32,7 @@ namespace HybridShooter.Player
             if (bodyVisual == transform) bodyVisual = null; // 리지드바디 자신은 돌리면 안 된다
             if (gunSlot == null) gunSlot = GetComponent<GunSlot>();
             items = GetComponent<PlayerItems>();
+            stamina = maxStamina;
 
             CacheRig();
             CacheHeadRenderers();
@@ -46,6 +47,7 @@ namespace HybridShooter.Player
             // 시작할 때는 트윈 없이 바로 적용 (토글로 처리하면 시작하자마자 전환 연출이 돈다)
             ApplyViewModeImmediate(viewMode);
             SetCursorLocked(true);
+            PublishStamina();
         }
 
         private void OnDestroy()
@@ -76,6 +78,7 @@ namespace HybridShooter.Player
             else UpdateWalk(dt);
 
             UpdateJump();
+            UpdateStamina(dt);
             ClampFallSpeed();
             UpdateFacing(dt);
             SetPlayerTrackingInfo();

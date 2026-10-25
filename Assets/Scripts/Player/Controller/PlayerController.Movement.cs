@@ -153,7 +153,7 @@ namespace HybridShooter.Player
         }
 
         // IsSprinting 은 "지금 속도" 기준이라 출발 순간이 false → 입력 기준으로 따로 본다
-        private bool IsSprintingInput => sprintRequested && isGrounded && moveDirection.sqrMagnitude > 0.0001f;
+        private bool IsSprintingInput => sprintRequested && CanSprint && isGrounded && moveDirection.sqrMagnitude > 0.0001f;
 
         private void UpdateRoll(float dt)
         {

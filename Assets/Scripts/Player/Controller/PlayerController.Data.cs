@@ -140,6 +140,19 @@ namespace HybridShooter.Player
         [SerializeField] private int maxHealth = 100;
         [SerializeField] private int currentHealth = 100;
 
+        [Header("스태미나")]
+        [SerializeField] private float maxStamina = 100f;
+        [Tooltip("달리는 동안 초당 소모량")]
+        [SerializeField] private float sprintStaminaPerSecond = 20f;
+        [Tooltip("구르기 한 번에 드는 양. 이보다 적게 남았으면 구를 수 없다")]
+        [SerializeField] private float rollStaminaCost = 25f;
+        [Tooltip("초당 회복량 (걷기·정지)")]
+        [SerializeField] private float staminaRegenPerSecond = 15f;
+        [Tooltip("마지막으로 쓴 뒤 회복이 시작되기까지 걸리는 시간(초)")]
+        [SerializeField] private float staminaRegenDelay = 1f;
+        [Tooltip("바닥난 뒤 이 비율까지 회복해야 다시 달릴 수 있다")]
+        [SerializeField, Range(0f, 1f)] private float sprintResumeRatio = 0.2f;
+
         #endregion
 
         #region 상태
@@ -227,6 +240,12 @@ namespace HybridShooter.Player
 
         // 체력
         private bool IsDead = false;
+
+        // 스태미나
+        private float stamina;
+        private float lastStaminaUseTime = float.NegativeInfinity;
+        private bool staminaExhausted;          // 바닥난 뒤 sprintResumeRatio 까지 회복 전 (달리기 막힘)
+        private float publishedStamina = -1f;
         #endregion
     }
 }
