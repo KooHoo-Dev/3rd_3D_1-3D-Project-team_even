@@ -6,7 +6,7 @@ AnimatorOverrideController:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Bufomorph Controller
+  m_Name: Bufomorph_Ground Controller
   m_Controller: {fileID: 9100000, guid: c2b0f71f214c1cb468afb27679698451, type: 2}
   m_Clips:
   - m_OriginalClip: {fileID: 7400000, guid: 55440a8f12d832444ae5c07cba8fba74, type: 2}

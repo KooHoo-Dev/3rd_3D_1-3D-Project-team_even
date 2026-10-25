@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Monster.Movement;
 using UnityEngine;
@@ -22,7 +23,10 @@ namespace HybridShooter.Monster.Behaviour
         public MonsterState Dead { get; }
 
         public MonsterState Current { get; private set; }
-        public MonsterAttack CurrentAttack { get; }
+        // 이 몬스터가 가진 공격 전부. 생성 후 불변, 1개 이상
+        public IReadOnlyList<MonsterAttack> Attacks { get; }
+        // 지금 고른 공격. 생성 시 Attacks[0], 이후 ChooseNextAttack 이 바꾼다
+        public MonsterAttack CurrentAttack { get; private set; }
         public IPlayerTarget Target { get; private set; }
 
         // 마지막 Update 시각 (s)
@@ -41,22 +45,43 @@ namespace HybridShooter.Monster.Behaviour
         public event Action<bool> Died;
 
         /// <summary>
-        /// 상태 5개를 만들고 Idle 로 시작한다. MonsterController.Start 가 조립 때 1번 호출한다.
+        /// 공격 1개짜리 몬스터용. 목록 생성자에 공격 1개짜리 목록으로 넘긴다.
+        /// 기존 테스트가 이 형태로 만든다.
         /// </summary>
-        /// <remarks>생성 중 Idle.Enter 가 이동을 멈추므로 movement 는 Awake 가 끝난 상태여야 한다.</remarks>
         /// <param name="movement">이 몬스터의 이동 컴포넌트</param>
         /// <param name="body">이 몬스터의 몸체 (위치·방향)</param>
         /// <param name="attack">이 몬스터가 쓸 공격 전략</param>
         /// <exception cref="ArgumentNullException">movement, body, attack 중 하나가 null 일 때</exception>
         public MonsterStateMachine(MonsterMovement movement, MonsterBody body, MonsterAttack attack)
+            : this(movement, body, new[] { attack })
+        {
+        }
+
+        /// <summary>
+        /// 공격 목록을 받고 상태 5개를 만들어 Idle 로 시작한다. MonsterController.Start 가 조립 때 1번 호출한다.
+        /// 처음 고른 공격은 attacks[0] 이다.
+        /// </summary>
+        /// <remarks>생성 중 Idle.Enter 가 이동을 멈추므로 movement 는 Awake 가 끝난 상태여야 한다.</remarks>
+        /// <param name="movement">이 몬스터의 이동 컴포넌트</param>
+        /// <param name="body">이 몬스터의 몸체 (위치·방향)</param>
+        /// <param name="attacks">이 몬스터가 쓸 공격 전략 목록. 1개 이상</param>
+        /// <exception cref="ArgumentNullException">movement, body, attacks 또는 그 원소 중 하나가 null 일 때</exception>
+        /// <exception cref="ArgumentException">attacks 가 비어 있을 때</exception>
+        public MonsterStateMachine(MonsterMovement movement, MonsterBody body, IReadOnlyList<MonsterAttack> attacks)
         {
             if (movement == null) throw new ArgumentNullException(nameof(movement));
             if (body == null) throw new ArgumentNullException(nameof(body));
-            if (attack == null) throw new ArgumentNullException(nameof(attack));
+            if (attacks == null) throw new ArgumentNullException(nameof(attacks));
+            if (attacks.Count == 0) throw new ArgumentException("공격은 1개 이상이어야 한다", nameof(attacks));
+            foreach (MonsterAttack attack in attacks)
+            {
+                if (attack == null) throw new ArgumentNullException(nameof(attacks), "공격 목록에 null 이 있다");
+            }
 
             this.movement = movement;
             this.body = body;
-            CurrentAttack = attack;
+            Attacks = attacks;
+            CurrentAttack = attacks[0];
 
             Idle = new IdleState(this);
             Chase = new ChaseState(this);
@@ -177,6 +202,17 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         // ── 상태 전용 ──
+        /// <summary>
+        /// 다음에 쓸 공격을 골라 CurrentAttack 에 넣는다. AttackState 가 공격 시작 직전에 호출한다.
+        /// 지금은 항상 Attacks[0] 을 고른다.
+        /// </summary>
+        /// <returns>고른 공격 (CurrentAttack 과 같음)</returns>
+        internal MonsterAttack ChooseNextAttack()
+        {
+            CurrentAttack = Attacks[0];
+            return CurrentAttack;
+        }
+
         /// <summary>멈춘다. 군중 이동의 등록·슬롯·토큰 예약은 즉시 반환한다</summary>
         internal void StopMove() => movement.SetSuspended(true);
         /// <summary>공격하려고 멈춘다. 군중 이동의 공격 슬롯 예약은 유지한다</summary>

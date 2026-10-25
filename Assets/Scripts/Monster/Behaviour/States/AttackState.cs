@@ -15,27 +15,31 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>공격하려고 멈춘다. 군중 이동의 공격 슬롯 예약은 유지한다</summary>
         public override void Enter() => Owner.StopForAttack();
 
-        /// <summary>진행 중인 공격을 진행하고(벽 충돌이면 기절), 공격 중이 아니면 상태 유지·전이·다음 공격 시작을 정한다</summary>
+        /// <summary>
+        /// 진행 중인 공격을 진행하고(벽 충돌이면 기절), 공격 중이 아니면 상태 유지·전이를 정한다.
+        /// 공격을 시작할 수 있는 분기에서는 다음 공격을 고른 뒤(ChooseNextAttack) 시작한다.
+        /// </summary>
         public override void Tick()
         {
-            var attack = Owner.CurrentAttack;
-            if (attack.IsAttacking)
+            var currentAttack = Owner.CurrentAttack;
+            if (currentAttack.IsAttacking)
             {
-                attack.Tick(Owner.Now, Owner.DeltaTime);
-                if (attack.IsAttacking == false && attack.LastResult == AttackResult.WallHit)
-                    Owner.Stun(attack.WallHitStunTime);
+                currentAttack.Tick(Owner.Now, Owner.DeltaTime);
+                if (currentAttack.IsAttacking == false && currentAttack.LastResult == AttackResult.WallHit)
+                    Owner.Stun(currentAttack.WallHitStunTime);
                 return; // 그 외 완료는 상태를 바꾸지 않는다. 다음 틱에 아래 분기가 판단한다.
             }
 
-            if (Owner.HasTarget == false) 
+            if (Owner.HasTarget == false)
                 Owner.ChangeState(Owner.Idle);
-            else if (Owner.IsTargetInAttackRange == false || Owner.CanAttack == false) 
+            else if (Owner.IsTargetInAttackRange == false || Owner.CanAttack == false)
                 Owner.ChangeState(Owner.Chase);
             else
             {
                 Owner.FaceTarget();
-                if (attack.CanStart(Owner.Now)) 
-                    attack.Begin(Owner.Target, Owner.Now);
+                var nextAttack = Owner.ChooseNextAttack();
+                if (nextAttack.CanStart(Owner.Now))
+                    nextAttack.Begin(Owner.Target, Owner.Now);
             }
         }
 

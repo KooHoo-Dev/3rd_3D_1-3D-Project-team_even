@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
@@ -83,14 +84,18 @@ namespace HybridShooter.Monster.Behaviour
         {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
             var body = new MonsterBody(transform);
-            var attackSpec = AttackSpec.From(SingleBasicAttack(Def));
-            var attack = MonsterAttackFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable);
-            movement.SetCombatTuning(Def.MoveSpeed, attack.Range);
-            StateMachine = new MonsterStateMachine(movement, body, attack);
+            var attacks = new List<MonsterAttack>();
+            foreach (MonsterAttackDef attackDef in BasicAttackDefs(Def))
+            {
+                var attackSpec = AttackSpec.From(attackDef);
+                attacks.Add(MonsterAttackFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable));
+            }
+            movement.SetCombatTuning(Def.MoveSpeed, attacks[0].Range); // 이동의 전투 사거리는 첫 공격 기준
+            StateMachine = new MonsterStateMachine(movement, body, attacks);
 
             StateMachine.Died += OnStateMachineDied;
             StateMachine.StateChanged += OnStateChanged;
-            StateMachine.CurrentAttack.PhaseChanged += OnAttackPhaseChanged;
+            foreach (MonsterAttack attack in StateMachine.Attacks) attack.PhaseChanged += OnAttackPhaseChanged;
             Subscribe();
         }
 
@@ -148,23 +153,25 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 인스펙터의 쿨다운과 판정 비율을 현재 공격에 넣는다.
-        /// 덮어쓰기가 꺼져 있으면 쿨다운은 데이터 테이블 값을 쓴다.
+        /// 인스펙터의 쿨다운과 판정 비율을 이 몬스터의 모든 공격에 넣는다.
+        /// 덮어쓰기가 꺼져 있으면 쿨다운은 각 공격의 데이터 테이블 값을 쓴다.
         /// </summary>
         /// <remarks>공격은 Begin 때 값을 고정하므로 실제 반영은 다음 공격부터다.</remarks>
         /// <exception cref="InvalidOperationException">쿨다운이 예고+회복 이하라 Active 구간 길이가 없을 때</exception>
         private void ApplyAttackTuning()
         {
-            MonsterAttack attack = StateMachine.CurrentAttack;
-            float cooldown = attack.Spec.Cooldown;
-            if (useCooldownOverride) cooldown = cooldownOverrideSeconds;
+            foreach (MonsterAttack attack in StateMachine.Attacks)
+            {
+                float cooldown = attack.Spec.Cooldown;
+                if (useCooldownOverride) cooldown = cooldownOverrideSeconds;
 
-            float windupAndRecoverySeconds = attack.Spec.TelegraphTime + attack.Spec.RecoveryTime;
-            if (cooldown <= windupAndRecoverySeconds)
-                throw new InvalidOperationException($"{name}: 쿨다운({cooldown}s)은 예고+회복({windupAndRecoverySeconds}s)보다 커야 한다");
+                float windupAndRecoverySeconds = attack.Spec.TelegraphTime + attack.Spec.RecoveryTime;
+                if (cooldown <= windupAndRecoverySeconds)
+                    throw new InvalidOperationException($"{name}: 쿨다운({cooldown}s)은 예고+회복({windupAndRecoverySeconds}s)보다 커야 한다");
 
-            attack.Cooldown = cooldown;
-            attack.HitTimeRatio = hitTimeRatio;
+                attack.Cooldown = cooldown;
+                attack.HitTimeRatio = hitTimeRatio;
+            }
         }
 
         /// <summary>
@@ -343,16 +350,16 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 일반 몬스터 Def 에서 기본 공격 1개를 꺼낸다.
+        /// 일반 몬스터 Def 에서 기본 공격 정의 전부를 꺼낸다. Start 가 공격 목록을 만들 때 쓴다.
         /// </summary>
-        /// <param name="def">일반 몬스터 Def. BasicAttacks 가 정확히 1개여야 한다</param>
-        /// <returns>유일한 기본 공격 정의</returns>
-        /// <exception cref="InvalidOperationException">BasicAttacks 가 1개가 아닐 때</exception>
-        private static MonsterAttackDef SingleBasicAttack(MonsterDef def)
+        /// <param name="def">일반 몬스터 Def. BasicAttacks 가 1개 이상이어야 한다</param>
+        /// <returns>기본 공격 정의 목록 (테이블 순서 그대로)</returns>
+        /// <exception cref="InvalidOperationException">BasicAttacks 가 비어 있을 때</exception>
+        private static IReadOnlyList<MonsterAttackDef> BasicAttackDefs(MonsterDef def)
         {
-            if (def.BasicAttacks.Count != 1)
-                throw new InvalidOperationException($"MonsterTable {def.Id}: 일반 몬스터의 기본 공격은 1개여야 한다 (현재 {def.BasicAttacks.Count})");
-            return def.BasicAttacks[0];
+            if (def.BasicAttacks.Count == 0)
+                throw new InvalidOperationException($"MonsterTable {def.Id}: 일반 몬스터의 기본 공격은 1개 이상이어야 한다");
+            return def.BasicAttacks;
         }
 
         /// <summary>
