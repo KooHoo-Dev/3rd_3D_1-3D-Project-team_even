@@ -16,9 +16,9 @@ namespace HybridShooter.Monster.Behaviour
         public bool Contains(Vector3 origin, Vector3 forward, Vector3 point)
         {
             Vector3 toPoint = HitAreas.Flat(point - origin);
-            float sqr = toPoint.sqrMagnitude;
-            if (sqr > Range * Range) return false;
-            if (sqr < 1e-8f) return true;
+            float distance = toPoint.magnitude;
+            if (distance > Range) return false;
+            if (distance < 1e-4f) return true;
             return Vector3.Angle(HitAreas.FlatDirection(forward), toPoint) <= Angle * 0.5f;
         }
     }

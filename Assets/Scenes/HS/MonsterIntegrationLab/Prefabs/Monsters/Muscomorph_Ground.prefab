@@ -1855,7 +1855,7 @@ GameObject:
   - component: {fileID: -6963252850141782799}
   - component: {fileID: 3673681119355232943}
   m_Layer: 0
-  m_Name: Muscomorph
+  m_Name: Muscomorph_Ground
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

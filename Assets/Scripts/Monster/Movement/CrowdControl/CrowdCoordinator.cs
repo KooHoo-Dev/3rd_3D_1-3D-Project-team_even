@@ -104,7 +104,14 @@ namespace HybridShooter.Monster.Movement
         public IPlayerTarget Target => target ?? targetSource as IPlayerTarget;   // null = 목표 없음
         public CrowdSettings Settings => settings;
         public int EngageCapacity => settings.EngageCapacity;
-        public IReadOnlyList<MonsterMovement> Agents => agentsView ??= agents.AsReadOnly();
+        public IReadOnlyList<MonsterMovement> Agents
+        {
+            get
+            {
+                if (agentsView == null) agentsView = agents.AsReadOnly();
+                return agentsView;
+            }
+        }
         public int SlotCount => slotsRefreshed ? slots.Count : 0;                 // 슬롯 갱신 전이면 0
 
         /// <summary>디버그 표시(MovementLab 기즈모 등)용으로 슬롯 id 의 현재 상태 복사본을 만든다.</summary>
@@ -132,12 +139,10 @@ namespace HybridShooter.Monster.Movement
         /// <remarks>targetSource 가 IPlayerTarget 이 아니면 에러 로그만 남기고 target 은 null 로 둔다.</remarks>
         private void Awake()
         {
-            if (targetSource != null)
-            {
-                target = targetSource as IPlayerTarget;
-                if (target == null)
-                    Debug.LogError($"targetSource({targetSource.GetType().Name}) 가 IPlayerTarget 을 구현하지 않음", this);
-            }
+            if (targetSource != null) target = targetSource as IPlayerTarget;
+            bool isTargetSourceWrongType = targetSource != null && target == null;
+            if (isTargetSourceWrongType)
+                Debug.LogError($"targetSource({targetSource.GetType().Name}) 가 IPlayerTarget 을 구현하지 않음", this);
             ValidateSettings();
         }
 
@@ -145,14 +150,31 @@ namespace HybridShooter.Monster.Movement
         private void OnValidate() => ValidateSettings();
 
         /// <summary>반경·슬롯 설정이 잘못되면 에러 로그를 남긴다. Awake 와 OnValidate(Inspector 수정 시)가 부른다.</summary>
-        /// <remarks>반경 순서(Near &lt; Waiting &lt;= Release)는 토큰 모드(UseSlots = false)일 때만 검사한다.</remarks>
+        /// <remarks>
+        /// 반경 순서(Near &lt; Waiting &lt;= Release)는 토큰 모드(UseSlots = false)일 때만 검사한다.
+        /// Slots 가 null 이면 반경 순서는 검사하지 않고 링 설정 에러만 남긴다.
+        /// </remarks>
         private void ValidateSettings()
         {
-            if (!settings.UseSlots && settings.Slots != null && !(settings.NearRadius >= 0f && settings.NearRadius < settings.Slots.WaitingRadius && settings.Slots.WaitingRadius <= settings.ReleaseRadius))
+            if (settings.Slots == null)
+            {
+                Debug.LogError("SlotSettings 첫 링 후보 수·반경·간격은 양수이고 최대 링 수는 2 이상이어야 함", this);
+                return;
+            }
+
+            bool isTokenMode = settings.UseSlots == false;
+            bool isNearRadiusNonNegative = settings.NearRadius >= 0f;
+            bool isNearInsideWaiting = settings.NearRadius < settings.Slots.WaitingRadius;
+            bool isWaitingInsideRelease = settings.Slots.WaitingRadius <= settings.ReleaseRadius;
+            bool isRadiusOrderValid = isNearRadiusNonNegative && isNearInsideWaiting && isWaitingInsideRelease;
+            if (isTokenMode && isRadiusOrderValid == false)
                 Debug.LogError($"CrowdSettings 반경 오류: 0 <= Near({settings.NearRadius}) < Waiting({settings.Slots.WaitingRadius}) <= Release({settings.ReleaseRadius}) 이어야 함", this);
-            if (settings.Slots == null || settings.Slots.ApproachCount < 1 ||
-                settings.Slots.ApproachRadius <= 0f || settings.Slots.MinimumRingGap <= 0f ||
-                settings.Slots.MaxRingCount < 2)
+
+            bool isApproachCountInvalid = settings.Slots.ApproachCount < 1;
+            bool isApproachRadiusInvalid = settings.Slots.ApproachRadius <= 0f;
+            bool isRingGapInvalid = settings.Slots.MinimumRingGap <= 0f;
+            bool isMaxRingCountInvalid = settings.Slots.MaxRingCount < 2;
+            if (isApproachCountInvalid || isApproachRadiusInvalid || isRingGapInvalid || isMaxRingCountInvalid)
                 Debug.LogError("SlotSettings 첫 링 후보 수·반경·간격은 양수이고 최대 링 수는 2 이상이어야 함", this);
         }
 
@@ -168,7 +190,7 @@ namespace HybridShooter.Monster.Movement
         private void OnDisable()
         {
             if (Active == this) Active = null;
-            slots?.ClearReservations();
+            ClearSlotReservations();
         }
 
         /// <summary>
@@ -180,7 +202,7 @@ namespace HybridShooter.Monster.Movement
         {
             target = newTarget;
             targetSource = newTarget as MonoBehaviour;
-            slots?.ClearReservations();
+            ClearSlotReservations();
             slotsRefreshed = false;
             nextAllocationTime = 0f;
         }
@@ -216,8 +238,10 @@ namespace HybridShooter.Monster.Movement
                 return;
             }
             agents.Add(agent);
-            if (settings.EnableCrowdControl && settings.UseSlots &&
-                agent.GetComponent<UnityEngine.AI.NavMeshAgent>().agentTypeID != settings.Slots.AgentTypeId)
+            bool isSlotMode = settings.EnableCrowdControl && settings.UseSlots;
+            bool isAgentTypeDifferent = isSlotMode &&
+                agent.GetComponent<UnityEngine.AI.NavMeshAgent>().agentTypeID != settings.Slots.AgentTypeId;
+            if (isAgentTypeDifferent)
                 Debug.LogError($"{agent.name}: NavMeshAgent 타입과 SlotSettings.AgentTypeId가 다름", agent);
             nextAllocationTime = 0f;
         }
@@ -259,22 +283,21 @@ namespace HybridShooter.Monster.Movement
             }
             // 4) 디버그·HUD 집계: 토큰 대상/비대상 수, 근접 반경 안 인원 등
             int tokenAgents = 0, unrestricted = 0, uncontrolledInside = 0, engagedNear = 0;
-            float nearSqr = settings.NearRadius * settings.NearRadius;
             for (int i = 0; i < agents.Count; i++)
             {
                 MonsterMovement agent = agents[i];
                 Vector3 delta = agent.transform.position - currentTarget.PlayerTrackingInfo.Position;
-                bool inside = delta.x * delta.x + delta.z * delta.z <= nearSqr;
-                if (!agent.Profile.UsesEngageToken)
-                {
-                    unrestricted++;
-                    if (inside) uncontrolledInside++;
-                }
-                else
-                {
-                    tokenAgents++;
-                    if (inside && slots.HasApproachReservation(agent.GetInstanceID())) engagedNear++;
-                }
+                float horizontalDistance = new Vector2(delta.x, delta.z).magnitude;
+                bool inside = horizontalDistance <= settings.NearRadius;
+                bool usesToken = agent.Profile.UsesEngageToken;
+                bool isUncontrolledInside = usesToken == false && inside;
+                bool isTokenAgentInside = usesToken && inside;
+                bool isEngagedInside = isTokenAgentInside && slots.HasApproachReservation(agent.GetInstanceID());
+
+                if (usesToken) tokenAgents++;
+                else unrestricted++;
+                if (isUncontrolledInside) uncontrolledInside++;
+                if (isEngagedInside) engagedNear++;
             }
             lastSummary = new AllocationSummary
             {
@@ -304,14 +327,16 @@ namespace HybridShooter.Monster.Movement
             if (agent == null) throw new ArgumentNullException(nameof(agent));
 
             // 군중 제어 대상이 아니면 슬롯 없이 자유 이동
-            if (!settings.EnableCrowdControl || !agent.Profile.UsesEngageToken)
+            bool isCrowdControlled = settings.EnableCrowdControl && agent.Profile.UsesEngageToken;
+            if (isCrowdControlled == false)
             {
                 ReleaseSlot(agent);
                 return new CrowdDirective(DirectiveKind.Unrestricted, default, 0, false, 0f);
             }
-            if (!settings.UseSlots) return agent.Directive;
-            EnsureSlots();
-            if (!slotsRefreshed) RefreshSlots();
+            if (settings.UseSlots == false) return agent.Directive;
+
+            // 슬롯 준비가 끝나야 목표 유무를 판단할 수 있다 (갱신 전이면 여기서 RefreshSlots)
+            EnsureSlotsRefreshed();
             IPlayerTarget currentTarget = Target;
             if (currentTarget == null)
             {
@@ -321,8 +346,10 @@ namespace HybridShooter.Monster.Movement
             // 접근 링(0번) 진입 허용 여부: 정원 안이거나 이미 접근 중이면 허용. 아니면 바깥 링에서만 슬롯을 찾는다
             int capacity = Mathf.Min(settings.EngageCapacity, slots.ApproachCount);
             bool alreadyApproaching = slots.HasApproachReservation(agent.GetInstanceID());
-            bool allowApproach = capacity > 0 && (alreadyApproaching || slots.ApproachReservations < capacity);
-            if (!slots.TryRequest(agent.GetInstanceID(), agent.transform.position, now, allowApproach, out SlotSnapshot slot))
+            bool hasCapacity = capacity > 0;
+            bool isUnderCapacity = slots.ApproachReservations < capacity;
+            bool allowApproach = hasCapacity && (alreadyApproaching || isUnderCapacity);
+            if (slots.TryRequest(agent.GetInstanceID(), agent.transform.position, now, allowApproach, out SlotSnapshot slot) == false)
                 return CrowdDirective.WaitingForSlot(agent.transform.position);
             DirectiveKind kind = slot.RingIndex == 0 ? DirectiveKind.Engage : DirectiveKind.Wait;
             return new CrowdDirective(kind, in slot, settings.Slots.ArrivalDistance);
@@ -334,7 +361,7 @@ namespace HybridShooter.Monster.Movement
         public void ReleaseSlot(MonsterMovement agent)
         {
             if (agent == null) throw new ArgumentNullException(nameof(agent));
-            slots?.Release(agent.GetInstanceID());
+            if (slots != null) slots.Release(agent.GetInstanceID());
         }
 
         /// <summary>
@@ -348,7 +375,7 @@ namespace HybridShooter.Monster.Movement
         public void RejectSlot(MonsterMovement agent, int slotId, float now)
         {
             if (agent == null) throw new ArgumentNullException(nameof(agent));
-            slots?.Reject(agent.GetInstanceID(), slotId, now);
+            if (slots != null) slots.Reject(agent.GetInstanceID(), slotId, now);
         }
 
         /// <summary>반응 지연으로 일부러 멈춘 시간만큼 "슬롯으로 진행이 없다" 판정 시계를 늦춘다. MonsterMovement 의 반응 지연 처리가 부른다.</summary>
@@ -358,19 +385,41 @@ namespace HybridShooter.Monster.Movement
         public void PauseSlotProgress(MonsterMovement agent, float duration)
         {
             if (agent == null) throw new ArgumentNullException(nameof(agent));
-            slots?.PauseProgress(agent.GetInstanceID(), duration);
+            if (slots != null) slots.PauseProgress(agent.GetInstanceID(), duration);
         }
 
         /// <summary>SlotRegistry 가 없거나 링 설정이 바뀌었으면 새로 만든다 (이 경우 다음 갱신 때 후보를 다시 계산)</summary>
         /// <remarks>새로 만들면 기존 예약·거절 기록이 모두 사라진다.</remarks>
         private void EnsureSlots()
         {
-            if (slots != null && slots.ApproachCount == settings.Slots.ApproachCount &&
-                slots.ApproachRadius == settings.Slots.ApproachRadius &&
-                slots.MinimumRingGap == settings.Slots.MinimumRingGap &&
-                slots.MaxRingCount == settings.Slots.MaxRingCount) return;
+            if (slots != null && HasSameRingGeometry()) return;
             slots = new SlotRegistry(settings.Slots, new NavMeshSlotNavigation(settings.Slots));
             slotsRefreshed = false;
+        }
+
+        /// <summary>기존 SlotRegistry 의 링 기하 설정이 현재 SlotSettings 와 같은가. EnsureSlots 가 다시 만들지 결정할 때 쓴다.</summary>
+        /// <remarks>slots 가 null 이 아닐 때만 부른다.</remarks>
+        /// <returns>첫 링 후보 수·반경·링 간격·최대 링 수가 모두 같으면 true</returns>
+        private bool HasSameRingGeometry()
+        {
+            bool isSameApproachCount = slots.ApproachCount == settings.Slots.ApproachCount;
+            bool isSameApproachRadius = slots.ApproachRadius == settings.Slots.ApproachRadius;
+            bool isSameRingGap = slots.MinimumRingGap == settings.Slots.MinimumRingGap;
+            bool isSameMaxRingCount = slots.MaxRingCount == settings.Slots.MaxRingCount;
+            return isSameApproachCount && isSameApproachRadius && isSameRingGap && isSameMaxRingCount;
+        }
+
+        /// <summary>슬롯 관리자를 준비하고, 현재 목표 기준으로 아직 갱신하지 않았으면 바로 갱신한다. RequestDirective 가 슬롯을 요청하기 전에 부른다.</summary>
+        private void EnsureSlotsRefreshed()
+        {
+            EnsureSlots();
+            if (slotsRefreshed == false) RefreshSlots();
+        }
+
+        /// <summary>슬롯 관리자가 이미 만들어졌으면 모든 예약을 비운다 (아직 없으면 비울 예약도 없다). 목표 교체·상실, 비활성화, 슬롯 모드가 아닐 때 부른다.</summary>
+        private void ClearSlotReservations()
+        {
+            if (slots != null) slots.ClearReservations();
         }
 
         /// <summary>
@@ -409,7 +458,7 @@ namespace HybridShooter.Monster.Movement
             // A) 목표 무효: 예약 해제 + 전원 Think(→ Idle 정지)
             if (target == null)
             {
-                slots?.ClearReservations();
+                ClearSlotReservations();
                 slotsRefreshed = false;
                 lastSummary = default;
                 lastEngagedInsideNear = 0;
@@ -424,58 +473,76 @@ namespace HybridShooter.Monster.Movement
             {
                 // B) 배분 주기가 되면 모드에 따라 배분: 슬롯 모드 / 토큰 모드 / 군중 제어 꺼짐(전원 자유 이동)
                 float now = Time.time;
-                if (now >= nextAllocationTime)
-                {
-                    if (settings.EnableCrowdControl && settings.UseSlots)
-                    {
-                        RefreshSlots();
-                        nextAllocationTime = now + settings.AllocationInterval;
-                    }
-                    else if (settings.EnableCrowdControl)
-                    {
-                        slots?.ClearReservations();
-                        Allocate(now);
-                    }
-                    else
-                    {
-                        slots?.ClearReservations();
-                        for (int i = 0; i < agents.Count; i++)
-                            agents[i].ApplyAllocation(new AllocationResult
-                            {
-                                Directive = new CrowdDirective(DirectiveKind.Unrestricted, default, 0, false, 0f),
-                                WaitingSince = -1f,
-                                SlotIndex = -1
-                            });
-                        lastSummary = new AllocationSummary
-                        {
-                            Unrestricted = agents.Count,
-                            FreeCapacity = settings.EngageCapacity
-                        };
-                        lastEngagedInsideNear = 0;
-                        nextAllocationTime = now + settings.AllocationInterval;
-                    }
-                }
+                if (now >= nextAllocationTime) AllocateByMode(now);
 
                 // C) 개체 판단 분산: 이번 프레임에 판단할 수(thinkBudget)만큼 순번대로 Think 호출
-                int n = agents.Count;
-                if (n > 0)
-                {
-                    // 배분 프레임에도 전원 Think 를 몰아주지 않고 예산만 누적한다: 개체당 정확히 ThinkCycle 마다 1회, 프레임에 고르게 분산
-                    // (대신 지시 변화·신규 슬롯 반영이 최대 ThinkCycle 만큼 늦어진다)
-                    thinkBudget = Mathf.Min(thinkBudget + n * Time.deltaTime / settings.ThinkCycle, n);
-
-                    int k = Mathf.Min(n, (int)thinkBudget);
-                    thinkBudget -= k;
-                    for (int i = 0; i < k; i++)
-                    {
-                        if (agents.Count != n) break; // 판단 중 등록/해제 발생
-                        agents[thinkCursor % n].Think(target, now);
-                        thinkCursor = (thinkCursor + 1) % n;
-                    }
-                }
+                ThinkInTurn(now);
             }
             lastTickMs = (Stopwatch.GetTimestamp() - startTs) * 1000f / Stopwatch.Frequency;
             TickAgents(); // lastTickMs 는 배분 + 판단 비용만 잰다 (기존과 동일)
+        }
+
+        /// <summary>
+        /// 모드에 따라 배분한다: 슬롯 모드(RefreshSlots) / 토큰 모드(Allocate) / 군중 제어 꺼짐(전원 자유 이동).
+        /// Update 가 배분 주기(nextAllocationTime)가 됐을 때 부르고, 다음 배분 시각도 여기서(또는 Allocate 에서) 정한다.
+        /// </summary>
+        /// <param name="now">현재 시각 (s). 다음 배분 시각 계산 기준</param>
+        private void AllocateByMode(float now)
+        {
+            if (settings.EnableCrowdControl && settings.UseSlots)
+            {
+                RefreshSlots();
+                nextAllocationTime = now + settings.AllocationInterval;
+            }
+            else if (settings.EnableCrowdControl)
+            {
+                ClearSlotReservations();
+                Allocate(now);
+            }
+            else
+            {
+                ClearSlotReservations();
+                for (int i = 0; i < agents.Count; i++)
+                    agents[i].ApplyAllocation(new AllocationResult
+                    {
+                        Directive = new CrowdDirective(DirectiveKind.Unrestricted, default, 0, false, 0f),
+                        WaitingSince = -1f,
+                        SlotIndex = -1
+                    });
+                lastSummary = new AllocationSummary
+                {
+                    Unrestricted = agents.Count,
+                    FreeCapacity = settings.EngageCapacity
+                };
+                lastEngagedInsideNear = 0;
+                nextAllocationTime = now + settings.AllocationInterval;
+            }
+        }
+
+        /// <summary>
+        /// 개체 판단 분산: 이번 프레임에 판단할 수(thinkBudget)만큼 순번(thinkCursor)대로 Think 를 호출한다. Update 가 매 프레임 부른다.
+        /// </summary>
+        /// <remarks>
+        /// 배분 프레임에도 전원 Think 를 몰아주지 않고 예산만 누적한다: 개체당 정확히 ThinkCycle 마다 1회, 프레임에 고르게 분산
+        /// (대신 지시 변화·신규 슬롯 반영이 최대 ThinkCycle 만큼 늦어진다).
+        /// 판단 중 등록/해제가 일어나면 이번 프레임 판단을 멈춘다.
+        /// </remarks>
+        /// <param name="now">현재 시각 (s). Think 에 그대로 넘긴다</param>
+        private void ThinkInTurn(float now)
+        {
+            int n = agents.Count;
+            if (n <= 0) return;
+
+            thinkBudget = Mathf.Min(thinkBudget + n * Time.deltaTime / settings.ThinkCycle, n);
+
+            int k = Mathf.Min(n, (int)thinkBudget);
+            thinkBudget -= k;
+            for (int i = 0; i < k; i++)
+            {
+                if (agents.Count != n) break; // 판단 중 등록/해제 발생
+                agents[thinkCursor % n].Think(target, now);
+                thinkCursor = (thinkCursor + 1) % n;
+            }
         }
 
         /// <summary>등록된 모든 몬스터의 프레임 갱신(TickMovement)을 호출한다. Update 에서 Think 뒤에 불려 순서가 보장된다</summary>
@@ -517,15 +584,15 @@ namespace HybridShooter.Monster.Movement
             lastSummary = EngageAllocator.Allocate(p, agentBuffer, n, resultBuffer);
 
             // 3) 결과를 개체에 반영하고, 근접 반경 안 토큰 보유자 수 집계
-            float nearSqr = settings.NearRadius * settings.NearRadius;
             int engagedNear = 0;
             for (int i = 0; i < n; i++)
             {
                 agents[i].ApplyAllocation(resultBuffer[i]);
-                if (!resultBuffer[i].HasToken) continue;
                 float dx = agentBuffer[i].Position.x - targetPos.x;
                 float dz = agentBuffer[i].Position.z - targetPos.z;
-                if (dx * dx + dz * dz <= nearSqr) engagedNear++;
+                float horizontalDistance = new Vector2(dx, dz).magnitude;
+                bool isEngagedInside = resultBuffer[i].HasToken && horizontalDistance <= settings.NearRadius;
+                if (isEngagedInside) engagedNear++;
             }
             lastEngagedInsideNear = engagedNear;
             nextAllocationTime = now + settings.AllocationInterval;

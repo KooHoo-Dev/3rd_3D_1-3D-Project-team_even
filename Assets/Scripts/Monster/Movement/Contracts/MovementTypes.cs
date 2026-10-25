@@ -154,9 +154,10 @@ namespace HybridShooter.Monster.Movement
         public readonly float OrbitAngularSpeedDeg; // deg/s
         public readonly float KeepDistanceMin;      // m
         public readonly float KeepDistanceMax;      // m
-        public readonly float FlankViewHalfAngleDeg;// 도, 목표 시야 반각
         public readonly float FlankRadius;          // m, 측면 경유점 반경
         public readonly float FlankSpeedMultiplier; // 시야 밖 돌입 속도 배율
+        public readonly float FlankSwitchDistance;  // m, 이 거리 이하면 근거리 돌입 모드로 전환
+        public readonly float FlankSwitchBand;      // m, 근거리 → 원거리 복귀는 전환 거리 + 이 폭을 넘을 때
 
         /// <summary>수치 복사본 생성. MovementProfile.ToTuning 과 MonsterMovement(개체별 속도·사거리 반영)가 호출한다</summary>
         /// <param name="moveSpeed">이동 속도 (m/s)</param>
@@ -165,12 +166,14 @@ namespace HybridShooter.Monster.Movement
         /// <param name="orbitAngularSpeedDeg">선회 각속도 (deg/s)</param>
         /// <param name="keepDistanceMin">거리 유지 밴드 최소 (m)</param>
         /// <param name="keepDistanceMax">거리 유지 밴드 최대 (m)</param>
-        /// <param name="flankViewHalfAngleDeg">목표 시야 반각 (도)</param>
         /// <param name="flankRadius">측면 경유점 반경 (m)</param>
         /// <param name="flankSpeedMultiplier">시야 밖 돌입 속도 배율</param>
+        /// <param name="flankSwitchDistance">근거리 돌입 모드로 바꾸는 거리 (m). flankRadius 보다 커야 한다</param>
+        /// <param name="flankSwitchBand">근거리 → 원거리 복귀 여유 폭 (m)</param>
         public MovementTuning(float moveSpeed, float attackRange, float orbitChance, float orbitAngularSpeedDeg,
                               float keepDistanceMin, float keepDistanceMax,
-                              float flankViewHalfAngleDeg, float flankRadius, float flankSpeedMultiplier)
+                              float flankRadius, float flankSpeedMultiplier,
+                              float flankSwitchDistance, float flankSwitchBand)
         {
             MoveSpeed = moveSpeed;
             AttackRange = attackRange;
@@ -178,9 +181,10 @@ namespace HybridShooter.Monster.Movement
             OrbitAngularSpeedDeg = orbitAngularSpeedDeg;
             KeepDistanceMin = keepDistanceMin;
             KeepDistanceMax = keepDistanceMax;
-            FlankViewHalfAngleDeg = flankViewHalfAngleDeg;
             FlankRadius = flankRadius;
             FlankSpeedMultiplier = flankSpeedMultiplier;
+            FlankSwitchDistance = flankSwitchDistance;
+            FlankSwitchBand = flankSwitchBand;
         }
     }
 
@@ -189,7 +193,9 @@ namespace HybridShooter.Monster.Movement
     {
         public readonly Vector3 SelfPosition;
         public readonly Vector3 TargetPosition;
-        public readonly Vector3 TargetForward;
+        public readonly Vector3 TargetForward;  // 플레이어 카메라(ViewPoint)가 바라보는 방향
+        public readonly Vector3 ViewPosition;   // 플레이어 카메라(ViewPoint) 위치 (월드). 시야 원뿔의 꼭짓점
+        public readonly float ViewHalfAngleDeg; // 도, 플레이어 카메라 FOV 의 수평 반각
         public readonly bool TargetValid;   // false 면 TargetPosition 은 자기 위치 (정책은 정지해야 한다)
         // 군중 제어가 내린 지시 (허가 + 슬롯 정보)
         public readonly CrowdDirective Directive;
@@ -201,18 +207,23 @@ namespace HybridShooter.Monster.Movement
         /// <summary>판단 입력 생성. MonsterMovement.Think 가 매 판단마다 만들어 정책에 넘긴다</summary>
         /// <param name="selfPosition">자기 위치 (월드)</param>
         /// <param name="targetPosition">목표 위치 (월드). 목표가 무효면 자기 위치</param>
-        /// <param name="targetForward">목표가 바라보는 방향</param>
+        /// <param name="targetForward">플레이어 카메라가 바라보는 방향</param>
+        /// <param name="viewPosition">플레이어 카메라 위치 (월드)</param>
+        /// <param name="viewHalfAngleDeg">플레이어 카메라 FOV 의 수평 반각 (도)</param>
         /// <param name="targetValid">목표가 유효한가</param>
         /// <param name="directive">군중 제어가 내린 지시</param>
         /// <param name="tuning">몬스터 유형별 수치</param>
         /// <param name="now">현재 시각 (s)</param>
         /// <param name="deltaTime">직전 판단 이후 경과 시간 (s), 첫 판단은 0</param>
-        public MovementContext(Vector3 selfPosition, Vector3 targetPosition, Vector3 targetForward, bool targetValid,
+        public MovementContext(Vector3 selfPosition, Vector3 targetPosition, Vector3 targetForward,
+                               Vector3 viewPosition, float viewHalfAngleDeg, bool targetValid,
                                CrowdDirective directive, MovementTuning tuning, float now, float deltaTime)
         {
             SelfPosition = selfPosition;
             TargetPosition = targetPosition;
             TargetForward = targetForward;
+            ViewPosition = viewPosition;
+            ViewHalfAngleDeg = viewHalfAngleDeg;
             TargetValid = targetValid;
             Directive = directive;
             Tuning = tuning;

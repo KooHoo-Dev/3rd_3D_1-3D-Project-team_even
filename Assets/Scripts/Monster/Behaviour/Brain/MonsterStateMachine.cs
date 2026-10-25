@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Monster.Movement;
 using UnityEngine;
@@ -22,7 +23,10 @@ namespace HybridShooter.Monster.Behaviour
         public MonsterState Dead { get; }
 
         public MonsterState Current { get; private set; }
-        public MonsterAttack CurrentAttack { get; }
+        // 이 몬스터가 가진 공격 전부. 생성 후 불변, 1개 이상
+        public IReadOnlyList<MonsterAttack> Attacks { get; }
+        // 지금 고른 공격. 생성 시 Attacks[0], 이후 ChooseNextAttack 이 바꾼다
+        public MonsterAttack CurrentAttack { get; private set; }
         public IPlayerTarget Target { get; private set; }
 
         // 마지막 Update 시각 (s)
@@ -35,24 +39,55 @@ namespace HybridShooter.Monster.Behaviour
         public bool GrantReward { get; private set; }
         public bool IsDead => Current == Dead;
 
+        // ── 공격 뒤 행동 (ClearAfterAttackFlags 가 함께 해제) ──
+        // RestInIdle 공격이 끝나 Idle 에서 준비 동작 중이면 true
+        public bool IsResting { get; private set; }
+        // RepositionInChase 공격이 끝나 Chase 에서 재정비 중이면 true. 이 동안 Attack 으로 가지 않는다
+        public bool IsRepositioning { get; private set; }
+
         // 인자 = (previous, current)
         public event Action<MonsterState, MonsterState> StateChanged;
         // DeadState 진입 시 1번. 인자 = 보상 지급 여부
         public event Action<bool> Died;
 
         /// <summary>
-        /// 상태 5개를 만들고 Idle 로 시작한다. MonsterController.Start 가 조립 때 1번 호출한다.
+        /// 공격 1개짜리 몬스터용. 목록 생성자에 공격 1개짜리 목록으로 넘긴다.
+        /// 기존 테스트가 이 형태로 만든다.
         /// </summary>
-        /// <remarks>생성 중 Idle.Enter 가 이동을 멈추므로 movement 는 Awake 가 끝난 상태여야 한다.</remarks>
         /// <param name="movement">이 몬스터의 이동 컴포넌트</param>
         /// <param name="body">이 몬스터의 몸체 (위치·방향)</param>
         /// <param name="attack">이 몬스터가 쓸 공격 전략</param>
         /// <exception cref="ArgumentNullException">movement, body, attack 중 하나가 null 일 때</exception>
         public MonsterStateMachine(MonsterMovement movement, MonsterBody body, MonsterAttack attack)
+            : this(movement, body, new[] { attack })
         {
-            this.movement = movement != null ? movement : throw new ArgumentNullException(nameof(movement));
-            this.body = body ?? throw new ArgumentNullException(nameof(body));
-            CurrentAttack = attack ?? throw new ArgumentNullException(nameof(attack));
+        }
+
+        /// <summary>
+        /// 공격 목록을 받고 상태 5개를 만들어 Idle 로 시작한다. MonsterController.Start 가 조립 때 1번 호출한다.
+        /// 처음 고른 공격은 attacks[0] 이다.
+        /// </summary>
+        /// <remarks>생성 중 Idle.Enter 가 이동을 멈추므로 movement 는 Awake 가 끝난 상태여야 한다.</remarks>
+        /// <param name="movement">이 몬스터의 이동 컴포넌트</param>
+        /// <param name="body">이 몬스터의 몸체 (위치·방향)</param>
+        /// <param name="attacks">이 몬스터가 쓸 공격 전략 목록. 1개 이상</param>
+        /// <exception cref="ArgumentNullException">movement, body, attacks 또는 그 원소 중 하나가 null 일 때</exception>
+        /// <exception cref="ArgumentException">attacks 가 비어 있을 때</exception>
+        public MonsterStateMachine(MonsterMovement movement, MonsterBody body, IReadOnlyList<MonsterAttack> attacks)
+        {
+            if (movement == null) throw new ArgumentNullException(nameof(movement));
+            if (body == null) throw new ArgumentNullException(nameof(body));
+            if (attacks == null) throw new ArgumentNullException(nameof(attacks));
+            if (attacks.Count == 0) throw new ArgumentException("공격은 1개 이상이어야 한다", nameof(attacks));
+            foreach (MonsterAttack attack in attacks)
+            {
+                if (attack == null) throw new ArgumentNullException(nameof(attacks), "공격 목록에 null 이 있다");
+            }
+
+            this.movement = movement;
+            this.body = body;
+            Attacks = attacks;
+            CurrentAttack = attacks[0];
 
             Idle = new IdleState(this);
             Chase = new ChaseState(this);
@@ -78,21 +113,22 @@ namespace HybridShooter.Monster.Behaviour
                 Vector3 toTarget = Target.PlayerTrackingInfo.Position - body.Position;
                 toTarget.y = 0f;
                 float range = CurrentAttack.Range;
-                return toTarget.sqrMagnitude <= range * range;
+                return toTarget.magnitude <= range;
             }
         }
 
         /// <summary>
         /// 공격 대상을 바꾼다. MonsterController 가 대상 확보·상실 때 호출한다.
-        /// 대상이 바뀌면 진행 중 공격을 취소하고, 대상이 없어지면 Attack/Chase 에서 Idle 로 돌아간다.
+        /// 대상이 바뀌면 진행 중 공격을 취소하고, 대상이 없어지면 휴식·재정비를 해제하고 Attack/Chase 에서 Idle 로 돌아간다.
         /// </summary>
         /// <param name="target">새 대상. null = 대상 상실 (플레이어 사망 등)</param>
         public void SetTarget(IPlayerTarget target)
         {
-            if (!ReferenceEquals(Target, target) && CurrentAttack.IsAttacking) CurrentAttack.Cancel();
+            if (ReferenceEquals(Target, target) == false && CurrentAttack.IsAttacking) CurrentAttack.Cancel();
             Target = target;
-            if (!HasTarget)
+            if (HasTarget == false)
             {
+                ClearAfterAttackFlags();
                 if (CurrentAttack.IsAttacking) CurrentAttack.Cancel();
                 if (Current == Attack || Current == Chase) ChangeState(Idle);
             }
@@ -108,7 +144,10 @@ namespace HybridShooter.Monster.Behaviour
         {
             Now = now;
             DeltaTime = deltaTime;
-            if (!HasTarget && (Current == Attack || Current == Chase)) SetTarget(null);
+            bool hasNoTarget = HasTarget == false;
+            bool isInAttackState = Current == Attack;
+            bool isInChaseState = Current == Chase;
+            if (hasNoTarget && (isInAttackState || isInChaseState)) SetTarget(null);
             Current.Tick();
         }
 
@@ -145,7 +184,7 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// 기절. 어느 상태에서든 Stunned 로 간다. AttackState 가 벽 충돌(WallHit) 결과를 받았을 때 호출한다.
-        /// 죽었거나 이미 기절 중이면 무시한다.
+        /// 휴식·재정비는 해제한다 (기절이 끝나면 평소처럼 Chase). 죽었거나 이미 기절 중이면 무시한다.
         /// </summary>
         /// <param name="seconds">기절 시간 (s). 0 이상</param>
         /// <exception cref="ArgumentOutOfRangeException">seconds 가 0 미만일 때</exception>
@@ -153,31 +192,71 @@ namespace HybridShooter.Monster.Behaviour
         {
             if (seconds < 0f) throw new ArgumentOutOfRangeException(nameof(seconds), seconds, "기절 시간은 0 이상");
             if (IsDead || Current == Stunned) return; // 반복 기절은 최초 종료시각을 유지한다.
+            ClearAfterAttackFlags();
             StunDuration = seconds;
             ChangeState(Stunned);
         }
 
         /// <summary>
-        /// 회수/비활성화: 보상·사망 알림 없이 공격과 이동을 정리한다.
+        /// 회수/비활성화: 보상·사망 알림 없이 공격·휴식·재정비와 이동을 정리한다.
         /// MonsterController 의 OnDisable 과 Despawn 이 호출한다.
         /// </summary>
         public void Cleanup()
         {
             SetTarget(null);
+            ClearAfterAttackFlags();
             if (CurrentAttack.IsAttacking) CurrentAttack.Cancel();
-            if (!IsDead) ChangeState(Idle);
+            if (IsDead == false) ChangeState(Idle);
             movement.SetSuspended(true);
         }
 
         // ── 상태 전용 ──
+        /// <summary>
+        /// 다음에 쓸 공격을 골라 CurrentAttack 에 넣는다. AttackState 가 공격 시작 직전에 호출한다.
+        /// 지금은 항상 Attacks[0] 을 고른다.
+        /// </summary>
+        /// <returns>고른 공격 (CurrentAttack 과 같음)</returns>
+        internal MonsterAttack ChooseNextAttack()
+        {
+            CurrentAttack = Attacks[0];
+            return CurrentAttack;
+        }
+
+        /// <summary>
+        /// 휴식하러 Idle 로 간다. AttackState.FinishAttackCycle 이 After = RestInIdle 공격의 정상 완료 때 부른다.
+        /// IdleState 가 준비 동작을 돌리고, 준비가 끝나면 ClearAfterAttackFlags 로 해제한다.
+        /// </summary>
+        internal void RestInIdle()
+        {
+            IsResting = true;
+            ChangeState(Idle);
+        }
+
+        /// <summary>
+        /// 재정비하러 Chase 로 간다. AttackState.FinishAttackCycle 이 After = RepositionInChase 공격의 정상 완료 때 부른다.
+        /// ChaseState 가 공격의 IsRepositioned 가 true 가 될 때까지 Attack 으로 가지 않는다.
+        /// </summary>
+        internal void RepositionInChase()
+        {
+            IsRepositioning = true;
+            ChangeState(Chase);
+        }
+
+        /// <summary>
+        /// 휴식·재정비를 함께 해제한다. Idle 준비 완료, Chase 재정비 완료, Stun, 대상 상실, Cleanup 이 부른다.
+        /// </summary>
+        internal void ClearAfterAttackFlags()
+        {
+            IsResting = false;
+            IsRepositioning = false;
+        }
+
         /// <summary>멈춘다. 군중 이동의 등록·슬롯·토큰 예약은 즉시 반환한다</summary>
         internal void StopMove() => movement.SetSuspended(true);
         /// <summary>공격하려고 멈춘다. 군중 이동의 공격 슬롯 예약은 유지한다</summary>
         internal void StopForAttack() => movement.SetSuspended(true, retainReservation: true);
         /// <summary>Chase 진입 때 이동을 재개한다</summary>
         internal void ResumeMove() => movement.SetSuspended(false);
-        /// <summary>AttackState 가 공격 시작 전 대상 쪽을 수평으로 바라보게 한다. 대상이 있어야 한다</summary>
-        internal void FaceTarget() => body.Face(Target.PlayerTrackingInfo.Position);
         /// <summary>DeadState 진입 때 Died 이벤트를 보상 지급 여부와 함께 발행한다</summary>
         internal void NotifyDied() => Died?.Invoke(GrantReward);
     }

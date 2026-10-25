@@ -32,9 +32,12 @@ namespace HybridShooter.Monster.Movement
         [SerializeField, Min(0f)] private float keepDistanceMax = 18f;  // m
 
         [Header("Flank (BL-012)")]
-        [SerializeField, Range(0f, 180f)] private float flankViewHalfAngleDeg = 50f;  // 도, 목표 시야 반각
         [SerializeField, Min(0f)] private float flankRadius = 10f;               // m, 측면 경유점 반경
         [SerializeField, Min(1f)] private float flankSpeedMultiplier = 1.6f;     // 시야 밖 돌입 속도 배율
+        [Tooltip("이 거리(m) 이하면 시야 밖 우회를 멈추고 슬롯·토큰 흐름으로 돌입한다. flankRadius 보다 커야 한다")]
+        [SerializeField, Min(0f)] private float flankSwitchDistance = 15f;       // m
+        [Tooltip("돌입 중 거리가 전환 거리 + 이 폭(m)을 넘어야 다시 우회한다. 경계에서 목적지가 깜빡이는 것을 막는다")]
+        [SerializeField, Min(0f)] private float flankSwitchBand = 2f;            // m
 
         public MovementPolicyKind PolicyKind => policyKind;
         public bool UsesEngageToken => usesEngageToken;
@@ -50,15 +53,17 @@ namespace HybridShooter.Monster.Movement
         public MovementTuning ToTuning() => new MovementTuning(
             moveSpeed, attackRange, orbitChance, orbitAngularSpeedDeg,
             keepDistanceMin, keepDistanceMax,
-            flankViewHalfAngleDeg, flankRadius, flankSpeedMultiplier);
+            flankRadius, flankSpeedMultiplier, flankSwitchDistance, flankSwitchBand);
 
-        /// <summary>Inspector 수정 시 min/max 역전을 경고</summary>
+        /// <summary>Inspector 수정 시 min/max 역전과, 측면 경유점이 전환 거리 밖에 있는 설정을 경고</summary>
         private void OnValidate()
         {
             if (reactionDelayMax < reactionDelayMin)
                 Debug.LogWarning($"[{name}] reactionDelayMax({reactionDelayMax}) < reactionDelayMin({reactionDelayMin})", this);
             if (keepDistanceMax < keepDistanceMin)
                 Debug.LogWarning($"[{name}] keepDistanceMax({keepDistanceMax}) < keepDistanceMin({keepDistanceMin})", this);
+            if (flankRadius >= flankSwitchDistance)
+                Debug.LogWarning($"[{name}] flankRadius({flankRadius}) >= flankSwitchDistance({flankSwitchDistance}): 경유점 도착 전에 돌입 모드로 넘어가지 못한다", this);
         }
     }
 }

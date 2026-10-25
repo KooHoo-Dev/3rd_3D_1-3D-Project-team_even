@@ -26,20 +26,30 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [Test]
         public void MeleeGetsStrikeAttack()
         {
-            var attack = MonsterAttackFactory.CreateAttack(MonsterRole.Melee, Bite, body, t => (IDamageable)t);
+            var attack = MonsterAttackFactory.CreateAttack(MonsterRole.Melee, Bite, body, t => (IDamageable)t, null);
             Assert.IsInstanceOf<StrikeAttack>(attack);
             Assert.AreEqual(1.5f, attack.Range);
+        }
+
+        [Test]
+        public void ZonePressureGetsPoisonAreaAttack()
+        {
+            var mortar = new AttackSpec(AttackShape.Circle, 6, 1, 10f, 1.5f, 1f, 25f,
+                                        radius: 4f, projectileSpeed: 12f, effectId: 1);
+            var settings = monsterObject.AddComponent<PoisonAreaSettings>();
+            var attack = MonsterAttackFactory.CreateAttack(MonsterRole.ZonePressure, mortar, body, t => (IDamageable)t, settings);
+            Assert.IsInstanceOf<PoisonAreaAttack>(attack);
+            Assert.AreEqual(25f, attack.Range);
         }
 
         [TestCase(MonsterRole.Air)]
         [TestCase(MonsterRole.Rusher)]
         [TestCase(MonsterRole.Infiltrator)]
-        [TestCase(MonsterRole.ZonePressure)]
         [TestCase(MonsterRole.Boss)]
         public void UnimplementedRolesThrow(MonsterRole role)
         {
             Assert.Throws<NotSupportedException>(() =>
-                MonsterAttackFactory.CreateAttack(role, Bite, body, t => (IDamageable)t));
+                MonsterAttackFactory.CreateAttack(role, Bite, body, t => (IDamageable)t, null));
         }
     }
 }

@@ -33,17 +33,17 @@ namespace HybridShooter.Monster.Movement
             public bool WasOccupied;        // 직전에 도착(Occupied) 상태였나
         }
 
-        /// <summary>TryFindInRing 이 값싼 필터를 통과시킨 후보 (id, 개체와의 수평 거리²)</summary>
+        /// <summary>TryFindInRing 이 값싼 필터를 통과시킨 후보 (id, 개체와의 수평 거리)</summary>
         private readonly struct RingCandidate
         {
             public readonly int Id;
-            public readonly float DistanceSqr;
+            public readonly float Distance;   // 개체와 슬롯의 수평 거리 (m)
 
             /// <summary>TryFindInRing 이 후보를 버퍼에 담을 때 쓴다.</summary>
             /// <param name="id">슬롯 id</param>
-            /// <param name="distanceSqr">개체와 슬롯의 수평 거리² (m²)</param>
-            public RingCandidate(int id, float distanceSqr)
-            { Id = id; DistanceSqr = distanceSqr; }
+            /// <param name="distance">개체와 슬롯의 수평 거리 (m)</param>
+            public RingCandidate(int id, float distance)
+            { Id = id; Distance = distance; }
         }
 
         /// <summary>링 1개의 슬롯 id 범위와 반경</summary>
@@ -115,11 +115,16 @@ namespace HybridShooter.Monster.Movement
         /// <exception cref="ArgumentOutOfRangeException">첫 링 후보 수·반경·간격이 양수가 아니거나 최대 링 수가 2 미만일 때</exception>
         public SlotRegistry(SlotSettings settings, NavMeshSlotNavigation navigation)
         {
-            this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            this.navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
-            if (settings.ApproachCount < 1 || settings.ApproachRadius <= 0f ||
-                settings.MinimumRingGap <= 0f || settings.MaxRingCount < 2)
+            if (settings == null) throw new ArgumentNullException(nameof(settings));
+            if (navigation == null) throw new ArgumentNullException(nameof(navigation));
+            bool isApproachCountInvalid = settings.ApproachCount < 1;
+            bool isApproachRadiusInvalid = settings.ApproachRadius <= 0f;
+            bool isRingGapInvalid = settings.MinimumRingGap <= 0f;
+            bool isMaxRingCountInvalid = settings.MaxRingCount < 2;
+            if (isApproachCountInvalid || isApproachRadiusInvalid || isRingGapInvalid || isMaxRingCountInvalid)
                 throw new ArgumentOutOfRangeException(nameof(settings), "첫 링 후보 수·반경·간격은 양수이고 최대 링 수는 2 이상이어야 한다");
+            this.settings = settings;
+            this.navigation = navigation;
             approachCount = settings.ApproachCount;
             approachRadius = settings.ApproachRadius;
             minimumRingGap = settings.MinimumRingGap;
@@ -151,8 +156,14 @@ namespace HybridShooter.Monster.Movement
         /// <param name="slotId">확인할 슬롯 id</param>
         /// <param name="ownerId">몬스터 id</param>
         /// <returns>ownerId 의 유효(Valid) 예약이면 true. 범위 밖 id 면 false</returns>
-        public bool IsValidlyReservedBy(int slotId, int ownerId) =>
-            (uint)slotId < (uint)slots.Count && slots[slotId].Owner == ownerId && slots[slotId].Validity == SlotValidity.Valid;
+        public bool IsValidlyReservedBy(int slotId, int ownerId)
+        {
+            if ((uint)slotId >= (uint)slots.Count) return false;
+            Slot slot = slots[slotId];
+            bool isOwnedByOwner = slot.Owner == ownerId;
+            bool isValid = slot.Validity == SlotValidity.Valid;
+            return isOwnedByOwner && isValid;
+        }
 
         /// <summary>
         /// 목표 위치(center)가 바뀐 뒤 슬롯 후보를 다시 계산하고 점유 상태를 갱신한다.
@@ -196,7 +207,7 @@ namespace HybridShooter.Monster.Movement
                 for (int i = 0; i < obstacles.Count; i++)
                 {
                     if (obstacles[i].OwnerId != slot.Owner) continue;
-                    if (HorizontalSqr(obstacles[i].Position, slot.Position) <= settings.ArrivalDistance * settings.ArrivalDistance)
+                    if (HorizontalDistance(obstacles[i].Position, slot.Position) <= settings.ArrivalDistance)
                         slot.Use = SlotUse.Occupied;
                     break;
                 }
@@ -228,17 +239,10 @@ namespace HybridShooter.Monster.Movement
         {
             // 0) TooClose 판정용 격자 준비: startId 앞쪽의 Valid 슬롯(이번에 다시 계산하지 않는 슬롯)을 먼저 넣는다
             float minSpacing = settings.MinimumSpacing;
-            float minSqr = minSpacing * minSpacing;
             // 셀 크기를 MinimumSpacing 보다 아주 조금 크게 잡아, 부동소수 반올림으로 이웃 셀을 놓치는 일을 막는다 (최종 판정은 정확한 거리 비교)
             float cellSize = minSpacing * 1.001f;
-            bool useSpacing = minSpacing > 0f; // 0 이하면 기존 비교(dist² >= 0)가 항상 통과라 TooClose 가 없다
-            if (useSpacing)
-            {
-                spacingGridHead.Clear();
-                while (spacingGridNext.Count < slots.Count) spacingGridNext.Add(-1);
-                for (int other = 0; other < startId; other++)
-                    if (slots[other].Validity == SlotValidity.Valid) SpacingGridInsert(other, slots[other].Position, cellSize);
-            }
+            bool useSpacing = minSpacing > 0f; // 0 이하면 거리 비교(dist < minSpacing)가 항상 거짓이라 TooClose 가 없다
+            if (useSpacing) PrepareSpacingGrid(startId, cellSize);
 
             for (int id = startId; id < slots.Count; id++)
             {
@@ -252,13 +256,7 @@ namespace HybridShooter.Monster.Movement
                 if (navigation.TryProject(slot.Candidate, out Vector3 projected))
                 {
                     slot.Position = projected;
-                    slot.Validity = SlotValidity.Valid;
-                    // 앞 번호 Valid 슬롯 중 MinimumSpacing 안에 하나라도 있으면 TooClose (격자의 이웃 셀만 비교)
-                    if (useSpacing)
-                    {
-                        if (IsTooCloseInGrid(projected, cellSize, minSqr)) slot.Validity = SlotValidity.TooClose;
-                        else SpacingGridInsert(id, projected, cellSize); // Valid 로 확정된 슬롯만 이후 슬롯의 비교 대상
-                    }
+                    slot.Validity = ResolveSpacingValidity(id, projected, useSpacing, cellSize, minSpacing);
                 }
                 slots[id] = slot;
                 // 위치가 확정됐으니 혼잡 반경 안 장애물 수를 캐시 (링을 새로 만들 때의 RefreshRange(startId) 도 여기서 계산됨)
@@ -266,6 +264,38 @@ namespace HybridShooter.Monster.Movement
                 if (slot.Validity != SlotValidity.Valid && slot.Use != SlotUse.Free)
                     Release(slot.Owner);
             }
+        }
+
+        /// <summary>
+        /// TooClose 판정용 격자를 비우고, startId 앞쪽의 Valid 슬롯(이번에 다시 계산하지 않는 슬롯)을 먼저 넣는다.
+        /// RefreshRange 가 슬롯 위치를 다시 계산하기 전에 부른다 (MinimumSpacing &gt; 0 일 때만).
+        /// </summary>
+        /// <param name="startId">이번에 다시 계산을 시작할 슬롯 id. 이보다 앞 번호만 격자에 넣는다</param>
+        /// <param name="cellSize">격자 셀 크기 (m)</param>
+        private void PrepareSpacingGrid(int startId, float cellSize)
+        {
+            spacingGridHead.Clear();
+            while (spacingGridNext.Count < slots.Count) spacingGridNext.Add(-1);
+            for (int other = 0; other < startId; other++)
+                if (slots[other].Validity == SlotValidity.Valid) SpacingGridInsert(other, slots[other].Position, cellSize);
+        }
+
+        /// <summary>
+        /// NavMesh 투영에 성공한 슬롯의 최종 유효성을 정한다. 앞 번호 Valid 슬롯 중 MinimumSpacing 안에 하나라도 있으면 TooClose (격자의 이웃 셀만 비교).
+        /// Valid 로 확정된 슬롯만 격자에 넣어 이후 슬롯의 비교 대상으로 삼는다. RefreshRange 가 슬롯마다 부른다.
+        /// </summary>
+        /// <param name="id">판정할 슬롯 id</param>
+        /// <param name="projected">NavMesh 에 투영된 슬롯 위치</param>
+        /// <param name="useSpacing">false = 간격 검사 없음 (MinimumSpacing 0 이하) → 항상 Valid</param>
+        /// <param name="cellSize">격자 셀 크기 (m)</param>
+        /// <param name="minimumSpacing">슬롯 사이 최소 간격 (m)</param>
+        /// <returns>Valid 또는 TooClose</returns>
+        private SlotValidity ResolveSpacingValidity(int id, Vector3 projected, bool useSpacing, float cellSize, float minimumSpacing)
+        {
+            if (useSpacing == false) return SlotValidity.Valid;
+            if (IsTooCloseInGrid(projected, cellSize, minimumSpacing)) return SlotValidity.TooClose;
+            SpacingGridInsert(id, projected, cellSize);
+            return SlotValidity.Valid;
         }
 
         /// <summary>격자 셀 좌표(cx, cz)를 하나의 long 키로 합친다</summary>
@@ -286,23 +316,23 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// position 에서 minSqr(= MinimumSpacing²) 미만 거리에 격자 속 슬롯이 있는가.
+        /// position 에서 minimumSpacing 미만 거리에 격자 속 슬롯이 있는가.
         /// 거리가 MinimumSpacing 미만인 두 점은 셀 크기 ≥ MinimumSpacing 이므로 항상 인접 3×3 셀 안에 있어, 전수 비교와 결과가 같다
         /// </summary>
         /// <param name="position">검사할 슬롯 위치</param>
         /// <param name="cellSize">격자 셀 크기 (m)</param>
-        /// <param name="minSqr">MinimumSpacing² (m²)</param>
+        /// <param name="minimumSpacing">슬롯 사이 최소 간격 MinimumSpacing (m)</param>
         /// <returns>너무 가까운 슬롯이 있으면 true (TooClose)</returns>
-        private bool IsTooCloseInGrid(Vector3 position, float cellSize, float minSqr)
+        private bool IsTooCloseInGrid(Vector3 position, float cellSize, float minimumSpacing)
         {
             int cx = Mathf.FloorToInt(position.x / cellSize);
             int cz = Mathf.FloorToInt(position.z / cellSize);
             for (int dx = -1; dx <= 1; dx++)
             for (int dz = -1; dz <= 1; dz++)
             {
-                if (!spacingGridHead.TryGetValue(SpacingCellKey(cx + dx, cz + dz), out int other)) continue;
+                if (spacingGridHead.TryGetValue(SpacingCellKey(cx + dx, cz + dz), out int other) == false) continue;
                 for (; other >= 0; other = spacingGridNext[other])
-                    if (HorizontalSqr(position, slots[other].Position) < minSqr) return true;
+                    if (HorizontalDistance(position, slots[other].Position) < minimumSpacing) return true;
             }
             return false;
         }
@@ -321,74 +351,16 @@ namespace HybridShooter.Monster.Movement
         /// <returns>슬롯을 유지하거나 새로 얻으면 true, 빈 슬롯이 없으면 false</returns>
         public bool TryRequest(int ownerId, Vector3 position, float now, bool allowApproach, out SlotSnapshot snapshot)
         {
-            // A) 이미 슬롯이 있는 경우: 아직 쓸 수 있는지 확인하고 진행 상황을 갱신
-            if (ownerSlots.TryGetValue(ownerId, out int ownedId))
-            {
-                Slot owned = slots[ownedId];
-                if (owned.Validity == SlotValidity.Valid &&
-                    (allowApproach || ownedId >= approachCount) &&
-                    navigation.CanReach(position, owned.Position))
-                {
-                    // A-1) 슬롯 도착/진전 판정: 도착하면 Occupied, 오래 진전이 없으면 슬롯을 거절하고 새로 찾는다
-                    float distance = Mathf.Sqrt(HorizontalSqr(position, owned.Position));
-                    Progress state = progress[ownerId];
-                    if (distance <= settings.ArrivalDistance)
-                    {
-                        owned.Use = SlotUse.Occupied;
-                        state.LastDistance = distance;
-                        state.LastProgressTime = now;
-                        state.WasOccupied = true;
-                    }
-                    else
-                    {
-                        owned.Use = SlotUse.Reserved;
-                        if (state.WasOccupied || state.LastDistance - distance >= settings.ProgressDistance)
-                        {
-                            state.LastDistance = distance;
-                            state.LastProgressTime = now;
-                            state.WasOccupied = false;
-                        }
-                        else if (now - state.LastProgressTime >= settings.ProgressTimeout)
-                        {
-                            Reject(ownerId, ownedId, now);
-                            ownedId = -1;
-                        }
-                    }
-                    if (ownedId >= 0)
-                    {
-                        // A-2) 슬롯 유지. 더 안쪽 링에 빈 슬롯이 생겼으면 그쪽으로 승급 (안쪽 = 목표에 가까운 링)
-                        slots[ownedId] = owned;
-                        progress[ownerId] = state;
-                        int firstRing = allowApproach ? 0 : 1;
-                        int promoted = -1;
-                        for (int ring = firstRing; ring < owned.RingIndex; ring++)
-                            if (TryFindInRing(ownerId, position, now, ring, out promoted)) break;
-                        if (promoted < 0)
-                        {
-                            snapshot = GetSnapshot(ownedId);
-                            return true;
-                        }
-                        Release(ownerId);
-                        Reserve(ownerId, promoted, position, now);
-                        snapshot = GetSnapshot(promoted);
-                        return true;
-                    }
-                }
-                else
-                    Release(ownerId);
-            }
+            // A) 이미 슬롯이 있는 경우: 아직 쓸 수 있으면 진행 상황을 갱신하고 유지·승급. 못 쓰면 해제된 상태로 B 로 넘어간다
+            bool hasOwnedSlot = ownerSlots.TryGetValue(ownerId, out int ownedId);
+            if (hasOwnedSlot && TryKeepOwnedSlot(ownerId, ownedId, position, now, allowApproach, out snapshot)) return true;
 
             // B) 슬롯이 없거나 잃은 경우: 안쪽 링부터 빈 슬롯을 찾는다. 필요하면 바깥 링을 새로 만든다 (최대 maxRingCount)
             int startRing = allowApproach ? 0 : 1;
             for (int ring = startRing; ring < maxRingCount; ring++)
             {
-                if (ring == rings.Count)
-                {
-                    int startId = slots.Count;
-                    AppendRingGeometry();
-                    if (refreshed) RefreshRange(startId);
-                }
-                if (!TryFindInRing(ownerId, position, now, ring, out int available)) continue;
+                if (ring == rings.Count) AppendRing();
+                if (TryFindInRing(ownerId, position, now, ring, out int available) == false) continue;
                 Reserve(ownerId, available, position, now);
                 snapshot = GetSnapshot(available);
                 return true;
@@ -397,11 +369,119 @@ namespace HybridShooter.Monster.Movement
             return false;
         }
 
+        /// <summary>
+        /// 이미 가진 슬롯을 계속 쓸 수 있으면 진행 상황을 갱신하고, 더 안쪽 링에 빈 슬롯이 있으면 승급시킨다. TryRequest 의 A 단계.
+        /// 못 쓰게 된 슬롯(무효, 접근 링 불허, 도달 불가)은 해제하고, 오래 진전이 없으면 거절(Reject)한다.
+        /// </summary>
+        /// <remarks>false 를 돌려줄 때는 기존 슬롯이 이미 해제된 상태라, 호출한 쪽이 새 슬롯을 찾으면 된다.</remarks>
+        /// <param name="ownerId">몬스터 id</param>
+        /// <param name="ownedId">ownerId 가 지금 예약 중인 슬롯 id</param>
+        /// <param name="position">몬스터의 현재 위치</param>
+        /// <param name="now">현재 시각 (s). 진행 추적과 거절 기록에 쓴다</param>
+        /// <param name="allowApproach">false = 접근 링(0번)은 제외</param>
+        /// <param name="snapshot">유지하거나 승급한 슬롯 상태. 실패하면 default</param>
+        /// <returns>기존 슬롯을 유지하거나 승급했으면 true</returns>
+        private bool TryKeepOwnedSlot(int ownerId, int ownedId, Vector3 position, float now, bool allowApproach, out SlotSnapshot snapshot)
+        {
+            snapshot = default;
+            if (IsOwnedSlotUsable(ownedId, position, allowApproach) == false)
+            {
+                Release(ownerId);
+                return false;
+            }
+            if (TryRecordProgress(ownerId, ownedId, position, now) == false) return false;
+
+            snapshot = KeepOrPromote(ownerId, ownedId, position, now, allowApproach);
+            return true;
+        }
+
+        /// <summary>보유 슬롯을 계속 쓸 수 있는가: 유효(Valid)하고, 접근 링이면 접근이 허용되고, 실제로 갈 수 있어야 한다.</summary>
+        /// <remarks>비싼 CanReach(NavMesh 경로 계산)는 앞의 값싼 조건을 모두 통과했을 때만 부른다.</remarks>
+        /// <param name="ownedId">보유 슬롯 id</param>
+        /// <param name="position">몬스터의 현재 위치</param>
+        /// <param name="allowApproach">false = 접근 링(0번) 슬롯은 쓸 수 없음</param>
+        /// <returns>계속 쓸 수 있으면 true</returns>
+        private bool IsOwnedSlotUsable(int ownedId, Vector3 position, bool allowApproach)
+        {
+            Slot owned = slots[ownedId];
+            if (owned.Validity != SlotValidity.Valid) return false;
+            bool isApproachSlot = ownedId < approachCount;
+            if (isApproachSlot && allowApproach == false) return false;
+            return navigation.CanReach(position, owned.Position);
+        }
+
+        /// <summary>
+        /// 보유 슬롯의 도착/진전을 판정해 기록한다: 도착하면 Occupied, 거리가 ProgressDistance 이상 줄었으면 진전으로 기록한다.
+        /// 도착도 진전도 없이 ProgressTimeout 이 지나면 슬롯을 거절(Reject)하고 새로 찾게 한다.
+        /// </summary>
+        /// <param name="ownerId">몬스터 id</param>
+        /// <param name="ownedId">보유 슬롯 id</param>
+        /// <param name="position">몬스터의 현재 위치</param>
+        /// <param name="now">현재 시각 (s). 진전 시각 기록과 정체 판정에 쓴다</param>
+        /// <returns>슬롯을 계속 보유하면 true, 정체로 거절해 해제했으면 false</returns>
+        private bool TryRecordProgress(int ownerId, int ownedId, Vector3 position, float now)
+        {
+            Slot owned = slots[ownedId];
+            float distance = HorizontalDistance(position, owned.Position);
+            Progress state = progress[ownerId];
+            bool hasArrived = distance <= settings.ArrivalDistance;
+            bool hasProgressed = state.WasOccupied || state.LastDistance - distance >= settings.ProgressDistance;
+            bool hasTimedOut = now - state.LastProgressTime >= settings.ProgressTimeout;
+
+            if (hasArrived == false && hasProgressed == false && hasTimedOut)
+            {
+                Reject(ownerId, ownedId, now);
+                return false;
+            }
+            if (hasArrived || hasProgressed)
+            {
+                state.LastDistance = distance;
+                state.LastProgressTime = now;
+                state.WasOccupied = hasArrived;
+            }
+
+            owned.Use = hasArrived ? SlotUse.Occupied : SlotUse.Reserved;
+            slots[ownedId] = owned;
+            progress[ownerId] = state;
+            return true;
+        }
+
+        /// <summary>
+        /// 슬롯 유지. 더 안쪽 링에 빈 슬롯이 생겼으면 그쪽으로 승급한다 (안쪽 = 목표에 가까운 링). TryKeepOwnedSlot 의 마지막 단계.
+        /// </summary>
+        /// <param name="ownerId">몬스터 id</param>
+        /// <param name="ownedId">보유 슬롯 id</param>
+        /// <param name="position">몬스터의 현재 위치</param>
+        /// <param name="now">현재 시각 (s). 거절 만료 판정과 새 예약의 진행 추적 시작 시각</param>
+        /// <param name="allowApproach">false = 접근 링(0번)으로는 승급하지 않음</param>
+        /// <returns>최종 보유 슬롯(승급했으면 새 슬롯) 상태</returns>
+        private SlotSnapshot KeepOrPromote(int ownerId, int ownedId, Vector3 position, float now, bool allowApproach)
+        {
+            int ownedRing = slots[ownedId].RingIndex;
+            int firstRing = allowApproach ? 0 : 1;
+            int promoted = -1;
+            for (int ring = firstRing; ring < ownedRing; ring++)
+                if (TryFindInRing(ownerId, position, now, ring, out promoted)) break;
+            if (promoted < 0) return GetSnapshot(ownedId);
+
+            Release(ownerId);
+            Reserve(ownerId, promoted, position, now);
+            return GetSnapshot(promoted);
+        }
+
+        /// <summary>바깥 링을 하나 추가하고, Refresh 를 이미 했으면 새 슬롯 위치도 바로 계산한다. TryRequest 가 필요한 링이 아직 없을 때 부른다.</summary>
+        private void AppendRing()
+        {
+            int startId = slots.Count;
+            AppendRingGeometry();
+            if (refreshed) RefreshRange(startId);
+        }
+
         /// <summary>ownerId 의 슬롯 예약과 진행 추적을 해제한다 (없으면 무시)</summary>
         /// <param name="ownerId">몬스터 id</param>
         public void Release(int ownerId)
         {
-            if (!ownerSlots.TryGetValue(ownerId, out int id)) return;
+            if (ownerSlots.TryGetValue(ownerId, out int id) == false) return;
             Slot slot = slots[id];
             slot.Owner = 0;
             slot.Use = SlotUse.Free;
@@ -432,7 +512,8 @@ namespace HybridShooter.Monster.Movement
         /// <param name="now">현재 시각 (s). 거절 만료 시각 = now + RejectionSeconds</param>
         public void Reject(int ownerId, int slotId, float now)
         {
-            if (!ownerSlots.TryGetValue(ownerId, out int ownedId) || ownedId != slotId) return;
+            if (ownerSlots.TryGetValue(ownerId, out int ownedId) == false) return;
+            if (ownedId != slotId) return;
             rejectedUntil[RejectionKey(ownerId, slotId)] = now + settings.RejectionSeconds;
             Release(ownerId);
         }
@@ -444,7 +525,7 @@ namespace HybridShooter.Monster.Movement
         public void PauseProgress(int ownerId, float duration)
         {
             if (duration < 0f) throw new ArgumentOutOfRangeException(nameof(duration));
-            if (!progress.TryGetValue(ownerId, out Progress state)) return;
+            if (progress.TryGetValue(ownerId, out Progress state) == false) return;
             state.LastProgressTime += duration;
             progress[ownerId] = state;
         }
@@ -468,14 +549,16 @@ namespace HybridShooter.Monster.Movement
             int end = start + ring.Count;
             best = -1;
 
-            // 1) 값싼 필터 통과 후보를 id 오름차순으로 (id, 거리²) 버퍼에 모은다
+            // 1) 값싼 필터 통과 후보를 id 오름차순으로 (id, 거리) 버퍼에 모은다
             ringCandidates.Clear();
             for (int id = start; id < end; id++)
             {
                 Slot slot = slots[id];
-                if (slot.Validity != SlotValidity.Valid || slot.Use != SlotUse.Free || IsCongested(id, ownerId)) continue;
+                if (slot.Validity != SlotValidity.Valid) continue;
+                if (slot.Use != SlotUse.Free) continue;
+                if (IsCongested(id, ownerId)) continue;
                 if (rejectedUntil.TryGetValue(RejectionKey(ownerId, id), out float until) && now < until) continue;
-                ringCandidates.Add(new RingCandidate(id, HorizontalSqr(position, slot.Position)));
+                ringCandidates.Add(new RingCandidate(id, HorizontalDistance(position, slot.Position)));
             }
 
             // 2) 가장 가까운 후보부터 도달 가능 여부 확인. 불가하면 그 후보를 버리고 다음으로 가까운 후보 (엄격한 < 라 동률은 작은 id 유지)
@@ -483,7 +566,7 @@ namespace HybridShooter.Monster.Movement
             {
                 int nearest = 0;
                 for (int i = 1; i < ringCandidates.Count; i++)
-                    if (ringCandidates[i].DistanceSqr < ringCandidates[nearest].DistanceSqr) nearest = i;
+                    if (ringCandidates[i].Distance < ringCandidates[nearest].Distance) nearest = i;
                 int candidateId = ringCandidates[nearest].Id;
                 if (navigation.CanReach(position, slots[candidateId].Position))
                 {
@@ -503,14 +586,14 @@ namespace HybridShooter.Monster.Movement
         private void Reserve(int ownerId, int id, Vector3 position, float now)
         {
             Slot slot = slots[id];
+            float distance = HorizontalDistance(position, slot.Position);
             slot.Owner = ownerId;
-            slot.Use = HorizontalSqr(position, slot.Position) <= settings.ArrivalDistance * settings.ArrivalDistance
-                ? SlotUse.Occupied : SlotUse.Reserved;
+            slot.Use = distance <= settings.ArrivalDistance ? SlotUse.Occupied : SlotUse.Reserved;
             slots[id] = slot;
             ownerSlots.Add(ownerId, id);
             progress[ownerId] = new Progress
             {
-                LastDistance = Mathf.Sqrt(HorizontalSqr(position, slot.Position)),
+                LastDistance = distance,
                 LastProgressTime = now,
                 WasOccupied = slot.Use == SlotUse.Occupied
             };
@@ -541,7 +624,7 @@ namespace HybridShooter.Monster.Movement
         private bool IsInClearance(in SlotObstacle obstacle, Vector3 slotPosition)
         {
             float clearance = obstacle.Radius + settings.MinimumSpacing * 0.5f;
-            return HorizontalSqr(obstacle.Position, slotPosition) < clearance * clearance;
+            return HorizontalDistance(obstacle.Position, slotPosition) < clearance;
         }
 
         /// <summary>slotPosition 혼잡 반경 안의 장애물 수 (RefreshRange 에서 슬롯마다 1회)</summary>
@@ -571,11 +654,11 @@ namespace HybridShooter.Monster.Movement
         /// <summary>높이를 무시한 거리 비교에 쓴다.</summary>
         /// <param name="a">위치 A</param>
         /// <param name="b">위치 B</param>
-        /// <returns>수평(XZ) 거리의 제곱 (m²)</returns>
-        private static float HorizontalSqr(Vector3 a, Vector3 b)
+        /// <returns>수평(XZ) 거리 (m)</returns>
+        private static float HorizontalDistance(Vector3 a, Vector3 b)
         {
             float dx = a.x - b.x, dz = a.z - b.z;
-            return dx * dx + dz * dz;
+            return Mathf.Sqrt(dx * dx + dz * dz);
         }
     }
 }

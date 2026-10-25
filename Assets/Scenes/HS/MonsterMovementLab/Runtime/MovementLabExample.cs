@@ -13,11 +13,17 @@ namespace HybridShooter.Monster.MovementLab
     public sealed class MovementLabExample : MonoBehaviour
     {
         [SerializeField] private CrowdCoordinator coordinator;
-        [SerializeField] private TransformMovementTarget target;
+        [SerializeField] private TestPlayer target;
         [SerializeField] private Transform monsterRoot;
         [SerializeField] private MovementLabGizmos gizmos;
         [SerializeField] private Transform ownedRoot;
         [SerializeField] private int crowdSpawnCount = 24;
+
+        [Header("Spawn Position")]
+        [Tooltip("군중 소환 원의 반지름 (m). 원의 중심은 소환하는 순간의 플레이어(target) 위치")]
+        [SerializeField, Min(0f)] private float spawnRadius = 12f;
+        [Tooltip("소환점에서 이 거리 (m) 안의 가장 가까운 NavMesh 위로 옮긴다. 못 찾으면 원래 점에 소환")]
+        [SerializeField, Min(0.1f)] private float spawnSampleDistance = 3f;
 
         [Header("Monster Prefabs")]
         [Tooltip("소환할 실제 몬스터 프리팹(모델만 있어도 됨). 이동 컴포넌트는 소환 시 코드로 붙인다. 순서대로 돌려 쓴다")]
@@ -42,7 +48,7 @@ namespace HybridShooter.Monster.MovementLab
         }
 
         public CrowdCoordinator Coordinator => coordinator;
-        public TransformMovementTarget Target => target;
+        public TestPlayer Target => target;
         public Transform MonsterRoot => monsterRoot;
         /// <summary>소환된 몬스터 (사망해 비활성화된 개체 포함)</summary>
         public IReadOnlyList<MovementLabOwnedMonster> Monsters => ownedMonsters;
@@ -94,7 +100,7 @@ namespace HybridShooter.Monster.MovementLab
 
             var targetObject = new GameObject("WASD Target (WASD)");
             targetObject.transform.SetParent(root.transform, false);
-            target = targetObject.AddComponent<TransformMovementTarget>();
+            target = targetObject.AddComponent<TestPlayer>();
             var targetVisual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             targetVisual.name = "Target Visual (pivot at feet)";
             targetVisual.transform.SetParent(targetObject.transform, false);
@@ -132,7 +138,7 @@ namespace HybridShooter.Monster.MovementLab
         {
             if (!ValidatePlaySetup()) return;
             ClearOwnedMonstersInternal();
-            SpawnMonster(MovementPolicyKind.Melee, Vector3.right * -5f, false);
+            SpawnMonster(MovementPolicyKind.Melee, GetSpawnPoint(Vector3.right * -5f), false);
         }
 
         [ContextMenu("Play/Spawn Crowd MVP")]
@@ -143,7 +149,8 @@ namespace HybridShooter.Monster.MovementLab
             for (int i = 0; i < crowdSpawnCount; i++)
             {
                 float angle = i * Mathf.PI * 2f / crowdSpawnCount;
-                SpawnMonster(MovementPolicyKind.Melee, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 12f, false);
+                Vector3 offsetFromTarget = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * spawnRadius;
+                SpawnMonster(MovementPolicyKind.Melee, GetSpawnPoint(offsetFromTarget), false);
             }
         }
 
@@ -170,8 +177,23 @@ namespace HybridShooter.Monster.MovementLab
                 float angle = i * Mathf.PI * 2f / crowdSpawnCount;
                 MovementPolicyKind kind = i % 7 == 0 ? MovementPolicyKind.KeepDistance
                     : i % 4 == 0 ? MovementPolicyKind.Flank : MovementPolicyKind.Melee;
-                SpawnMonster(kind, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 12f, true);
+                Vector3 offsetFromTarget = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * spawnRadius;
+                SpawnMonster(kind, GetSpawnPoint(offsetFromTarget), true);
             }
+        }
+
+        /// <summary>
+        /// 소환 위치를 정한다. 소환 버튼(ContextMenu, 조작 창)이 누를 때마다 부르므로 중심은 항상 그 순간의 플레이어 위치다.
+        /// 경사·계단 지형에서도 NavMeshAgent 가 NavMesh 위에 생기도록 가장 가까운 NavMesh 점으로 옮긴다.
+        /// </summary>
+        /// <param name="offsetFromTarget">플레이어(target) 위치에서의 수평 오프셋 (m)</param>
+        /// <returns>소환할 월드 좌표. 반경 spawnSampleDistance 안에 NavMesh 가 없으면 옮기지 않은 원래 점</returns>
+        private Vector3 GetSpawnPoint(Vector3 offsetFromTarget)
+        {
+            Vector3 point = target.transform.position + offsetFromTarget;
+            bool isOnNavMesh = NavMesh.SamplePosition(point, out NavMeshHit hit, spawnSampleDistance, NavMesh.AllAreas);
+            if (isOnNavMesh == false) return point;
+            return hit.position;
         }
 
         [ContextMenu("Play/Remove Assigned Monster")]
