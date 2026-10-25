@@ -7,8 +7,11 @@ namespace HybridShooter.Monster.Movement
     /// <summary>
     /// 목표 둘레 동심원(링) 위 슬롯 후보를 만들고, 몬스터에게 슬롯을 예약·회수하는 관리자.
     /// 슬롯 id 는 0번 링부터 순서대로 이어 붙인 번호이며, id &lt; approachCount 이면 접근 링(0번, 인원 제한 대상).
-    /// 한 몬스터는 슬롯 1개만 가진다. Unity 객체 대신 ISlotNavigation 을 받아 NavMesh 없이도 테스트할 수 있다.
+    /// 한 몬스터는 슬롯 1개만 가진다. 슬롯 위치 투영과 도달 가능성은 NavMeshSlotNavigation 으로 판단한다.
     /// </summary>
+    /// <remarks>
+    /// CrowdCoordinator 가 슬롯 모드(UseSlots = true)에서 소유한다. 몬스터 id(ownerId)는 MonsterMovement.GetInstanceID 값이다.
+    /// </remarks>
     public sealed class SlotRegistry
     {
         /// <summary>슬롯 1개의 내부 상태</summary>
@@ -36,6 +39,9 @@ namespace HybridShooter.Monster.Movement
             public readonly int Id;
             public readonly float DistanceSqr;
 
+            /// <summary>TryFindInRing 이 후보를 버퍼에 담을 때 쓴다.</summary>
+            /// <param name="id">슬롯 id</param>
+            /// <param name="distanceSqr">개체와 슬롯의 수평 거리² (m²)</param>
             public RingCandidate(int id, float distanceSqr)
             { Id = id; DistanceSqr = distanceSqr; }
         }
@@ -45,18 +51,22 @@ namespace HybridShooter.Monster.Movement
         {
             public readonly int StartId;
             public readonly int Count;
-            public readonly float Radius;
+            public readonly float Radius;   // 링 반경 (m)
 
+            /// <summary>AppendRingGeometry 가 새 링을 추가할 때 쓴다.</summary>
+            /// <param name="startId">이 링 첫 슬롯의 id</param>
+            /// <param name="count">이 링의 슬롯 수</param>
+            /// <param name="radius">링 반경 (m)</param>
             public RingInfo(int startId, int count, float radius)
             { StartId = startId; Count = count; Radius = radius; }
         }
 
         // ════════ 설정·의존성 (생성 시 고정) ════════
         private readonly SlotSettings settings;
-        private readonly ISlotNavigation navigation;   // 투영·도달 가능성 판단 (런타임은 NavMesh)
+        private readonly NavMeshSlotNavigation navigation;   // 투영·도달 가능성 판단
         private readonly int approachCount;            // 0번(접근) 링의 슬롯 수
-        private readonly float approachRadius;         // 0번 링 반경
-        private readonly float minimumRingGap;         // 링 사이 최소 간격
+        private readonly float approachRadius;         // 0번 링 반경 (m)
+        private readonly float minimumRingGap;         // 링 사이 최소 간격 (m)
         private readonly int maxRingCount;             // 만들 수 있는 최대 링 수
         private readonly int countStep;                // 바깥 링으로 갈 때마다 늘어나는 슬롯 수
 
@@ -91,13 +101,19 @@ namespace HybridShooter.Monster.Movement
         public float ApproachRadius => approachRadius;
         public float MinimumRingGap => minimumRingGap;
         public int MaxRingCount => maxRingCount;
-        public int ApproachReservations { get; private set; }
-        /// <summary>ownerId 가 접근 링(0번) 슬롯을 예약 중인가</summary>
+        public int ApproachReservations { get; private set; }   // 접근 링(0번) 슬롯 예약 수
+        /// <summary>ownerId 가 접근 링(0번) 슬롯을 예약 중인가. CrowdCoordinator 가 접근 허용 판단과 집계에 쓴다.</summary>
+        /// <param name="ownerId">몬스터 id</param>
+        /// <returns>접근 링 슬롯을 예약 중이면 true</returns>
         public bool HasApproachReservation(int ownerId) =>
             ownerSlots.TryGetValue(ownerId, out int id) && id < approachCount;
 
-        /// <summary>설정을 검증하고 링 간격에 맞는 슬롯 증가 수(countStep)를 계산한 뒤 시작 링 2개를 만든다</summary>
-        public SlotRegistry(SlotSettings settings, ISlotNavigation navigation)
+        /// <summary>설정을 검증하고 링 간격에 맞는 슬롯 증가 수(countStep)를 계산한 뒤 시작 링 2개를 만든다. CrowdCoordinator.EnsureSlots 가 부른다.</summary>
+        /// <param name="settings">링 기하·도착·진행·거절 설정. 링 기하 값은 생성 시 고정된다</param>
+        /// <param name="navigation">슬롯 위치 투영과 도달 가능성 판단</param>
+        /// <exception cref="ArgumentNullException">settings 또는 navigation 이 null 일 때</exception>
+        /// <exception cref="ArgumentOutOfRangeException">첫 링 후보 수·반경·간격이 양수가 아니거나 최대 링 수가 2 미만일 때</exception>
+        public SlotRegistry(SlotSettings settings, NavMeshSlotNavigation navigation)
         {
             this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
             this.navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
@@ -116,7 +132,10 @@ namespace HybridShooter.Monster.Movement
             AppendRingGeometry();
         }
 
-        /// <summary>슬롯 id 의 현재 상태 복사본 (범위 밖이면 예외)</summary>
+        /// <summary>슬롯 id 의 현재 상태 복사본을 만든다. 혼잡 판정(IsCongested)을 포함한다.</summary>
+        /// <param name="id">슬롯 id (0 ~ Count-1)</param>
+        /// <returns>위치·유효성·소유자·사용 상태·혼잡 여부 복사본</returns>
+        /// <exception cref="ArgumentOutOfRangeException">id 가 범위 밖일 때</exception>
         public SlotSnapshot GetSnapshot(int id)
         {
             if ((uint)id >= (uint)slots.Count) throw new ArgumentOutOfRangeException(nameof(id));
@@ -129,13 +148,22 @@ namespace HybridShooter.Monster.Movement
         /// slotId 가 아직 ownerId 의 예약이고 유효(Valid)한가. GetSnapshot 과 달리 혼잡 판정을 하지 않아 O(1).
         /// MonsterMovement.HasCurrentReservation 이 매 프레임 부르므로 범위 밖 id 는 예외 없이 false.
         /// </summary>
+        /// <param name="slotId">확인할 슬롯 id</param>
+        /// <param name="ownerId">몬스터 id</param>
+        /// <returns>ownerId 의 유효(Valid) 예약이면 true. 범위 밖 id 면 false</returns>
         public bool IsValidlyReservedBy(int slotId, int ownerId) =>
             (uint)slotId < (uint)slots.Count && slots[slotId].Owner == ownerId && slots[slotId].Validity == SlotValidity.Valid;
 
         /// <summary>
         /// 목표 위치(center)가 바뀐 뒤 슬롯 후보를 다시 계산하고 점유 상태를 갱신한다.
         /// 만료된 거절 기록 정리 → 모든 슬롯 위치 재계산(유효하지 않게 된 슬롯의 예약은 해제) → 소유자가 슬롯에 도착했는지(Occupied) 판정
+        /// CrowdCoordinator.RefreshSlots 가 배분 주기마다 부른다.
         /// </summary>
+        /// <param name="center">목표(플레이어) 위치. 링의 중심</param>
+        /// <param name="now">현재 시각 (s). 거절 기록 만료 판정에 쓴다</param>
+        /// <param name="currentObstacles">이번 프레임 몬스터 위치·반지름 목록 (혼잡·도착 판정용). OwnerId 는 유일해야 한다</param>
+        /// <exception cref="ArgumentNullException">currentObstacles 가 null 일 때</exception>
+        /// <exception cref="ArgumentException">currentObstacles 에 같은 OwnerId 가 두 번 있을 때 (Dictionary.Add)</exception>
         public void Refresh(Vector3 center, float now, IReadOnlyList<SlotObstacle> currentObstacles)
         {
             if (currentObstacles == null) throw new ArgumentNullException(nameof(currentObstacles));
@@ -177,6 +205,7 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>다음 링(바깥쪽)을 추가한다. 슬롯 수는 링마다 countStep 씩 늘고, 반경은 슬롯 수에 비례해 커진다</summary>
+        /// <remarks>추가한 슬롯은 위치가 없다. 호출한 쪽이 RefreshRange 로 위치를 계산해야 한다 (Refresh 전이면 다음 Refresh 가 계산).</remarks>
         private void AppendRingGeometry()
         {
             int ringIndex = rings.Count;
@@ -194,6 +223,7 @@ namespace HybridShooter.Monster.Movement
         /// startId 이후 슬롯의 위치를 목표 중심으로 다시 계산한다. 후보를 NavMesh 에 투영해 유효 여부를 판정하고
         /// (NavMesh 밖 = OffNavMesh, 앞 번호 슬롯과 너무 가까움 = TooClose), 무효가 된 슬롯의 예약은 해제한다
         /// </summary>
+        /// <param name="startId">다시 계산을 시작할 슬롯 id. 0 = 전체, 새 링 추가 시 그 링의 첫 id</param>
         private void RefreshRange(int startId)
         {
             // 0) TooClose 판정용 격자 준비: startId 앞쪽의 Valid 슬롯(이번에 다시 계산하지 않는 슬롯)을 먼저 넣는다
@@ -239,9 +269,15 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>격자 셀 좌표(cx, cz)를 하나의 long 키로 합친다</summary>
+        /// <param name="cx">셀 X 좌표</param>
+        /// <param name="cz">셀 Z 좌표</param>
+        /// <returns>상위 32비트 = cx, 하위 32비트 = cz 인 키</returns>
         private static long SpacingCellKey(int cx, int cz) => ((long)cx << 32) | (uint)cz;
 
         /// <summary>Valid 슬롯 id 를 position 이 속한 셀의 연결 리스트 맨 앞에 넣는다 (spacingGridNext[id] = 이전 head)</summary>
+        /// <param name="id">Valid 로 확정된 슬롯 id</param>
+        /// <param name="position">슬롯의 투영된 위치</param>
+        /// <param name="cellSize">격자 셀 크기 (m)</param>
         private void SpacingGridInsert(int id, Vector3 position, float cellSize)
         {
             long key = SpacingCellKey(Mathf.FloorToInt(position.x / cellSize), Mathf.FloorToInt(position.z / cellSize));
@@ -253,6 +289,10 @@ namespace HybridShooter.Monster.Movement
         /// position 에서 minSqr(= MinimumSpacing²) 미만 거리에 격자 속 슬롯이 있는가.
         /// 거리가 MinimumSpacing 미만인 두 점은 셀 크기 ≥ MinimumSpacing 이므로 항상 인접 3×3 셀 안에 있어, 전수 비교와 결과가 같다
         /// </summary>
+        /// <param name="position">검사할 슬롯 위치</param>
+        /// <param name="cellSize">격자 셀 크기 (m)</param>
+        /// <param name="minSqr">MinimumSpacing² (m²)</param>
+        /// <returns>너무 가까운 슬롯이 있으면 true (TooClose)</returns>
         private bool IsTooCloseInGrid(Vector3 position, float cellSize, float minSqr)
         {
             int cx = Mathf.FloorToInt(position.x / cellSize);
@@ -270,7 +310,15 @@ namespace HybridShooter.Monster.Movement
         /// <summary>
         /// 몬스터에게 슬롯을 주거나 기존 슬롯을 유지·승급시킨다. 슬롯이 있으면 true 와 함께 snapshot 반환.
         /// allowApproach 가 false 면 접근 링(0번)은 건너뛰고 바깥 링에서만 찾는다.
+        /// CrowdCoordinator.RequestDirective 가 개체 판단마다 부른다.
         /// </summary>
+        /// <remarks>필요하면 바깥 링을 새로 만든다 (최대 maxRingCount). 진전 없이 ProgressTimeout 이 지나면 기존 슬롯을 거절(Reject)한다.</remarks>
+        /// <param name="ownerId">몬스터 id</param>
+        /// <param name="position">몬스터의 현재 위치</param>
+        /// <param name="now">현재 시각 (s). 진행 추적과 거절 만료 판정에 쓴다</param>
+        /// <param name="allowApproach">false = 접근 링(0번)은 제외</param>
+        /// <param name="snapshot">배정된 슬롯 상태. 실패하면 default</param>
+        /// <returns>슬롯을 유지하거나 새로 얻으면 true, 빈 슬롯이 없으면 false</returns>
         public bool TryRequest(int ownerId, Vector3 position, float now, bool allowApproach, out SlotSnapshot snapshot)
         {
             // A) 이미 슬롯이 있는 경우: 아직 쓸 수 있는지 확인하고 진행 상황을 갱신
@@ -349,7 +397,8 @@ namespace HybridShooter.Monster.Movement
             return false;
         }
 
-        /// <summary>ownerId 의 슬롯 예약을 해제한다 (없으면 무시)</summary>
+        /// <summary>ownerId 의 슬롯 예약과 진행 추적을 해제한다 (없으면 무시)</summary>
+        /// <param name="ownerId">몬스터 id</param>
         public void Release(int ownerId)
         {
             if (!ownerSlots.TryGetValue(ownerId, out int id)) return;
@@ -378,6 +427,9 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>ownerId 가 쥔 slotId 를 RejectionSeconds 동안 해당 소유자에게 다시 주지 않도록 기록하고 해제한다</summary>
+        /// <param name="ownerId">몬스터 id</param>
+        /// <param name="slotId">거절할 슬롯 id. ownerId 가 지금 쥔 슬롯이 아니면 아무것도 하지 않는다</param>
+        /// <param name="now">현재 시각 (s). 거절 만료 시각 = now + RejectionSeconds</param>
         public void Reject(int ownerId, int slotId, float now)
         {
             if (!ownerSlots.TryGetValue(ownerId, out int ownedId) || ownedId != slotId) return;
@@ -385,7 +437,10 @@ namespace HybridShooter.Monster.Movement
             Release(ownerId);
         }
 
-        /// <summary>의도적인 반응 대기 기간만큼 기존 정체 시계를 뒤로 민다.</summary>
+        /// <summary>의도적인 반응 대기 기간만큼 기존 정체 시계를 뒤로 민다. 반응 지연을 정체로 오판해 슬롯을 거절하지 않게 한다.</summary>
+        /// <param name="ownerId">몬스터 id. 진행 추적 중이 아니면 무시</param>
+        /// <param name="duration">일부러 멈춘 시간 (s, 0 이상)</param>
+        /// <exception cref="ArgumentOutOfRangeException">duration 이 음수일 때</exception>
         public void PauseProgress(int ownerId, float duration)
         {
             if (duration < 0f) throw new ArgumentOutOfRangeException(nameof(duration));
@@ -400,6 +455,12 @@ namespace HybridShooter.Monster.Movement
         /// 값싼 필터를 먼저 모두 적용해 후보를 모으고, 가까운 후보부터 비싼 CanReach(NavMesh 경로 계산)를 확인한다.
         /// 거리가 같으면 id 가 작은 쪽이 먼저라 결과는 id 순 전수 탐색과 같고 CanReach 호출만 줄어든다
         /// </summary>
+        /// <param name="ownerId">몬스터 id (혼잡 판정에서 자신은 빼고, 거절 기록을 확인한다)</param>
+        /// <param name="position">몬스터의 현재 위치</param>
+        /// <param name="now">현재 시각 (s). 거절 만료 판정에 쓴다</param>
+        /// <param name="ringIndex">찾을 링 번호 (0 = 접근 링)</param>
+        /// <param name="best">찾은 슬롯 id. 없으면 -1</param>
+        /// <returns>사용 가능한 슬롯을 찾으면 true</returns>
         private bool TryFindInRing(int ownerId, Vector3 position, float now, int ringIndex, out int best)
         {
             RingInfo ring = rings[ringIndex];
@@ -435,6 +496,10 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>슬롯 id 를 ownerId 에게 예약하고 진행 추적을 시작한다. 이미 슬롯 위에 있으면 바로 Occupied</summary>
+        /// <param name="ownerId">몬스터 id. 이미 다른 슬롯을 예약 중이면 안 된다 (Dictionary.Add 예외)</param>
+        /// <param name="id">예약할 슬롯 id</param>
+        /// <param name="position">몬스터의 현재 위치</param>
+        /// <param name="now">현재 시각 (s). 진행 추적 시작 시각</param>
         private void Reserve(int ownerId, int id, Vector3 position, float now)
         {
             Slot slot = slots[id];
@@ -456,6 +521,9 @@ namespace HybridShooter.Monster.Movement
         /// 슬롯 위치 근처에 (excludedOwner·슬롯 소유자 외의) 다른 몬스터가 서 있어 쓰기 곤란한가. O(1).
         /// RefreshRange 가 미리 센 congestCount 에서, 제외 대상 몬스터가 반경 안에 있으면 그만큼 뺀다
         /// </summary>
+        /// <param name="id">슬롯 id</param>
+        /// <param name="excludedOwner">세지 않을 몬스터 id (보통 요청한 몬스터 자신)</param>
+        /// <returns>다른 몬스터가 혼잡 반경 안에 있으면 true. 무효 슬롯은 false</returns>
         private bool IsCongested(int id, int excludedOwner)
         {
             Slot slot = slots[id];
@@ -467,6 +535,9 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>장애물 obstacle 이 slotPosition 의 혼잡 반경(장애물 반지름 + MinimumSpacing/2) 안에 있는가. 세기·제외 양쪽이 같은 식을 쓰게 한 곳에 둔다</summary>
+        /// <param name="obstacle">몬스터 위치·반지름</param>
+        /// <param name="slotPosition">슬롯 위치</param>
+        /// <returns>혼잡 반경 안이면 true</returns>
         private bool IsInClearance(in SlotObstacle obstacle, Vector3 slotPosition)
         {
             float clearance = obstacle.Radius + settings.MinimumSpacing * 0.5f;
@@ -474,6 +545,8 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>slotPosition 혼잡 반경 안의 장애물 수 (RefreshRange 에서 슬롯마다 1회)</summary>
+        /// <param name="slotPosition">슬롯 위치</param>
+        /// <returns>혼잡 반경 안 장애물 수 (소유자 제외 전)</returns>
         private int CountObstaclesNear(Vector3 slotPosition)
         {
             int count = 0;
@@ -482,14 +555,23 @@ namespace HybridShooter.Monster.Movement
             return count;
         }
 
-        /// <summary>ownerId 의 장애물이 이번 Refresh 목록에 있고 slotPosition 혼잡 반경 안이면 1, 아니면 0</summary>
+        /// <summary>IsCongested 가 미리 센 혼잡 수에서 제외 대상을 뺄 때 쓴다.</summary>
+        /// <param name="ownerId">몬스터 id (0 = 없음 → 0)</param>
+        /// <param name="slotPosition">슬롯 위치</param>
+        /// <returns>ownerId 의 장애물이 이번 Refresh 목록에 있고 slotPosition 혼잡 반경 안이면 1, 아니면 0</returns>
         private int IsObstacleNear(int ownerId, Vector3 slotPosition) =>
             obstacleIndexByOwner.TryGetValue(ownerId, out int index) && IsInClearance(obstacles[index], slotPosition) ? 1 : 0;
 
-        /// <summary>(몬스터 id, 슬롯 id) 를 하나의 long 키로 합친다</summary>
+        /// <summary>(몬스터 id, 슬롯 id) 를 하나의 long 키로 합친다 (rejectedUntil 키)</summary>
+        /// <param name="ownerId">몬스터 id</param>
+        /// <param name="slotId">슬롯 id</param>
+        /// <returns>상위 32비트 = ownerId, 하위 32비트 = slotId 인 키</returns>
         private static long RejectionKey(int ownerId, int slotId) => ((long)ownerId << 32) | (uint)slotId;
 
-        /// <summary>수평(XZ) 거리의 제곱</summary>
+        /// <summary>높이를 무시한 거리 비교에 쓴다.</summary>
+        /// <param name="a">위치 A</param>
+        /// <param name="b">위치 B</param>
+        /// <returns>수평(XZ) 거리의 제곱 (m²)</returns>
         private static float HorizontalSqr(Vector3 a, Vector3 b)
         {
             float dx = a.x - b.x, dz = a.z - b.z;
