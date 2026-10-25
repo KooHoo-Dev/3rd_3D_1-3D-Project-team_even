@@ -1,0 +1,151 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 527cfd177287b6d4f8b9437926d618f0, type: 3}
+  m_Name: WeaponGripTable
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.WeaponGripTable
+  entries:
+  - gunType: Rifle
+    gunPosition: {x: -0.055700574, y: 0.040621705, z: 0.070068926}
+    gunRotation: {x: 0.0066131027, y: -0.00091521395, z: -0.0064002248, w: 0.99995726}
+    gripPoint: {x: -0.009, y: -0.037, z: -0.016}
+    leftHandPosition: {x: -0.077, y: -0.098, z: 0.166}
+    leftHandRotation: {x: -0.12347446, y: 0.9525008, z: -0.27815914, w: 0.011127846}
+    sightPosition: {x: -0.000023916364, y: 0.1610544, z: -0.27003634}
+    fpHipSight: {x: 0, y: 0, z: 0}
+    adsDistance: 0
+    customRecoil: 0
+    recoil:
+      pitch: 3
+      back: 0.03
+      yaw: 1
+      roll: 2
+      kickTime: 0.05
+      maxStack: 2.5
+  - gunType: AssaultRifle
+    gunPosition: {x: -0.064918935, y: 0.023768032, z: 0.06783038}
+    gunRotation: {x: 0.0066131027, y: -0.00091521395, z: -0.0064002248, w: 0.99995726}
+    gripPoint: {x: -0, y: -0.02, z: -0.014}
+    leftHandPosition: {x: -0.045, y: -0.188, z: 0.243}
+    leftHandRotation: {x: -0.12347446, y: 0.9525008, z: -0.27815914, w: 0.011127846}
+    sightPosition: {x: -0, y: 0.171, z: -0.27}
+    fpHipSight: {x: 0, y: 0, z: 0}
+    adsDistance: 0
+    customRecoil: 0
+    recoil:
+      pitch: 3
+      back: 0.03
+      yaw: 1
+      roll: 2
+      kickTime: 0.05
+      maxStack: 2.5
+  - gunType: Pistol
+    gunPosition: {x: -0.06798924, y: 0.03772878, z: 0.11424537}
+    gunRotation: {x: 0.0066131027, y: -0.00091521395, z: -0.0064002248, w: 0.99995726}
+    gripPoint: {x: -0.000007310038, y: -0.03687388, z: -0.058793467}
+    leftHandPosition: {x: -0.085, y: -0.091, z: 0.041}
+    leftHandRotation: {x: -0.12347446, y: 0.9525008, z: -0.27815914, w: 0.011127846}
+    sightPosition: {x: -0.0000047209905, y: 0.07388651, z: -0.058789764}
+    fpHipSight: {x: 0, y: 0, z: 0}
+    adsDistance: 0
+    customRecoil: 0
+    recoil:
+      pitch: 3
+      back: 0.03
+      yaw: 1
+      roll: 2
+      kickTime: 0.05
+      maxStack: 2.5
+  - gunType: SMG
+    gunPosition: {x: -0.06516312, y: 0.064511016, z: -0.036379974}
+    gunRotation: {x: 0.00000016391262, y: 0.000000059604588, z: -0.00000014901147, w: 1}
+    gripPoint: {x: -0, y: -0.061, z: 0.09}
+    leftHandPosition: {x: -0.011810129, y: -0.040705536, z: 0.20162405}
+    leftHandRotation: {x: -0.12339522, y: 0.952472, z: -0.2782865, w: 0.0112906825}
+    sightPosition: {x: 0.0000024510973, y: 0.15096687, z: -0.06371168}
+    fpHipSight: {x: 0, y: 0, z: 0}
+    adsDistance: 0
+    customRecoil: 0
+    recoil:
+      pitch: 3
+      back: 0.03
+      yaw: 1
+      roll: 2
+      kickTime: 0.05
+      maxStack: 2.5
+  - gunType: ShotGun
+    gunPosition: {x: -0.06470917, y: 0.03893841, z: 0.055027038}
+    gunRotation: {x: 0.0066131027, y: -0.00091521395, z: -0.0064002248, w: 0.99995726}
+    gripPoint: {x: -0, y: -0.035, z: -0.001}
+    leftHandPosition: {x: -0.093, y: -0.108, z: 0.172}
+    leftHandRotation: {x: -0.12347446, y: 0.9525008, z: -0.27815914, w: 0.011127846}
+    sightPosition: {x: -0, y: 0.119, z: -0.112}
+    fpHipSight: {x: 0, y: 0, z: 0}
+    adsDistance: 0
+    customRecoil: 0
+    recoil:
+      pitch: 3
+      back: 0.03
+      yaw: 1
+      roll: 2
+      kickTime: 0.05
+      maxStack: 2.5
+  - gunType: SniperRifle
+    gunPosition: {x: -0.06434621, y: 0.07515253, z: 0.114512555}
+    gunRotation: {x: 0.0066131027, y: -0.00091521395, z: -0.0064002248, w: 0.99995726}
+    gripPoint: {x: -0, y: -0.072, z: -0.06}
+    leftHandPosition: {x: -0.104, y: -0.149, z: 0.217}
+    leftHandRotation: {x: -0.12347446, y: 0.9525008, z: -0.27815914, w: 0.011127846}
+    sightPosition: {x: 0.0000010876684, y: 0.045554847, z: -0.26157185}
+    fpHipSight: {x: 0, y: 0, z: 0}
+    adsDistance: 0
+    customRecoil: 0
+    recoil:
+      pitch: 3
+      back: 0.03
+      yaw: 1
+      roll: 2
+      kickTime: 0.05
+      maxStack: 2.5
+  - gunType: RocketLauncher
+    gunPosition: {x: 0.045, y: 0.092, z: 0.108}
+    gunRotation: {x: 0.0027377582, y: -0.00040657783, z: -0.0026159862, w: 0.9999927}
+    gripPoint: {x: -0.010931703, y: -0.0024907703, z: -0.05347145}
+    leftHandPosition: {x: -0.039, y: -0.06, z: 0.21}
+    leftHandRotation: {x: -0.123525225, y: 0.99016297, z: -0.012615029, w: 0.064495586}
+    sightPosition: {x: -0.010929097, y: 0.19146585, z: -0.05347948}
+    fpHipSight: {x: 0, y: 0, z: 0}
+    adsDistance: 0
+    customRecoil: 0
+    recoil:
+      pitch: 3
+      back: 0.03
+      yaw: 1
+      roll: 2
+      kickTime: 0.05
+      maxStack: 2.5
+  - gunType: GrenadeLauncher
+    gunPosition: {x: -0.06592789, y: 0.036497775, z: 0.16500118}
+    gunRotation: {x: 0.0066131027, y: -0.00091521395, z: -0.0064002248, w: 0.99995726}
+    gripPoint: {x: 0.001, y: -0.034, z: -0.111}
+    leftHandPosition: {x: -0.089, y: -0.182, z: -0.026}
+    leftHandRotation: {x: -0.12347446, y: 0.9525008, z: -0.27815914, w: 0.011127846}
+    sightPosition: {x: -0.0000061261235, y: 0.10100245, z: -0.31120366}
+    fpHipSight: {x: 0, y: 0, z: 0}
+    adsDistance: 0
+    customRecoil: 0
+    recoil:
+      pitch: 3
+      back: 0.03
+      yaw: 1
+      roll: 2
+      kickTime: 0.05
+      maxStack: 2.5
