@@ -48,7 +48,12 @@ namespace HybridShooter.Player
             ApplyViewModeImmediate(viewMode);
             SetCursorLocked(true);
             PublishStamina();
+            LoadBossViewConfig();
         }
+
+        private void OnEnable() => SubscribeViewEvents();
+
+        private void OnDisable() => UnsubscribeViewEvents();
 
         private void OnDestroy()
         {
@@ -96,6 +101,7 @@ namespace HybridShooter.Player
             if (rigReady == false) return;
             UpdateRigRotation();
             UpdateEyePosition();
+            UpdateBossFraming(dt);
             UpdateCameraArm(dt);
             UpdateAimZoom(dt);
             if (CameraChanging) ApplyTransitionPose();

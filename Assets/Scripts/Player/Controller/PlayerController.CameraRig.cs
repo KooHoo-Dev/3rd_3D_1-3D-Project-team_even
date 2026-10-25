@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace HybridShooter.Player
 {
-    /// <summary>카메라 리그 회전, 1인칭 눈 위치, 3인칭 벽 충돌, 조준 확대, 1인칭 머리 숨김</summary>
+    /// <summary>카메라 리그 회전, 1인칭 눈 위치, 3인칭 벽 충돌(보스전 카메라 위치 포함), 조준 확대, 1인칭 머리 숨김</summary>
     public partial class PlayerController
     {
         #region 카메라 리그
@@ -83,15 +83,16 @@ namespace HybridShooter.Player
             if (tpCameraArm == null) return;
             if (viewMode == ViewMode.FirstPerson && CameraChanging == false) return;
 
-            float maxDistance = Mathf.Max(0f, -tpArmHomePos.z);
-            Vector3 origin = tpPitch.TransformPoint(new Vector3(tpArmHomePos.x, tpArmHomePos.y, 0f));
+            Vector3 home = TpArmHome;
+            float maxDistance = Mathf.Max(0f, -home.z);
+            Vector3 origin = tpPitch.TransformPoint(new Vector3(home.x, home.y, 0f));
             Vector3 back = -tpPitch.forward;
             float target = CameraCollisionDistance(origin, back, maxDistance);
 
             tpArmDistance = target < tpArmDistance
                 ? target
                 : Mathf.MoveTowards(tpArmDistance, target, cameraReturnSpeed * dt);
-            tpCameraArm.localPosition = new Vector3(tpArmHomePos.x, tpArmHomePos.y, -tpArmDistance);
+            tpCameraArm.localPosition = new Vector3(home.x, home.y, -tpArmDistance);
         }
 
         /// <summary>총 조준 확대: 지금 카메라 FOV = 기본 FOV × 배율. 시점 전환 중에는 전환 연출이 FOV 를 쓰므로 건드리지 않는다</summary>
@@ -100,7 +101,7 @@ namespace HybridShooter.Player
             aimFovCurrent = Mathf.MoveTowards(aimFovCurrent, aimFovTarget, aimZoomSpeed * dt);
             if (CameraChanging) return;
             if (viewMode == ViewMode.FirstPerson || ScopeView) fpCamera.fieldOfView = fpFov * aimFovCurrent;
-            else tpCamera.fieldOfView = tpFov * aimFovCurrent;
+            else tpCamera.fieldOfView = TpFov * aimFovCurrent;
         }
 
         /// <summary>어깨 → 카메라 사이에 벽이 있으면 그 앞까지의 거리. 자기 콜라이더는 무시</summary>

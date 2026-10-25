@@ -64,6 +64,14 @@ namespace HybridShooter.Player
         [Tooltip("시작 시점")]
         [SerializeField] private ViewMode viewMode = ViewMode.ThirdPerson;
         [SerializeField] private float viewTransitionTime = 0.5f;
+        [Tooltip("보스 등장 등 자동 전환 시간(초). ConfigTable.CameraTransitionTime 이 있으면 그 값")]
+        [SerializeField] private float autoTransitionTime = 1.2f;
+
+        [Header("보스전 카메라")]
+        [Tooltip("보스전 3인칭 카메라 팔 위치 (TP_Pitch 기준). 어깨 시점보다 멀고 높게 → 플레이어·보스 전신·바닥 예고 범위가 한 화면에")]
+        [SerializeField] private Vector3 bossArmPosition = new Vector3(0.6f, 0.9f, -5.5f);
+        [Tooltip("보스전 3인칭 FOV 추가(도). ConfigTable.BossCameraFovAdd 가 있으면 그 값")]
+        [SerializeField] private float bossFovAdd = 10f;
 
         [Header("마우스 회전")]
         [Tooltip("마우스 이동 1픽셀당 회전 각도(도)")]
@@ -221,6 +229,13 @@ namespace HybridShooter.Player
         private DOGetter<float> transitionGetter;
         private DOSetter<float> transitionSetter;
         private TweenCallback transitionComplete;
+
+        // 보스전 시점
+        private bool viewLocked;               // F1 전환 막힘 (BossIntro ~ 다음 CrowdBattle)
+        private bool bossView;
+        private float bossBlend;               // 0 = 어깨 시점, 1 = 보스전 카메라
+        private float bossBlendTarget;
+        private float bossBlendSpeed;
 
         // 머리 숨김
         private Renderer[] headRendererCache = Array.Empty<Renderer>();
