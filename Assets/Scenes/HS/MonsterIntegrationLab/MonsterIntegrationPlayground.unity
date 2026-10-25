@@ -119,107 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &2250983
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2250984}
-  - component: {fileID: 2250986}
-  - component: {fileID: 2250985}
-  m_Layer: 0
-  m_Name: Crowd Coordinator
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2250984
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2250983}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1175457862}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2250985
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2250983}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 987a10021157ef54f9504827ff870bec, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.MovementLabGizmos
-  coordinator: {fileID: 2250986}
-  targetSource: {fileID: 1113266351}
-  optionalMonsterRoot: {fileID: 1357165565}
-  showApproach: 1
-  showWaiting: 1
-  showFree: 1
-  showAssigned: 1
-  showInvalid: 1
-  showLines: 1
-  showMonsterIds: 1
-  showSlotIds: 1
-  showLabels: 1
-  maxDetailedMonsters: 32
-  slotSize: 0.28
-  approachColor: {r: 0.25, g: 0.75, b: 1, a: 1}
-  waitingColor: {r: 1, g: 0.7, b: 0.2, a: 1}
-  freeColor: {r: 1, g: 1, b: 1, a: 1}
-  assignedColor: {r: 0.2, g: 1, b: 0.35, a: 1}
-  invalidColor: {r: 1, g: 0, b: 0, a: 1}
-  reservationLineColor: {r: 1, g: 0.8, b: 0.1, a: 1}
-  intentLineColor: {r: 1, g: 0.35, b: 0.15, a: 1}
---- !u!114 &2250986
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2250983}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3487f5d42e47433f9640a565b6f9ef08, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.CrowdCoordinator
-  targetSource: {fileID: 1113266351}
-  settings:
-    EngageCapacity: 8
-    NearRadius: 6
-    ReleaseRadius: 10.5
-    AllocationInterval: 0.2
-    ThinkCycle: 0.5
-    EnableCrowdControl: 1
-    UseSlots: 1
-    Slots:
-      ApproachCount: 8
-      ApproachRadius: 1
-      MinimumRingGap: 1.2
-      MaxRingCount: 6
-      WaitingRadius: 8
-      MinimumSpacing: 1.1
-      SampleRadius: 0.3
-      ArrivalDistance: 0.2
-      ProgressTimeout: 6
-      ProgressDistance: 0.15
-      RejectionSeconds: 2
-      AgentTypeId: 0
-      AreaMask: -1
 --- !u!1 &508647983
 GameObject:
   m_ObjectHideFlags: 0
@@ -549,37 +448,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 666415013}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &757764722
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 757764723}
-  m_Layer: 0
-  m_Name: GameObject (1)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &757764723
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 757764722}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.01167, y: 0, z: -1.49772}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &790174624
 GameObject:
   m_ObjectHideFlags: 0
@@ -889,7 +757,7 @@ Transform:
   - {fileID: 790174625}
   - {fileID: 1039042971}
   - {fileID: 1113266350}
-  - {fileID: 2250984}
+  - {fileID: 349576669600419823}
   - {fileID: 1357165565}
   - {fileID: 1645460288}
   - {fileID: 573109723}
@@ -1450,10 +1318,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ded0baeccca77c478cbb86bf4ff00cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.MovementLabExample
-  coordinator: {fileID: 2250986}
+  coordinator: {fileID: 2713737162465012031}
   target: {fileID: 1113266351}
   monsterRoot: {fileID: 1357165565}
-  gizmos: {fileID: 2250985}
+  gizmos: {fileID: 628760751275931209}
   ownedRoot: {fileID: 1175457862}
   crowdSpawnCount: 1
   monsterPrefabs:
@@ -1653,11 +1521,169 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2045937246}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &349576669600419823
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4463912937599494067}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1175457862}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &628760751275931209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4463912937599494067}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 987a10021157ef54f9504827ff870bec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.MovementLabGizmos
+  coordinator: {fileID: 2713737162465012031}
+  targetSource: {fileID: 1113266351}
+  optionalMonsterRoot: {fileID: 1357165565}
+  showApproach: 1
+  showWaiting: 1
+  showFree: 1
+  showAssigned: 1
+  showInvalid: 1
+  showLines: 1
+  showMonsterIds: 1
+  showSlotIds: 1
+  showLabels: 1
+  maxDetailedMonsters: 32
+  slotSize: 0.28
+  approachColor: {r: 0.25, g: 0.75, b: 1, a: 1}
+  waitingColor: {r: 1, g: 0.7, b: 0.2, a: 1}
+  freeColor: {r: 1, g: 1, b: 1, a: 1}
+  assignedColor: {r: 0.2, g: 1, b: 0.35, a: 1}
+  invalidColor: {r: 1, g: 0, b: 0, a: 1}
+  reservationLineColor: {r: 1, g: 0.8, b: 0.1, a: 1}
+  intentLineColor: {r: 1, g: 0.35, b: 0.15, a: 1}
+--- !u!114 &2713737162465012031
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4463912937599494067}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3487f5d42e47433f9640a565b6f9ef08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.CrowdCoordinator
+  targetSource: {fileID: 1113266351}
+  settings:
+    EngageCapacity: 8
+    NearRadius: 6
+    ReleaseRadius: 10.5
+    AllocationInterval: 0.2
+    ThinkCycle: 0.5
+    EnableCrowdControl: 1
+    UseSlots: 1
+    Slots:
+      ApproachCount: 8
+      ApproachRadius: 1
+      MinimumRingGap: 1.2
+      MaxRingCount: 6
+      WaitingRadius: 8
+      MinimumSpacing: 1.1
+      SampleRadius: 0.3
+      ArrivalDistance: 0.2
+      ProgressTimeout: 6
+      ProgressDistance: 0.15
+      RejectionSeconds: 2
+      AgentTypeId: 0
+      AreaMask: -1
+--- !u!1 &4463912937599494067
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 349576669600419823}
+  - component: {fileID: 2713737162465012031}
+  - component: {fileID: 628760751275931209}
+  m_Layer: 0
+  m_Name: Crowd Coordinator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!1001 &7639047734907975239
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3281474137550595047, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_Name
+      value: GiantSlug
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.2513782
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.0000001618098
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.14883263
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1785309838}
-  - {fileID: 757764723}
   - {fileID: 1875854999}
   - {fileID: 1186703177}
+  - {fileID: 7639047734907975239}
