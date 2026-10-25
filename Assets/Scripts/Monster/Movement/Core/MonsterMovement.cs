@@ -354,8 +354,8 @@ namespace HybridShooter.Monster.Movement
         {
             var source = profile.ToTuning();
             tuning = new MovementTuning(combatSpeed, combatRange, source.OrbitChance, source.OrbitAngularSpeedDeg,
-                source.KeepDistanceMin, source.KeepDistanceMax, source.FlankViewHalfAngleDeg,
-                source.FlankRadius, source.FlankSpeedMultiplier);
+                source.KeepDistanceMin, source.KeepDistanceMax,
+                source.FlankRadius, source.FlankSpeedMultiplier, source.FlankSwitchDistance, source.FlankSwitchBand);
         }
 
         /// <summary>
@@ -512,6 +512,7 @@ namespace HybridShooter.Monster.Movement
             }
 
             // 2) 정책 입력(Context) 구성. 목표가 무효면 자기 위치를 목표로 둔다 (정책이 TargetValid 로 걸러냄)
+            //    시야 값은 플레이어 카메라(ViewPoint)에서 꺼낸다. 침투형(FlankPolicy)의 "시야 밖" 판정용
             float dt = hasThought ? now - lastThinkTime : 0f;
             hasThought = true;
             lastThinkTime = now;
@@ -519,10 +520,19 @@ namespace HybridShooter.Monster.Movement
             Vector3 self = transform.position;
             bool targetValid = target != null;
             Vector3 targetPosition = targetValid ? target.PlayerTrackingInfo.Position : self;
-            Vector3 targetForward = targetValid ? target.PlayerTrackingInfo.Forward : Vector3.forward;
+            Vector3 viewForward = Vector3.forward;
+            Vector3 viewPosition = self;
+            float viewHalfAngleDeg = 0f;
+            if (targetValid)
+            {
+                Transform viewPoint = target.ViewPoint;
+                viewForward = viewPoint.forward;
+                viewPosition = viewPoint.position;
+                viewHalfAngleDeg = HorizontalHalfFovDeg(viewPoint.GetComponent<Camera>());
+            }
             lookTarget = targetPosition;   // 시선 갱신 (실제 회전은 LateUpdate 의 ApplyLookRotation)
             hasLookTarget = targetValid;
-            var ctx = new MovementContext(self, targetPosition, targetForward, targetValid,
+            var ctx = new MovementContext(self, targetPosition, viewForward, viewPosition, viewHalfAngleDeg, targetValid,
                                            directive, tuning, now, dt);
             // 3) 정책이 "어디로 갈지" 결정 → 반응 지연 규칙을 거쳐 실행기에 전달
             var intent = policy.Evaluate(in ctx);
@@ -530,6 +540,19 @@ namespace HybridShooter.Monster.Movement
 
             // 4) 공격 사거리 안인지 갱신 (IsInAttackRange 로 공개)
             isInAttackRange = targetValid && HorizontalDistance(targetPosition, self) <= tuning.AttackRange;
+        }
+
+        /// <summary>
+        /// 카메라 FOV 의 수평 반각을 구한다. Unity 의 fieldOfView 는 세로 FOV 라서 화면 비율로 가로로 바꾼다.
+        /// Think 가 플레이어 카메라의 시야 반각을 정책 입력에 담을 때 호출한다.
+        /// </summary>
+        /// <param name="viewCamera">플레이어 ViewPoint 의 카메라</param>
+        /// <returns>수평 반각 (도) = atan(tan(세로 FOV / 2) × aspect)</returns>
+        private static float HorizontalHalfFovDeg(Camera viewCamera)
+        {
+            float verticalHalfRad = viewCamera.fieldOfView * 0.5f * Mathf.Deg2Rad;
+            float horizontalHalfRad = Mathf.Atan(Mathf.Tan(verticalHalfRad) * viewCamera.aspect);
+            return horizontalHalfRad * Mathf.Rad2Deg;
         }
 
         /// <summary>
