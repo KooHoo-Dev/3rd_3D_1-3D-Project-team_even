@@ -23,9 +23,10 @@ namespace HybridShooter.Player.EditorTools
     ///  4. PlayerAnimationProfile 에셋에 측정한 속도 저장
     ///  5. PlayerTest 씬: Player 에 드라이버·디버그 HUD·PlayerAimIK 연결, 몸 Animator 연결, 걷기 속도 3.0,
     ///     몸에 Final IK AimIK(척추 3개) + 오른손 아래 AimTransform(조준 자세에서 총구 방향으로 맞춤),
-    ///     FullBodyBipedIK + Recoil(사격 반동: 오른손·오른어깨를 뒤로),
+    ///     FullBodyBipedIK (사격 반동 PlayerGunRecoil·1인칭 손·발 IK),
     ///     왼팔 LimbIK(AimIK 뒤 왼손을 총에) + GrounderFBBIK(발 IK) + PlayerBodyIK
-    ///  총 소켓 각도·왼손 손잡이는 Tools/HybridShooter/Weapon Pose Preview 창에서 맞춘다 (빌더는 건드리지 않는다)
+    ///  총 위치·손 위치는 Tools/HybridShooter/IK Pose Lab 창에서 맞춘다 (빌더는 건드리지 않는다)
+    ///  수류탄 던지기만 추가: Tools/HybridShooter/Add Throw Action (컨트롤러를 다시 만들지 않고 Upper Action 레이어에 Throw 상태만 더한다)
     /// </summary>
     public static class PlayerAnimatorBuilder
     {
@@ -223,6 +224,7 @@ namespace HybridShooter.Player.EditorTools
             controller.AddParameter(PlayerAnimNames.Params.Aim, AnimatorControllerParameterType.Float);
             controller.AddParameter(PlayerAnimNames.Params.Reload, AnimatorControllerParameterType.Trigger);
             controller.AddParameter(PlayerAnimNames.Params.Draw, AnimatorControllerParameterType.Trigger);
+            controller.AddParameter(PlayerAnimNames.Params.Throw, AnimatorControllerParameterType.Trigger);
             controller.AddParameter(PlayerAnimNames.Params.ActionEnd, AnimatorControllerParameterType.Trigger);
             controller.AddParameter(new AnimatorControllerParameter
             {
@@ -549,10 +551,10 @@ namespace HybridShooter.Player.EditorTools
         }
 
         /// <summary>
-        /// Upper Action 레이어(팔·손가락·머리, Upper Pose 위): Empty(기본, 동작 없음) ↔ 재장전 · 꺼내기.
-        ///  - Any State → Reload [Reload] / Draw [Draw], 재생 속도 = ActionSpeed (드라이버가 실제 시간에 맞춤)
+        /// Upper Action 레이어(팔·손가락·머리, Upper Pose 위): Empty(기본, 동작 없음) ↔ 재장전 · 꺼내기 · 수류탄 던지기.
+        ///  - Any State → Reload [Reload] / Draw [Draw] / Throw [Throw], 재생 속도 = ActionSpeed (드라이버가 실제 시간에 맞춤)
         ///  - 끝나갈 때 Empty 로. [ActionEnd] 면 바로 Empty 로 (장전 취소·완료, 조준·사격으로 꺼내기 끊기)
-        /// 클립 길이는 프로필에 저장 (드라이버가 재생 속도를 계산할 때 쓴다)
+        /// 클립 길이·던지는 손·놓는 순간은 프로필에 저장 (드라이버가 재생 속도·수류탄 놓기에 쓴다)
         /// </summary>
         private static void BuildUpperActionLayer(AnimatorController controller, PlayerAnimationProfile.WeaponSet set)
         {
@@ -573,31 +575,129 @@ namespace HybridShooter.Player.EditorTools
             if (reloadClip != null) set.reloadClipLength = reloadClip.length;
             if (drawClip != null) set.drawClipLength = drawClip.length;
 
-            foreach (var (name, clip, trigger, exitTime) in new[]
-            {
-                (PlayerAnimNames.States.Reload, reloadClip, PlayerAnimNames.Params.Reload, 0.92f),
-                (PlayerAnimNames.States.Draw, drawClip, PlayerAnimNames.Params.Draw, 0.85f),
-            })
-            {
-                AnimatorState state = machine.AddState(name, new Vector3(600f, name == PlayerAnimNames.States.Reload ? 40f : 160f, 0f));
-                state.motion = clip;
-                state.speedParameter = PlayerAnimNames.Params.ActionSpeed;
-                state.speedParameterActive = true;
+            AddActionState(machine, empty, PlayerAnimNames.States.Reload, reloadClip, PlayerAnimNames.Params.Reload, 0.92f, 40f);
+            AddActionState(machine, empty, PlayerAnimNames.States.Draw, drawClip, PlayerAnimNames.Params.Draw, 0.85f, 160f);
+            AddThrowState(machine, empty, set);
+            log.Add($"Upper Action 레이어: 재장전({set.reloadClipLength:0.00}s)·꺼내기({set.drawClipLength:0.00}s)·던지기({set.throwClipLength:0.00}s), 재생 속도 = ActionSpeed");
+        }
 
-                AnimatorStateTransition enter = machine.AddAnyStateTransition(state);
-                enter.hasExitTime = false;
-                enter.hasFixedDuration = true;
-                enter.duration = 0.15f;
-                enter.canTransitionToSelf = false;
-                enter.AddCondition(AnimatorConditionMode.If, 0f, trigger);
+        /// <summary>Any State → 동작 [trigger], exitTime 에 Empty 로, [ActionEnd] 면 바로 Empty 로</summary>
+        private static void AddActionState(AnimatorStateMachine machine, AnimatorState empty, string name, AnimationClip clip, string trigger, float exitTime, float y)
+        {
+            AnimatorState state = machine.AddState(name, new Vector3(600f, y, 0f));
+            state.motion = clip;
+            state.speedParameter = PlayerAnimNames.Params.ActionSpeed;
+            state.speedParameterActive = true;
 
-                AnimatorStateTransition cancel = Transition(state, empty, 0.2f);
-                cancel.AddCondition(AnimatorConditionMode.If, 0f, PlayerAnimNames.Params.ActionEnd);
-                AnimatorStateTransition done = Transition(state, empty, 0.2f);
-                done.hasExitTime = true;
-                done.exitTime = exitTime;
+            AnimatorStateTransition enter = machine.AddAnyStateTransition(state);
+            enter.hasExitTime = false;
+            enter.hasFixedDuration = true;
+            enter.duration = 0.15f;
+            enter.canTransitionToSelf = false;
+            enter.AddCondition(AnimatorConditionMode.If, 0f, trigger);
+
+            AnimatorStateTransition cancel = Transition(state, empty, 0.2f);
+            cancel.AddCondition(AnimatorConditionMode.If, 0f, PlayerAnimNames.Params.ActionEnd);
+            AnimatorStateTransition done = Transition(state, empty, 0.2f);
+            done.hasExitTime = true;
+            done.exitTime = exitTime;
+        }
+
+        /// <summary>수류탄 던지기 상태 + 클립 분석 (던지는 손, 놓는 순간)</summary>
+        private static void AddThrowState(AnimatorStateMachine machine, AnimatorState empty, PlayerAnimationProfile.WeaponSet set)
+        {
+            AnimationClip clip = Clip("ThrowGrenade1Standing" + Suffix);
+            if (clip == null) { set.throwClipLength = 0f; return; }
+            AddActionState(machine, empty, PlayerAnimNames.States.Throw, clip, PlayerAnimNames.Params.Throw, 0.9f, 280f);
+            set.throwClipLength = clip.length;
+            AnalyzeThrow(clip, set);
+        }
+
+        /// <summary>
+        /// 씬의 몸에 던지기 클립을 프레임마다 입혀 두 손의 속도를 잰다 → 더 빨리 움직이는 손 = 던지는 손,
+        /// 그 손이 가장 빠른 순간 = 수류탄이 손을 떠나는 순간 (0~1)
+        /// </summary>
+        private static void AnalyzeThrow(AnimationClip clip, PlayerAnimationProfile.WeaponSet set)
+        {
+            var player = Object.FindFirstObjectByType<PlayerController>();
+            Animator animator = player != null ? new SerializedObject(player).FindProperty("bodyAnimator").objectReferenceValue as Animator : null;
+            if (animator == null && player != null) animator = player.GetComponentInChildren<Animator>(true);
+            if (animator == null || animator.isHuman == false) { log.Add("던지기 분석: 씬에서 몸 Animator 를 찾지 못해 기본값 (왼손, 0.5)"); return; }
+            Transform left = animator.GetBoneTransform(HumanBodyBones.LeftHand);
+            Transform right = animator.GetBoneTransform(HumanBodyBones.RightHand);
+            Transform root = animator.transform;
+
+            const int Samples = 60;
+            var leftPos = new Vector3[Samples + 1];
+            var rightPos = new Vector3[Samples + 1];
+            AnimationMode.StartAnimationMode();
+            for (int i = 0; i <= Samples; i++)
+            {
+                AnimationMode.BeginSampling();
+                AnimationMode.SampleAnimationClip(animator.gameObject, clip, clip.length * i / Samples);
+                AnimationMode.EndSampling();
+                leftPos[i] = root.InverseTransformPoint(left.position);
+                rightPos[i] = root.InverseTransformPoint(right.position);
             }
-            log.Add($"Upper Action 레이어: 재장전({set.reloadClipLength:0.00}s)·꺼내기({set.drawClipLength:0.00}s), 재생 속도 = ActionSpeed");
+            AnimationMode.StopAnimationMode();
+
+            float leftMax = 0f, rightMax = 0f;
+            int leftAt = 0, rightAt = 0;
+            for (int i = 1; i <= Samples; i++)
+            {
+                float l = (leftPos[i] - leftPos[i - 1]).magnitude;
+                float r = (rightPos[i] - rightPos[i - 1]).magnitude;
+                if (l > leftMax) { leftMax = l; leftAt = i; }
+                if (r > rightMax) { rightMax = r; rightAt = i; }
+            }
+            set.throwWithLeftHand = leftMax >= rightMax;
+            set.throwRelease = (float)(set.throwWithLeftHand ? leftAt : rightAt) / Samples;
+            log.Add($"던지기 분석: {(set.throwWithLeftHand ? "왼손" : "오른손")}, 놓는 순간 {set.throwRelease:0.00} (클립 {clip.length:0.00}s)");
+        }
+
+        /// <summary>컨트롤러를 다시 만들지 않고 Upper Action 레이어에 Throw 상태·파라미터만 더한다 (이미 있으면 클립 분석만 다시)</summary>
+        [MenuItem("Tools/HybridShooter/Add Throw Action")]
+        private static void AddThrowAction()
+        {
+            if (EditorApplication.isPlaying) { EditorUtility.DisplayDialog(Title, "플레이 모드를 끄고 실행하세요.", "확인"); return; }
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            PlayerAnimationProfile profile = AssetDatabase.LoadAssetAtPath<PlayerAnimationProfile>(ProfilePath);
+            if (controller == null || profile == null || profile.DefaultSet == null)
+            {
+                EditorUtility.DisplayDialog(Title, "Player_AC 또는 프로필이 없습니다. Build Player Animator 를 먼저 실행하세요.", "확인");
+                return;
+            }
+
+            log.Clear();
+            missing.Clear();
+            LoadClips();
+            FixOneShotLoops();
+            LoadClips();
+
+            AnimatorControllerLayer layer = controller.layers.FirstOrDefault(l => l.name == PlayerAnimNames.Layers.UpperAction);
+            AnimatorState empty = layer?.stateMachine.states.Select(s => s.state).FirstOrDefault(s => s.name == PlayerAnimNames.States.Empty);
+            if (layer == null || empty == null)
+            {
+                EditorUtility.DisplayDialog(Title, "Upper Action 레이어가 없습니다. Build Player Animator 를 먼저 실행하세요.", "확인");
+                return;
+            }
+
+            Undo.RecordObject(profile, Title);
+            if (controller.parameters.All(p => p.name != PlayerAnimNames.Params.Throw))
+                controller.AddParameter(PlayerAnimNames.Params.Throw, AnimatorControllerParameterType.Trigger);
+            AnimatorStateMachine machine = layer.stateMachine;
+            if (machine.states.Any(s => s.state.name == PlayerAnimNames.States.Throw))
+            {
+                AnimationClip clip = Clip("ThrowGrenade1Standing" + Suffix);
+                if (clip != null) { profile.DefaultSet.throwClipLength = clip.length; AnalyzeThrow(clip, profile.DefaultSet); }
+            }
+            else AddThrowState(machine, empty, profile.DefaultSet);
+
+            EditorUtility.SetDirty(profile);
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+            if (missing.Count > 0) Debug.LogWarning("[PlayerAnimatorBuilder] 찾지 못한 클립:\n" + string.Join("\n", missing.Distinct()));
+            Debug.Log("[PlayerAnimatorBuilder] 던지기 추가 완료\n - " + string.Join("\n - ", log), controller);
         }
 
         /// <summary>상체 자세·동작용: 머리·팔·손가락·손 IK 만 (Body 는 골반까지 묶여 있어 뺀다)</summary>
@@ -682,8 +782,8 @@ namespace HybridShooter.Player.EditorTools
                 aimSo.FindProperty("player").objectReferenceValue = player;
                 aimSo.FindProperty("driver").objectReferenceValue = driver;
                 aimSo.FindProperty("aimIK").objectReferenceValue = aimIK;
-                aimSo.FindProperty("recoil").objectReferenceValue = SetupRecoil(animator, aimIK);
                 aimSo.ApplyModifiedProperties();
+                SetupFullBodyIK(animator);
 
                 SetupBodyIK(player, driver, animator, aimIK);
             }
@@ -750,7 +850,7 @@ namespace HybridShooter.Player.EditorTools
 
         /// <summary>
         /// 왼손·발 IK: 몸에 왼팔 LimbIK(상완 → 전완 → 손, 꺼 둠: PlayerBodyIK 가 AimIK 직후에 직접 푼다)과
-        /// GrounderFBBIK(바닥 레이어 = PlayerController.GroundMask), Player 에 PlayerBodyIK 연결
+        /// GrounderFBBIK(바닥 레이어 = PlayerController.GroundMask), Player 에 PlayerBodyIK 연결 · PlayerFirstPersonIK · PlayerItemIK 추가
         /// </summary>
         private static void SetupBodyIK(PlayerController player, PlayerAnimationDriver driver, Animator animator, AimIK aimIK)
         {
@@ -795,15 +895,23 @@ namespace HybridShooter.Player.EditorTools
             so.FindProperty("leftArmIK").objectReferenceValue = leftArm;
             so.FindProperty("grounder").objectReferenceValue = grounder;
             so.ApplyModifiedProperties();
+
+            // 1인칭 무기 자리 (FBBIK 손 효과기)
+            if (fbbik != null && player.GetComponent<PlayerFirstPersonIK>() == null) Undo.AddComponent<PlayerFirstPersonIK>(player.gameObject);
+            // 아이템 사용 모습 (손에 든 수류탄, 회복 때 왼손)
+            if (player.GetComponent<PlayerItemIK>() == null) Undo.AddComponent<PlayerItemIK>(player.gameObject);
+            // 사격 반동 (총 기준, FBBIK 손 효과기)
+            if (fbbik != null && player.GetComponent<PlayerGunRecoil>() == null) Undo.AddComponent<PlayerGunRecoil>(player.gameObject);
+            // 저격 스코프·견착 조준 화면
+            if (player.GetComponent<PlayerAimView>() == null) Undo.AddComponent<PlayerAimView>(player.gameObject);
             log.Add($"왼손 IK: LimbIK(왼팔) / 발 IK: {(grounder != null ? "GrounderFBBIK, 최대 계단 0.4m" : "없음")} / PlayerBodyIK 연결");
         }
 
         /// <summary>
-        /// 사격 반동: 몸에 FullBodyBipedIK(효과기 가중치 0 → 평소엔 자세를 바꾸지 않음) + Final IK Recoil.
-        /// Recoil 은 쏠 때마다 오른손(1)·오른어깨(0.3)를 조준 방향 뒤로 잠깐 밀고 손목을 살짝 튼다 (값은 Final IK 의 FPS 반동 데모 기준).
-        /// 몸통(Body) 효과기는 쓰지 않는다 → 다리가 밀리지 않게. 실행 순서: AimIK(9997) → FullBodyBipedIK(9999)
+        /// 몸에 FullBodyBipedIK (효과기 가중치 0 → 평소엔 자세를 바꾸지 않음). 반동(PlayerGunRecoil)·1인칭 손·발 IK 가 쓴다.
+        /// 예전 Final IK Recoil 은 손 뼈 축 기준이라 총구가 내려가서 지운다. 실행 순서: AimIK(9997) → FullBodyBipedIK(9999)
         /// </summary>
-        private static Recoil SetupRecoil(Animator animator, AimIK aimIK)
+        private static void SetupFullBodyIK(Animator animator)
         {
             FullBodyBipedIK fbbik = animator.GetComponent<FullBodyBipedIK>();
             if (fbbik == null)
@@ -811,14 +919,14 @@ namespace HybridShooter.Player.EditorTools
                 var references = new BipedReferences();
                 if (BipedReferences.AutoDetectReferences(ref references, animator.transform, BipedReferences.AutoDetectParams.Default) == false)
                 {
-                    log.Add("Recoil: FullBodyBipedIK 뼈 자동 인식 실패 → 반동 건너뜀");
-                    return null;
+                    log.Add("FullBodyBipedIK: 뼈 자동 인식 실패 → 반동·1인칭 손 건너뜀");
+                    return;
                 }
                 string error = "";
                 if (BipedReferences.SetupError(references, ref error))
                 {
-                    log.Add($"Recoil: FullBodyBipedIK 설정 오류 ({error}) → 반동 건너뜀");
-                    return null;
+                    log.Add($"FullBodyBipedIK: 설정 오류 ({error}) → 반동·1인칭 손 건너뜀");
+                    return;
                 }
                 fbbik = Undo.AddComponent<FullBodyBipedIK>(animator.gameObject);
                 fbbik.SetReferences(references, IKSolverFullBodyBiped.DetectRootNodeBone(references));
@@ -827,36 +935,9 @@ namespace HybridShooter.Player.EditorTools
             fbbik.solver.IKPositionWeight = 1f;
             PrefabUtility.RecordPrefabInstancePropertyModifications(fbbik);
 
-            Recoil recoil = animator.GetComponent<Recoil>();
-            if (recoil == null) recoil = Undo.AddComponent<Recoil>(animator.gameObject);
-            Undo.RecordObject(recoil, Title);
-            recoil.ik = fbbik;
-            recoil.aimIK = aimIK;
-            recoil.aimIKSolvedLast = false;
-            recoil.handedness = Recoil.Handedness.Right;
-            recoil.twoHanded = true;
-            recoil.recoilWeight = new AnimationCurve(new Keyframe(0f, 0f), new Keyframe(0.033f, 1f), new Keyframe(0.22f, 0f));
-            recoil.magnitudeRandom = 0.1f;
-            recoil.rotationRandom = new Vector3(0f, 10f, 0f);
-            recoil.handRotationOffset = new Vector3(0f, 7f, 0f);
-            recoil.blendTime = 0.1f;
-            recoil.offsets = new[]
-            {
-                new Recoil.RecoilOffset
-                {
-                    offset = new Vector3(0.02f, 0f, -0.05f),
-                    additivity = 0.5f,
-                    maxAdditiveOffsetMag = 0.2f,
-                    effectorLinks = new[]
-                    {
-                        new Recoil.RecoilOffset.EffectorLink { effector = FullBodyBipedEffector.RightHand, weight = 1f },
-                        new Recoil.RecoilOffset.EffectorLink { effector = FullBodyBipedEffector.RightShoulder, weight = 0.3f },
-                    },
-                },
-            };
-            PrefabUtility.RecordPrefabInstancePropertyModifications(recoil);
-            log.Add("Recoil: FullBodyBipedIK + Recoil (오른손 1, 오른어깨 0.3, 0.22초)");
-            return recoil;
+            Recoil old = animator.GetComponent<Recoil>();
+            if (old != null) Undo.DestroyObjectImmediate(old);
+            log.Add("FullBodyBipedIK 연결" + (old != null ? ", 예전 Final IK Recoil 지움 (반동은 PlayerGunRecoil)" : ""));
         }
         #endregion
     }
