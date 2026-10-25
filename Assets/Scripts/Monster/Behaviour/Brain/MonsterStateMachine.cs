@@ -50,9 +50,13 @@ namespace HybridShooter.Monster.Behaviour
         /// <exception cref="ArgumentNullException">movement, body, attack 중 하나가 null 일 때</exception>
         public MonsterStateMachine(MonsterMovement movement, MonsterBody body, MonsterAttack attack)
         {
-            this.movement = movement != null ? movement : throw new ArgumentNullException(nameof(movement));
-            this.body = body ?? throw new ArgumentNullException(nameof(body));
-            CurrentAttack = attack ?? throw new ArgumentNullException(nameof(attack));
+            if (movement == null) throw new ArgumentNullException(nameof(movement));
+            if (body == null) throw new ArgumentNullException(nameof(body));
+            if (attack == null) throw new ArgumentNullException(nameof(attack));
+
+            this.movement = movement;
+            this.body = body;
+            CurrentAttack = attack;
 
             Idle = new IdleState(this);
             Chase = new ChaseState(this);
@@ -78,7 +82,7 @@ namespace HybridShooter.Monster.Behaviour
                 Vector3 toTarget = Target.PlayerTrackingInfo.Position - body.Position;
                 toTarget.y = 0f;
                 float range = CurrentAttack.Range;
-                return toTarget.sqrMagnitude <= range * range;
+                return toTarget.magnitude <= range;
             }
         }
 
@@ -89,9 +93,9 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="target">새 대상. null = 대상 상실 (플레이어 사망 등)</param>
         public void SetTarget(IPlayerTarget target)
         {
-            if (!ReferenceEquals(Target, target) && CurrentAttack.IsAttacking) CurrentAttack.Cancel();
+            if (ReferenceEquals(Target, target) == false && CurrentAttack.IsAttacking) CurrentAttack.Cancel();
             Target = target;
-            if (!HasTarget)
+            if (HasTarget == false)
             {
                 if (CurrentAttack.IsAttacking) CurrentAttack.Cancel();
                 if (Current == Attack || Current == Chase) ChangeState(Idle);
@@ -108,7 +112,10 @@ namespace HybridShooter.Monster.Behaviour
         {
             Now = now;
             DeltaTime = deltaTime;
-            if (!HasTarget && (Current == Attack || Current == Chase)) SetTarget(null);
+            bool hasNoTarget = HasTarget == false;
+            bool isInAttackState = Current == Attack;
+            bool isInChaseState = Current == Chase;
+            if (hasNoTarget && (isInAttackState || isInChaseState)) SetTarget(null);
             Current.Tick();
         }
 
@@ -165,7 +172,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             SetTarget(null);
             if (CurrentAttack.IsAttacking) CurrentAttack.Cancel();
-            if (!IsDead) ChangeState(Idle);
+            if (IsDead == false) ChangeState(Idle);
             movement.SetSuspended(true);
         }
 

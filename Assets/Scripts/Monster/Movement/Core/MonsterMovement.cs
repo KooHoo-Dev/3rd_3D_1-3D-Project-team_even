@@ -94,14 +94,15 @@ namespace HybridShooter.Monster.Movement
         {
             get
             {
-                if (!isActiveAndEnabled || Target == null) return false;
+                if (isActiveAndEnabled == false) return false;
+                if (Target == null) return false;
                 if (crowdCoordinator == null) return directive.Kind == DirectiveKind.Unrestricted;
-                if (!registered) return false;
-                if (!crowdCoordinator.Settings.EnableCrowdControl || !profile.UsesEngageToken) return true;
-                return directive.Kind == DirectiveKind.Engage &&
-                    (crowdCoordinator.Settings.UseSlots
-                        ? crowdCoordinator.IsSlotReservedBy(this, directive.SlotId)
-                        : hasToken);
+                if (registered == false) return false;
+                if (crowdCoordinator.Settings.EnableCrowdControl == false) return true;
+                if (profile.UsesEngageToken == false) return true;
+                if (directive.Kind != DirectiveKind.Engage) return false;
+                if (crowdCoordinator.Settings.UseSlots) return crowdCoordinator.IsSlotReservedBy(this, directive.SlotId);
+                return hasToken;
             }
         }
         public MovementState State => state;
@@ -165,11 +166,16 @@ namespace HybridShooter.Monster.Movement
             // 1) 목표·군중 관리자 확인: 직접 목표가 있으면 군중 관리자 없이 동작, 없으면 Coordinator 필수
             if (isDirectMode == false && directTargetSource != null)
             {
-                targetInfo = directTargetSource as IPlayerTarget
-                    ?? throw new InvalidOperationException("directTargetSource 는 IPlayerTarget 이어야 한다");
+                var directTarget = directTargetSource as IPlayerTarget;
+                if (directTarget == null)
+                    throw new InvalidOperationException("directTargetSource 는 IPlayerTarget 이어야 한다");
+                targetInfo = directTarget;
                 isDirectMode = true;
             }
-            var coord = coordinator != null ? coordinator : (isDirectMode ? null : CrowdCoordinator.Active);
+            CrowdCoordinator coord;
+            if (coordinator != null) coord = coordinator;
+            else if (isDirectMode) coord = null;
+            else coord = CrowdCoordinator.Active;
             if (coord == null && isDirectMode == false)
             {
                 Debug.LogError($"[{nameof(MonsterMovement)}] CrowdCoordinator 없음 (직접 지정하거나 씬에 배치)", this);
@@ -180,7 +186,7 @@ namespace HybridShooter.Monster.Movement
             // 2) 정책·수치 준비 (정책은 개체 하나당 인스턴스 하나, 재활성화 시 재사용)
             tuning = profile.ToTuning();
             if (hasCombatTuning) ApplyCombatTuning();
-            policy ??= MovementPolicyFactory.Create(profile.PolicyKind, GetInstanceID());
+            if (policy == null) policy = MovementPolicyFactory.Create(profile.PolicyKind, GetInstanceID());
 
             // 3) 이전 활성화 때 남은 상태 초기화
             hasThought = false;
@@ -193,7 +199,7 @@ namespace HybridShooter.Monster.Movement
             {
                 crowdCoordinator = coord;
                 ValidateCombatSlots();
-                if (!suspended || retainReservation) RegisterCrowd();
+                if (suspended == false || retainReservation) RegisterCrowd();
             }
             else
                 directive = new CrowdDirective(DirectiveKind.Unrestricted, default, 0, false, 0f);
@@ -222,11 +228,12 @@ namespace HybridShooter.Monster.Movement
         /// <remarks>NavMeshAgent.updateRotation 이 꺼져 있어야 하므로 NavMeshMoveExecutor.Awake 에서 끈다.</remarks>
         private void ApplyLookRotation()
         {
-            if (!hasLookTarget || suspended) return;
+            if (hasLookTarget == false) return;
+            if (suspended) return;
 
             Vector3 dir = lookTarget - transform.position;
             dir.y = 0f;
-            if (dir.sqrMagnitude < 0.0001f) return;
+            if (dir.magnitude < 0.01f) return;
 
             float t = 1f - Mathf.Exp(-turnSpeed * Time.deltaTime); // 프레임레이트와 무관한 보간 비율
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), t);
@@ -238,7 +245,7 @@ namespace HybridShooter.Monster.Movement
         /// </summary>
         internal void TickMovement()
         {
-            if (hasReactionReference && (Target == null || !HasCurrentReservation(reactionSlotId)))
+            if (IsReactionReservationLost())
                 StopForInvalidReservation();
             if (hasPendingIntent)
             {
@@ -249,6 +256,17 @@ namespace HybridShooter.Monster.Movement
                     CommitIntent(in pendingIntent);
                 }
             }
+        }
+
+        /// <summary>
+        /// 반응 지연 기준점을 잡은 슬롯 예약이 사라졌는가 (목표 소실 또는 슬롯 회수·무효화). TickMovement 가 정지 여부를 정할 때 호출한다.
+        /// </summary>
+        /// <returns>기준점이 있는데 목표가 없거나 그 슬롯이 더 이상 내 예약이 아니면 true. 기준점이 없으면 false</returns>
+        private bool IsReactionReservationLost()
+        {
+            if (hasReactionReference == false) return false;
+            if (Target == null) return true;
+            return HasCurrentReservation(reactionSlotId) == false;
         }
 
         /// <summary>
@@ -266,7 +284,7 @@ namespace HybridShooter.Monster.Movement
                 UnregisterCrowd();
                 crowdCoordinator = null;
             }
-            executor?.Stop();
+            if (executor != null) executor.Stop();
             suspended = false;
             retainReservation = false;
             SetState(MovementState.Idle);
@@ -304,7 +322,8 @@ namespace HybridShooter.Monster.Movement
         {
             if (isActiveAndEnabled) throw new InvalidOperationException("ConfigureDirect 는 비활성 상태에서만 호출할 수 있다");
             this.profile = profile;
-            targetInfo = target ?? throw new ArgumentNullException(nameof(target));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            targetInfo = target;
             isDirectMode = true;
             directTargetSource = target as MonoBehaviour;
             coordinator = null;
@@ -394,8 +413,8 @@ namespace HybridShooter.Monster.Movement
         {
             if (isDirectMode) targetInfo = target;
             else if (crowdCoordinator != null) crowdCoordinator.SetTarget(target);
-            else if (coordinator != null || CrowdCoordinator.Active != null)
-                (coordinator != null ? coordinator : CrowdCoordinator.Active).SetTarget(target);
+            else if (coordinator != null) coordinator.SetTarget(target);
+            else if (CrowdCoordinator.Active != null) CrowdCoordinator.Active.SetTarget(target);
             else
             {
                 isDirectMode = true; // 군중 관리자가 없으면 직접 추적 모드
@@ -406,7 +425,8 @@ namespace HybridShooter.Monster.Movement
         /// <summary>군중 관리자에 한 번만 등록한다 (이미 등록됐거나 군중 관리자가 없으면 무시). Activate 와 정지 해제 시 호출</summary>
         private void RegisterCrowd()
         {
-            if (crowdCoordinator == null || registered) return;
+            if (crowdCoordinator == null) return;
+            if (registered) return;
             crowdCoordinator.Register(this);
             registered = true;
         }
@@ -414,7 +434,7 @@ namespace HybridShooter.Monster.Movement
         /// <summary>군중 관리자 등록을 해제해 슬롯·토큰을 반환한다 (등록 안 됐으면 무시). OnDisable 과 예약 유지 없는 정지 시 호출</summary>
         private void UnregisterCrowd()
         {
-            if (!registered) return;
+            if (registered == false) return;
             crowdCoordinator.Unregister(this);
             registered = false;
         }
@@ -429,7 +449,7 @@ namespace HybridShooter.Monster.Movement
         {
             this.suspended = suspended;
             this.retainReservation = suspended && retainReservation;
-            if (!suspended)
+            if (suspended == false)
             {
                 RegisterCrowd();
                 return; // 상태는 다음 Think 에서 재계산
@@ -438,7 +458,7 @@ namespace HybridShooter.Monster.Movement
             CancelPendingIntent();
             hasReactionReference = false;
             executingSlotId = -1;
-            if (!retainReservation) UnregisterCrowd();
+            if (retainReservation == false) UnregisterCrowd();
             executor.Stop();
             lastIntent = MoveIntent.Stop(MovementState.Suspended);
             SetState(MovementState.Suspended);
@@ -481,7 +501,7 @@ namespace HybridShooter.Monster.Movement
             if (suspended) return;
 
             // 1) 슬롯 모드: 도달 불가였던 슬롯은 거절하고, 군중 관리자에게 최신 지시(슬롯)를 받는다
-            if (crowdCoordinator != null && crowdCoordinator.Settings.UseSlots && crowdCoordinator.Settings.EnableCrowdControl)
+            if (IsSlotMode())
             {
                 if (executingSlotId >= 0 && executor.ExecutionState == MoveExecutionState.Unreachable)
                 {
@@ -509,9 +529,18 @@ namespace HybridShooter.Monster.Movement
             SubmitIntent(in intent, target, targetValid, now);
 
             // 4) 공격 사거리 안인지 갱신 (IsInAttackRange 로 공개)
-            float dx = targetPosition.x - self.x;
-            float dz = targetPosition.z - self.z;
-            isInAttackRange = targetValid && dx * dx + dz * dz <= tuning.AttackRange * tuning.AttackRange;
+            isInAttackRange = targetValid && HorizontalDistance(targetPosition, self) <= tuning.AttackRange;
+        }
+
+        /// <summary>
+        /// 슬롯 모드(군중 관리자 있음 + 슬롯 사용 + 군중 제어 켜짐)인가.
+        /// Think 가 지시를 갱신할지, SubmitIntent 가 반응 지연을 적용할지 정할 때 호출한다.
+        /// </summary>
+        /// <returns>세 조건이 모두 참이면 true. 직접 추적 모드(군중 관리자 없음)면 false</returns>
+        private bool IsSlotMode()
+        {
+            if (crowdCoordinator == null) return false;
+            return crowdCoordinator.Settings.UseSlots && crowdCoordinator.Settings.EnableCrowdControl;
         }
 
         /// <summary>등록 해제 시 토큰·대기·슬롯·지시 상태 초기화 (선회 방향은 유지). CrowdCoordinator.Unregister 가 호출한다</summary>
@@ -539,14 +568,15 @@ namespace HybridShooter.Monster.Movement
         private void SubmitIntent(in MoveIntent intent, IPlayerTarget target, bool targetValid, float now)
         {
             // 1) 지연 대상이 아닌 경우: 슬롯 모드가 아니거나, 목표/목적지/슬롯이 없거나, 예약이 이미 무효 → 즉시 실행
-            bool slotMode = crowdCoordinator != null && crowdCoordinator.Settings.UseSlots &&
-                            crowdCoordinator.Settings.EnableCrowdControl;
-            if (!slotMode || !targetValid || !intent.HasDestination || !directive.HasSlotPosition ||
-                !HasCurrentReservation(directive.SlotId))
+            bool slotMode = IsSlotMode();
+            if (CanDelayIntent(slotMode, in intent, targetValid) == false)
             {
+                bool targetLost = targetValid == false;
+                bool destinationMissing = intent.HasDestination == false;
+                bool slotPositionMissing = slotMode && directive.HasSlotPosition == false;
                 CancelPendingIntent();
                 hasReactionReference = false;
-                if (!targetValid || !intent.HasDestination || (slotMode && !directive.HasSlotPosition))
+                if (targetLost || destinationMissing || slotPositionMissing)
                     executingSlotId = -1;
                 CommitIntent(in intent);
                 return;
@@ -554,10 +584,13 @@ namespace HybridShooter.Monster.Movement
 
             // 2) 기준점이 없거나 슬롯/목표가 바뀌었으면: 새 기준점을 잡고 즉시 실행 (슬롯이 바뀌면 이전 이동은 멈춤)
             int slotId = directive.SlotId;
-            if (!hasReactionReference || !ReferenceEquals(reactionTargetInfo, target) || reactionSlotId != slotId)
+            bool referenceMissing = hasReactionReference == false;
+            bool targetChanged = ReferenceEquals(reactionTargetInfo, target) == false;
+            bool slotChanged = reactionSlotId != slotId;
+            if (referenceMissing || targetChanged || slotChanged)
             {
                 CancelPendingIntent();
-                if (hasReactionReference && reactionSlotId != slotId)
+                if (hasReactionReference && slotChanged)
                 {
                     executor.Stop();
                     executingSlotId = -1;
@@ -572,9 +605,8 @@ namespace HybridShooter.Monster.Movement
 
             // 3) 같은 슬롯을 계속 추적 중: 목적지 변화량이 임계값 이상인지 판단.
             //    이미 지연 중이면 최신 의도로 갱신(변화 유지) 또는 취소(변화 사라짐), 아니면 지연을 새로 시작
-            float thresholdSqr = profile.ReactionChangeDistance * profile.ReactionChangeDistance;
-            float changeSqr = HorizontalSqr(intent.Destination, reactionReferenceDestination);
-            bool changed = changeSqr > 0f && changeSqr >= thresholdSqr;
+            float changeDistance = HorizontalDistance(intent.Destination, reactionReferenceDestination);
+            bool changed = changeDistance > 0f && changeDistance >= profile.ReactionChangeDistance;
             if (hasPendingIntent)
             {
                 if (changed)
@@ -600,6 +632,23 @@ namespace HybridShooter.Monster.Movement
             // 4) 지연할 필요 없음: 기준점 갱신 후 즉시 실행
             if (changed) reactionReferenceDestination = intent.Destination;
             CommitIntent(in intent);
+        }
+
+        /// <summary>
+        /// 이 의도에 반응 지연을 적용할 수 있는가. SubmitIntent 가 즉시 실행할지 정할 때 호출한다.
+        /// 조건은 앞에서부터 확인하며, 슬롯 예약 조회는 앞 조건이 모두 참일 때만 한다.
+        /// </summary>
+        /// <param name="slotMode">슬롯 모드인가 (IsSlotMode 결과)</param>
+        /// <param name="intent">정책이 이번 판단에서 낸 이동 의도</param>
+        /// <param name="targetValid">목표가 유효한가</param>
+        /// <returns>슬롯 모드 + 목표 유효 + 목적지 있음 + 슬롯 위치 있음 + 그 슬롯이 아직 내 예약이면 true</returns>
+        private bool CanDelayIntent(bool slotMode, in MoveIntent intent, bool targetValid)
+        {
+            if (slotMode == false) return false;
+            if (targetValid == false) return false;
+            if (intent.HasDestination == false) return false;
+            if (directive.HasSlotPosition == false) return false;
+            return HasCurrentReservation(directive.SlotId);
         }
 
         /// <summary>의도를 실행기에 적용하고, 결과에 따라 "실행 중인 슬롯"과 상태를 갱신한다. SubmitIntent 와 TickMovement(지연 의도)가 호출한다</summary>
@@ -638,15 +687,15 @@ namespace HybridShooter.Monster.Movement
         /// <summary>반응 지연 중인 의도를 버린다</summary>
         private void CancelPendingIntent() => hasPendingIntent = false;
 
-        /// <summary>반응 지연에서 목적지 변화량을 비교하려고 수평(XZ) 거리의 제곱을 구한다</summary>
+        /// <summary>높이를 무시한 수평(XZ) 거리. Think 의 공격 사거리 판정과 SubmitIntent 의 목적지 변화량 비교에 쓴다</summary>
         /// <param name="a">첫 위치 (월드)</param>
         /// <param name="b">둘째 위치 (월드)</param>
-        /// <returns>수평(XZ) 거리의 제곱 (m²)</returns>
-        private static float HorizontalSqr(Vector3 a, Vector3 b)
+        /// <returns>수평(XZ) 거리 (m)</returns>
+        private static float HorizontalDistance(Vector3 a, Vector3 b)
         {
             float dx = a.x - b.x;
             float dz = a.z - b.z;
-            return dx * dx + dz * dz;
+            return Mathf.Sqrt(dx * dx + dz * dz);
         }
 
         /// <summary>상태 변경. 실제로 바뀐 경우에만 StateChanged 이벤트 발생</summary>

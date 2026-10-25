@@ -121,7 +121,7 @@ namespace HybridShooter.Monster.Behaviour
         /// </summary>
         private void OnDisable()
         {
-            StateMachine?.Cleanup();
+            if (StateMachine != null) StateMachine.Cleanup();
             if (movement != null) movement.enabled = false;
             EventBus<MonsterWipeRequestedEvent>.Unsubscribe(OnWipeRequested);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
@@ -251,7 +251,8 @@ namespace HybridShooter.Monster.Behaviour
         /// </summary>
         private void AcquireTarget()
         {
-            if (playerDead || StateMachine.HasTarget) return;
+            if (playerDead) return;
+            if (StateMachine.HasTarget) return;
             if (ServiceLocator.TryGet(out IPlayerTarget player) == false) return; // 플레이어 등록 전
             StateMachine.SetTarget(player);
             SetMovementTarget(player);

@@ -61,9 +61,11 @@ namespace HybridShooter.Monster.Behaviour
         /// <exception cref="ArgumentNullException">findDamageable 이 null 일 때</exception>
         protected MonsterAttack(in AttackSpec spec, Func<IPlayerTarget, IDamageable> findDamageable)
         {
+            if (findDamageable == null) throw new ArgumentNullException(nameof(findDamageable));
+
             Spec = spec;
             Cooldown = spec.Cooldown;
-            this.findDamageable = findDamageable ?? throw new ArgumentNullException(nameof(findDamageable));
+            this.findDamageable = findDamageable;
         }
 
         /// <summary>쿨다운 확인. AttackState 가 Begin 전에 부른다. 하위 클래스가 발동 조건을 더할 수 있다</summary>
@@ -83,7 +85,8 @@ namespace HybridShooter.Monster.Behaviour
         public void Begin(IPlayerTarget target, float now)
         {
             if (IsAttacking) throw new InvalidOperationException("이미 진행 중인 공격이다");
-            Target = target ?? throw new ArgumentNullException(nameof(target));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            Target = target;
             LastResult = AttackResult.None;
             cycleCooldown = Cooldown;
             cycleHitTimeRatio = HitTimeRatio;
@@ -169,12 +172,12 @@ namespace HybridShooter.Monster.Behaviour
         /// <exception cref="InvalidOperationException">대상에서 IDamageable 을 찾지 못했을 때</exception>
         protected void Hit(IPlayerTarget target, Vector3 from)
         {
-            var damageable = findDamageable(target)
-                ?? throw new InvalidOperationException("공격 대상에서 IDamageable 을 찾지 못했다");
+            var damageable = findDamageable(target);
+            if (damageable == null) throw new InvalidOperationException("공격 대상에서 IDamageable 을 찾지 못했다");
             if (damageable.CanBeHitBy(Faction.Monster) == false) return;
 
             Vector3 direction = HitAreas.Flat(target.PlayerTrackingInfo.Position - from);
-            direction = direction.sqrMagnitude > 1e-8f ? direction.normalized : Vector3.zero;
+            direction = direction.magnitude > 1e-4f ? direction.normalized : Vector3.zero;
             var info = new DamageInfo(Spec.Damage, DamageKind.MonsterAttack, Faction.Monster, null,
                                       target.PlayerTrackingInfo.Position, direction, Spec.SourceDefId);
             

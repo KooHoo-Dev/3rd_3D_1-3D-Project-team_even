@@ -17,7 +17,7 @@ namespace HybridShooter.Monster.Movement
         /// <returns>이번 판단의 이동 의도</returns>
         public MoveIntent Evaluate(in MovementContext ctx)
         {
-            if (!ctx.TargetValid)
+            if (ctx.TargetValid == false)
                 return MoveIntent.Stop(MovementState.Idle);
 
             var t = ctx.Tuning;

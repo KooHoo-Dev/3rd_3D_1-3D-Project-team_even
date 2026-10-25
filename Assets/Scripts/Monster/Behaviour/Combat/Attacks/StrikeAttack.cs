@@ -22,7 +22,8 @@ namespace HybridShooter.Monster.Behaviour
         public StrikeAttack(in AttackSpec spec, MonsterBody body, Func<IPlayerTarget, IDamageable> findDamageable)
             : base(spec, findDamageable)
         {
-            this.body = body ?? throw new ArgumentNullException(nameof(body));
+            if (body == null) throw new ArgumentNullException(nameof(body));
+            this.body = body;
             area = HitAreas.From(spec);
         }
 

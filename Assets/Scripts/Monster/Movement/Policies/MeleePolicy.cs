@@ -29,14 +29,14 @@ namespace HybridShooter.Monster.Movement
         {
             var dir = ctx.Directive;
 
-            if (!ctx.TargetValid)
+            if (ctx.TargetValid == false)
             {
                 lastKind = dir.Kind;
                 return MoveIntent.Stop(MovementState.Idle);
             }
 
             var t = ctx.Tuning;
-            if (dir.RequiresSlot && !dir.HasSlotPosition)
+            if (dir.RequiresSlot && dir.HasSlotPosition == false)
                 return MoveIntent.Stop(MovementState.Waiting);
             MoveIntent intent;
 

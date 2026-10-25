@@ -20,7 +20,7 @@ namespace HybridShooter.Monster.Behaviour
             float along = Vector3.Dot(toPoint, dir);
             if (along < 0f || along > Length) return false;
             Vector3 lateral = toPoint - dir * along;
-            return lateral.sqrMagnitude <= Width * Width * 0.25f;
+            return lateral.magnitude <= Width * 0.5f;
         }
     }
 }

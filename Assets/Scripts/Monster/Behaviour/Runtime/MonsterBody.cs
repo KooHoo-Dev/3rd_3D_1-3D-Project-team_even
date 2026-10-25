@@ -16,7 +16,8 @@ namespace HybridShooter.Monster.Behaviour
         /// <exception cref="ArgumentNullException">transform 이 null(또는 파괴됨)일 때</exception>
         public MonsterBody(Transform transform)
         {
-            this.transform = transform != null ? transform : throw new ArgumentNullException(nameof(transform));
+            if (transform == null) throw new ArgumentNullException(nameof(transform));
+            this.transform = transform;
         }
 
         // 월드 좌표 (m)
@@ -31,7 +32,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             Vector3 toPoint = worldPoint - transform.position;
             toPoint.y = 0f;
-            if (toPoint.sqrMagnitude < 1e-8f) return; // 같은 위치: 바라볼 방향 없음
+            if (toPoint.magnitude < 1e-4f) return; // 같은 위치: 바라볼 방향 없음
             transform.rotation = Quaternion.LookRotation(toPoint);
         }
     }

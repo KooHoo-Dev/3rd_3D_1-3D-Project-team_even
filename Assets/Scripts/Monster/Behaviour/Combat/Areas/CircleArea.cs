@@ -16,7 +16,7 @@ namespace HybridShooter.Monster.Behaviour
         public bool Contains(Vector3 origin, Vector3 forward, Vector3 point)
         {
             Vector3 center = origin + HitAreas.FlatDirection(forward) * Offset;
-            return HitAreas.Flat(point - center).sqrMagnitude <= Radius * Radius;
+            return HitAreas.Flat(point - center).magnitude <= Radius;
         }
     }
 }

@@ -12,6 +12,6 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>공격자 중심에서 수평 거리 ≤ Range 면 안이다. 정면 방향은 쓰지 않는다</summary>
         public bool Contains(Vector3 origin, Vector3 forward, Vector3 point)
-            => HitAreas.Flat(point - origin).sqrMagnitude <= Range * Range;
+            => HitAreas.Flat(point - origin).magnitude <= Range;
     }
 }

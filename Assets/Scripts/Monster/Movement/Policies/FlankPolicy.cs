@@ -39,7 +39,7 @@ namespace HybridShooter.Monster.Movement
         {
             var dir = ctx.Directive;
 
-            if (!ctx.TargetValid)
+            if (ctx.TargetValid == false)
             {
                 side = 0;
                 committedToApproach = false;
@@ -48,7 +48,7 @@ namespace HybridShooter.Monster.Movement
             }
 
             var t = ctx.Tuning;
-            if (dir.RequiresSlot && !dir.HasSlotPosition)
+            if (dir.RequiresSlot && dir.HasSlotPosition == false)
                 return MoveIntent.Stop(MovementState.Waiting);
             MoveIntent intent;
 
@@ -66,7 +66,7 @@ namespace HybridShooter.Monster.Movement
                 float d = WaitOrbit.HorizontalDistance(ctx.SelfPosition, ctx.TargetPosition);
 
                 Vector3 fwd = Flat(ctx.TargetForward);
-                if (fwd.sqrMagnitude < 1e-8f) fwd = Vector3.forward;
+                if (fwd.magnitude < 1e-4f) fwd = Vector3.forward;
                 fwd.Normalize();
                 Vector3 toSelf = Flat(ctx.SelfPosition - ctx.TargetPosition);
                 bool inView = false;
@@ -78,46 +78,81 @@ namespace HybridShooter.Monster.Movement
 
                 // 2) 우회 여부: 시야 안 + 멀리 있음 + 돌입 확정 전이면 우회, 그 외는 돌입
                 if (d <= t.AttackRange * 2f) committedToApproach = false;
-                if (inView && d > t.AttackRange * 2f && !committedToApproach)
-                {
-                    // 우회: 시작 시 측면 결정, 끝날 때까지 유지
-                    if (side == 0)
-                    {
-                        float cy = fwd.z * toSelf.x - fwd.x * toSelf.z; // (fwd × toSelf).y
-                        side = Mathf.Abs(cy) < 1e-4f ? (rng.NextDouble() < 0.5 ? 1 : -1) : (cy > 0f ? 1 : -1);
-                    }
-                    float fwdBearing = WaitOrbit.BearingDeg(ctx.TargetPosition, ctx.TargetPosition + fwd);
-                    float bearing = fwdBearing + side * (t.FlankViewHalfAngleDeg + BearingMarginDeg);
-                    Vector3 dest = WaitOrbit.PointOnRing(ctx.TargetPosition, bearing, t.FlankRadius);
-                    intent = new MoveIntent(MovementState.Approach, dest, t.MoveSpeed, 0.5f);
-                }
+                bool isFar = d > t.AttackRange * 2f;
+                bool approachNotCommitted = committedToApproach == false;
+                if (inView && isFar && approachNotCommitted)
+                    intent = DetourToFlank(in ctx, fwd, toSelf);
                 else
-                {
-                    // 돌입
-                    if (side != 0) committedToApproach = true;
-                    side = 0;
-                    Vector3 dest;
-                    float stop;
-                    if (dir.Kind == DirectiveKind.Engage && dir.HasSlot)
-                    {
-                        dest = dir.HasSlotPosition ? dir.SlotPosition
-                            : WaitOrbit.PointOnRing(ctx.TargetPosition, dir.SlotAngleDeg, t.AttackRange * 0.8f);
-                        stop = dir.HasSlotPosition ? Mathf.Min(0.2f, dir.SlotArrivalDistance * 0.5f) : 0.2f;
-                    }
-                    else
-                    {
-                        dest = ctx.TargetPosition;
-                        stop = t.AttackRange * 0.9f;
-                    }
-                    bool arrived = dir.HasSlotPosition
-                        ? WaitOrbit.HorizontalDistance(ctx.SelfPosition, dest) <= dir.SlotArrivalDistance : d <= t.AttackRange;
-                    intent = new MoveIntent(arrived ? MovementState.Engaged : MovementState.Approach,
-                                            dest, t.MoveSpeed * t.FlankSpeedMultiplier, stop);
-                }
+                    intent = RushToTarget(in ctx, d);
             }
 
             lastKind = dir.Kind;
             return intent;
+        }
+
+        /// <summary>
+        /// 우회: 목표 시야 원뿔 밖 측면 링 위 지점으로 이동하는 의도를 만든다. Evaluate 가 시야 안 + 멀리 있음 + 돌입 확정 전일 때 호출한다.
+        /// 측면은 우회 시작 시 한 번 정하고 우회가 끝날 때까지 유지한다.
+        /// </summary>
+        /// <param name="ctx">판단 입력. 목표 위치와 유형별 수치를 쓴다</param>
+        /// <param name="targetForward">목표의 수평 정면 방향 (정규화됨)</param>
+        /// <param name="toSelf">목표에서 자신으로 향하는 수평 방향 (정규화됨)</param>
+        /// <returns>측면 지점으로 향하는 Approach 의도</returns>
+        private MoveIntent DetourToFlank(in MovementContext ctx, Vector3 targetForward, Vector3 toSelf)
+        {
+            var t = ctx.Tuning;
+            if (side == 0) side = ChooseDetourSide(targetForward, toSelf);
+            float fwdBearing = WaitOrbit.BearingDeg(ctx.TargetPosition, ctx.TargetPosition + targetForward);
+            float bearing = fwdBearing + side * (t.FlankViewHalfAngleDeg + BearingMarginDeg);
+            Vector3 dest = WaitOrbit.PointOnRing(ctx.TargetPosition, bearing, t.FlankRadius);
+            return new MoveIntent(MovementState.Approach, dest, t.MoveSpeed, 0.5f);
+        }
+
+        /// <summary>
+        /// 우회 측면을 정한다. 자신이 목표 정면의 어느 쪽에 있는지(외적 y 부호)로 고르고, 거의 정면이면 난수로 고른다. DetourToFlank 가 우회 시작 시 호출한다.
+        /// </summary>
+        /// <param name="targetForward">목표의 수평 정면 방향 (정규화됨)</param>
+        /// <param name="toSelf">목표에서 자신으로 향하는 수평 방향 (정규화됨)</param>
+        /// <returns>+1 또는 -1</returns>
+        private int ChooseDetourSide(Vector3 targetForward, Vector3 toSelf)
+        {
+            float cy = targetForward.z * toSelf.x - targetForward.x * toSelf.z; // (fwd × toSelf).y
+            bool isStraightAhead = Mathf.Abs(cy) < 1e-4f;
+            if (isStraightAhead) return rng.NextDouble() < 0.5 ? 1 : -1;
+            if (cy > 0f) return 1;
+            return -1;
+        }
+
+        /// <summary>
+        /// 돌입: 배율 속도로 슬롯(또는 목표)으로 이동하는 의도를 만든다. Evaluate 가 우회 조건이 아닐 때 호출한다.
+        /// 우회 중이었다면 돌입을 확정해 가까워질 때까지 우회로 되돌아가지 않게 한다.
+        /// </summary>
+        /// <param name="ctx">판단 입력. 군중 지시와 유형별 수치를 쓴다</param>
+        /// <param name="distanceToTarget">목표까지 수평 거리 (m). 슬롯이 없을 때 도착 판정에 쓴다</param>
+        /// <returns>도착했으면 Engaged, 아니면 Approach 의도</returns>
+        private MoveIntent RushToTarget(in MovementContext ctx, float distanceToTarget)
+        {
+            var dir = ctx.Directive;
+            var t = ctx.Tuning;
+            if (side != 0) committedToApproach = true;
+            side = 0;
+            Vector3 dest;
+            float stop;
+            if (dir.Kind == DirectiveKind.Engage && dir.HasSlot)
+            {
+                dest = dir.HasSlotPosition ? dir.SlotPosition
+                    : WaitOrbit.PointOnRing(ctx.TargetPosition, dir.SlotAngleDeg, t.AttackRange * 0.8f);
+                stop = dir.HasSlotPosition ? Mathf.Min(0.2f, dir.SlotArrivalDistance * 0.5f) : 0.2f;
+            }
+            else
+            {
+                dest = ctx.TargetPosition;
+                stop = t.AttackRange * 0.9f;
+            }
+            bool arrived = dir.HasSlotPosition
+                ? WaitOrbit.HorizontalDistance(ctx.SelfPosition, dest) <= dir.SlotArrivalDistance : distanceToTarget <= t.AttackRange;
+            return new MoveIntent(arrived ? MovementState.Engaged : MovementState.Approach,
+                                  dest, t.MoveSpeed * t.FlankSpeedMultiplier, stop);
         }
 
         /// <summary>y 를 0 으로 만든 수평 벡터</summary>

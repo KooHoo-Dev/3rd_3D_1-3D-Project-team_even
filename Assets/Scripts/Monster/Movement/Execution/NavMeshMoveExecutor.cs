@@ -52,10 +52,10 @@ namespace HybridShooter.Monster.Movement
         {
             get
             {
-                if (agent == null || !agent.isActiveAndEnabled) return MoveExecutionState.Idle;
-                if (!agent.isOnNavMesh) return MoveExecutionState.OffNavMesh;
+                if (agent == null || agent.isActiveAndEnabled == false) return MoveExecutionState.Idle;
+                if (agent.isOnNavMesh == false) return MoveExecutionState.OffNavMesh;
                 if (requestedState == MoveExecutionState.Unreachable) return requestedState;
-                if (!hasDestination) return MoveExecutionState.Idle;
+                if (hasDestination == false) return MoveExecutionState.Idle;
                 if (agent.pathPending) return MoveExecutionState.Pending;
                 if (agent.pathStatus != NavMeshPathStatus.PathComplete) return MoveExecutionState.Unreachable;
                 return agent.remainingDistance <= agent.stoppingDistance + 0.15f
@@ -91,16 +91,16 @@ namespace HybridShooter.Monster.Movement
         /// </returns>
         public MoveApplyResult Apply(in MoveIntent intent)
         {
-            if (!intent.HasDestination)
+            if (intent.HasDestination == false)
             {
                 Stop();
                 return MoveApplyResult.Stopped;
             }
 
             // 1) NavMesh 위에 있는지 확인 (아니면 경고 1회 후 실패)
-            if (!agent.isOnNavMesh)
+            if (agent.isOnNavMesh == false)
             {
-                if (!warnedOffMesh)
+                if (warnedOffMesh == false)
                 {
                     warnedOffMesh = true;
                     Debug.LogWarning($"[NavMeshMoveExecutor] NavMesh 위에 있지 않음: {name} @ {transform.position}", this);
@@ -120,15 +120,14 @@ namespace HybridShooter.Monster.Movement
             // 3) 재경로 제한: 목적지가 거의 안 변했으면 유지, 직전 재경로가 너무 최근이면 보류
             if (hasDestination)
             {
-                float moved = (intent.Destination - lastRequestedDest).magnitude;
-                if (moved < repathDistance && agent.hasPath && agent.pathStatus == NavMeshPathStatus.PathComplete)
+                if (CanKeepCurrentPath(intent.Destination))
                     return MoveApplyResult.PathKept;
                 if (Time.time - lastRepathTime < minRepathInterval)
                     return MoveApplyResult.Deferred;
             }
 
             // 4) 목적지를 NavMesh 위로 보정 → 경로 계산 → 설정. 어느 단계든 실패하면 정지 + Unreachable
-            if (!NavMesh.SamplePosition(intent.Destination, out NavMeshHit hit, sampleRadius, agent.areaMask))
+            if (NavMesh.SamplePosition(intent.Destination, out NavMeshHit hit, sampleRadius, agent.areaMask) == false)
             {
                 Stop();
                 requestedState = MoveExecutionState.Unreachable;
@@ -140,13 +139,13 @@ namespace HybridShooter.Monster.Movement
                 return MoveApplyResult.Unreachable;
             }
 
-            if (!agent.CalculatePath(hit.position, path) || path.status != NavMeshPathStatus.PathComplete)
+            if (agent.CalculatePath(hit.position, path) == false || path.status != NavMeshPathStatus.PathComplete)
             {
                 Stop();
                 requestedState = MoveExecutionState.Unreachable;
                 return MoveApplyResult.Unreachable;
             }
-            if (!agent.SetPath(path))
+            if (agent.SetPath(path) == false)
             {
                 Stop();
                 requestedState = MoveExecutionState.Unreachable;
@@ -160,12 +159,29 @@ namespace HybridShooter.Monster.Movement
             return MoveApplyResult.PathSet;
         }
 
+        /// <summary>
+        /// 새 목적지가 마지막 경로 목적지와 거의 같고 지금 경로가 완전하면 재경로 없이 기존 경로를 유지해도 되는가.
+        /// Apply 의 재경로 제한 단계가 호출한다. 앞 조건이 거짓이면 뒤의 NavMeshAgent 경로 상태는 읽지 않는다.
+        /// </summary>
+        /// <param name="destination">이번 의도의 목적지 (월드)</param>
+        /// <returns>목적지 이동량 &lt; repathDistance 이고 경로가 있으며 PathComplete 면 true</returns>
+        private bool CanKeepCurrentPath(Vector3 destination)
+        {
+            float moved = (destination - lastRequestedDest).magnitude;
+            bool destinationAlmostSame = moved < repathDistance;
+            if (destinationAlmostSame == false) return false;
+            if (agent.hasPath == false) return false;
+            return agent.pathStatus == NavMeshPathStatus.PathComplete;
+        }
+
         /// <summary>이동을 멈추고 경로 추적 상태를 초기화한다 (Agent 가 꺼져 있거나 NavMesh 위가 아니면 상태만 초기화). MonsterMovement 와 Apply 의 실패 경로가 호출한다</summary>
         public void Stop()
         {
             hasDestination = false;
             requestedState = MoveExecutionState.Idle;
-            if (agent == null || !agent.isActiveAndEnabled || !agent.isOnNavMesh) return;
+            if (agent == null) return;
+            if (agent.isActiveAndEnabled == false) return;
+            if (agent.isOnNavMesh == false) return;
             agent.ResetPath();
             agent.isStopped = true;
             agent.velocity = Vector3.zero;

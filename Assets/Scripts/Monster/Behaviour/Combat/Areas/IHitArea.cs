@@ -53,7 +53,7 @@ namespace HybridShooter.Monster.Behaviour
         internal static Vector3 FlatDirection(Vector3 forward)
         {
             Vector3 flat = Flat(forward);
-            if (flat.sqrMagnitude < 1e-8f) throw new ArgumentException("forward 의 수평 성분이 0 이다", nameof(forward));
+            if (flat.magnitude < 1e-4f) throw new ArgumentException("forward 의 수평 성분이 0 이다", nameof(forward));
             return flat.normalized;
         }
     }
