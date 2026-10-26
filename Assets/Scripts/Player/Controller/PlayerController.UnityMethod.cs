@@ -34,6 +34,8 @@ namespace HybridShooter.Player
             if (bodyVisual == transform) bodyVisual = null; // 리지드바디 자신은 돌리면 안 된다
             if (gunSlot == null) gunSlot = GetComponent<GunSlot>();
             items = GetComponent<PlayerItems>();
+            // 씬·프리팹·빌더 어디서 만든 플레이어든 1인칭 목 숨김이 빠지지 않게
+            if (GetComponent<PlayerFirstPersonNeck>() == null) gameObject.AddComponent<PlayerFirstPersonNeck>();
             stamina = maxStamina;
 
             CacheRig();

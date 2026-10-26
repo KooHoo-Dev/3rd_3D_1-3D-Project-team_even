@@ -59,6 +59,18 @@ namespace HybridShooter.Player
             : new Pose(transform.position, transform.rotation);
         /// <summary>1인칭 카메라</summary>
         public Camera FirstPersonCamera => fpCamera;
+        /// <summary>머리를 숨긴 상태 (1인칭, 또는 전환 연출 중 카메라가 눈 근처). PlayerFirstPersonNeck 이 이때 목을 접는다</summary>
+        public bool IsHeadHidden => headHidden;
+        /// <summary>디버그: 목 때문에 1인칭 눈을 앞으로 민 거리(m)</summary>
+        public float NeckPush => neckPush;
+
+        /// <summary>IK 가 모두 끝난 목 뼈 월드 위치 (PlayerFirstPersonNeck 이 매 프레임). 다음 프레임 1인칭 눈 위치(목 보호)에 쓴다</summary>
+        public void ReportNeckPosition(Vector3 worldPosition)
+        {
+            if (rigReady == false) return;
+            neckLocal = fpRig.parent.InverseTransformPoint(worldPosition);
+            hasNeckSample = true;
+        }
 
         public float LookYaw => lookYaw;
         public float LookPitch => lookPitch;

@@ -78,6 +78,7 @@ namespace HybridShooter.Player
             float pivotWeight = DebugNeckPivotOverride ?? neckPivotWeight;
             if (pivotWeight > 0f && lookPitch > 0f)
                 basePos += (Quaternion.Euler(lookPitch, 0f, 0f) * eyeFromNeck - eyeFromNeck) * pivotWeight;
+            basePos += NeckGuardOffset(basePos);
 
             if (followHeadBone == false || headBone == null)
             {
@@ -89,6 +90,21 @@ namespace HybridShooter.Player
             Vector3 headLocal = fpRig.parent.InverseTransformPoint(headBone.position) + headEyeOffset;
             Vector3 target = Vector3.Lerp(basePos, headLocal, headFollowWeight);
             fpRig.localPosition = Vector3.SmoothDamp(fpRig.localPosition, target, ref headFollowVelocity, headFollowSmoothTime);
+        }
+
+        /// <summary>
+        /// 목 보호: 눈(eyeLocal)이 목 뼈보다 시선 수평 정면으로 neckClearance 만큼 앞에 있도록 앞으로 미는 양 (FP_Rig 부모 기준).
+        /// 목 위치는 지난 프레임 IK 가 끝난 뒤 값 (PlayerFirstPersonNeck 이 ReportNeckPosition 으로 넘긴다). 부모 기준이라 이동해도 1프레임 차이는 작다.
+        /// 1인칭 총 자리는 눈(FirstPersonEyePose)을 따라가므로 총도 같이 앞으로 간다. 1인칭 정도(FirstPersonBlend)만큼만 적용
+        /// </summary>
+        private Vector3 NeckGuardOffset(Vector3 eyeLocal)
+        {
+            float target = 0f;
+            Vector3 forward = Quaternion.Inverse(fpRig.parent.rotation) * (Quaternion.Euler(0f, lookYaw, 0f) * Vector3.forward);
+            if (neckClearance > 0f && hasNeckSample)
+                target = Mathf.Max(0f, neckClearance - Vector3.Dot(eyeLocal - neckLocal, forward)) * FirstPersonBlend;
+            neckPush = Mathf.SmoothDamp(neckPush, target, ref neckPushVelocity, neckGuardSmoothTime);
+            return forward * neckPush;
         }
 
         /// <summary>

@@ -14,7 +14,7 @@ namespace HybridShooter.Weapon.EditorTools
     ///
     ///  1. 텍스처(별 모양 화염·빛 덩어리·연기·빛줄기)를 코드로 그려 PNG 로 저장
     ///  2. QFX Particle HDR 셰이더로 재질을 만든다 (HDR 색이라 Bloom 에서 빛난다)
-    ///  3. 총구 화염 4종(소·중·대·발사기), 탄 궤적 3종(일반·산탄·저격), 로켓·유탄 꼬리를 프리팹으로 저장
+    ///  3. 총구 화염 4종(소·중·대·발사기), 탄 궤적 3종(일반·산탄·저격), 탄착 3종(일반·산탄·저격), 로켓·유탄 꼬리를 프리팹으로 저장
     ///  4. QFX 폭발(유탄·로켓)을 복사해 파란색 → 주황색으로 바꾼다 (재질 색 + 파티클·불빛 색)
     ///  5. Player 프리팹과 PlayerTest 씬의 총 8종, 수류탄 프리팹에 연결
     ///
@@ -41,6 +41,7 @@ namespace HybridShooter.Weapon.EditorTools
         {
             public GameObject FlashSmall, FlashMedium, FlashLarge, FlashLauncher;
             public BulletTracer TracerStandard, TracerPellet, TracerSniper;
+            public GameObject ImpactBullet, ImpactPellet, ImpactSniper;
             public GameObject ExplosionGrenade, ExplosionRocket;
             public ProjectileTrail RocketTrail, GrenadeTrail;
         }
@@ -217,9 +218,12 @@ namespace HybridShooter.Weapon.EditorTools
                     Name = "MuzzleFlash_Launcher", FlashSize = 0.3f, SideWidth = 0.14f, SideLength = 2.5f,
                     Sparks = 4, SmokeCount = 5, SmokeSize = 0.35f, LightRange = 4f, LightIntensity = 3f,
                 }),
-                TracerStandard = BuildTracer(m, "Tracer_Standard", 0.03f, 350f, 5f),
-                TracerPellet = BuildTracer(m, "Tracer_Pellet", 0.018f, 300f, 2.5f),
-                TracerSniper = BuildTracer(m, "Tracer_Sniper", 0.06f, 600f, 12f),
+                TracerStandard = BuildTracer(m, "Tracer_Standard", 0.03f, 180f, 4f, 0.35f),
+                TracerPellet = BuildTracer(m, "Tracer_Pellet", 0.018f, 160f, 2f, 0.2f),
+                TracerSniper = BuildTracer(m, "Tracer_Sniper", 0.06f, 320f, 10f, 0.7f),
+                ImpactBullet = BuildImpact(m, "Impact_Bullet", 1f, 6),
+                ImpactPellet = BuildImpact(m, "Impact_Pellet", 0.6f, 3),
+                ImpactSniper = BuildImpact(m, "Impact_Sniper", 1.8f, 12),
                 RocketTrail = BuildRocketTrail(m),
                 GrenadeTrail = BuildGrenadeTrail(m),
                 ExplosionGrenade = BuildOrangeExplosion("Grenade/PS_Explosion_Grenade", "Explosion_Grenade"),
@@ -276,8 +280,8 @@ namespace HybridShooter.Weapon.EditorTools
             return SavePrefab(root, s.Name);
         }
 
-        /// <summary>꼬리(0) 투명 → 머리(1) 밝게. 머리 쪽이 조금 더 굵다</summary>
-        private static BulletTracer BuildTracer(Materials m, string name, float width, float speed, float length)
+        /// <summary>꼬리(0) 투명 → 머리(1) 밝게. 머리 쪽이 조금 더 굵다. 밝은 총알 머리(headLength)는 BulletTracer 가 실행 중에 만든다</summary>
+        private static BulletTracer BuildTracer(Materials m, string name, float width, float speed, float length, float headLength)
         {
             var root = new GameObject(name);
             var line = root.AddComponent<LineRenderer>();
@@ -298,9 +302,46 @@ namespace HybridShooter.Weapon.EditorTools
             var so = new SerializedObject(tracer);
             so.FindProperty("speed").floatValue = speed;
             so.FindProperty("length").floatValue = length;
+            so.FindProperty("headLength").floatValue = headLength;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             return SavePrefab(root, name).GetComponent<BulletTracer>();
+        }
+
+        /// <summary>
+        /// 히트스캔 탄착: 밝은 섬광 + 튀는 불똥(중력) + 먼지. 로컬 +Z = 맞은 면의 법선 (Gun.SpawnImpact 가 LookRotation(normal) 로 만든다).
+        /// 연사가 빨라 불빛(Light)은 넣지 않는다. 총이 2초 뒤 지운다
+        /// </summary>
+        private static GameObject BuildImpact(Materials m, string name, float scale, int sparkCount)
+        {
+            var root = new GameObject(name);
+
+            var flash = AddSystem(root.transform, "Flash", m.Core, local: true);
+            Burst(flash, 1, 1);
+            SetMain(flash, lifetime: (0.05f, 0.07f), size: (0.12f * scale, 0.16f * scale));
+            flash.transform.localPosition = new Vector3(0f, 0f, 0.02f); // 면에 묻히지 않게
+
+            var star = AddSystem(root.transform, "Star", m.Star, local: true);
+            Burst(star, 1, 1);
+            SetMain(star, lifetime: (0.04f, 0.06f), size: (0.18f * scale, 0.24f * scale), randomRotation: true);
+            star.transform.localPosition = new Vector3(0f, 0f, 0.02f);
+
+            var sparks = AddSystem(root.transform, "Sparks", m.Spark, local: false);
+            Burst(sparks, Mathf.Max(1, sparkCount - 2), sparkCount);
+            SetMain(sparks, lifetime: (0.15f, 0.35f), size: (0.012f * scale, 0.022f * scale), speed: (2f * scale, 5f * scale));
+            var sparkMain = sparks.main;
+            sparkMain.gravityModifier = 1.5f;
+            Cone(sparks, 45f, 0.01f);
+            Stretch(sparks, 1f, 0.02f);
+
+            var dust = AddSystem(root.transform, "Dust", m.Smoke, local: false);
+            Burst(dust, 2, 3);
+            SetMain(dust, lifetime: (0.4f, 0.7f), size: (0.08f * scale, 0.12f * scale), speed: (0.3f, 0.8f), randomRotation: true);
+            Cone(dust, 30f, 0.02f);
+            Grow(dust, 3f);
+            Fade(dust, 0.6f, fadeIn: true);
+
+            return SavePrefab(root, name);
         }
 
         /// <summary>로켓 뒤 불꽃(로켓에 붙음) + 연기 줄기(월드에 남음) + 불빛</summary>
@@ -620,19 +661,23 @@ namespace HybridShooter.Weapon.EditorTools
                     case SMG _:
                         Set(so, "muzzleFlashPrefab", set.FlashSmall);
                         Set(so, "tracerPrefab", set.TracerStandard);
+                        Set(so, "impactEffectPrefab", set.ImpactBullet);
                         break;
                     case AssaultRifle _:
                     case Rifle _:
                         Set(so, "muzzleFlashPrefab", set.FlashMedium);
                         Set(so, "tracerPrefab", set.TracerStandard);
+                        Set(so, "impactEffectPrefab", set.ImpactBullet);
                         break;
                     case ShotGun _:
                         Set(so, "muzzleFlashPrefab", set.FlashLarge);
                         Set(so, "tracerPrefab", set.TracerPellet);
+                        Set(so, "impactEffectPrefab", set.ImpactPellet);
                         break;
                     case SniperRifle _:
                         Set(so, "muzzleFlashPrefab", set.FlashLarge);
                         Set(so, "tracerPrefab", set.TracerSniper);
+                        Set(so, "impactEffectPrefab", set.ImpactSniper);
                         break;
                     case RocketLauncher _:
                         Set(so, "muzzleFlashPrefab", set.FlashLauncher);

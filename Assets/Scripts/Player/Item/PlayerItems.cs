@@ -14,7 +14,7 @@ namespace HybridShooter.Player
     ///
     /// 흐름
     ///  - 보급 상자 → IItemUser.AddGrenades / AddHealPacks 로 개수 보충
-    ///  - PlayerController 입력 → TryThrowGrenade (G) / TryUseHeal (H)
+    ///  - PlayerController 입력 → TryThrowGrenade (G) / TryUseHeal (V)
     ///  - 수치 = 원본(GrenadeTable / 인스펙터) + 강화(IUpgradeState). 강화를 사면(UpgradePurchasedEvent) 다시 계산
     ///
     /// 애니메이션 · IK 연결
@@ -182,11 +182,15 @@ namespace HybridShooter.Player
             GrenadeReleased?.Invoke();
         }
 
-        /// <summary>회복 시작. 팩이 없거나, 이미 회복 중이거나, 체력이 가득이면 false (팩을 쓰지 않음)</summary>
+        /// <summary>회복 시작. 팩이 없거나, 이미 회복 중이거나, 체력이 가득이면 false (팩을 쓰지 않음). 실패하면 이유를 로그로 남긴다</summary>
         public bool TryUseHeal()
         {
-            if (healing || throwing || healPacks <= 0 || CanAct == false) return false;
-            if (player.CurrentHealth >= player.MaxHealth) return false;
+            string fail = HealFailReason();
+            if (fail != null)
+            {
+                Debug.Log($"{name}: 회복 팩 사용 실패 - {fail}", this);
+                return false;
+            }
 
             HealStats stats = HealStats;
             healing = true;
@@ -251,6 +255,20 @@ namespace HybridShooter.Player
         #region 내부
         // 공중(발이 땅에 닿지 않음)에서는 수류탄·회복을 쓸 수 없다
         private bool CanAct => player.IsAlive && player.IsRolling == false && player.IsExternallyControlled == false && player.IsOnGround;
+
+        /// <summary>지금 회복 팩을 쓸 수 없는 이유. 쓸 수 있으면 null (검사 순서 = CanAct 를 풀어 쓴 것)</summary>
+        private string HealFailReason()
+        {
+            if (healing) return $"이미 회복 중 (남은 {HealRemainingTime:0.0}초)";
+            if (throwing) return "수류탄을 던지는 중";
+            if (healPacks <= 0) return "회복 팩이 없음";
+            if (player.IsAlive == false) return "죽은 상태";
+            if (player.IsRolling) return "구르는 중";
+            if (player.IsExternallyControlled) return "외부 제어 중 (컷신 등)";
+            if (player.IsOnGround == false) return "공중에 떠 있음";
+            if (player.CurrentHealth >= player.MaxHealth) return $"체력이 가득 참 ({player.CurrentHealth}/{player.MaxHealth})";
+            return null;
+        }
 
         private void UpdateThrow()
         {

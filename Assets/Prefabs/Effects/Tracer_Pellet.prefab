@@ -164,6 +164,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c5a0383eb52ff241a9aec43e738dcc2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Weapon.BulletTracer
-  speed: 300
-  length: 2.5
+  speed: 160
+  length: 2
   minDistance: 1.5
+  headLength: 0.2
+  headWidthScale: 2.5
+  headColor: {r: 1, g: 1, b: 1, a: 1}
+  impactLifetime: 2
