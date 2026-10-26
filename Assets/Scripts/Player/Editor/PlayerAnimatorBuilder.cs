@@ -17,7 +17,8 @@ namespace HybridShooter.Player.EditorTools
     ///
     /// 현재 단계(3-5): 대기 · 8방향 이동 · 전력질주 · 점프 · 낙하 · 착지 · 상체 자세(들고 다니기 ↔ 조준) · AimIK · 재장전 · 꺼내기 · 사격 반동 · 구르기 · 피격 · 사망
     ///  1. 라이플 1회성 클립(재장전·구르기·피격·수류탄)의 루프 설정 끄기
-    ///  2. 이동 클립 속도를 루트모션(_RM) 판으로 측정 (제자리 클립은 속도가 0 으로 나온다)
+    ///  2. 이동 클립 속도를 루트모션(_RM) 판으로 측정 (제자리 클립은 속도가 0 으로 나온다).
+    ///     이동·전력질주·대기 클립은 이음새를 고친 판(PlayerLoopClips)을 쓴다
     ///  3. Player_AC 비우고 새로 생성: Base Layer = Locomotion(2D Freeform Directional, 대기 + 걷기 8 + 달리기 8) ↔ Sprint, 점프 시작 → 낙하 → 착지 3종,
     ///     Upper Pose 레이어(팔·손가락·머리 마스크) = 1D[Aim](들고 다니기, 조준) → 이동·점프 중에도 상체는 이 자세
     ///  4. PlayerAnimationProfile 에셋에 측정한 속도 저장
@@ -93,6 +94,7 @@ namespace HybridShooter.Player.EditorTools
             LoadClips();
             FixOneShotLoops();
             LoadClips(); // 다시 임포트한 클립을 새로 읽는다
+            UseSeamlessLoops();
 
             PlayerAnimationProfile profile = LoadOrCreateProfile();
             PlayerAnimationProfile.WeaponSet rifle = profile.DefaultSet ?? new PlayerAnimationProfile.WeaponSet();
@@ -172,6 +174,97 @@ namespace HybridShooter.Player.EditorTools
                 count++;
             }
             log.Add($"1회성 클립 루프 끔: {count}개");
+        }
+
+        /// <summary>
+        /// 이동·전력질주·대기 클립을 이음새 고친 판(PlayerLoopClips, LoopClips 폴더의 _Loop.anim)으로 바꾼다.
+        /// 원본은 끝 프레임이 걸음 주기와 맞지 않아 한 바퀴마다 상체가 튀었다 (반복 구간을 다시 고른다). 속도 측정은 그대로 _RM 원본으로 한다
+        /// </summary>
+        private static void UseSeamlessLoops()
+        {
+            var keys = new List<string> { "IdleHold" + Suffix, "IdleAim" + Suffix, "SprintForward" + Suffix };
+            foreach (var (dir, _) in Directions)
+            {
+                keys.Add(LocomotionKey("Walk", dir));
+                keys.Add(LocomotionKey("Run", dir));
+            }
+            var reports = new List<string>();
+            int count = PlayerLoopClips.ReplaceInDictionary(clips, keys, reports);
+            log.Add($"반복 클립 이음새 고친 판 사용: {count}개 ({PlayerLoopClips.Folder})\n   " + string.Join("\n   ", reports));
+        }
+
+        /// <summary>
+        /// 이동 클립 키. 정면은 조준 없이 총을 들고 이동하는 클립(Walk/RunForward + 총 접미사)이 있으면 그것을, 없으면 Aiming 판.
+        /// 조준하지 않고 앞으로 갈 때 팔·어깨가 들고 뛰는 동작이 되고, 조준하면 Upper Pose 레이어(IdleAim)가 상체를 덮는다.
+        /// 옆·뒤·대각선은 조준 없는 판이 에셋에 없어 Aiming 판 그대로
+        /// </summary>
+        private static string LocomotionKey(string gait, string dir)
+        {
+            if (dir == "Forward")
+            {
+                string carry = $"{gait}Forward{Suffix}";
+                if (clips.ContainsKey(carry)) return carry;
+            }
+            return $"{gait}{dir}Aiming{Suffix}";
+        }
+
+        /// <summary>
+        /// 컨트롤러를 다시 만들지 않고 지금 Player_AC 의 Locomotion 정면 걷기·달리기 칸만 조준 없는 클립(이음새 고친 판)으로 바꾼다.
+        /// 블렌드 좌표는 그 클립의 _RM 속도, 프로필의 정면 걷기·달리기 속도도 갱신. 씬·프리팹·다른 상태는 그대로. 여러 번 눌러도 같은 결과
+        /// </summary>
+        [MenuItem("Tools/HybridShooter/Use Carry Forward Clips (정면 들고 이동)")]
+        private static void UseCarryForwardMenu()
+        {
+            const string MenuTitle = "정면 들고 이동 클립";
+            if (EditorApplication.isPlaying)
+            {
+                EditorUtility.DisplayDialog(MenuTitle, "플레이 모드를 끄고 실행하세요.", "확인");
+                return;
+            }
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            PlayerAnimationProfile profile = AssetDatabase.LoadAssetAtPath<PlayerAnimationProfile>(ProfilePath);
+            BlendTree tree = controller != null && controller.layers.Length > 0
+                ? controller.layers[0].stateMachine.states.Select(s => s.state)
+                    .FirstOrDefault(s => s.name == PlayerAnimNames.States.Locomotion)?.motion as BlendTree
+                : null;
+            if (tree == null || profile == null || profile.DefaultSet == null)
+            {
+                EditorUtility.DisplayDialog(MenuTitle, "Player_AC 의 Locomotion 블렌드트리나 프로필을 찾지 못했습니다.\nTools/HybridShooter/Build Player Animator 를 먼저 실행하세요.", "확인");
+                return;
+            }
+
+            log.Clear();
+            missing.Clear();
+            LoadClips();
+            Undo.RecordObjects(new Object[] { tree, profile }, MenuTitle);
+            ChildMotion[] children = tree.children;
+            foreach (string gait in new[] { "Walk", "Run" })
+            {
+                string key = LocomotionKey(gait, "Forward");
+                string aiming = $"{gait}ForwardAiming{Suffix}";
+                string carry = $"{gait}Forward{Suffix}";
+                // 지금 정면 칸: Aiming 판이나 조준 없는 판(원본·이음새 고친 판 모두)
+                int index = System.Array.FindIndex(children, c => c.motion != null &&
+                    (c.motion.name == aiming || c.motion.name == aiming + PlayerLoopClips.LoopSuffix ||
+                     c.motion.name == carry || c.motion.name == carry + PlayerLoopClips.LoopSuffix));
+                if (index < 0) { log.Add($"{gait}: 정면 칸을 찾지 못함"); continue; }
+
+                AnimationClip clip = PlayerLoopClips.MakeSeamless(Clip(key), out string report);
+                if (clip == null) { log.Add($"{gait}: 클립 없음 {key}"); continue; }
+                float speed = MeasureSpeed(key, children[index].position.magnitude);
+                children[index].motion = clip;
+                children[index].position = new Vector2(0f, speed);
+                if (gait == "Walk") profile.DefaultSet.walkSpeed = speed;
+                else profile.DefaultSet.runSpeed = speed;
+                log.Add($"{gait}: {clip.name} ({speed:0.00} m/s){(report != null ? $"\n   {report}" : "")}");
+            }
+            tree.children = children;
+            EditorUtility.SetDirty(tree);
+            EditorUtility.SetDirty(profile);
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+            if (missing.Count > 0) Debug.LogWarning("[PlayerAnimatorBuilder] 찾지 못한 클립:\n" + string.Join("\n", missing.Distinct()));
+            Debug.Log("[PlayerAnimatorBuilder] 정면 들고 이동 클립 적용\n - " + string.Join("\n - ", log), controller);
         }
 
         /// <summary>
@@ -274,8 +367,8 @@ namespace HybridShooter.Player.EditorTools
             var runSpeeds = new List<float>();
             foreach (var (dir, unit) in Directions)
             {
-                string walkKey = $"Walk{dir}Aiming{Suffix}";
-                string runKey = $"Run{dir}Aiming{Suffix}";
+                string walkKey = LocomotionKey("Walk", dir);
+                string runKey = LocomotionKey("Run", dir);
                 float walk = MeasureSpeed(walkKey, 0.77f);
                 float run = MeasureSpeed(runKey, 2.5f);
                 AnimationClip walkClip = Clip(walkKey);
@@ -315,6 +408,7 @@ namespace HybridShooter.Player.EditorTools
             log.Add($"이동 클립 속도 (m/s): 걷기 {string.Join(" / ", walkSpeeds.Select(s => s.ToString("0.00")))}");
             log.Add($"                   달리기 {string.Join(" / ", runSpeeds.Select(s => s.ToString("0.00")))}  (정면부터 시계방향)");
             log.Add($"전력질주 {speeds.sprintSpeed:0.00} m/s, Base Layer: Locomotion(대기+걷기 8+달리기 8) ↔ Sprint, 전환 {SprintTransition}초");
+            log.Add($"정면 클립: {LocomotionKey("Walk", "Forward")} / {LocomotionKey("Run", "Forward")}");
 
             BuildAirborne(machine, locomotion, sprint);
             BuildDodgeAndDeath(controller, machine, locomotion, speeds);

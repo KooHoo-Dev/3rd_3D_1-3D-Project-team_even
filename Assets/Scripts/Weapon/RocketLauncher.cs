@@ -14,6 +14,8 @@ namespace HybridShooter.Weapon
         [Header("로켓")]
         [Tooltip("날아가는 로켓 외형 (비우면 구)")]
         [SerializeField] private GameObject rocketPrefab;
+        [Tooltip("로켓 뒤 불꽃·연기 꼬리 (선택)")]
+        [SerializeField] private ProjectileTrail rocketTrail;
         [SerializeField] private float rocketSpeed = 30f;
         [SerializeField] private float rocketRadius = 0.15f;
         [SerializeField] private float armDistance = 2f;
@@ -57,6 +59,7 @@ namespace HybridShooter.Weapon
                 DirectHitBonus = Mathf.RoundToInt(Stats.damage * directHitBonusRatio),
                 MaxLifetime = Stats.range / Mathf.Max(1f, rocketSpeed) + 0.5f,
                 Explosion = explosion,
+                Trail = rocketTrail,
             };
             settings.Explosion.damage = Stats.damage;
             GunProjectile.Spawn(rocketPrefab, spawn, direction * rocketSpeed, settings, CreateProjectileContext());

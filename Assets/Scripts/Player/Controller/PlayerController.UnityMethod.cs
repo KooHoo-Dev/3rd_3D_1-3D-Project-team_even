@@ -1,4 +1,6 @@
 ﻿using DG.Tweening;
+using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Services;
 using HybridShooter.Weapon;
 using UnityEngine;
 
@@ -67,7 +69,7 @@ namespace HybridShooter.Player
 
         private void Update()
         {
-            if (externalControl) return;
+            if (externalControl || DebugBlockInput) return;
             InputHandle();
         }
 

@@ -14,6 +14,8 @@ namespace HybridShooter.Weapon
         [Header("유탄")]
         [Tooltip("날아가는 유탄 외형 (비우면 구)")]
         [SerializeField] private GameObject grenadePrefab;
+        [Tooltip("유탄 뒤 연기 꼬리 (선택)")]
+        [SerializeField] private ProjectileTrail grenadeTrail;
         [SerializeField] private float launchSpeed = 28f;
         [Tooltip("조준선보다 위로 쏘는 각도(도)")]
         [SerializeField] private float launchAngle = 4f;
@@ -67,6 +69,7 @@ namespace HybridShooter.Weapon
                 ImpactDamage = Mathf.RoundToInt(Stats.damage * impactDamageRatio),
                 MaxLifetime = fuseTime + 1f,
                 Explosion = explosion,
+                Trail = grenadeTrail,
             };
             settings.Explosion.damage = Stats.damage;
             GunProjectile.Spawn(grenadePrefab, spawn, direction * launchSpeed, settings, CreateProjectileContext());

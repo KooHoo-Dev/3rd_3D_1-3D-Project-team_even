@@ -16,8 +16,11 @@ namespace HybridShooter.Player
     ///  - Jump = PlayerController.Jumped 순간, Grounded = 지상 또는 급경사 미끄럼
     ///  - Falling = 최대 하강 속도에 닿았을 때만 (높은 곳에서 떨어질 때. 보통 점프는 점프 동작 그대로 착지)
     ///  - LandType = 공중에서 가장 빨리 떨어진 속도로 착지 세기 결정 (최대 하강 속도까지 갔으면 무겁게)
-    ///  - Aim = 0 들고 다니기 ↔ 1 조준 (조준 중이거나 막 쏜 뒤). Upper Pose 레이어(팔·머리)는 총이 있으면 항상 켬
-    ///    → 이동·점프 동작은 다리·몸통에만 보이고 팔과 총은 이 자세
+    ///  - Aim = 0 들고 다니기 ↔ 1 조준 (조준 중이거나 막 쏜 뒤). Upper Pose 레이어(팔·머리)는 두 값으로 나눈다
+    ///    · UpperPoseWeight = 상체 자세를 써도 되는 상태 (총 있음·살아 있음·구르기·벽넘기 아님). 왼손·조준·1인칭 IK, 반동, Upper Action 레이어가 쓴다
+    ///    · UpperPoseLayerWeight = 실제 레이어 가중치 = 위 상태 × 움직임 계수. 서 있으면 1, 지상에서 이동하면 upperPoseMoving,
+    ///      전력질주면 upperPoseSprint → 이동 클립의 팔·어깨 움직임이 보인다 (전부 덮으면 상체가 굳어 보였다).
+    ///      조준 정도·1인칭 정도만큼, 그리고 공중에서는 1 (조준 자세·1인칭 손 자리·점프 동작은 그대로)
     ///  - Reload / Draw = 재장전 시작(EventBus) / 무기 교체(GunSlot.GunChanged). ActionSpeed 로 실제 시간에 맞춤.
     ///    ActionEnd = 장전 종료·취소, 꺼내기 중 조준·사격. 동작 중에는 ActionBlend 가 0 → 조준 IK 를 푼다
     ///  - Throw = PlayerItems.ThrowStarted. 던지는 동작 시간에 맞춰 재생하고, 클립 분석으로 찾은 순간(throwRelease)에 수류탄을 놓는다
@@ -53,6 +56,8 @@ namespace HybridShooter.Player
         private PlayerItems items;
         private float drawEndTime;
         private float actionBlend = 1f;        // 1 = 동작 없음, 0 = 재장전·꺼내기 중
+        private float upperPoseState = 1f;     // 상체 자세를 써도 되는 정도 (레이어 기본 가중치 1 에서 시작)
+        private float upperPoseMotion = 1f;    // 움직임 계수: 1 = 서 있음, 낮을수록 이동 클립의 팔 동작
         private int hitReactionLayer = -1;
         private Vector2 lastHitDirection = Vector2.up; // 몸 기준 맞은 쪽 (x = 오른쪽, y = 앞). 사망 방향에도 쓴다
 
@@ -60,13 +65,20 @@ namespace HybridShooter.Player
         public PlayerAnimationProfile.WeaponSet CurrentSet => currentSet;
         /// <summary>0 = 들고 다니기, 1 = 조준 (부드럽게 변함). AimIK 가중치에도 쓴다</summary>
         public float AimWeight => aimWeight;
-        /// <summary>상체 자세 레이어 가중치 (총이 없거나 사망·구르기 중이면 0)</summary>
-        public float UpperPoseWeight => ready && upperPoseLayer >= 0 ? animator.GetLayerWeight(upperPoseLayer) : 0f;
+        /// <summary>
+        /// 상체 자세를 써도 되는 정도 (총이 없거나 사망·구르기·벽넘기 중이면 0). 왼손·조준·1인칭 IK, 반동이 이 값을 쓴다.
+        /// 이동 중에 낮아지는 실제 레이어 가중치는 UpperPoseLayerWeight
+        /// </summary>
+        public float UpperPoseWeight => ready && upperPoseLayer >= 0 ? upperPoseState : 0f;
+        /// <summary>Upper Pose 레이어의 실제 가중치 (= UpperPoseWeight × 움직임 계수, 디버그·확인용)</summary>
+        public float UpperPoseLayerWeight => ready && upperPoseLayer >= 0 ? animator.GetLayerWeight(upperPoseLayer) : 0f;
         /// <summary>1 = 팔 동작 없음, 0 = 재장전·꺼내기 중 (조준 IK 를 이 비율로 줄인다)</summary>
         public float ActionBlend => actionBlend;
         public PlayerAnimationProfile Profile => profile;
         /// <summary>편집 도구(IK Pose Lab)용: true = 조준 자세 고정, false = 들고 다니기 자세 고정, null = 평소대로</summary>
         public bool? DebugAimOverride { get; set; }
+        /// <summary>디버그(애니메이션 떨림 측정): Upper Pose 레이어만 끈다 (팔은 이동 클립 그대로. 조준·왼손 IK 는 UpperPoseWeight 를 따르므로 그대로 켜져 있다)</summary>
+        public bool DebugUpperPoseOff { get; set; }
 
         private void Awake()
         {
@@ -294,7 +306,8 @@ namespace HybridShooter.Player
                 acting = animator.GetCurrentAnimatorStateInfo(upperActionLayer).shortNameHash != PlayerAnimNames.Hash.EmptyState
                          || (animator.IsInTransition(upperActionLayer)
                              && animator.GetNextAnimatorStateInfo(upperActionLayer).shortNameHash != PlayerAnimNames.Hash.EmptyState);
-                animator.SetLayerWeight(upperActionLayer, upperPoseLayer >= 0 ? animator.GetLayerWeight(upperPoseLayer) : 1f);
+                // 이동 중 낮아지는 Upper Pose 레이어가 아니라 "상체 자세를 써도 되는 상태"를 따른다 → 뛰면서 재장전해도 팔 동작이 온전히 보인다
+                animator.SetLayerWeight(upperActionLayer, upperPoseLayer >= 0 ? upperPoseState : 1f);
             }
             float step = profile.actionBlendTime > 0f ? dt / profile.actionBlendTime : 1f;
             actionBlend = Mathf.MoveTowards(actionBlend, acting ? 0f : 1f, step);
@@ -303,7 +316,8 @@ namespace HybridShooter.Player
 
         /// <summary>
         /// 상체 자세: Aim 을 조준 여부에 맞춰 aimBlendTime 에 걸쳐 0 ↔ 1 로. 공중에서는 조준이 풀리므로(PlayerController) 들고 다니기 자세.
-        /// 레이어는 총이 있으면 켜고, 사망·구르기·벽넘기 중에는 끈다 (그 동작은 전신이 맞다)
+        /// 상체 자세 상태(UpperPoseWeight)는 총이 있으면 켜고, 사망·구르기·벽넘기 중에는 끈다 (그 동작은 전신이 맞다).
+        /// 실제 레이어 가중치 = 상태 × 움직임 계수 (UpperPoseMotionTarget)
         /// </summary>
         private void UpdateUpperPose(float dt)
         {
@@ -315,8 +329,27 @@ namespace HybridShooter.Player
 
             if (upperPoseLayer < 0) return;
             bool on = hasGun && player.IsAlive && player.IsRolling == false && player.IsExternallyControlled == false;
-            float layerStep = profile.upperPoseBlendTime > 0f ? dt / profile.upperPoseBlendTime : 1f;
-            animator.SetLayerWeight(upperPoseLayer, Mathf.MoveTowards(animator.GetLayerWeight(upperPoseLayer), on ? 1f : 0f, layerStep));
+            float stateStep = profile.upperPoseBlendTime > 0f ? dt / profile.upperPoseBlendTime : 1f;
+            upperPoseState = Mathf.MoveTowards(upperPoseState, on ? 1f : 0f, stateStep);
+
+            float motionStep = profile.upperPoseMoveBlendTime > 0f ? dt / profile.upperPoseMoveBlendTime : 1f;
+            upperPoseMotion = Mathf.MoveTowards(upperPoseMotion, UpperPoseMotionTarget(), motionStep);
+            animator.SetLayerWeight(upperPoseLayer, DebugUpperPoseOff ? 0f : upperPoseState * upperPoseMotion);
+        }
+
+        /// <summary>
+        /// 움직임 계수 목표: 서 있으면 1, 지상에서 빨라질수록 upperPoseMoving (전력질주 동작 중이면 upperPoseSprint).
+        /// 조준 정도·1인칭 정도만큼 1 로 되돌린다 (조준 자세·AimIK, 1인칭 손 자리는 서 있는 자세 기준으로 맞춰 두었다). 공중에서는 1 (점프 동작은 그대로)
+        /// </summary>
+        private float UpperPoseMotionTarget()
+        {
+            if (player.IsOnGround == false) return 1f;
+            Vector2 range = profile.upperPoseSpeedRange;
+            float moving = range.y > range.x ? Mathf.InverseLerp(range.x, range.y, player.HorizontalSpeed) : (player.HorizontalSpeed > range.x ? 1f : 0f);
+            float motionWeight = animator.GetBool(PlayerAnimNames.Hash.Sprint) ? profile.upperPoseSprint : profile.upperPoseMoving;
+            float target = Mathf.Lerp(1f, motionWeight, moving);
+            target = Mathf.Lerp(target, 1f, aimWeight);
+            return Mathf.Lerp(target, 1f, player.FirstPersonBlend);
         }
 
         private void OnJumped() => animator.SetTrigger(PlayerAnimNames.Hash.Jump);

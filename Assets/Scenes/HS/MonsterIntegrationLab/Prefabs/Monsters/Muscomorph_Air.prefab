@@ -1682,6 +1682,7 @@ GameObject:
   - component: {fileID: 1042026002347941205}
   - component: {fileID: 8857605372768615403}
   - component: {fileID: 1339720009426404018}
+  - component: {fileID: 1675132261988885659}
   m_Layer: 0
   m_Name: Muscomorph_Air
   m_TagString: Untagged
@@ -1808,6 +1809,7 @@ MonoBehaviour:
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
   hitTimeRatio: 0.5
+  windupTurnSpeed: 360
 --- !u!114 &1339720009426404018
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1822,6 +1824,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterDebugActions
   damageAmount: 10
   stunSeconds: 2
+--- !u!136 &1675132261988885659
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6221495752859311938}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.21526623
+  m_Height: 0.59382355
+  m_Direction: 1
+  m_Center: {x: 0.007997513, y: 0.5641081, z: 0.11752832}
 --- !u!1 &6357135313045127238
 GameObject:
   m_ObjectHideFlags: 0

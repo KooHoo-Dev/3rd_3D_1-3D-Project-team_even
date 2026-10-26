@@ -9,6 +9,7 @@ namespace HybridShooter.UI
     ///    듀플렉스 조준선(바깥 굵게·안쪽 가늘게, 가운데 비움) + 가운데 점 + 눈금, 오른쪽 아래 거리 표시
     ///  - 견착 조준선: 가운데 점, SCI-FI UI 팩 열린 원, 좌우 선, 아래로 거리 눈금 3개
     ///  - 전환 암전: 스코프로 들어가고 나올 때 잠깐 검게
+    ///  - 허리 사격 조준선: 가운데 점 + 네 눈금. 눈금까지 거리 = 지금 퍼짐 각도 (탄이 이 원 안에 떨어진다)
     /// 색은 SCI-FI 무기·UI 팩에 맞춘 청록. 텍스처(원 마스크, 흰 점)는 실행 중에 만든다
     /// </summary>
     public sealed class AimReticleHud : MonoBehaviour
@@ -16,9 +17,13 @@ namespace HybridShooter.UI
         public static readonly Color Cyan = new Color(0.1f, 0.88f, 1f, 1f);
         private const float ScopeHeight = 0.92f; // 스코프 원 지름 (화면 높이 비율)
         private const float RefHeight = 1080f;
+        private const float HipTickLength = 10f;
+        private const float HipMinGap = 6f; // 퍼짐이 아주 작아도 눈금이 가운데 점에 붙지 않게
 
         private CanvasGroup scope;
         private CanvasGroup launcher;
+        private CanvasGroup hip;
+        private readonly RectTransform[] hipTicks = new RectTransform[4];
         private Image flash;
         private Text range;
         private Sprite white;
@@ -105,6 +110,13 @@ namespace HybridShooter.UI
             for (int i = 1; i <= 3; i++)
                 Line(launcher.transform, new Vector2(0f, -40f - i * 22f), Vector2.right, 34f - i * 7f, 2f, Cyan);
 
+            // 허리 사격 조준선
+            hip = Group(root, "Hip", stretch: false);
+            Dot(hip.transform, Vector2.zero, 4f, Cyan);
+            for (int i = 0; i < 4; i++)
+                hipTicks[i] = Line(hip.transform, Vector2.zero, i < 2 ? Vector2.right : Vector2.up, HipTickLength, 2f, Cyan).rectTransform;
+            SetHip(0f, 0f);
+
             // 전환 암전
             flash = new GameObject("Flash", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
             Stretch(flash.rectTransform, root);
@@ -113,6 +125,25 @@ namespace HybridShooter.UI
 
             Set(0f, 0f, 0f, -1f);
         }
+
+        /// <summary>
+        /// 허리 사격 조준선. alpha 0 = 숨김, spreadPixels = 퍼짐 원 반지름 (기준 해상도 1080p 픽셀, AngleToPixels)
+        /// </summary>
+        public void SetHip(float alpha, float spreadPixels)
+        {
+            hip.alpha = alpha;
+            hip.gameObject.SetActive(alpha > 0f);
+            if (alpha <= 0f) return;
+            float r = Mathf.Max(HipMinGap, spreadPixels) + HipTickLength * 0.5f;
+            hipTicks[0].anchoredPosition = new Vector2(r, 0f);
+            hipTicks[1].anchoredPosition = new Vector2(-r, 0f);
+            hipTicks[2].anchoredPosition = new Vector2(0f, r);
+            hipTicks[3].anchoredPosition = new Vector2(0f, -r);
+        }
+
+        /// <summary>세로 시야각 vfov(도)인 화면에서 angle(도)이 차지하는 반지름 (기준 해상도 픽셀. 높이 기준 스케일러라 화면 절반 = 540)</summary>
+        public static float AngleToPixels(float angle, float vfov) =>
+            Mathf.Tan(angle * Mathf.Deg2Rad) / Mathf.Tan(Mathf.Max(1f, vfov) * 0.5f * Mathf.Deg2Rad) * RefHeight * 0.5f;
 
         private static CanvasGroup Group(Transform parent, string name, bool stretch)
         {
@@ -173,12 +204,13 @@ namespace HybridShooter.UI
             }
         }
 
-        private void Line(Transform parent, Vector2 center, Vector2 along, float length, float thickness, Color color)
+        private Image Line(Transform parent, Vector2 center, Vector2 along, float length, float thickness, Color color)
         {
             Image image = NewImage(parent, "Line", white);
             image.color = color;
             image.rectTransform.anchoredPosition = center;
             image.rectTransform.sizeDelta = Mathf.Abs(along.x) > 0.5f ? new Vector2(length, thickness) : new Vector2(thickness, length);
+            return image;
         }
 
         private void Dot(Transform parent, Vector2 center, float size, Color color)
