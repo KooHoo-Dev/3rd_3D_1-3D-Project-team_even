@@ -42,7 +42,6 @@ namespace HybridShooter.Player
             transitionGetter = () => transitionT;
             transitionSetter = x => { transitionT = x; ApplyTransitionPose(); };
             transitionComplete = OnViewTransitionComplete;
-            ServiceLocator.Register<IPlayerTarget>(this);
         }
 
         private void Start()

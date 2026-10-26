@@ -1302,7 +1302,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.MovementLabExample
   coordinator: {fileID: 2713737162465012031}
-  target: {fileID: 0}
+  target: {fileID: 1685987956}
   monsterRoot: {fileID: 1357165565}
   gizmos: {fileID: 628760751275931209}
   ownedRoot: {fileID: 1175457862}
