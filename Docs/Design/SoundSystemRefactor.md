@@ -1,9 +1,10 @@
 # 사운드 시스템 리팩토링 설계 (v2 — 팀 결정용)
 
-> 브랜치: `feat/SoundSystem` · 기준: develop `b097ea3f`(PR #27 돌진형 몬스터) 머지 `2dbcc206` + 사운드 에셋 커밋 `53277ae7`, `fab5592b`
+> 브랜치: `feat/SoundSystem` · 기준: develop `da9b5a5a`(PR #28 도약 공격) 머지 `2074d30c` + 사운드 에셋 커밋 `53277ae7`, `fab5592b`
 > v1 대비 바뀐 점: 새로 들어온 사운드(플레이어·무기·UI·아나운서·독가스)를 반영하고, 코드를 다시 확인해 **팀원 코드 수정이 필요 없어진 항목**을 정리했다. R1~R10 은 항목마다 **선택지 + 권장안 + 결정할 것**으로 다시 썼다.
 > v2.1: PR #27(중간체 돌진·기절) 반영 → **2-1장**, R1(기절 알림 추가), R6(돌진 소리), 에셋 요청 목록 보완.
 > v2.2: PR #29(보스 클리페오사우루스) 머지 `72e7dbde` 반영 → **0장 머지 점검**, **2-2장**, 새 항목 **R11 보스 사운드 경로 재설계**.
+> v2.3: PR #28(파르다트록스 도약 공격) 머지 `2074d30c` 반영 → **0장 M6~M8**, **2-3장**, R1(도약 알림 검토), R6(착지음), 에셋 요청·체크리스트 보완.
 
 ---
 
@@ -16,6 +17,9 @@
 | M3 | `Core/Data/Dtos/BossDTO.cs.meta` 와 `BossDto.cs` 가 대소문자가 다르게 둘 다 Git 에 올라가 있다 (`BossDTO.cs` + `BossDto.cs`) | 보스 브랜치에서 파일명 대소문자만 바꿈 | Windows 에서는 파일 하나로 보이지만, .meta 와 이름이 어긋나 Unity 가 GUID 를 새로 만들 수 있고 macOS/Linux 에서는 클래스 중복 | **보스 담당**에게 전달 (`git mv` 로 한쪽 정리) |
 | M4 | 보스 데이터가 `MonsterTable`/`MonsterAttackTable`/`MonsterPartTable`/`BossPhaseTable` 에서 주석 처리되고 `BossTable`·`ClypeosaurusTable` 로 분리됐다 | PR #29 설계 변경 | `mon_clypeosaurus_*` 6개 키를 쓰는 곳이 사라짐. 기존 보스 사운드 경로(Router 의 `BossSkillPhaseChanged`·`BossDamageStageChanged`·`HurtSfx`·`DeathSfx`)가 데이터상 동작 불가 | **R11** 에서 재설계 |
 | M5 | `SoundTester` 의 보스 버튼(경고·등장·공격·페이즈)이 `MonsterTable` 의 보스(`IsBoss`)를 찾는데 이제 없다 | M4 | 테스트 씬에서 보스 소리 확인 불가 | R11 확정 후 테스터 갱신 |
+| M6 | `2074d30c` 머지에서 도약 공격(200201) 수치가 옛 값(Cooldown 8, Recovery 1.2)으로 남았다 (develop = 3 / 1.8) | M1·M2 와 같은 원인 — develop 은 24열, 이 브랜치는 SfxKey 포함 25열이라 행 단위 충돌에서 이 브랜치 행이 채택됨 | 파르다트록스 공격 빈도·회복이 의도와 다름 | ✅ **복구 완료** — develop 수치로 맞추고 SfxKey `mon_pardathrox_attack` 유지. SfxKey 열을 빼면 develop 과 동일 |
+| M7 | **같은 충돌이 머지마다 반복된다** (M1, M2, M6) | 사운드 키 열이 `feat/SoundSystem` 에만 있음 | 다음 테이블 수정 PR 에서도 재발 | **사운드 키 열만 먼저 develop 에 작은 PR 로 올리기** 제안 (팀 결정). 그 전까지는 머지 후 `cut -f1-24` 로 develop 과 비교 점검 |
+| M8 | 작업 PC 중 한 곳에 `git-lfs` 미설치 (`*.wav/mp3/ogg` 는 LFS 추적) | 환경 | 미커밋 독가스·보스 포효 wav 를 커밋하면 LFS 를 거치지 않음 | `brew install git-lfs` → `git lfs install` 후 커밋 |
 
 ---
 
@@ -23,7 +27,7 @@
 
 | # | 항목 | 권장안 | 다른 파트 수정 | 결정할 것 |
 |---|---|---|---|---|
-| R1 | 몬스터 공격음 → 예고(Windup) 이벤트 + **기절 알림** | **A** 코드 이벤트 | 몬스터: `MonsterController` 에 인터페이스 구현 (추가만) | 구현 방식 A/B, 이미터 부착 방식 |
+| R1 | 몬스터 공격음 → 예고(Windup) 이벤트 + **기절 알림** (+ 도약 착지) | **A** 코드 이벤트 | 몬스터: `MonsterController` 에 인터페이스 구현 (추가만) | 구현 방식 A/B, 이미터 부착 방식, 도약 알림 추가 여부 |
 | R2 | 몬스터 Def 출처 단일화 | R1 과 함께 | 없음 (R1 에 포함) | — (R1 따라감) |
 | R3 | 사망 시 울음 정지 | 이벤트 기반 | 없음 | — |
 | R4 | Router 분할 + 새 이벤트 소리 | partial 분할 | 없음 | **아나운서를 어디에 쓸지** |
@@ -64,6 +68,7 @@
 | 🟠 | SMG·저격·유탄 전용 발사음 | 다른 총 소리 빌려 씀 |
 | 🟠 | 보급 낙하·획득 | 낙하 키만 있음, 무음 |
 | 🟠 | 돌진 벽 충돌음 (레탈로브라크가 벽에 박히는 순간) | 없음 — 임시로 `sfx_explosion_small` 대여 가능 |
+| 🟠 | 도약 착지음 (파르다트록스가 덮치는 순간, PR #28) | 없음 — 임시로 `sfx_player_land` 피치 낮춰 대여 가능 |
 | 🟢 | 돌진 달리기 루프 (쿵쿵 발소리) | 없음 — 없어도 예고 포효로 신호는 충분 |
 | 🟢 | 무기 교체, 회복 사용, 구르기, 스태미나 고갈 숨소리(현재 `BreathLoop` 는 조깅 숨) | 없음 |
 
@@ -91,7 +96,7 @@
 | **돌진 공격** `ChargeAttack` (Rusher = 레탈로브라크 2001) | 예고 1.2초 동안 플레이어를 겨눔 → Active 에서 12m/s 로 돌진 → 접촉 1회 피해 → 감속 → 멈춤. 끝나면 Idle 에서 천천히 걸으며 정면을 다시 맞춘다 | 예고 시작 = 돌진 신호. `MonsterAttackTable 200101.SfxKey = mon_letalobrach_attack` 이 이미 있어서 **R1 만 되면 바로 "포효 → 돌진"이 된다** |
 | **벽 충돌 → 기절** | 달리다 벽에 막히면 `AttackResult.WallHit` → `StateMachine.Stun(WallHitStunTime=2초)` → `StunnedState`, Animator `IsStunned` | 기절 = 벽 충돌 순간. `mon_letalobrach_groggy` 클립이 있는데 **재생 경로가 없다** (애니메이션 이벤트 `PlaySfxKey` 전제였음) |
 | 이동 = 공격 | `MonsterAttack.UsesMoveAnimation`, `BodyMoveSpeed` 추가. 돌진은 Attack 클립 대신 이동 클립을 속도에 맞춰 재생 | Active 시작의 Animator `Attack` 트리거가 돌진에는 **없다** → 애니메이션 이벤트 방식(R1-B)은 돌진 몬스터에 쓸 수 없다 |
-| 침투형 공격 | Infiltrator(파르다트록스 2002)가 `StrikeAttack`(근접) 사용 | 근접 공격음은 R1 로 해결. **은신(Vanish) 동작은 아직 없음** → `mon_pardathrox_vanish` 는 대기 |
+| 침투형 공격 | ~~Infiltrator(파르다트록스 2002)가 `StrikeAttack`(근접) 사용~~ → PR #28 에서 `PounceAttack`(도약)으로 교체 (**2-3장**) | **은신(Vanish) 동작은 아직 없음** → `mon_pardathrox_vanish` 는 대기 |
 | 프리팹 | `Letalobrach.prefab`, `Pardathrox.prefab` 추가 (`ChargeSettings` 포함) | 두 프리팹 모두 `MonsterSoundEmitter` **없음** → R1 의 자동 부착(a)이 필요한 이유가 하나 더 늘었다 |
 | 상태 머신 | `MonsterStateMachine.StateChanged(previous, current)`, `CurrentAttack`, `IsResting` 공개 | 기절·사망·Idle 복귀를 이벤트로 받을 수 있다 (R1 계약에 기절 알림 추가) |
 
@@ -118,6 +123,26 @@
 | 프리팹·씬 | `Resources/Boss/Clypeosaurus/Prefab/Clypeosaurus.prefab`, `Scenes/CY/TestMap_V1` | 보스 프리팹에 사운드 컴포넌트 없음 |
 | 어셈블리 | `Scripts/Boss` 는 asmdef 없음 (Assembly-CSharp) | Audio 가 `BossController` 를 **직접 참조 가능** → 보스는 Core 인터페이스 없이도 연결 가능 |
 
+### 2-3. 최신 머지 — PR #28 파르다트록스 도약 공격 (`feature/infiltrator-pounce-attack`)
+
+| 바뀐 점 | 내용 | 사운드 영향 |
+|---|---|---|
+| **도약 공격** `PounceAttack` (Infiltrator = 파르다트록스 2002) | 예고 0.6초(목표 고정 안 함) → Active 시작 때 `Launch` 로 착지점 고정 후 포물선 도약(`PounceSettings.ArcHeight`) → Active 끝에 착지, 반경 2m·높이 차 허용 범위 안이면 1회 피해 → Recover 1.8초 | 예고 시작 = 회피 신호. `200201.SfxKey = mon_pardathrox_attack` 이 이미 있어 **R1 만 되면 동작** |
+| **시야 밖 기습** | `FlankPolicy` 가 플레이어 카메라 시야 밖으로 돌아 들어간 뒤 도약 | 플레이어가 **보지 못하는 쪽**에서 오는 공격 → 예고음이 유일한 신호. 3D 감쇠 거리·우선순위를 다른 몬스터 울음보다 높게 |
+| 도약 취소 | 착지 지면·궤적이 없으면 `Launch` 가 도약 없이 Active 종료 / 비행 중 장애물에 걸리면 그 자리에 내려놓고 무피해 종료. **WallHit 기절 없음** | ① 예고음은 났는데 뛰지 않는 경우가 생김 ② R1 `Stunned` 는 여전히 돌진 전용 |
+| 이동·지면 | `MonsterBody.BeginAttackMotion/EndAttackMotion`, `TerrainGround`, `NavMeshMoveExecutor` 수정 | Audio 코드는 이 클래스들을 참조하지 않음 → 영향 없음 |
+| 프리팹 | `MonsterIntegrationLab/Prefabs/Monsters/Pardathrox.prefab` 에 `PounceSettings` 추가 | `MonsterSoundEmitter` 여전히 **없음** → R1 자동 부착(a) 근거 추가 |
+| 데이터 | `200201` Cooldown 8→3, Recovery 1.2→1.8 | 0장 M6 |
+
+**이번 머지로 생긴 사운드 연결점 정리**
+
+| 순간 | 코드 위치 | 재생할 소리 | 경로 |
+|---|---|---|---|
+| 도약 예고 | `PhaseChanged(Windup)` | `mon_pardathrox_attack` | R1 |
+| 이륙 | `Launch()` 성공 (알림 없음) | (선택) 도약 기합 — 에셋 없음 | R1 도약 알림 추가 시 |
+| 착지·타격 | Active 종료 → `PhaseChanged(Recover)` | 착지음 (에셋 없음) | **안 1**: Recover 시작을 착지로 간주 (몬스터 수정 없음, 단 도약 실패 시에도 착지음이 남) / **안 2**: R1 계약에 착지 알림 추가 (정확, 몬스터 1~2줄) |
+| 플레이어 피격 | `PlayerDamagedEvent` | `sfx_player_hit` | 이미 동작 |
+
 **보스 사운드 연결점 (현재 에셋 기준)**
 
 | 순간 | 필요한 보스 쪽 알림 | 소리 (현재 키) | 비고 |
@@ -140,7 +165,9 @@
 | 🔴 | 몬스터 울음·이동 루프·공격음이 실게임에서 안 남 (`MonsterSoundEmitter` 가 어떤 프리팹에도 없음, 애니메이션 이벤트도 없음) | R1·R2 |
 | 🔴 | 사망 연출 중에도 울음·루프 계속 (애니메이션 이벤트 의존) | R3 |
 | 🔴 | 돌진 몬스터 벽 충돌·기절 소리 경로 없음 (`mon_letalobrach_groggy` 미사용), 기절 중에도 울음 계속 | R1 (기절 알림) |
-| 🔴 | 머지로 몬스터 사운드 키 값이 전부 빠짐 | 0장 M1 |
+| ✅ 해결 | ~~머지로 몬스터 사운드 키 값이 전부 빠짐~~ / ~~도약 공격 수치 되돌아감~~ | 0장 M1·M6 |
+| 🔴 | 테이블 머지 충돌이 매번 반복 (사운드 키 열이 이 브랜치에만 있음) | 0장 M7 |
+| 🟠 | 도약 공격: 예고음 후 도약이 취소되는 경우, 착지 시점 알림 없음 | R1 (도약 알림) |
 | 🔴 | 보스 사운드 경로 단절 (데이터 분리 + 이벤트 타입 불일치 + 보스 알림 부족) | R11 |
 | 🔴 | 보스 피격 시 히트마커·타격음 없음 (`BossController` 가 `DamageDealtEvent` 미발행) | R11 |
 | 🔴 | 독장판 위에서 피격음이 틱마다 반복 | R10 |
@@ -182,6 +209,14 @@ public interface IMonsterSoundSource
 - 이미터: `Stunned` → 울음·루프 일시 정지 + 벽 충돌음 + 몬스터별 기절음 재생. 기절음 키는 `MonsterTable.StunSfxKey` 컬럼(신규, 레탈로브라크 = `mon_letalobrach_groggy`)으로 둔다 (R6 과 같은 패턴).
 - 같은 이유로 `PlaySfxKey("mon_letalobrach_groggy")` 애니메이션 이벤트 안은 철회.
 
+**도약 알림 (PR #28 — 선택)** 착지음을 정확한 시점에 내려면 계약에 아래를 추가한다. 넣지 않으면 `AttackPhaseChanged(Recover)` 를 착지로 간주한다 (2-3장 안 1).
+```csharp
+    /// <summary>공격 몸 이동 결과. 지금은 도약 착지(Landed)·도약 중단(Interrupted)만. 돌진 벽 충돌은 Stunned 로 받는다</summary>
+    event Action<MonsterAttackDef, Vector3> AttackLanded;
+```
+- `PounceAttack` 이 착지 지점에서 `Body.EndAttackMotion(ground)` 를 부르는 곳 1줄. 도약이 취소(Launch 실패)되면 발행하지 않으므로 "뛰지 않았는데 착지음" 문제가 사라진다.
+- 예고 후 도약 취소 자체(포효만 나는 경우)는 남는다 → 몬스터 담당과 "취소를 Windup 전에 판정할 수 있는지" 확인.
+
 **이미터 부착 방식** (A·B 공통)
 
 | 선택지 | 내용 |
@@ -191,7 +226,7 @@ public interface IMonsterSoundSource
 
 - 보스: ~~보스도 `MonsterAttack` 을 쓰면 이미터로 통일~~ → PR #29 에서 보스는 `MonsterAttack` 을 쓰지 않는 별도 구조로 확정. 보스는 **R11** 로 분리한다. R1 은 일반·중간체 몬스터 전용.
 - **수정 범위** Core 계약 1개 추가, `MonsterController` 구현 추가, `MonsterTable.StunSfxKey` 컬럼, `MonsterSoundEmitter` 수정(`PlayAttackSfx` 제거, `PlaySfxKey` 는 은신(Vanish)처럼 상태 머신 밖 동작용으로만 유지)
-- **결정할 것** ① A / B ② 부착 a / b ③ 보스가 `MonsterAttack` 을 재사용하는지 (보스 담당) ④ 기절음 키를 `MonsterTable` 컬럼으로 둘지
+- **결정할 것** ① A / B ② 부착 a / b ③ ~~보스가 `MonsterAttack` 을 재사용하는지~~ (PR #29 로 확정: 재사용 안 함 → R11) ④ 기절음 키를 `MonsterTable` 컬럼으로 둘지 ⑤ 도약 착지 알림을 계약에 넣을지 (안 1 / 안 2)
 
 ### R2. 몬스터 Def 출처 단일화
 **문제** `MonsterController` 는 `monsterId` 로 Def 를 읽고, 이미터는 `MonsterSpawnedEvent` 또는 자기 `monsterId` 로 따로 받는다. 종류 전환(날개 파괴 1003 → 1002) 시 두 곳을 맞춰야 한다.
@@ -277,6 +312,7 @@ GameSoundRouter.Ui.cs       저체력 경고, 아나운서
 | 독가스 | 아래 선택지 | `PoisonProjectile` 착탄 / `PoisonZone` 루프 | 몬스터 (선택지에 따라) |
 | 몬스터 기절 (PR #27) | `MonsterTable.StunSfxKey` | R1 의 `Stunned` 알림 | 없음 (R1 에 포함) |
 | 돌진 (PR #27) | `MonsterAttackTable.ActiveLoopSfxKey`(달리기 루프), `ImpactSfxKey`(벽 충돌) | R1 의 `AttackPhaseChanged(Active)` 에서 루프 시작, Recover/Idle 에서 정지 / `Stunned` 에서 충돌음 | 없음 (R1 에 포함) — 에셋이 오면 추가 |
+| 도약 (PR #28) | `MonsterAttackTable.ImpactSfxKey`(착지) — 돌진·독가스와 같은 열 공유 | R1 `AttackLanded` 또는 `AttackPhaseChanged(Recover)` | 없음 (R1 에 포함) — 에셋이 오면 추가 |
 
 **독가스 키 위치 선택지** (클립: `PoisonGas_Escaped` 0.78초 = 터짐, `PoisonGas_inside` 3.05초 = 장판 루프)
 
@@ -384,7 +420,7 @@ public event Action Appeared;                                     // 등장 연�
 
 | 단계 | 내용 | 다른 파트 |
 |---|---|---|
-| 0. 머지 복구 | 0장 M1 (몬스터 사운드 키 값 복구) | 없음 |
+| 0. 머지 복구 | 0장 M1·M6 (몬스터 사운드 키 값·도약 수치 복구) ✅, M7 사운드 키 열 선행 PR, M8 git-lfs | 없음 (M7 은 팀 결정) |
 | 1. Audio 단독 | R3, R4 분할 + 새 이벤트 소리, R5, R9-A, 독가스 에셋 이름 정리 + SoundTable 키 추가 | 없음 |
 | 2. 계약 | R7 (`ISoundService` 확장), R1 계약, R10 enum | 코어 |
 | 3. 연결 | R1 (`MonsterController` 구현), R6 (무기·보급·독가스), R10 (`PoisonZone`) | 몬스터·무기·보급 |
@@ -394,11 +430,11 @@ public event Action Appeared;                                     // 등장 연�
 1단계는 결정 없이도 바로 진행 가능 (R4 의 아나운서 부분만 결정 대기).
 
 ## 6. 담당자 확인 체크리스트
-- [ ] **몬스터**: R1 `IMonsterSoundSource` 구현 추가 허용 (공격 단계 + 기절 알림) / R6 독가스 착탄·장판 재생 호출 / R10 `PoisonZone` 의 DamageKind 변경 / 헤드샷 판정 가능 여부 / 침투형 은신(Vanish) 구현 일정 / 기절이 벽 충돌 외에도 생길 예정인지
+- [ ] **몬스터**: R1 `IMonsterSoundSource` 구현 추가 허용 (공격 단계 + 기절 알림) / R6 독가스 착탄·장판 재생 호출 / R10 `PoisonZone` 의 DamageKind 변경 / 헤드샷 판정 가능 여부 / 침투형 은신(Vanish) 구현 일정 / 기절이 벽 충돌 외에도 생길 예정인지 / **도약 착지 알림(`AttackLanded`) 추가 허용, 도약 취소를 Windup 전에 판정할 수 있는지** / 테이블 수정 시 사운드 키 열(M7) 인지
 - [ ] **무기**: R6 빈 탄창 1줄, 로켓·유탄 폭발음 테이블 이전 / R7 `Gun.PlaySfx` 수정
 - [ ] **보급**: R6 `SupplyDropper` 키 하드코딩 제거
 - [ ] **코어**: R7 계약 확장 / R10 `DamageKind.Status` / R1 계약 위치
 - [ ] **보스**: R11 `BossController` 알림 목록(패턴 단계·포격 발사·안테나 개방·등장) / `DamageDealtEvent` 발행 추가 / 등장 연출 유지 여부 / 0장 M3 `BossDTO.cs` 대소문자 정리
 - [ ] **코어**: R11 보스 EventBus 이벤트를 `BossDef` 기준으로 바꿀지 (보상·UI 담당과 함께)
 - [ ] **전장**: R5-B 를 고르면 금속 바닥 레이어·태그 규칙
-- [ ] **팀 전체**: R4 아나운서 사용 범위, R8 도입 시기, R9 테스트 범위
+- [ ] **팀 전체**: R4 아나운서 사용 범위, R8 도입 시기, R9 테스트 범위, **M7 사운드 키 열 선행 PR 여부**
