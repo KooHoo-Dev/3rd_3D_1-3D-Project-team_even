@@ -11,7 +11,7 @@ namespace HybridShooter.Core.Data.Defs
         public int MaxHp { get; }
         public float MoveSpeed { get; }
 
-        public BossDef(BossDTO dto, DataLoadReport report)
+        public BossDef(BossDto dto, DataLoadReport report)
         {
             Id = dto.Id;
             MaxHp = dto.MaxHp;

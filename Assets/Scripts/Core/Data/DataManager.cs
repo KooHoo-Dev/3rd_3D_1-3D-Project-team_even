@@ -125,7 +125,7 @@ namespace HybridShooter.Core.Data
             sounds          = Build<SoundDto, string, SoundDef>(folder, SoundDef.Table, r, d => d.Key, d => new SoundDef(d, r));
             config = new GameConfig();
             foreach (var dto in TsvTableReader.Read<ConfigDto>(folder, GameConfig.Table, r)) config.Add(dto, r);
-            bosses          = Build<BossDTO, int, BossDef>(folder, BossDef.Table, r, dto => dto.Id, dto => new BossDef(dto, r));
+            bosses          = Build<BossDto, int, BossDef>(folder, BossDef.Table, r, dto => dto.Id, dto => new BossDef(dto, r));
             clypeosaurus    = ReadSingle<ClypeosaurusDto, ClypeosaurusDef>(folder, ClypeosaurusDef.Table, r, dto => new ClypeosaurusDef(dto, r));
             
             // 2) Link + Group : Id 참조 → Def 참조, 여러 행 → 상위 Def

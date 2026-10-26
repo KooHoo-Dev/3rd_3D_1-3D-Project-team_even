@@ -1,6 +1,6 @@
 ﻿namespace HybridShooter.Core.Data.Dtos
 {
-    public class BossDTO
+    public class BossDto
     {
         public int Id;
         public int MaxHp;
