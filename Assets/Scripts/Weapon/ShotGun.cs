@@ -102,7 +102,8 @@ namespace HybridShooter.Weapon
             while (IsReloading && Time.time >= nextShellTime)
             {
                 SetAmmo(Ammo + 1);
-                if (Ammo >= Stats.magazineSize) FinishReload();
+                PlayReloadInsertSfx(); // 한 발 넣을 때마다
+                if (Ammo >= Stats.magazineSize) CompleteReload();
                 else nextShellTime += Stats.reloadTime;
             }
         }

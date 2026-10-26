@@ -17,13 +17,16 @@ sfx_sniper_fire	Sfx	Audio/Weapon/ShotGun/ShotGun_FireReal_01;Audio/Weapon/ShotGu
 sfx_rocket_fire	Sfx	Audio/Weapon/RocketLauncher/RocketLauncher_Fire_01;Audio/Weapon/RocketLauncher/RocketLauncher_Fire_02	0.9	false	true	2	0.1	0.03	85	120
 # 유탄 발사기: 전용 클립 없음 → 샷건(블래스터) 클립 대여
 sfx_grenade_launcher_fire	Sfx	Audio/Weapon/ShotGun/ShotGun_Fire_01;Audio/Weapon/ShotGun/ShotGun_Fire_02	0.8	false	true	2	0.1	0.08	85	80
-# ── 무기: 장전 (WeaponTable.ReloadSfxKey) ──
-sfx_rifle_reload	Sfx	Audio/Weapon/Reload/Reload_Rifle_MagIn	0.7	false	true	1	0.1	0.03	70	20
-sfx_pistol_reload	Sfx	Audio/Weapon/Reload/Reload_Pistol_Cock	0.7	false	true	1	0.1	0.03	70	20
-sfx_smg_reload	Sfx	Audio/Weapon/Reload/Reload_SemiAuto_MagIn_01;Audio/Weapon/Reload/Reload_SemiAuto_MagIn_02	0.7	false	true	1	0.1	0.03	70	20
-sfx_shotgun_reload	Sfx	Audio/Weapon/Reload/Reload_ShotGun_ShellIn_01;Audio/Weapon/Reload/Reload_ShotGun_ShellIn_02	0.7	false	true	1	0.1	0.03	70	20
-sfx_sniper_reload	Sfx	Audio/Weapon/Reload/Reload_SemiAuto_BulletIn_01;Audio/Weapon/Reload/Reload_SemiAuto_BulletIn_02	0.7	false	true	1	0.1	0.03	70	20
-sfx_rocket_reload	Sfx	Audio/Weapon/Reload/Reload_SciFi	0.7	false	true	1	0.1	0.03	70	20
+# ── 무기: 장전 (WeaponTable: ReloadSfxKey = 시작, ReloadInsertSfxKey = 탄창·탄 넣기, ReloadEndSfxKey = 완료) ──
+# 키는 무기가 아니라 동작 단위 (여러 무기가 같은 키를 공유). 전용 클립이 오면 키를 추가하고 WeaponTable 만 바꾼다
+sfx_rifle_mag_out	Sfx	Audio/Weapon/Reload/Reload_Rifle_MagOut	0.7	false	true	1	0.1	0.03	70	20
+sfx_rifle_mag_in	Sfx	Audio/Weapon/Reload/Reload_Rifle_MagIn	0.7	false	true	1	0.1	0.03	70	20
+sfx_rifle_cock	Sfx	Audio/Weapon/Reload/Reload_Rifle_Cock	0.7	false	true	1	0.1	0.03	70	20
+sfx_pistol_cock	Sfx	Audio/Weapon/Reload/Reload_Pistol_Cock	0.7	false	true	1	0.1	0.03	70	20
+sfx_semi_auto_mag_in	Sfx	Audio/Weapon/Reload/Reload_SemiAuto_MagIn_01;Audio/Weapon/Reload/Reload_SemiAuto_MagIn_02	0.7	false	true	1	0.1	0.03	70	20
+sfx_bullet_in	Sfx	Audio/Weapon/Reload/Reload_SemiAuto_BulletIn_01;Audio/Weapon/Reload/Reload_SemiAuto_BulletIn_02	0.7	false	true	1	0.1	0.03	70	20
+sfx_shotgun_shell_in	Sfx	Audio/Weapon/Reload/Reload_ShotGun_ShellIn_01;Audio/Weapon/Reload/Reload_ShotGun_ShellIn_02	0.7	false	true	2	0.1	0.03	70	20
+sfx_scifi_reload	Sfx	Audio/Weapon/Reload/Reload_SciFi	0.7	false	true	1	0.1	0.03	70	20
 # ── 무기: 빈 탄창 (코드 연결 전, 설계 R6 DryFireSfxKey 용) ──
 sfx_rifle_dry_fire	Sfx	Audio/Weapon/Reload/Reload_Rifle_DryFire	0.6	false	false	1	0.15	0.05	50	0
 sfx_pistol_dry_fire	Sfx	Audio/Weapon/Reload/Reload_Pistol_DryFire	0.6	false	false	1	0.15	0.05	50	0

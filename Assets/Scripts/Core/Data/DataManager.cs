@@ -187,6 +187,8 @@ namespace HybridShooter.Core.Data
             {
                 w.FireSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.FireSfx), w.FireSfxKey);
                 w.ReloadSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.ReloadSfx), w.ReloadSfxKey);
+                w.ReloadInsertSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.ReloadInsertSfx), w.ReloadInsertSfxKey);
+                w.ReloadEndSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.ReloadEndSfx), w.ReloadEndSfxKey);
             }
             foreach (var g in grenades)
                 g.ExplodeSfx = FindSound(r, GrenadeDef.Table, g.Id, nameof(g.ExplodeSfx), g.ExplodeSfxKey);

@@ -478,7 +478,21 @@ public event Action Appeared;                                     // 등장 연�
 | R5 | `PlayerSoundEmitter` — 발소리(거리 기준, 걷기 1.8m·달리기 2.4m), 점프, 착지(0.25초 미만 체공·스폰 직후 무시), 사망, 숨소리 루프(스태미나 25% 이하 시작·60% 이상 정지), 수류탄 투척. 전부 2D, 흙 발소리만 | `PlayerSoundEmitter.cs` |
 | R5 | `Tools > Audio > Create Sound Test Scene` — `Scenes/GU/Prefabs/Player_Sound.prefab`(MS `Player.prefab` 의 Variant + `PlayerSoundEmitter`)과 `Scenes/GU/SoundIntegrationTest.unity`(바닥·점프 상자·SoundService+믹서·플레이어) 생성 | `Editor/SoundTestSceneMenu.cs` |
 
-남은 것: 메뉴 실행 후 플레이 확인, 회복·구르기 소리(에셋 없음), 금속 발소리(맵 확정 후)
+남은 것: 회복·구르기 소리(에셋 없음), 금속 발소리(맵 확정 후). 메뉴 실행·플레이 확인 ✅
+
+**추가 — 장전음 3단계 (R6 패턴)** ✅ 플레이 확인
+- WeaponTable 에 `ReloadInsertSfxKey`(탄창·탄 넣기), `ReloadEndSfxKey`(완료) 열 추가. `ReloadSfxKey` 는 시작음
+- 기본 총: 시작 → 장전 시간의 `Gun.reloadInsertAt`(0.55) 시점 넣기 → 탄을 채우면 완료음. 산탄총: 한 발마다 넣기 → 다 채우면 완료음. 취소(사격으로 끊김·무기 교체)는 완료음 없음 (`Gun.CompleteReload` / `FinishReload` 분리)
+- SoundTable 장전 키를 무기 단위(`sfx_rifle_reload` 등 6개)에서 **동작 단위** 8개로 교체: `sfx_rifle_mag_out` `sfx_rifle_mag_in` `sfx_rifle_cock` `sfx_pistol_cock` `sfx_semi_auto_mag_in` `sfx_bullet_in` `sfx_shotgun_shell_in` `sfx_scifi_reload`
+
+| 무기 | 시작 | 넣기 | 완료 |
+|---|---|---|---|
+| 라이플·돌격소총 | rifle_mag_out | rifle_mag_in | rifle_cock |
+| 권총·기관단총 | rifle_mag_out | semi_auto_mag_in | pistol_cock |
+| 산탄총 | — | shotgun_shell_in (한 발마다) | rifle_cock |
+| 저격소총 | rifle_mag_out | bullet_in | rifle_cock |
+| 로켓 발사기 | scifi_reload | — | rifle_mag_in |
+| 유탄 발사기 | pistol_cock | shotgun_shell_in | rifle_cock |
 
 ## 6. 담당자 확인 체크리스트
 - [ ] **몬스터**: R1 `IMonsterSoundSource` 구현 추가 허용 (공격 단계 + 기절 알림) / R6 독가스 착탄·장판 재생 호출 / R10 `PoisonZone` 의 DamageKind 변경 / 헤드샷 판정 가능 여부 / 침투형 은신(Vanish) 구현 일정 / 기절이 벽 충돌 외에도 생길 예정인지 / **도약 착지 알림(`AttackLanded`) 추가 허용, 도약 취소를 Windup 전에 판정할 수 있는지** / 테이블 수정 시 사운드 키 열(M7) 인지

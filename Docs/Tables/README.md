@@ -48,7 +48,7 @@
 | MagazineSize | int | 강화 전 탄창 |
 | ReloadTime | float | 강화 전 재장전(초) |
 | Range / SpreadAngle | float | 사거리(m) / 퍼짐 반각(도) |
-| PrefabKey, FireSfxKey, ReloadSfxKey | string | |
+| PrefabKey, FireSfxKey, ReloadSfxKey, ReloadInsertSfxKey, ReloadEndSfxKey | string | 장전음: 시작 · 탄창·탄 넣기(기본 총 = 장전 55% 시점, 산탄총 = 한 발마다) · 완료(취소 시 없음) |
 
 ## GrenadeTable — BL-005
 | 컬럼 | 타입 | 설명 |
