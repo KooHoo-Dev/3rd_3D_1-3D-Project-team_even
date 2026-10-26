@@ -46,9 +46,17 @@ namespace HybridShooter.Core.Contracts
         /// MaxInstances 를 넘으면 듣는 위치에서 가까운 것만 실제로 소리가 나고, 나머지는 대기한다.
         /// </summary>
         SoundHandle PlayLoop(SoundDef sound, Transform follow);
+        /// <summary>키만 아는 쪽용 (독가스 장판 등). 키가 없으면 default</summary>
+        SoundHandle PlayLoop(string key, Transform follow);
         void StopLoop(SoundHandle handle);
         void PlayBgm(string key);
         void StopBgm();
+
+        /// <summary>옵션 볼륨 0~1 (옵션 화면)</summary>
+        float GetVolume(SoundCategory category);
+        void SetVolume(SoundCategory category, float volume);
+        /// <summary>category 볼륨을 holdTime 초 동안 level(0~1) 배로 낮춘다 (보스 포효 때 군중 소리 줄이기)</summary>
+        void Duck(SoundCategory category, float level, float holdTime);
     }
 
     /// <summary>PlayLoop 가 돌려주는 번호표. default = 재생 안 됨</summary>

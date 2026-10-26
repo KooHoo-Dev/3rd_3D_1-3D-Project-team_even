@@ -260,6 +260,14 @@ namespace HybridShooter.Audio
             return new SoundHandle(request.Id);
         }
 
+        public SoundHandle PlayLoop(string key, Transform follow)
+        {
+            if (string.IsNullOrEmpty(key)) return default;
+            if (DataManager.Sounds.TryGet(key, out var def)) return PlayLoop(def, follow);
+            if (warnedKeys.Add(key)) Debug.LogWarning($"[SoundService] SoundTable 에 '{key}' 가 없습니다", this);
+            return default;
+        }
+
         public void StopLoop(SoundHandle handle)
         {
             if (handle.IsValid == false || loops.TryGetValue(handle.Id, out var request) == false) return;

@@ -494,6 +494,16 @@ public event Action Appeared;                                     // 등장 연�
 | 로켓 발사기 | scifi_reload | — | rifle_mag_in |
 | 유탄 발사기 | pistol_cock | shotgun_shell_in | rifle_cock |
 
+**2단계 진행 상황 (계약)**
+
+| 항목 | 내용 | 파일 |
+|---|---|---|
+| R7 | `ISoundService` 에 `PlayLoop(string key, Transform)`, `GetVolume`/`SetVolume`, `Duck` 추가 (`NullSoundService` 포함, 메서드 추가만). `Gun.PlaySfx` 가 `SoundDef` 를 그대로 넘김 (키 재조회 제거) | `ServiceContracts.cs`, `DefaultServices.cs`, `SoundService.cs`, `Gun.cs` |
+| R1 | `IMonsterSoundSource` — `Def`, `AttackPhaseChanged(attack, phase)`, `Stunned(seconds)`, `AttackLanded(attack, position)`. 구현(`MonsterController`)은 3단계 | `Core/Contracts/MonsterContracts.cs` |
+| R10 | `DamageKind.Status` 를 enum **끝에** 추가 (기존 값 번호 유지). Router: Status 피해 → `sfx_player_cough`, 그 외 → `sfx_player_hit`. `PoisonZone` 변경은 3단계 | `CombatContracts.cs`, `GameSoundRouter.Combat.cs` |
+
+**참고 — 사운드와 무관한 기존 데이터 오류 (팀 전달)**: DataManager 로드 시 `WeaponTable` 8행·`MonsterTable` 7행의 `PrefabKey`(`Weapons/Rifle`, `Prefabs/Monsters/...`)가 Resources 에 없어 오류 15건. 사운드 작업 전부터 있던 것 → 무기·몬스터 담당 확인 필요
+
 ## 6. 담당자 확인 체크리스트
 - [ ] **몬스터**: R1 `IMonsterSoundSource` 구현 추가 허용 (공격 단계 + 기절 알림) / R6 독가스 착탄·장판 재생 호출 / R10 `PoisonZone` 의 DamageKind 변경 / 헤드샷 판정 가능 여부 / 침투형 은신(Vanish) 구현 일정 / 기절이 벽 충돌 외에도 생길 예정인지 / **도약 착지 알림(`AttackLanded`) 추가 허용, 도약 취소를 Windup 전에 판정할 수 있는지** / 테이블 수정 시 사운드 키 열(M7) 인지
 - [ ] **무기**: R6 빈 탄창 1줄, 로켓·유탄 폭발음 테이블 이전 / R7 `Gun.PlaySfx` 수정

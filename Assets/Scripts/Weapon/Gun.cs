@@ -490,7 +490,7 @@ namespace HybridShooter.Weapon
         protected static void PlaySfx(SoundDef sound, Vector3 position)
         {
             if (sound == null) return;
-            if (ServiceLocator.TryGet<ISoundService>(out var service)) service.PlaySfx(sound.Key, position);
+            if (ServiceLocator.TryGet<ISoundService>(out var service)) service.PlaySfx(sound, position);
         }
 
         /// <summary>forward 를 중심으로 반각 halfAngle(도) 원뿔 안의 무작위 방향 (원판 균등 분포)</summary>

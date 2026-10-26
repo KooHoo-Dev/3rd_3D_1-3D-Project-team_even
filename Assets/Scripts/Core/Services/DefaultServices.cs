@@ -30,9 +30,13 @@ namespace HybridShooter.Core.Services
         public void PlaySfx(string key, Vector3? position = null) { }
         public void PlaySfx(SoundDef sound, Vector3? position = null) { }
         public SoundHandle PlayLoop(SoundDef sound, Transform follow) => default;
+        public SoundHandle PlayLoop(string key, Transform follow) => default;
         public void StopLoop(SoundHandle handle) { }
         public void PlayBgm(string key) { }
         public void StopBgm() { }
+        public float GetVolume(SoundCategory category) => 1f;
+        public void SetVolume(SoundCategory category, float volume) { }
+        public void Duck(SoundCategory category, float level, float holdTime) { }
     }
 
     /// <summary>몬스터 담당 풀링 구현 전까지 쓰는 기본 팩토리. def.Prefab 을 Instantiate</summary>

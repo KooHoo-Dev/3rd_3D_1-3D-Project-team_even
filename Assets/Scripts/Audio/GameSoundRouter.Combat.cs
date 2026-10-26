@@ -40,6 +40,8 @@ namespace HybridShooter.Audio
             service.PlaySfx(e.IsKill ? killConfirmKey : hitMarkerKey);
         }
 
-        private void OnPlayerDamaged(PlayerDamagedEvent e) => service.PlaySfx(playerHitKey);
+        /// <summary>지속 피해(독장판 틱)는 기침 (쿨다운 1.5초), 그 외는 피격 목소리</summary>
+        private void OnPlayerDamaged(PlayerDamagedEvent e) =>
+            service.PlaySfx(e.Info.Kind == DamageKind.Status ? playerStatusHitKey : playerHitKey);
     }
 }

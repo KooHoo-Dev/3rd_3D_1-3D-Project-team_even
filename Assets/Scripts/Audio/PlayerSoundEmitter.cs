@@ -1,5 +1,4 @@
 using HybridShooter.Core.Contracts;
-using HybridShooter.Core.Data;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.Services;
 using HybridShooter.Player;
@@ -128,8 +127,7 @@ namespace HybridShooter.Audio
 
         private void StartBreath()
         {
-            if (DataManager.Sounds.TryGet(breathLoopKey, out var def) && ServiceLocator.TryGet<ISoundService>(out var service))
-                breathHandle = service.PlayLoop(def, transform);
+            if (ServiceLocator.TryGet<ISoundService>(out var service)) breathHandle = service.PlayLoop(breathLoopKey, transform);
         }
 
         private void StopBreath()

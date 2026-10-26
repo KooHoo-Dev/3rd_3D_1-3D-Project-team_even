@@ -25,6 +25,8 @@ namespace HybridShooter.Audio
         [SerializeField] private string bossBgmKey = "bgm_boss";
         [SerializeField] private string bossWarningKey = "sfx_boss_warning";
         [SerializeField] private string playerHitKey = "sfx_player_hit";
+        [Tooltip("지속 피해(DamageKind.Status, 독장판 틱) 때 피격음 대신")]
+        [SerializeField] private string playerStatusHitKey = "sfx_player_cough";
         [Tooltip("총알이 몬스터에 맞은 위치에서 나는 타격음 (3D)")]
         [SerializeField] private string hitImpactKey = "sfx_hit_flesh";
         [Tooltip("명중 피드백 (2D)")]
