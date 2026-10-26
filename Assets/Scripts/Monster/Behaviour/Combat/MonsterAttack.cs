@@ -58,6 +58,13 @@ namespace HybridShooter.Monster.Behaviour
         // Idle 휴식 중 준비 동작이 끝났으면 true. 준비 동작이 없는 공격은 항상 true
         public virtual bool IsPrepared => true;
 
+        // ── 애니메이션 (MonsterController 가 읽는 값. 하위 클래스가 바꾼다) ──
+        // true = 이동 자체가 공격(돌진 등). Attack 클립 대신 이동 클립을 BodyMoveSpeed 에 맞춰 재생한다
+        public virtual bool UsesMoveAnimation => false;
+
+        // 공격·준비 동작이 몸을 직접 옮기는 현재 속도 (m/s). 0 = 서 있음
+        public virtual float BodyMoveSpeed => 0f;
+
         // 단계 변경 알림 (애니메이션·예고 표시·보스 이벤트). Idle = 종료
         public event Action<MonsterAttack, SkillPhase> PhaseChanged;
 

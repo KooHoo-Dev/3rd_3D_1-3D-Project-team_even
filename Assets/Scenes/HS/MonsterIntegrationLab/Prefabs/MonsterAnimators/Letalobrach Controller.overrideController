@@ -8,4 +8,14 @@ AnimatorOverrideController:
   m_PrefabAsset: {fileID: 0}
   m_Name: Letalobrach Controller
   m_Controller: {fileID: 9100000, guid: c2b0f71f214c1cb468afb27679698451, type: 2}
-  m_Clips: []
+  m_Clips:
+  - m_OriginalClip: {fileID: 7400000, guid: 55440a8f12d832444ae5c07cba8fba74, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 23b8492530af8f747bb40e34880b266e, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: d62d5ee68de81f842a58145b00413744, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 29ac6d57c391ad642a1f2c1bba9c6486, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: d2734a7e90b3cef4a8fd8dc2265304f6, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 7b665dfa1a15ed34d885c90d4282e9d3, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: 456dcfcfbc771c24da4c0807b1e7c878, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: ea4c09558895f164eb538ac77be8024d, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: 45bfc908198d89d4aa22ca23d3927fed, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 7b665dfa1a15ed34d885c90d4282e9d3, type: 3}

@@ -8,4 +8,14 @@ AnimatorOverrideController:
   m_PrefabAsset: {fileID: 0}
   m_Name: Pardathrox Controller
   m_Controller: {fileID: 9100000, guid: c2b0f71f214c1cb468afb27679698451, type: 2}
-  m_Clips: []
+  m_Clips:
+  - m_OriginalClip: {fileID: 7400000, guid: d2734a7e90b3cef4a8fd8dc2265304f6, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 2d950fe34e889764f834179e495e882e, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: d62d5ee68de81f842a58145b00413744, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 034cc648c75297148aa1edb8b4b7d69d, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: 55440a8f12d832444ae5c07cba8fba74, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: e19be2fc0c2522b4cb52aeed57f5ea1a, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: 456dcfcfbc771c24da4c0807b1e7c878, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: c465de47ca73e234294910c27c60d089, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: 45bfc908198d89d4aa22ca23d3927fed, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 2d950fe34e889764f834179e495e882e, type: 3}

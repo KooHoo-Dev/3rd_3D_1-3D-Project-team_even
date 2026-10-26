@@ -1,0 +1,34 @@
+using UnityEngine;
+
+namespace HybridShooter.Monster.Behaviour
+{
+    /// <summary>
+    /// 돌진형(Rusher) 몬스터 프리팹에 붙이는 돌진 튜닝 값. Play 에서 자주 바꾸는 값을 한곳에 모은다.
+    /// MonsterController.Start 가 찾아 MonsterAttackFactory 로 넘기고, ChargeAttack 이 읽는다.
+    /// </summary>
+    public sealed class ChargeSettings : MonoBehaviour
+    {
+        [Header("돌진")]
+        [Tooltip("돌진 속도 (m/s)")]
+        [SerializeField, Min(0.1f)] private float chargeSpeed = 12f;
+        [Tooltip("돌진 중 플레이어 쪽으로 방향을 보정하는 속도 (도/초). 예고 회전보다 느리게 둔다. 너무 빠르면 플레이어 주위를 맴돌아 통과하지 못한다")]
+        [SerializeField, Min(0f)] private float chargeTurnSpeed = 45f;
+        [Tooltip("접촉·통과 뒤 감속률 (m/s²). 접촉과 통과 모두 같은 값")]
+        [SerializeField, Min(0.1f)] private float brakeDeceleration = 15f;
+        [Tooltip("플레이어를 지나치지 못해도 이 거리(m)를 달리면 감속한다")]
+        [SerializeField, Min(0f)] private float maxChargeDistance = 30f;
+
+        [Header("Idle 준비 동작")]
+        [Tooltip("휴식 중 플레이어 쪽으로 도는 속도 (도/초)")]
+        [SerializeField, Min(0f)] private float prepTurnSpeed = 90f;
+        [Tooltip("휴식 중 정면으로 천천히 걷는 속도 (m/s)")]
+        [SerializeField, Min(0f)] private float prepMoveSpeed = 1.5f;
+
+        public float ChargeSpeed => chargeSpeed;
+        public float ChargeTurnSpeed => chargeTurnSpeed;
+        public float BrakeDeceleration => brakeDeceleration;
+        public float MaxChargeDistance => maxChargeDistance;
+        public float PrepTurnSpeed => prepTurnSpeed;
+        public float PrepMoveSpeed => prepMoveSpeed;
+    }
+}
