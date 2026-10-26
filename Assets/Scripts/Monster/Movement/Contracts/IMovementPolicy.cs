@@ -50,5 +50,7 @@ namespace HybridShooter.Monster.Movement
         UnityEngine.Vector3 Velocity { get; }
         // 실행기의 현재 진행 상태 (도착·도달 불가 감지용)
         MoveExecutionState ExecutionState { get; }
+        // 몸 반경 (m). 군중 제어의 슬롯 장애물 판정용
+        float Radius { get; }
     }
 }

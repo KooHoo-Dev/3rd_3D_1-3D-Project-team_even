@@ -15,19 +15,22 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// 역할 → 공격 전략. 만든 공격은 MonsterStateMachine 에 넘겨져 AttackState 가 진행한다.
         /// </summary>
-        /// <param name="role">몬스터 역할. 지금은 Melee, Infiltrator, ZonePressure, Rusher 지원</param>
+        /// <param name="role">몬스터 역할. 지금은 Melee, Infiltrator, ZonePressure, Rusher, Air 지원</param>
         /// <param name="spec">공격 1개의 값 묶음</param>
         /// <param name="body">공격자 몸체 (위치·방향)</param>
         /// <param name="findDamageable">공격 대상에서 피해를 줄 IDamageable 을 찾는 방법</param>
         /// <param name="poisonSettings">원거리(ZonePressure) 프리팹의 설정. 다른 역할은 null</param>
         /// <param name="chargeSettings">돌진(Rusher) 프리팹의 설정. 다른 역할은 null</param>
-        /// <param name="movement">돌진이 몸을 직접 옮길 때 쓰는 이동 컴포넌트. Rusher 만 쓴다</param>
+        /// <param name="movement">돌진·급강하가 몸을 직접 옮길 때 쓰는 이동 컴포넌트. Rusher, Air 가 쓴다</param>
+        /// <param name="diveSettings">급강하(Air) 프리팹의 설정. 다른 역할은 null</param>
+        /// <param name="flyingExecutor">공중(Air) 프리팹의 비행 실행기. 다른 역할은 null</param>
         /// <returns>역할에 맞는 공격 전략</returns>
         /// <exception cref="NotSupportedException">아직 공격이 구현되지 않은 역할일 때</exception>
         public static MonsterAttack CreateAttack(MonsterRole role, in AttackSpec spec, MonsterBody body,
                                                   Func<IPlayerTarget, IDamageable> findDamageable,
                                                   PoisonAreaSettings poisonSettings, ChargeSettings chargeSettings,
-                                                  MonsterMovement movement)
+                                                  MonsterMovement movement, DiveSettings diveSettings,
+                                                  FlyingMoveExecutor flyingExecutor)
         {
             switch (role)
             {
@@ -37,6 +40,7 @@ namespace HybridShooter.Monster.Behaviour
                     StatusEffectDef effect = DataManager.StatusEffects.Get(spec.EffectId);
                     return new PoisonAreaAttack(spec, body, findDamageable, poisonSettings, effect);
                 case MonsterRole.Rusher: return new ChargeAttack(spec, body, findDamageable, movement, chargeSettings);
+                case MonsterRole.Air: return new DiveAttack(spec, body, findDamageable, movement, diveSettings, flyingExecutor);
                 default: throw new NotSupportedException($"{role} 역할의 공격은 아직 구현되지 않았다");
             }
         }
