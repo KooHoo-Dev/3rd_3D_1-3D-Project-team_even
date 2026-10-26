@@ -15,8 +15,8 @@ MonoBehaviour:
   sets:
   - name: Rifle
     overrideController: {fileID: 0}
-    walkSpeed: 0.7744841
-    runSpeed: 2.5008528
+    walkSpeed: 0.85174453
+    runSpeed: 3.5361128
     sprintSpeed: 4.8121142
     reloadClipLength: 5.0000005
     drawClipLength: 2.1666667
@@ -31,6 +31,10 @@ MonoBehaviour:
   aimBlendTime: 0.15
   aimPoseAfterFire: 0.5
   upperPoseBlendTime: 0.15
+  upperPoseMoving: 0.2
+  upperPoseSprint: 0
+  upperPoseSpeedRange: {x: 0.5, y: 2}
+  upperPoseMoveBlendTime: 0.25
   playDraw: 1
   drawDuration: 0.6
   actionSpeedRange: {x: 0.5, y: 3}

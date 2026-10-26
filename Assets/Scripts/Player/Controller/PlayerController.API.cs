@@ -65,6 +65,20 @@ namespace HybridShooter.Player
         /// <summary>현재 시선 회전 (yaw + pitch). 조준·발사 방향 계산에 쓰면 된다</summary>
         public Quaternion LookRotation => Quaternion.Euler(lookPitch, lookYaw, 0f);
 
+        /// <summary>디버그(애니메이션 떨림 측정): 키보드·마우스 입력을 읽지 않는다. 이동·시선은 바깥에서 SetMoveInput·DebugSetLook 으로 넣는다</summary>
+        public bool DebugBlockInput { get; set; }
+        /// <summary>디버그(1인칭 목 측정): null 이 아니면 neckPivotWeight 대신 이 값</summary>
+        public float? DebugNeckPivotOverride { get; set; }
+
+        /// <summary>디버그: 시선(yaw·pitch)을 바로 정하고 몸도 그 yaw 로 고정한다 (입력을 막았을 때 쓴다)</summary>
+        public void DebugSetLook(float yaw, float pitch)
+        {
+            lookYaw = Mathf.Repeat(yaw, 360f);
+            lookPitch = Mathf.Clamp(pitch, minPitch, MaxPitch);
+            SyncRigRotationNow();
+            LockFacing(lookYaw);
+        }
+
         public Transform Root => rootTransform;
         public Transform AimPoint => aimPoint;
         public Transform ViewPoint => viewPoint != null ? viewPoint : (aimPoint != null ? aimPoint : transform);
@@ -101,6 +115,7 @@ namespace HybridShooter.Player
         {
             lookYaw = Mathf.Repeat(lookYaw + yaw, 360f);
             lookPitch = Mathf.Clamp(lookPitch + pitch, minPitch, MaxPitch);
+            SyncRigRotationNow();
         }
 
         /// <summary>조준 확대. fovMultiplier 1 = 원래 시야, sensitivityMultiplier = 마우스 감도 배율</summary>

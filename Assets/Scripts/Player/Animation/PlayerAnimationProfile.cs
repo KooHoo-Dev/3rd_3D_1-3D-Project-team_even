@@ -58,6 +58,15 @@ namespace HybridShooter.Player
         public float aimPoseAfterFire = 0.5f;
         [Tooltip("상체 자세 레이어를 켜고 끄는 데 걸리는 시간(초). 총이 없거나 사망·구르기·벽넘기 중에는 끈다")]
         public float upperPoseBlendTime = 0.15f;
+        [Tooltip("지상에서 걷거나 달릴 때 상체 자세 레이어 가중치 (조준하지 않을 때). 낮을수록 이동 클립의 팔·어깨·머리 움직임이 그대로 보인다. " +
+                 "총 위치·왼손은 IK 가 따로 맞추므로 영향 없음")]
+        [Range(0f, 1f)] public float upperPoseMoving = 0.2f;
+        [Tooltip("전력질주할 때 상체 자세 레이어 가중치 (전력질주 클립의 팔 동작을 쓴다)")]
+        [Range(0f, 1f)] public float upperPoseSprint = 0f;
+        [Tooltip("이 속도 범위(m/s)에서 서 있는 자세(1) → 이동 값으로 섞는다 (x 이하 = 서 있음, y 이상 = 이동 값)")]
+        public Vector2 upperPoseSpeedRange = new Vector2(0.5f, 2f);
+        [Tooltip("이동에 따라 상체 자세 레이어 가중치가 바뀌는 시간(초). 출발·정지 때 팔이 확 바뀌지 않게")]
+        public float upperPoseMoveBlendTime = 0.25f;
 
         [Header("재장전 · 꺼내기 · 사격 반동")]
         [Tooltip("무기를 바꿀 때 꺼내기 동작을 재생할지")]

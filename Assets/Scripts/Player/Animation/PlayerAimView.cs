@@ -11,7 +11,9 @@ namespace HybridShooter.Player
     ///    몸·총 레이어를 카메라에서 빼고 스코프 오버레이를 띄운다. 확대는 총의 aimFovMultiplier (총 시스템이 그대로 한다).
     ///    눈 카메라 기준이라 오버레이 중앙 = 사격 광선
     ///  - 어깨 견착 (로켓·그레네이드 런처): 1인칭 조준 중 화면 중앙에 견착 조준선 (총 자리는 PlayerFirstPersonIK 가 옆으로 비킨다)
-    ///  - 조준기 정렬 (나머지): 아무것도 띄우지 않는다
+    ///  - 조준기 정렬 (나머지): 조준 화면은 따로 없다
+    ///  - 허리 사격 조준선 (모든 총): 화면 중앙 = 사격 광선. 눈금 거리 = 지금 퍼짐. 3인칭은 늘, 1인칭은 조준기가 중앙에 오는 만큼 흐려진다.
+    ///    스코프·견착 조준선·전환 암전·시점 전환 중·팔 동작(재장전 등) 중에는 숨긴다
     /// HUD 는 시작할 때 AimReticleHud 로 만든다 (스프라이트는 SCI-FI UI Pack, 컴포넌트를 붙일 때 자동 연결)
     /// </summary>
     [DisallowMultipleComponent]
@@ -44,6 +46,8 @@ namespace HybridShooter.Player
         private bool scopeApplied;
         private Camera maskedCamera;
         private int savedMask;
+        private Transform reticleCameraTransform;
+        private Camera reticleCamera;
 
         /// <summary>지금 든 총의 조준 방식 (Auto 는 풀어서)</summary>
         public WeaponGripTable.AimMode Mode { get; private set; } = WeaponGripTable.AimMode.Sight;
@@ -85,6 +89,7 @@ namespace HybridShooter.Player
             if (scopeApplied) ApplyScope(false);
             scopeBlend = 0f;
             if (hud != null) hud.Set(0f, 0f, 0f, -1f);
+            if (hud != null) hud.SetHip(0f, 0f);
         }
 
         private void OnDestroy()
@@ -122,6 +127,30 @@ namespace HybridShooter.Player
                 ? Mathf.InverseLerp(0.5f, 1f, driver.AimWeight) : 0f;
             float range = aimIK != null && scopeApplied ? Vector3.Distance(player.CurrentCameraTransform.position, aimIK.AimPoint) : -1f;
             hud.Set(scopeApplied ? 1f : 0f, launcher, flash, range);
+            UpdateHipReticle(gun, launcher, flash);
+        }
+
+        /// <summary>허리 사격 조준선: 보일 정도와 퍼짐 원 크기 (지금 카메라 세로 FOV 로 각도 → 픽셀)</summary>
+        private void UpdateHipReticle(Gun gun, float launcher, float flash)
+        {
+            bool show = gun != null && player.IsAlive && player.CameraChanging == false
+                        && scopeBlend <= 0f && flash <= 0f && launcher <= 0f;
+            float alpha = show ? Mathf.Clamp01(driver.ActionBlend) : 0f;
+            if (player.IsFirstPerson) alpha *= 1f - driver.AimWeight; // 1인칭 조준 = 조준기가 화면 중앙
+            if (alpha <= 0.01f)
+            {
+                hud.SetHip(0f, 0f);
+                return;
+            }
+
+            Transform camTransform = player.CurrentCameraTransform;
+            if (camTransform != reticleCameraTransform)
+            {
+                reticleCameraTransform = camTransform;
+                reticleCamera = camTransform != null ? camTransform.GetComponent<Camera>() : null;
+            }
+            float vfov = reticleCamera != null ? reticleCamera.fieldOfView : 60f;
+            hud.SetHip(alpha, AimReticleHud.AngleToPixels(gun.CurrentSpread, vfov));
         }
 
         /// <summary>스코프 화면 켜기·끄기: 눈 카메라로, 몸·총 레이어 숨김</summary>

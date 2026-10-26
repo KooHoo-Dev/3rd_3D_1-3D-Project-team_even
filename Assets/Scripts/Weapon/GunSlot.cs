@@ -14,8 +14,10 @@ namespace HybridShooter.Weapon
     ///  - 0번 슬롯(주무기)만 게임 중 교체된다. 교체된 총은 파괴된다.
     ///  - PlayerController 의 입력을 지금 든 총(CurrentGun)으로 넘긴다. 실제 동작은 각 총이 덮어쓴 함수가 정한다.
     ///  - 총이 필요로 하는 조준선·반동·확대·이동 상태를 PlayerController 와 이어준다.
+    /// 실행 순서 20: PlayerController.Update(0, 시선 입력 → 리그 회전) 다음에 총을 Tick → 연사도 이번 프레임 시선으로 쏜다
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
+    [DefaultExecutionOrder(20)]
     public class GunSlot : MonoBehaviour
     {
         public const int SlotCount = 4;
