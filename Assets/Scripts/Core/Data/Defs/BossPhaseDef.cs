@@ -1,3 +1,5 @@
+// 구형 보스 페이즈 호환용 타입. 현재 DataManager에서는 로드·연결하지 않는다.
+// 팀원 코드의 타입 참조를 위해 선언을 유지하며, 새 보스 수치는 BossDef/ClypeosaurusDef를 사용한다.
 using System;
 using System.Collections.Generic;
 using HybridShooter.Core.Data.Dtos;

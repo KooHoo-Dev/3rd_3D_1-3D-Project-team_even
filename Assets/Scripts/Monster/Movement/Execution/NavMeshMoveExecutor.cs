@@ -126,8 +126,14 @@ namespace HybridShooter.Monster.Movement
                     return MoveApplyResult.Deferred;
             }
 
+            var filter = new NavMeshQueryFilter
+            {
+                agentTypeID = agent.agentTypeID,
+                areaMask = agent.areaMask
+            };
+            
             // 4) 목적지를 NavMesh 위로 보정 → 경로 계산 → 설정. 어느 단계든 실패하면 정지 + Unreachable
-            if (NavMesh.SamplePosition(intent.Destination, out NavMeshHit hit, sampleRadius, agent.areaMask) == false)
+            if (NavMesh.SamplePosition(intent.Destination, out NavMeshHit hit, sampleRadius, filter) == false)
             {
                 Stop();
                 requestedState = MoveExecutionState.Unreachable;
