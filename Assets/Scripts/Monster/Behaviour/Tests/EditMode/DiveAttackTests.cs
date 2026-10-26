@@ -27,6 +27,24 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreEqual(StartHeight, DiveAttack.DiveHeight(-StartOffset, StartOffset, StartHeight, MinHeight), Tolerance);
         }
 
+        [Test]
+        public void DiveSlopeIsDownwardAtStart()
+        {
+            Assert.AreEqual(-1f, DiveAttack.DiveSlope(StartOffset, StartOffset, StartHeight, MinHeight), Tolerance);
+        }
+
+        [Test]
+        public void DiveSlopeIsFlatAtCenter()
+        {
+            Assert.AreEqual(0f, DiveAttack.DiveSlope(0f, StartOffset, StartHeight, MinHeight), Tolerance);
+        }
+
+        [Test]
+        public void DiveSlopeIsUpwardAtExit()
+        {
+            Assert.AreEqual(1f, DiveAttack.DiveSlope(-StartOffset, StartOffset, StartHeight, MinHeight), Tolerance);
+        }
+
         [TestCase(1f)]
         [TestCase(3.5f)]
         [TestCase(6f)]

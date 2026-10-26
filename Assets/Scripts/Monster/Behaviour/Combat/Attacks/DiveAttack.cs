@@ -7,6 +7,7 @@ namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
     /// 급강하 (Air 역할). 순항 고도에서 플레이어 쪽으로 포물선을 그리며 내려가 스치고, 반대편으로 직진 이탈한다.
+    /// 강하 중 몸은 포물선 접선 방향으로 기울고, 이탈하면 수평으로 돌아온다.
     /// 스칠 때 가까우면 1회 피해. 끝나면 Chase 에서 선회 시간과 고도 회복이 끝날 때까지 다시 공격하지 않는다.
     /// 추적 이동은 하지 않는다 (Chase 의 MeleePolicy + FlyingMoveExecutor 가 맡는다).
     /// </summary>
@@ -43,7 +44,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="spec">공격 값 묶음. Range = 스침 피해 거리(3D)</param>
         /// <param name="body">공격자 몸체</param>
         /// <param name="findDamageable">대상에서 피해를 줄 IDamageable 을 찾는 방법</param>
-        /// <param name="movement">몸을 직접 옮기는 이동 컴포넌트 (MoveDuringAttack)</param>
+        /// <param name="movement">몸을 직접 옮기는 이동 컴포넌트 (MoveDuringAttack). 몸 기울기 회전도 이 컴포넌트의 Transform 에 쓴다</param>
         /// <param name="settings">급강하 프리팹의 튜닝 값</param>
         /// <param name="flyer">비행 실행기. 재정비 판정에 순항 고도를 읽는다</param>
         /// <exception cref="ArgumentNullException">movement, settings, flyer 중 하나가 null 일 때 (프리팹에 DiveSettings·FlyingMoveExecutor 가 없을 때 등). body 는 기반 생성자가 던진다</exception>
@@ -85,6 +86,20 @@ namespace HybridShooter.Monster.Behaviour
         {
             float ratio = s / startOffset;
             return minHeight + (startHeight - minHeight) * ratio * ratio;
+        }
+
+        /// <summary>
+        /// 급강하 기울기. DiveHeight 를 s 로 미분한 값으로, 몸을 포물선 접선 방향으로 기울일 때 TickDiving 이 쓴다.
+        /// 시작 쪽은 음수(내려감), 중앙은 0(수평), 출구 쪽은 양수(올라감)다.
+        /// </summary>
+        /// <param name="s">지금 ĥ 축 좌표 (m)</param>
+        /// <param name="startOffset">s₀ (m, 0 이 아니어야 한다)</param>
+        /// <param name="startHeight">y₀ 시작 높이 (월드 y, m)</param>
+        /// <param name="minHeight">yMin 최저 높이 (월드 y, m)</param>
+        /// <returns>2·(y₀ − yMin)·s / s₀². 높이 변화 m / ĥ 축 이동 m</returns>
+        public static float DiveSlope(float s, float startOffset, float startHeight, float minHeight)
+        {
+            return 2f * (startHeight - minHeight) * s / (startOffset * startOffset);
         }
 
         /// <summary>
@@ -130,13 +145,16 @@ namespace HybridShooter.Monster.Behaviour
         protected override void OnCancel() { }
 
         /// <summary>
-        /// 급강하 1틱: ĥ 축을 따라 앞으로 가며 높이를 포물선에 맞춘다. 가까우면 피해를 주고, 출구(−s₀)에 닿으면 이탈로 넘어간다.
+        /// 급강하 1틱: ĥ 축을 따라 앞으로 가며 높이를 포물선에 맞추고, 몸을 그 지점의 포물선 접선 방향으로 기울인다.
+        /// 가까우면 피해를 주고, 출구(−s₀)에 닿으면 이탈로 넘어간다.
         /// </summary>
         /// <param name="deltaTime">지난 틱부터 경과 시간 (s)</param>
         private void TickDiving(float deltaTime)
         {
             travelled = Mathf.Min(travelled + settings.DiveSpeed * deltaTime, -startOffset);
             float minimumY = diveCenter.y + settings.MinHeight;
+            Vector3 slopeDirection = diveDirection + Vector3.up * DiveSlope(travelled, startOffset, startHeight, minimumY);
+            movement.transform.rotation = Quaternion.LookRotation(slopeDirection);
             Vector3 goal = diveCenter + diveDirection * travelled;
             goal.y = DiveHeight(travelled, startOffset, startHeight, minimumY);
             movement.MoveDuringAttack(goal - Body.Position);
@@ -146,12 +164,13 @@ namespace HybridShooter.Monster.Behaviour
             if (reachedExit) stage = DiveStage.Leaving;
         }
 
-        /// <summary>이탈 1틱: ĥ 방향으로 높이를 유지한 채 직진한다. P 와 수평 거리가 이탈 거리 이상이면 종료 시각을 기록한다</summary>
+        /// <summary>이탈 1틱: 몸을 수평으로 되돌리고 ĥ 방향으로 높이를 유지한 채 직진한다. P 와 수평 거리가 이탈 거리 이상이면 종료 시각을 기록한다</summary>
         /// <param name="now">현재 시각 (s)</param>
         /// <param name="deltaTime">지난 틱부터 경과 시간 (s)</param>
         /// <returns>true = 이탈 거리에 닿았다</returns>
         private bool TickLeaving(float now, float deltaTime)
         {
+            movement.transform.rotation = Quaternion.LookRotation(diveDirection);
             movement.MoveDuringAttack(diveDirection * settings.DiveSpeed * deltaTime);
             float distanceFromCenter = HitAreas.Flat(Body.Position - diveCenter).magnitude;
             if (distanceFromCenter < settings.LeaveDistance) return false;
