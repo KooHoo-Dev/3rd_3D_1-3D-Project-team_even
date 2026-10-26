@@ -132,6 +132,10 @@ namespace HybridShooter.Player
         [Header("1인칭 눈 위치")]
         [Tooltip("눈을 몸 정면 쪽으로 이만큼 내민다(m). 숨긴 머리 자리에 남는 목 구멍이 카메라 뒤로 가게 한다")]
         [SerializeField] private float eyeForwardOffset = 0.12f;
+        [Tooltip("아래를 볼 때 눈이 목을 축으로 도는 정도. 0 = 끔(눈 고정), 1 = 실제 머리처럼 앞·아래로")]
+        [SerializeField, Range(0f, 1f)] private float neckPivotWeight = 0f;
+        [Tooltip("목 축 → 눈 (FP_Rig 로컬, m). 위·앞으로 멀수록 아래를 볼 때 눈이 많이 나간다")]
+        [SerializeField] private Vector3 eyeFromNeck = new Vector3(0f, 0.1f, 0.08f);
         [Tooltip("켜면 FP_Rig 높이가 머리 뼈 위치를 부분적으로 따라간다 (걷기 흔들림이 약간 생김)")]
         [SerializeField] private bool followHeadBone = false;
         [Tooltip("0 = 원래 높이 고정, 1 = 머리 뼈 위치 그대로")]

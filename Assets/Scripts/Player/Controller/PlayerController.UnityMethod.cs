@@ -67,7 +67,7 @@ namespace HybridShooter.Player
 
         private void Update()
         {
-            if (externalControl) return;
+            if (externalControl || DebugBlockInput) return;
             InputHandle();
         }
 

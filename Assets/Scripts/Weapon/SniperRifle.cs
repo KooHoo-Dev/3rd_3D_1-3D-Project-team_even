@@ -92,6 +92,7 @@ namespace HybridShooter.Weapon
                 if (++hitCount >= maxPenetration) { end = hit.point; break; }
             }
             Debug.DrawLine(ray.origin, end, Color.cyan, 0.5f);
+            SpawnTracer(end);
         }
     }
 }

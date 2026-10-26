@@ -60,8 +60,13 @@ namespace HybridShooter.Weapon
             {
                 Vector2 offset = PelletOffset(i, innerCount, spread);
                 Vector3 direction = OffsetDirection(aim.direction, offset);
-                if (Raycast(new Ray(aim.origin, direction), Stats.range, out var hit) == false) continue;
+                if (Raycast(new Ray(aim.origin, direction), Stats.range, out var hit) == false)
+                {
+                    SpawnTracer(aim.origin + direction * Stats.range);
+                    continue;
+                }
 
+                SpawnTracer(hit.point);
                 SpawnImpact(hit);
                 if (hit.collider.TryGetDamageable(out var target) == false || target.CanBeHitBy(Owner.Faction) == false) continue;
 

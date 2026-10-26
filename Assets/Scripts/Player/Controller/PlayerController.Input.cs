@@ -12,6 +12,7 @@ namespace HybridShooter.Player
 
             // 마우스 → 시선 회전.
             UpdateLook();
+            SyncRigRotationNow();
             LockFacing(lookYaw);
             if(IsDead) return;
             // 0) 커서 잠금 해제/복귀 (좌클릭은 조준용으로 비워 둔다)
