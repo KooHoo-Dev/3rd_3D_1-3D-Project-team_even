@@ -272,8 +272,11 @@ namespace HybridShooter.Monster.MovementLab
             var ownedMonster = go.AddComponent<MovementLabOwnedMonster>();
             var movement = go.GetComponent<MonsterMovement>();
             var agent = go.GetComponent<NavMeshAgent>();
-            agent.radius = .45f; agent.height = 1.8f; agent.speed = 3.5f; agent.stoppingDistance = .1f;
-            agent.avoidancePriority = Random.Range(20, 80);
+            if (agent != null)
+            {
+                agent.radius = .45f; agent.height = 1.8f; agent.speed = 3.5f; agent.stoppingDistance = .1f;
+                agent.avoidancePriority = Random.Range(20, 80);
+            }
             // 프리팹의 Profile 은 프로젝트 에셋이다. 복사본을 넘겨야 Lab 이 파괴/교체(SetPolicy)해도 에셋이 안전하다
             ownedMonster.Initialize(Instantiate(movement.Profile), useCoordinator ? coordinator : null, target);
             ownedMonsters.Add(ownedMonster);

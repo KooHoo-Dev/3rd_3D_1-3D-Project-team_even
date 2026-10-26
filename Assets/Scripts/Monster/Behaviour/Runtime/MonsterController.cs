@@ -21,7 +21,7 @@ namespace HybridShooter.Monster.Behaviour
     /// 기본 IMonsterFactory 는 프리팹을 Instantiate 만 하므로 초기화는 이 클래스가 스스로 한다.
     /// 라이플·수류탄은 IDamageable 로 이 클래스를 찾아 피해를 준다.
     /// </remarks>
-    [RequireComponent(typeof(MonsterMovement), typeof(NavMeshMoveExecutor))]
+    [RequireComponent(typeof(MonsterMovement))]
     public sealed class MonsterController : MonoBehaviour, IDamageable
     {
         [Tooltip("MonsterTable Id")]
@@ -89,11 +89,15 @@ namespace HybridShooter.Monster.Behaviour
             var poisonSettings = GetComponent<PoisonAreaSettings>(); // 원거리 프리팹에만 있다. 없으면 null
             var pounceSettings = GetComponent<PounceSettings>();
             var chargeSettings = GetComponent<ChargeSettings>();     // 돌진 프리팹에만 있다. 없으면 null
+            var diveSettings = GetComponent<DiveSettings>();         // 공중 프리팹에만 있다. 없으면 null
+            var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
             var attacks = new List<MonsterAttack>();
             foreach (MonsterAttackDef attackDef in BasicAttackDefs(Def))
             {
                 var attackSpec = AttackSpec.From(attackDef);
-                attacks.Add(MonsterAttackFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable, poisonSettings, pounceSettings, chargeSettings, movement));
+                attacks.Add(MonsterAttackFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable,
+                                                              poisonSettings, pounceSettings, chargeSettings, movement,
+                                                              diveSettings, flyingExecutor));
             }
             movement.SetCombatTuning(Def.MoveSpeed, attacks[0].Range); // 이동의 전투 사거리는 첫 공격 기준
             StateMachine = new MonsterStateMachine(movement, body, attacks);

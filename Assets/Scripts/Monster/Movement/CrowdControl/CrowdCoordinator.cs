@@ -226,7 +226,7 @@ namespace HybridShooter.Monster.Movement
         /// 몬스터를 군중 목록에 넣고 다음 프레임에 즉시 재배분한다.
         /// MonsterMovement 가 활성화될 때(OnEnable) 또는 정지(Suspended)가 풀릴 때 호출한다.
         /// </summary>
-        /// <remarks>중복 등록은 에러 로그만 남기고 무시한다. 슬롯 모드에서 NavMeshAgent 타입이 SlotSettings.AgentTypeId 와 다르면 에러 로그.</remarks>
+        /// <remarks>중복 등록은 에러 로그만 남기고 무시한다. 슬롯 모드에서 토큰을 쓰는 개체의 NavMeshAgent 타입이 SlotSettings.AgentTypeId 와 다르면 에러 로그 (비행체는 NavMeshAgent 가 없어 검사하지 않는다).</remarks>
         /// <param name="agent">등록할 몬스터</param>
         /// <exception cref="ArgumentNullException">agent 가 null 일 때</exception>
         public void Register(MonsterMovement agent)
@@ -239,7 +239,8 @@ namespace HybridShooter.Monster.Movement
             }
             agents.Add(agent);
             bool isSlotMode = settings.EnableCrowdControl && settings.UseSlots;
-            bool isAgentTypeDifferent = isSlotMode &&
+            bool usesEngageToken = agent.Profile.UsesEngageToken;
+            bool isAgentTypeDifferent = isSlotMode && usesEngageToken &&
                 agent.GetComponent<UnityEngine.AI.NavMeshAgent>().agentTypeID != settings.Slots.AgentTypeId;
             if (isAgentTypeDifferent)
                 Debug.LogError($"{agent.name}: NavMeshAgent 타입과 SlotSettings.AgentTypeId가 다름", agent);

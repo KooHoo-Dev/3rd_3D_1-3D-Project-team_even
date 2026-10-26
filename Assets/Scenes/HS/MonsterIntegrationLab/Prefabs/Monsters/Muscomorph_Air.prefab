@@ -1677,12 +1677,12 @@ GameObject:
   m_Component:
   - component: {fileID: 3921941921290672334}
   - component: {fileID: 544312080701729416}
-  - component: {fileID: 4851131516130981605}
-  - component: {fileID: 3500386869424806335}
-  - component: {fileID: 1042026002347941205}
-  - component: {fileID: 8857605372768615403}
   - component: {fileID: 1339720009426404018}
-  - component: {fileID: 1675132261988885659}
+  - component: {fileID: 3500386869424806335}
+  - component: {fileID: 8857605372768615403}
+  - component: {fileID: 4756636726016961627}
+  - component: {fileID: 3054492622161123645}
+  - component: {fileID: 3168750531067842310}
   m_Layer: 0
   m_Name: Muscomorph_Air
   m_TagString: Untagged
@@ -1735,81 +1735,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!195 &4851131516130981605
-NavMeshAgent:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6221495752859311938}
-  m_Enabled: 1
-  m_AgentTypeID: 0
-  m_Radius: 0.5
-  m_Speed: 3.5
-  m_Acceleration: 8
-  avoidancePriority: 50
-  m_AngularSpeed: 120
-  m_StoppingDistance: 0
-  m_AutoTraverseOffMeshLink: 1
-  m_AutoBraking: 1
-  m_AutoRepath: 1
-  m_Height: 2
-  m_BaseOffset: 0
-  m_WalkableMask: 4294967295
-  m_ObstacleAvoidanceType: 4
---- !u!114 &3500386869424806335
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6221495752859311938}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0f483ab3958142c0883214bbb5a4f607, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
-  profile: {fileID: 11400000, guid: c619edd1badc47247a173191b35665e2, type: 2}
-  coordinator: {fileID: 0}
-  directTargetSource: {fileID: 0}
-  turnSpeed: 8
---- !u!114 &1042026002347941205
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6221495752859311938}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6bd407663bf54957bb767c38a5136591, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.NavMeshMoveExecutor
-  repathDistance: 0.5
-  minRepathInterval: 0.25
-  sampleRadius: 4
-  engagedPriority: 30
-  defaultPriority: 60
---- !u!114 &8857605372768615403
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6221495752859311938}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 99256aef488ff7f42a2606f864e2feef, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterController
-  monsterId: 1001
-  despawnDelay: 2
-  moveClipSpeed: 3
-  idleSpeedThreshold: 0.1
-  useCooldownOverride: 0
-  cooldownOverrideSeconds: 1
-  hitTimeRatio: 0.5
-  windupTurnSpeed: 360
 --- !u!114 &1339720009426404018
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1824,7 +1749,78 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterDebugActions
   damageAmount: 10
   stunSeconds: 2
---- !u!136 &1675132261988885659
+--- !u!114 &3500386869424806335
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6221495752859311938}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f483ab3958142c0883214bbb5a4f607, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
+  profile: {fileID: 11400000, guid: 7728c90c77b872042bf50c9a4800d3dc, type: 2}
+  coordinator: {fileID: 0}
+  directTargetSource: {fileID: 0}
+  turnSpeed: 8
+--- !u!114 &8857605372768615403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6221495752859311938}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99256aef488ff7f42a2606f864e2feef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterController
+  monsterId: 1003
+  despawnDelay: 2
+  moveClipSpeed: 3
+  idleSpeedThreshold: 0.1
+  useCooldownOverride: 0
+  cooldownOverrideSeconds: 1
+  hitTimeRatio: 0
+  windupTurnSpeed: 360
+--- !u!114 &4756636726016961627
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6221495752859311938}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd00b389058b3e14cac76aef31fa5007, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.FlyingMoveExecutor
+  cruiseHeight: 5
+  climbSpeed: 3
+  groundSampleRadius: 2
+  radius: 0.5
+  arrivalDistance: 0.5
+--- !u!114 &3054492622161123645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6221495752859311938}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0877ed367f844234b8f4df62a997f7f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.DiveSettings
+  entryDistance: 8
+  minHeight: 1
+  diveSpeed: 10
+  leaveDistance: 12
+  turnAwayTime: 1
+  altitudeTolerance: 0.5
+--- !u!136 &3168750531067842310
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1843,10 +1839,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.21526623
-  m_Height: 0.59382355
+  m_Radius: 0.26036838
+  m_Height: 0.60675836
   m_Direction: 1
-  m_Center: {x: 0.007997513, y: 0.5641081, z: 0.11752832}
+  m_Center: {x: 0.015360773, y: 0.58442056, z: 0.10752675}
 --- !u!1 &6357135313045127238
 GameObject:
   m_ObjectHideFlags: 0

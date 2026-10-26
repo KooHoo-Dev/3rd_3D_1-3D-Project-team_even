@@ -111,6 +111,7 @@ namespace HybridShooter.Monster.Movement
         }
 
         public Vector3 Velocity => agent.isActiveAndEnabled ? agent.velocity : Vector3.zero;
+        public float Radius => agent.radius;
 
         // 디버그: 누적 SetPath 호출 수
         public int RepathCount => repathCount;

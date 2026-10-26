@@ -116,7 +116,7 @@ namespace HybridShooter.Monster.Movement
         public CrowdDirective Directive => directive;
         public MoveIntent LastIntent => lastIntent;
         public MoveExecutionState ExecutionState => executor != null ? executor.ExecutionState : MoveExecutionState.Idle;
-        public float Radius => GetComponent<UnityEngine.AI.NavMeshAgent>().radius;
+        public float Radius => executor.Radius;
 
         // 이동 상태가 실제로 바뀔 때 발생 (sender, previous, current). SetState 가 발생시킨다
         public event Action<MonsterMovement, MovementState, MovementState> StateChanged;
