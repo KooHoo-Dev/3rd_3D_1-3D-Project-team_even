@@ -11,7 +11,7 @@ namespace HybridShooter.Boss
         private Animator animator;
         private BossMovement movement;
 
-        private void Awake()
+        protected virtual void Awake()
         {
             animator = GetComponent<Animator>();
             movement = GetComponent<BossMovement>();
@@ -25,6 +25,19 @@ namespace HybridShooter.Boss
         private void OnDisable()
         {
             if (animator != null) animator.SetBool(IsMovingHash, false);
+        }
+        
+        public void PlayState(string fullStateName)
+        {
+            animator.Play(Animator.StringToHash(fullStateName),0, 0f);
+        }
+        
+        public bool IsStateFinished(string fullStateName)
+        {
+            AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+
+            return state.fullPathHash == Animator.StringToHash(fullStateName)
+                   && state.normalizedTime >= 1f;
         }
     }
 }
