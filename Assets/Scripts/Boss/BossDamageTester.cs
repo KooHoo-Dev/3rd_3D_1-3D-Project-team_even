@@ -8,7 +8,8 @@ namespace HybridShooter.Boss
     public sealed class BossDamageTester : MonoBehaviour
     {
         [SerializeField] private int bossId = 1;
-
+        [SerializeField] private MonoBehaviour playerSource;
+        
         private BossController boss;
 
         private void Awake()
@@ -25,19 +26,25 @@ namespace HybridShooter.Boss
         private void Start()
         {
             var def = DataManager.Bosses.Get(bossId);
-
+            var target = playerSource as IPlayerTarget;
+                
             if (def == null)
             {
                 enabled = false;
                 return;
             }
 
-            boss.Initialize(def);
+            if (target?.Root == null)
+            {
+                Debug.LogError( "[Boss] IPlayerTarget을 구현한 플레이어를 연결해주세요.", this);
+                
+                enabled = false;
+                return;
+            }
 
-            Debug.Log(
-                $"[Boss] 초기화 | ID: {boss.Def.Id} | " +
-                $"HP: {boss.CurrentHp}/{boss.MaxHp}",
-                boss);
+            boss.Initialize(def, target);
+
+            Debug.Log($"[Boss] 초기화 | ID: {boss.Def.Id} | " + $"HP: {boss.CurrentHp}/{boss.MaxHp}", boss);
         }
 
         private void OnDisable()
