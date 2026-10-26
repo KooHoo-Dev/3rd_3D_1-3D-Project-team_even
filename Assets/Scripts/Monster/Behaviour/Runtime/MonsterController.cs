@@ -85,8 +85,9 @@ namespace HybridShooter.Monster.Behaviour
         private void Start()
         {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
-            var body = new MonsterBody(transform);
+            var body = new MonsterBody(transform, GetComponent<NavMeshMoveExecutor>());
             var poisonSettings = GetComponent<PoisonAreaSettings>(); // 원거리 프리팹에만 있다. 없으면 null
+            var pounceSettings = GetComponent<PounceSettings>();
             var chargeSettings = GetComponent<ChargeSettings>();     // 돌진 프리팹에만 있다. 없으면 null
             var diveSettings = GetComponent<DiveSettings>();         // 공중 프리팹에만 있다. 없으면 null
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
@@ -95,7 +96,7 @@ namespace HybridShooter.Monster.Behaviour
             {
                 var attackSpec = AttackSpec.From(attackDef);
                 attacks.Add(MonsterAttackFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable,
-                                                              poisonSettings, chargeSettings, movement,
+                                                              poisonSettings, pounceSettings, chargeSettings, movement,
                                                               diveSettings, flyingExecutor));
             }
             movement.SetCombatTuning(Def.MoveSpeed, attacks[0].Range); // 이동의 전투 사거리는 첫 공격 기준
@@ -322,6 +323,7 @@ namespace HybridShooter.Monster.Behaviour
 
             CurrentHp = Mathf.Max(0, CurrentHp - info.Amount);
             bool isKill = IsAlive == false;
+            Debug.Log($"{gameObject.name}: {info.Amount} 체력을 깎는다. 현재 체력: {CurrentHp}");
             EventBus<DamageDealtEvent>.Publish(new DamageDealtEvent(gameObject, info, isKill));
             if (isKill) StateMachine.Die(true);
         }

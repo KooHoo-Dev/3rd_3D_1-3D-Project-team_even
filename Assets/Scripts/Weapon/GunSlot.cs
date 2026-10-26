@@ -14,8 +14,10 @@ namespace HybridShooter.Weapon
     ///  - 0번 슬롯(주무기)만 게임 중 교체된다. 교체된 총은 파괴된다.
     ///  - PlayerController 의 입력을 지금 든 총(CurrentGun)으로 넘긴다. 실제 동작은 각 총이 덮어쓴 함수가 정한다.
     ///  - 총이 필요로 하는 조준선·반동·확대·이동 상태를 PlayerController 와 이어준다.
+    /// 실행 순서 20: PlayerController.Update(0, 시선 입력 → 리그 회전) 다음에 총을 Tick → 연사도 이번 프레임 시선으로 쏜다
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
+    [DefaultExecutionOrder(20)]
     public class GunSlot : MonoBehaviour
     {
         public const int SlotCount = 4;
@@ -193,6 +195,29 @@ namespace HybridShooter.Weapon
                 if (gun != null && gun.WeaponId == weaponId) return ReplacePrimary(gun);
             Debug.LogWarning($"{name}: 예비 총 중 WeaponId {weaponId} 가 없습니다", this);
             return null;
+        }
+
+        /// <summary>
+        /// 편집 도구(IK Pose Lab)용: 지금 든 칸의 총을 다른 총으로 바꿔 든다. 슬롯에 있는 총이면 그 칸을 들고,
+        /// 예비 총이면 지금 칸의 총과 맞바꾼다 (원래 총은 예비로. 파괴하지 않는다)
+        /// </summary>
+        public bool DebugEquip(Gun gun)
+        {
+            if (gun == null || gun == CurrentGun || currentIndex < 0) return false;
+            int index = Array.IndexOf(slots, gun);
+            if (index >= 0) return Select(index);
+            if (reserve.Remove(gun) == false) return false;
+
+            Gun old = CurrentGun;
+            if (old != null)
+            {
+                old.Unequip();
+                reserve.Add(old);
+            }
+            slots[currentIndex] = gun;
+            gun.Equip();
+            GunChanged?.Invoke(currentIndex, gun);
+            return true;
         }
 
         /// <summary>테스트용: 예비 총 중 첫 번째로 주무기 교체 (원래 주무기는 사라지므로 예비가 하나씩 줄어든다)</summary>

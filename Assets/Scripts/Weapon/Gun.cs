@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
@@ -74,6 +74,8 @@ namespace HybridShooter.Weapon
         [SerializeField] protected GameObject impactEffectPrefab;
         [Tooltip("총구 화염 (선택)")]
         [SerializeField] protected GameObject muzzleFlashPrefab;
+        [Tooltip("히트스캔 탄 궤적 (선택). 총구에서 맞은 자리(빗나가면 사거리 끝)까지 날아간다")]
+        [SerializeField] protected BulletTracer tracerPrefab;
 
         [Header("탄 퍼짐 (도)")]
         [Tooltip("한 발 쏠 때마다 늘어나는 퍼짐")]
@@ -120,6 +122,39 @@ namespace HybridShooter.Weapon
         private bool subscribed;
 
         protected static readonly RaycastHit[] SharedHits = new RaycastHit[32];
+
+        private Vector3 shotEnd;
+        private bool shotEndRecorded;
+        #endregion
+
+        #region 디버그 (사격 측정)
+        /// <summary>히트스캔 한 발의 기록. 각도는 도</summary>
+        public struct ShotDebugInfo
+        {
+            /// <summary>쏠 때의 조준선 (퍼짐 전)</summary>
+            public Ray aim;
+            /// <summary>쏠 때 적용된 퍼짐(반각)</summary>
+            public float spread;
+            /// <summary>쏠 때 총구 위치와 총의 정면 (이번 프레임 IK 전 = 지난 프레임에 그려진 자세)</summary>
+            public Vector3 muzzle, gunForward;
+            /// <summary>탄착점 (빗나가면 사거리 끝). 산탄은 첫 알</summary>
+            public Vector3 end;
+        }
+
+        /// <summary>디버그: 히트스캔 총이 한 발 쏠 때마다 (탄 궤적을 그리는 총만. 투사체 총은 없음). 구독자가 없으면 아무것도 하지 않는다</summary>
+        public static event Action<Gun, ShotDebugInfo> DebugShotFired;
+
+        private ShotDebugInfo BeginShotDebug()
+        {
+            shotEndRecorded = false;
+            return new ShotDebugInfo
+            {
+                aim = Owner.AimRay,
+                spread = CurrentSpread,
+                muzzle = Muzzle.position,
+                gunForward = transform.forward,
+            };
+        }
         #endregion
 
         #region 외부 API
@@ -356,12 +391,15 @@ namespace HybridShooter.Weapon
             lastShotTime = Time.time;
 
             SetAmmo(Ammo - 1);
+            ShotDebugInfo debug = default;
+            if (DebugShotFired != null) debug = BeginShotDebug();
             Shoot();
+            if (DebugShotFired != null && shotEndRecorded) { debug.end = shotEnd; DebugShotFired(this, debug); }
             ApplyRecoil();
             bloom = Mathf.Min(bloom + bloomPerShot, maxBloom);
 
             Vector3 muzzlePos = Muzzle.position;
-            if (muzzleFlashPrefab != null) Destroy(Instantiate(muzzleFlashPrefab, muzzlePos, Muzzle.rotation, Muzzle), 1f);
+            if (muzzleFlashPrefab != null) SpawnMuzzleFlash();
             PlaySfx(Def?.FireSfx, muzzlePos);
             if (IsCurrent) EventBus<WeaponFiredEvent>.Publish(new WeaponFiredEvent(Def, muzzlePos));
             return true;
@@ -399,9 +437,11 @@ namespace HybridShooter.Weapon
             if (Raycast(ray, Stats.range, out var hit) == false)
             {
                 Debug.DrawRay(ray.origin, direction * Stats.range, Color.yellow, 0.1f);
+                SpawnTracer(ray.GetPoint(Stats.range));
                 return false;
             }
             Debug.DrawLine(ray.origin, hit.point, Color.red, 0.1f);
+            SpawnTracer(hit.point);
             DealDamage(hit.collider, DamageAtDistance(hit.distance), hit.point, direction);
             SpawnImpact(hit);
             return true;
@@ -447,6 +487,13 @@ namespace HybridShooter.Weapon
         {
             if (impactEffectPrefab == null) return;
             Destroy(Instantiate(impactEffectPrefab, hit.point, Quaternion.LookRotation(hit.normal)), 2f);
+        }
+
+        /// <summary>총구에서 end 까지 탄 궤적 한 줄</summary>
+        protected void SpawnTracer(Vector3 end)
+        {
+            if (shotEndRecorded == false) { shotEnd = end; shotEndRecorded = true; } // 디버그: 이번 발의 첫 탄착점 (산탄은 첫 알)
+            if (tracerPrefab != null) BulletTracer.Fire(tracerPrefab, Muzzle.position, end);
         }
 
         /// <summary>투사체 생성 위치. 총구가 벽 너머에 있으면 벽 앞에서 생성 (벽 뚫기 방지)</summary>
@@ -506,6 +553,15 @@ namespace HybridShooter.Weapon
         private void PublishAmmo()
         {
             if (IsCurrent) EventBus<AmmoChangedEvent>.Publish(new AmmoChangedEvent(Ammo, Stats.magazineSize));
+        }
+
+        /// <summary>총구에 붙여 생성. 레이어를 총과 맞춰 저격 조준(무기 레이어 숨김) 때 같이 숨는다</summary>
+        private void SpawnMuzzleFlash()
+        {
+            GameObject flash = Instantiate(muzzleFlashPrefab, Muzzle.position, Muzzle.rotation, Muzzle);
+            int layer = gameObject.layer;
+            foreach (var t in flash.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = layer;
+            Destroy(flash, 1f);
         }
 
         private void ApplyRecoil()

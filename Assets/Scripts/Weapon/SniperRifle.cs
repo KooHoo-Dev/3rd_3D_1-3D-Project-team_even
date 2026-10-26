@@ -8,7 +8,7 @@ namespace HybridShooter.Weapon
     /// 저격소총 — 볼트 액션 장거리 무기. (참고: CoD·배틀필드 볼트액션 저격총)
     ///  - 조준 안 하고 쏘면(no-scope) 크게 빗나간다. 조준 후 scopeSettleTime 이 지나야 완전히 정확
     ///  - 조준 중에도 움직이면 흔들린다
-    ///  - 한 발 쏘면 노리쇠를 당기는 동안(= 발사 간격) 스코프가 풀렸다가, 우클릭을 유지하고 있으면 다시 확대
+    ///  - 한 발 쏘면 노리쇠를 당긴다(= 발사 간격). 기본은 그동안에도 확대 유지 (unscopeWhileBolting 을 켜면 풀렸다가 다시 확대)
     ///  - 관통: 적을 뚫고 뒤의 적까지 맞힌다 (뚫을 때마다 피해 감소). 벽은 못 뚫는다
     /// </summary>
     public class SniperRifle : Gun
@@ -22,8 +22,8 @@ namespace HybridShooter.Weapon
         [SerializeField] private int maxPenetration = 3;
         [Tooltip("적을 하나 뚫을 때마다 남는 피해 비율")]
         [SerializeField, Range(0f, 1f)] private float penetrationDamageRatio = 0.7f;
-        [Tooltip("노리쇠를 당기는 동안 스코프를 푼다")]
-        [SerializeField] private bool unscopeWhileBolting = true;
+        [Tooltip("노리쇠를 당기는 동안 확대를 푼다 (끄면 스코프 화면 그대로 유지)")]
+        [SerializeField] private bool unscopeWhileBolting = false;
 
         private readonly HashSet<IDamageable> pierced = new HashSet<IDamageable>();
         private bool wasBolting;
@@ -92,6 +92,7 @@ namespace HybridShooter.Weapon
                 if (++hitCount >= maxPenetration) { end = hit.point; break; }
             }
             Debug.DrawLine(ray.origin, end, Color.cyan, 0.5f);
+            SpawnTracer(end);
         }
     }
 }

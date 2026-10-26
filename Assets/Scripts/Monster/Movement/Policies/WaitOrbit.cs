@@ -58,7 +58,8 @@ namespace HybridShooter.Monster.Movement
             // 슬롯 모드: 슬롯이 없으면 제자리 대기, 있으면 슬롯으로 이동
             if (ctx.Directive.RequiresSlot)
             {
-                if (ctx.Directive.HasSlotPosition == false) return MoveIntent.Stop(MovementState.Waiting);
+                if (ctx.Directive.HasSlotPosition == false) 
+                    return MoveIntent.Stop(MovementState.Waiting);
                 bool arrived = HorizontalDistance(ctx.SelfPosition, ctx.Directive.SlotPosition) <= ctx.Directive.SlotArrivalDistance;
                 return new MoveIntent(arrived ? MovementState.Waiting : MovementState.Approach,
                     ctx.Directive.SlotPosition, t.MoveSpeed, Mathf.Min(0.2f, ctx.Directive.SlotArrivalDistance * 0.5f));

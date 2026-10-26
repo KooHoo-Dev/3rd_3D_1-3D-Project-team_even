@@ -108,6 +108,8 @@ namespace HybridShooter.Weapon
             public int DirectHitBonus;
             public float MaxLifetime;
             public ExplosionSettings Explosion;
+            /// <summary>탄 뒤에 붙는 꼬리 이펙트 (선택). 탄이 사라지면 떼어내 남은 꼬리가 자연스럽게 사라진다</summary>
+            public ProjectileTrail Trail;
         }
 
         private static readonly RaycastHit[] hits = new RaycastHit[16];
@@ -118,6 +120,7 @@ namespace HybridShooter.Weapon
         private float age;
         private float traveled;
         private bool resting;
+        private ProjectileTrail trail;
 
         /// <summary>visualPrefab 이 없으면 작은 구를 만든다</summary>
         public static GunProjectile Spawn(GameObject visualPrefab, Vector3 position, Vector3 velocity, in Settings settings, in ProjectileContext context)
@@ -142,7 +145,20 @@ namespace HybridShooter.Weapon
             projectile.settings = settings;
             projectile.context = context;
             projectile.velocity = velocity;
+            if (settings.Trail != null)
+            {
+                // 월드 크기를 유지한 채 붙인다 (외형 프리팹의 스케일을 따라가지 않게)
+                projectile.trail = Instantiate(settings.Trail, position, rotation);
+                projectile.trail.transform.SetParent(go.transform, true);
+            }
             return projectile;
+        }
+
+        /// <summary>꼬리를 떼어내고 탄을 지운다. 탄이 사라지는 모든 경로는 여기를 거친다</summary>
+        private void Despawn()
+        {
+            if (trail != null) trail.Detach();
+            Destroy(gameObject);
         }
 
         private void Update()
@@ -150,7 +166,7 @@ namespace HybridShooter.Weapon
             float dt = Time.deltaTime;
             age += dt;
             if (settings.FuseTime > 0f && age >= settings.FuseTime) { Explode(transform.position); return; }
-            if (age >= settings.MaxLifetime) { Destroy(gameObject); return; }
+            if (age >= settings.MaxLifetime) { Despawn(); return; }
             if (resting) return;
 
             velocity += Vector3.down * (settings.Gravity * dt);
@@ -188,7 +204,7 @@ namespace HybridShooter.Weapon
                 {
                     if (settings.ImpactDamage > 0)
                         target.TakeDamage(new DamageInfo(settings.ImpactDamage, DamageKind.Bullet, context.Faction, context.Attacker, hit.point, direction, context.SourceDefId));
-                    Destroy(gameObject);
+                    Despawn();
                 }
                 return;
             }
@@ -196,7 +212,7 @@ namespace HybridShooter.Weapon
             if (settings.ExplodeOnSurface)
             {
                 if (armed) Explode(hit.point + hit.normal * 0.05f);
-                else Destroy(gameObject); // 무장 전 벽에 닿은 로켓은 불발
+                else Despawn(); // 무장 전 벽에 닿은 로켓은 불발
                 return;
             }
 
@@ -229,7 +245,7 @@ namespace HybridShooter.Weapon
         private void Explode(Vector3 position)
         {
             GunExplosion.Explode(position, settings.Explosion, context);
-            Destroy(gameObject);
+            Despawn();
         }
     }
 }
