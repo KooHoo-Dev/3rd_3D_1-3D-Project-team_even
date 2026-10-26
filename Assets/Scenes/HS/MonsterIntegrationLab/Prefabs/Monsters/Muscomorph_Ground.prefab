@@ -1854,6 +1854,7 @@ GameObject:
   - component: {fileID: -5282420452375643821}
   - component: {fileID: -6963252850141782799}
   - component: {fileID: 3673681119355232943}
+  - component: {fileID: 5730098645658161961}
   m_Layer: 0
   m_Name: Muscomorph_Ground
   m_TagString: Untagged
@@ -1980,6 +1981,7 @@ MonoBehaviour:
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
   hitTimeRatio: 0.5
+  windupTurnSpeed: 360
 --- !u!114 &3673681119355232943
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1994,6 +1996,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterDebugActions
   damageAmount: 10
   stunSeconds: 2
+--- !u!136 &5730098645658161961
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7794425194075702535}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.2503649
+  m_Height: 0.65484333
+  m_Direction: 1
+  m_Center: {x: 0.010138631, y: 0.53683877, z: 0}
 --- !u!1 &7960356510021968820
 GameObject:
   m_ObjectHideFlags: 0
