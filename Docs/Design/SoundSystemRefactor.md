@@ -467,6 +467,19 @@ public event Action Appeared;                                     // 등장 연�
 
 1단계는 결정 없이도 바로 진행 가능 (R4 의 아나운서 부분만 결정 대기).
 
+**1단계 진행 상황 (2026-10-26)**
+
+| 항목 | 내용 | 파일 |
+|---|---|---|
+| R9-A | BGM 크로스페이드를 `BgmPlayer` 로 분리. 카테고리 배열 크기를 `SoundCategory` 길이로. 리스너는 **켜져 있는** `AudioListener` 를 찾고, 꺼지거나 `CameraModeChangedEvent`(완료) 때 다시 찾음 (1인칭·3인칭 카메라가 각자 리스너를 가짐) | `SoundService.cs`, `BgmPlayer.cs` |
+| R4 | Router partial 분할 (`.Round` `.Combat` `.Boss` `.Items` `.Ui`). 새 소리: 게임오버 `ui_game_over`, 강화 구매 `ui_upgrade_select`, 저체력 `ui_health_warning`(LowHpRatio 이하 동안 2초 간격, 회복·사망·정리 시 정지), 보스 처치 `ui_stage_clear`. 아나운서 최소: 라운드 시작 `ann_fight`, 보스 처치 `ann_victory`, 게임오버 `ann_game_over` (효과음과 겹치지 않게 0.8초 지연, `useAnnouncer` 로 끌 수 있음) | `GameSoundRouter*.cs` |
+| R3 | `MonsterDiedEvent.Instance` 의 `MonsterSoundEmitter.Silence()` 를 Router 가 호출 | `GameSoundRouter.Combat.cs` |
+| 독가스 | `Monster/Attack SFX/` → `Monster/Poison/`, `Poison_Release`·`Poison_ZoneLoop` 로 이름 변경 (GUID 유지). SoundTable `mon_poison_release`(3D, 50m), `mon_poison_zone_loop`(루프, 가까운 3개, 25m) 추가. 재생 연결은 R6 | `SoundTable.tsv` |
+| R5 | `PlayerSoundEmitter` — 발소리(거리 기준, 걷기 1.8m·달리기 2.4m), 점프, 착지(0.25초 미만 체공·스폰 직후 무시), 사망, 숨소리 루프(스태미나 25% 이하 시작·60% 이상 정지), 수류탄 투척. 전부 2D, 흙 발소리만 | `PlayerSoundEmitter.cs` |
+| R5 | `Tools > Audio > Create Sound Test Scene` — `Scenes/GU/Prefabs/Player_Sound.prefab`(MS `Player.prefab` 의 Variant + `PlayerSoundEmitter`)과 `Scenes/GU/SoundIntegrationTest.unity`(바닥·점프 상자·SoundService+믹서·플레이어) 생성 | `Editor/SoundTestSceneMenu.cs` |
+
+남은 것: 메뉴 실행 후 플레이 확인, 회복·구르기 소리(에셋 없음), 금속 발소리(맵 확정 후)
+
 ## 6. 담당자 확인 체크리스트
 - [ ] **몬스터**: R1 `IMonsterSoundSource` 구현 추가 허용 (공격 단계 + 기절 알림) / R6 독가스 착탄·장판 재생 호출 / R10 `PoisonZone` 의 DamageKind 변경 / 헤드샷 판정 가능 여부 / 침투형 은신(Vanish) 구현 일정 / 기절이 벽 충돌 외에도 생길 예정인지 / **도약 착지 알림(`AttackLanded`) 추가 허용, 도약 취소를 Windup 전에 판정할 수 있는지** / 테이블 수정 시 사운드 키 열(M7) 인지
 - [ ] **무기**: R6 빈 탄창 1줄, 로켓·유탄 폭발음 테이블 이전 / R7 `Gun.PlaySfx` 수정

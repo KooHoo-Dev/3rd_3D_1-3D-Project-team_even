@@ -29,7 +29,7 @@ namespace HybridShooter.Audio.Editor
         }
 
         /// <summary>mixer 칸이 비어 있으면 GameMixer 를 넣는다. 그룹은 실행 시 SoundService 가 이름으로 찾는다</summary>
-        private static bool AssignMixer(SoundService service)
+        internal static bool AssignMixer(SoundService service)
         {
             var so = new SerializedObject(service);
             var property = so.FindProperty("mixer");

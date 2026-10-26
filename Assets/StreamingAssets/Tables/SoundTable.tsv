@@ -102,6 +102,8 @@ mon_giant_slug_attack	Monster	Audio/Monster/GiantSlug/GiantSlug_Attack	0.9	false
 mon_giant_slug_idle	Monster	Audio/Monster/GiantSlug/GiantSlug_Idle	0.7	false	true	2	1	0.06	35	45
 mon_giant_slug_move_loop	Monster	Audio/Monster/GiantSlug/GiantSlug_MoveLoop	0.6	true	true	2	0	0	30	30
 mon_giant_slug_death	Monster	Audio/Monster/GiantSlug/GiantSlug_Death	0.9	false	true	2	0.1	0.05	60	60
+mon_poison_release	Monster	Audio/Monster/Poison/Poison_Release	0.8	false	true	3	0.1	0.05	65	50
+mon_poison_zone_loop	Monster	Audio/Monster/Poison/Poison_ZoneLoop	0.5	true	true	3	0	0	30	25
 mon_clypeosaurus_attack	Monster	Audio/Monster/Clypeosaurus/Clypeosaurus_Attack	1.0	false	true	1	0.2	0.03	95	0
 mon_clypeosaurus_attack2	Monster	Audio/Monster/Clypeosaurus/Clypeosaurus_Attack2	1.0	false	true	1	0.2	0.03	95	0
 mon_clypeosaurus_skill_attack	Monster	Audio/Monster/Clypeosaurus/Clypeosaurus_SkillAttack	1.0	false	true	1	0.5	0.02	95	0

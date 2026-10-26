@@ -112,18 +112,14 @@ namespace HybridShooter.Audio
         private const string MasterVolumeParam = "MasterVolume";
         private const float MinDecibel = -80f;
 
-        private const int CategoryCount = 4;
-        private readonly float[] duck = { 1f, 1f, 1f, 1f };
-        private readonly float[] duckLevel = { 1f, 1f, 1f, 1f };
+        private static readonly int CategoryCount = System.Enum.GetValues(typeof(SoundCategory)).Length;
+        private readonly float[] duck = Filled(CategoryCount, 1f);
+        private readonly float[] duckLevel = Filled(CategoryCount, 1f);
         private readonly float[] duckUntil = new float[CategoryCount];
 
-        private readonly AudioSource[] bgmSources = new AudioSource[2];
-        private readonly SoundDef[] bgmDefs = new SoundDef[2];
-        private readonly float[] bgmFade = new float[2];
-        private readonly float[] bgmFadeTarget = new float[2];
-        private int bgmActive;
+        private BgmPlayer bgm;
 
-        private Transform listener;
+        private AudioListener listener;
         private float nextListenerSearch;
 
         /// <summary>지금 소리를 내고 있는 자리 수 (테스터 표시용)</summary>
@@ -133,7 +129,7 @@ namespace HybridShooter.Audio
         public int AudibleLoopCount { get; private set; }
         public int VoiceCapacity => voices.Count;
         /// <summary>지금 재생 중인 BGM 키 (없으면 null)</summary>
-        public string CurrentBgmKey => bgmFadeTarget[bgmActive] > 0f ? bgmDefs[bgmActive]?.Key : null;
+        public string CurrentBgmKey => bgm?.CurrentKey;
 
         // ───────────────────────── Lifecycle ─────────────────────────
 
@@ -147,14 +143,17 @@ namespace HybridShooter.Audio
                 go.transform.SetParent(transform, false);
                 voices.Add(new Voice { Source = CreateSource(go) });
             }
-            for (int i = 0; i < bgmSources.Length; i++)
-            {
-                var go = new GameObject($"Bgm {i}");
-                go.transform.SetParent(transform, false);
-                bgmSources[i] = CreateSource(go);
-                bgmSources[i].spatialBlend = 0f;
-                bgmSources[i].outputAudioMixerGroup = bgmGroup;
-            }
+            bgm = new BgmPlayer(CreateBgmSource(0), CreateBgmSource(1));
+        }
+
+        private AudioSource CreateBgmSource(int index)
+        {
+            var go = new GameObject($"Bgm {index}");
+            go.transform.SetParent(transform, false);
+            var source = CreateSource(go);
+            source.spatialBlend = 0f;
+            source.outputAudioMixerGroup = bgmGroup;
+            return source;
         }
 
         /// <summary>믹서 볼륨 적용. Awake 의 SetFloat 는 무시될 수 있어서 Start 에서 한다</summary>
@@ -171,6 +170,7 @@ namespace HybridShooter.Audio
         {
             ServiceLocator.Register<ISoundService>(this);
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
+            EventBus<CameraModeChangedEvent>.Subscribe(OnCameraModeChanged);
         }
 
         /// <summary>서비스 해제 + 구독 해제</summary>
@@ -178,6 +178,7 @@ namespace HybridShooter.Audio
         {
             ServiceLocator.Unregister<ISoundService>(this);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
+            EventBus<CameraModeChangedEvent>.Unsubscribe(OnCameraModeChanged);
         }
 
         /// <summary>루프 선별 → 자리별 위치·페이드·볼륨 갱신 → BGM 페이드. 대상이 움직인 뒤에 따라가도록 LateUpdate</summary>
@@ -215,7 +216,7 @@ namespace HybridShooter.Audio
             }
             PlayingVoiceCount = playing;
 
-            UpdateBgm(dt);
+            bgm.Update(dt, bgmFadeTime, CodeVolume(SoundCategory.Bgm) * duck[(int)SoundCategory.Bgm]);
         }
 
         // ───────────────────────── ISoundService ─────────────────────────
@@ -273,26 +274,11 @@ namespace HybridShooter.Audio
                 if (warnedKeys.Add(key)) Debug.LogWarning($"[SoundService] BGM '{key}' 를 재생할 수 없습니다 (SoundTable 키 또는 클립 없음)", this);
                 return;
             }
-            if (bgmDefs[bgmActive] == def && bgmFadeTarget[bgmActive] > 0f) return;
-
-            bgmFadeTarget[bgmActive] = 0f;
-            bgmActive = 1 - bgmActive;
-
-            var source = bgmSources[bgmActive];
-            bgmDefs[bgmActive] = def;
-            bgmFade[bgmActive] = 0f;
-            bgmFadeTarget[bgmActive] = 1f;
-            source.clip = PickClip(def);
-            source.loop = def.Loop;
-            source.volume = 0f;
-            source.Play();
+            if (bgm.CurrentKey == def.Key) return; // 같은 곡 재요청 시 클립을 다시 고르지 않음
+            bgm.Play(def, PickClip(def));
         }
 
-        public void StopBgm()
-        {
-            bgmFadeTarget[0] = 0f;
-            bgmFadeTarget[1] = 0f;
-        }
+        public void StopBgm() => bgm.Stop();
 
         // ───────────────────────── 볼륨·덕킹 ─────────────────────────
 
@@ -358,6 +344,20 @@ namespace HybridShooter.Audio
 
         /// <summary>라운드 정리: 남은 효과음 정지. 루프는 대상 몬스터가 정리되면 자동으로 멈춘다</summary>
         private void OnRoundCleanup(RoundCleanupEvent e) => StopAllSfx();
+
+        /// <summary>1인칭 ↔ 3인칭 전환이 끝나면 켜져 있는 리스너를 다시 찾는다</summary>
+        private void OnCameraModeChanged(CameraModeChangedEvent e)
+        {
+            if (e.IsComplete) nextListenerSearch = 0f;
+            listener = null;
+        }
+
+        private static float[] Filled(int length, float value)
+        {
+            var array = new float[length];
+            for (int i = 0; i < length; i++) array[i] = value;
+            return array;
+        }
 
         private static AudioSource CreateSource(GameObject go)
         {
@@ -569,25 +569,6 @@ namespace HybridShooter.Audio
                 duck[c] = Mathf.MoveTowards(duck[c], now < duckUntil[c] ? duckLevel[c] : 1f, step);
         }
 
-        private void UpdateBgm(float dt)
-        {
-            float step = bgmFadeTime > 0f ? dt / bgmFadeTime : 1f;
-            for (int i = 0; i < bgmSources.Length; i++)
-            {
-                var source = bgmSources[i];
-                if (source.isPlaying == false) continue;
-
-                bgmFade[i] = Mathf.MoveTowards(bgmFade[i], bgmFadeTarget[i], step);
-                if (bgmFade[i] <= 0f && bgmFadeTarget[i] <= 0f)
-                {
-                    source.Stop();
-                    continue;
-                }
-                float defVolume = bgmDefs[i] != null ? bgmDefs[i].Volume : 1f;
-                source.volume = defVolume * CodeVolume(SoundCategory.Bgm) * duck[(int)SoundCategory.Bgm] * bgmFade[i];
-            }
-        }
-
         private bool IsOutOfRange(SoundDef sound, Vector3 position)
             => sound.MaxDistance > 0f && (position - ListenerPosition).sqrMagnitude > sound.MaxDistance * sound.MaxDistance;
 
@@ -602,19 +583,30 @@ namespace HybridShooter.Audio
             }
         }
 
-        /// <summary>AudioListener 위치 (보통 플레이어 카메라). 없으면 이 오브젝트 위치. 카메라 전환에 대비해 사라지면 다시 찾는다</summary>
+        /// <summary>
+        /// 켜져 있는 AudioListener 위치 (보통 플레이어 카메라). 없으면 이 오브젝트 위치.
+        /// 1인칭·3인칭 카메라가 각자 리스너를 가지므로, 꺼지거나 사라지면 켜진 것을 다시 찾는다
+        /// </summary>
         private Vector3 ListenerPosition
         {
             get
             {
-                if (listener == null && Time.unscaledTime >= nextListenerSearch)
+                bool usable = listener != null && listener.isActiveAndEnabled;
+                if (usable == false && Time.unscaledTime >= nextListenerSearch)
                 {
                     nextListenerSearch = Time.unscaledTime + 1f;
-                    var found = FindAnyObjectByType<AudioListener>();
-                    listener = found != null ? found.transform : null;
+                    listener = FindActiveListener();
+                    usable = listener != null;
                 }
-                return listener != null ? listener.position : transform.position;
+                return usable ? listener.transform.position : transform.position;
             }
+        }
+
+        private static AudioListener FindActiveListener()
+        {
+            foreach (var candidate in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))
+                if (candidate.isActiveAndEnabled) return candidate;
+            return null;
         }
     }
 }
