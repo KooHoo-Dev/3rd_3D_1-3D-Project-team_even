@@ -1381,7 +1381,12 @@ MonoBehaviour:
   spawnRadius: 12
   spawnSampleDistance: 3
   monsterPrefabs:
+  - {fileID: 3281474137550595047, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
   - {fileID: 1438301292820702486, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
+  - {fileID: 6221495752859311938, guid: b86b7ae0afd07dc4b93107c803e35712, type: 3}
+  - {fileID: 7794425194075702535, guid: 7df4d2beaf77cfd43940ad8332fc655c, type: 3}
+  - {fileID: 1716452437149150959, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
+  spawnPrefabIndex: 0
   monsterVisualScale: 1
   thinkCycle: 0.5
 --- !u!4 &1785309838
