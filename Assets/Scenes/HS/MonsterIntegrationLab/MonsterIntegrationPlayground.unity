@@ -718,7 +718,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1f7a505003ceac443afb951503f727b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.TransformMovementTarget
-  moveSpeed: 5
+  moveSpeed: 7
   sprintMultiplier: 2.5
   turnSpeed: 540
   viewCamera: {fileID: 1645460290}
