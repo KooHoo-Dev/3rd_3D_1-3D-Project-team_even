@@ -86,18 +86,17 @@ namespace HybridShooter.Monster.Behaviour
         {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
             var body = new MonsterBody(transform, GetComponent<NavMeshMoveExecutor>());
-            var poisonSettings = GetComponent<PoisonAreaSettings>(); // 원거리 프리팹에만 있다. 없으면 null
-            var pounceSettings = GetComponent<PounceSettings>();
-            var chargeSettings = GetComponent<ChargeSettings>();     // 돌진 프리팹에만 있다. 없으면 null
-            var diveSettings = GetComponent<DiveSettings>();         // 공중 프리팹에만 있다. 없으면 null
+            var attackSettings = new MonsterAttackSettings(GetComponent<PoisonAreaSettings>(),
+                                                          GetComponent<PounceSettings>(),
+                                                          GetComponent<ChargeSettings>(),
+                                                          GetComponent<DiveSettings>());
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
             var attacks = new List<MonsterAttack>();
             foreach (MonsterAttackDef attackDef in BasicAttackDefs(Def))
             {
                 var attackSpec = AttackSpec.From(attackDef);
                 attacks.Add(MonsterAttackFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable,
-                                                              poisonSettings, pounceSettings, chargeSettings, movement,
-                                                              diveSettings, flyingExecutor));
+                                                              attackSettings, movement, flyingExecutor));
             }
             movement.SetCombatTuning(Def.MoveSpeed, attacks[0].Range); // 이동의 전투 사거리는 첫 공격 기준
             StateMachine = new MonsterStateMachine(movement, body, attacks);
