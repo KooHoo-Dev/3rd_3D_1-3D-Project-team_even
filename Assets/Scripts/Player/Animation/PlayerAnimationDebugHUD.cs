@@ -73,6 +73,7 @@ namespace HybridShooter.Player
             if (bodyIK != null) sb.Append($"LeftHand IK w{bodyIK.LeftHandWeight:0.00}  Foot IK w{bodyIK.FootWeight:0.00}");
             if (playerAimIK != null) sb.Append($"  Muzzle err {playerAimIK.MuzzleError:0.0}°");
             if (fpIK != null) sb.Append($"  FP IK w{fpIK.Weight:0.00} wall {fpIK.WallPull * 100f:0}cm hand err {fpIK.HandPositionError:0.0}cm {fpIK.HandRotationError:0}° gun {fpIK.GunAngleError:0}°");
+            if (fpIK != null && player != null) sb.Append($" neck push {player.NeckPush * 100f:0}cm");
             if (bodyIK != null || playerAimIK != null) sb.AppendLine();
             if (player != null)
                 sb.AppendLine($"speed {player.HorizontalSpeed:0.00} m/s  grounded {player.IsGrounded}  sliding {player.IsSliding}  " +

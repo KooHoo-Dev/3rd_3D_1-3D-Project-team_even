@@ -23,7 +23,7 @@ namespace HybridShooter.UI
         [SerializeField] private Text helpText;
 
         [TextArea]
-        [SerializeField] private string help = "[1] 보급 투하   [W A S D] 이동   [Shift] 달리기   [G] 수류탄 사용   [H] 회복 팩 사용";
+        [SerializeField] private string help = "[1] 보급 투하   [W A S D] 이동   [Shift] 달리기   [G] 수류탄 사용   [V] 회복 팩 사용";
         [SerializeField] private float messageDuration = 4f;
         [SerializeField] private int maxMessages = 5;
         [SerializeField] private Color highlightColor = new Color(1f, 0.85f, 0.2f);

@@ -66,8 +66,8 @@ namespace HybridShooter.Weapon
                     continue;
                 }
 
-                SpawnTracer(hit.point);
                 SpawnImpact(hit);
+                SpawnTracer(hit.point);
                 if (hit.collider.TryGetDamageable(out var target) == false || target.CanBeHitBy(Owner.Faction) == false) continue;
 
                 int damage = DamageAtDistance(hit.distance);

@@ -143,6 +143,10 @@ namespace HybridShooter.Player
         [Tooltip("머리 뼈 → 눈 위치 보정 (ViewRig 로컬 기준)")]
         [SerializeField] private Vector3 headEyeOffset = new Vector3(0f, 0.08f, 0.1f);
         [SerializeField] private float headFollowSmoothTime = 0.08f;
+        [Tooltip("눈이 목 뼈보다 시선 수평 정면으로 최소 이만큼(m) 앞에 있게 한다. 걷기·달리기로 허리가 굽어 목이 앞으로 나오면 눈을 그만큼 앞으로 민다. 0 = 끔")]
+        [SerializeField] private float neckClearance = 0.15f;
+        [Tooltip("목 때문에 눈을 미는 양이 따라가는 시간(초). 작을수록 빠르게 (애니메이션 흔들림이 카메라에 더 전해진다)")]
+        [SerializeField] private float neckGuardSmoothTime = 0.06f;
 
         [Header("무기")]
         [Tooltip("비워 두면 같은 오브젝트에서 찾는다")]
@@ -218,6 +222,10 @@ namespace HybridShooter.Player
         private Vector3 tpArmHomePos;
         private float tpArmDistance;
         private Vector3 headFollowVelocity;
+        private Vector3 neckLocal;             // 지난 프레임 IK 뒤 목 뼈 위치 (FP_Rig 부모 기준)
+        private bool hasNeckSample;
+        private float neckPush;                // 목 때문에 눈을 앞으로 민 거리(m)
+        private float neckPushVelocity;
         private Transform currentCameraTransform;
         private readonly RaycastHit[] cameraHits = new RaycastHit[8];
         private readonly RaycastHit[] wallHits = new RaycastHit[8];
