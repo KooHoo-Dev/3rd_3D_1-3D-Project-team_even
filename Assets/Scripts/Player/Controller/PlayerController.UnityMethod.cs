@@ -1,4 +1,6 @@
 ﻿using DG.Tweening;
+using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Services;
 using HybridShooter.Weapon;
 using UnityEngine;
 
@@ -40,6 +42,7 @@ namespace HybridShooter.Player
             transitionGetter = () => transitionT;
             transitionSetter = x => { transitionT = x; ApplyTransitionPose(); };
             transitionComplete = OnViewTransitionComplete;
+            ServiceLocator.Register<IPlayerTarget>(this);
         }
 
         private void Start()

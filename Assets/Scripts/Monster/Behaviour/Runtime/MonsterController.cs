@@ -319,6 +319,7 @@ namespace HybridShooter.Monster.Behaviour
 
             CurrentHp = Mathf.Max(0, CurrentHp - info.Amount);
             bool isKill = IsAlive == false;
+            Debug.Log($"{gameObject.name}: {info.Amount} 체력을 깎는다. 현재 체력: {CurrentHp}");
             EventBus<DamageDealtEvent>.Publish(new DamageDealtEvent(gameObject, info, isKill));
             if (isKill) StateMachine.Die(true);
         }

@@ -358,96 +358,6 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
---- !u!1 &666415013
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 666415014}
-  - component: {fileID: 666415016}
-  - component: {fileID: 666415015}
-  m_Layer: 0
-  m_Name: Target Visual (pivot at feet)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &666415014
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 666415013}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1113266350}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!23 &666415015
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 666415013}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 1
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &666415016
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 666415013}
-  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &790174624
 GameObject:
   m_ObjectHideFlags: 0
@@ -672,93 +582,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1039042970}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &1113266349
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1113266350}
-  - component: {fileID: 1113266351}
-  - component: {fileID: 1113266352}
-  m_Layer: 0
-  m_Name: WASD Target (WASD)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!4 &1113266350
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1113266349}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -4.41, y: 17.88, z: 31.39}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 666415014}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1113266351
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1113266349}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1f7a505003ceac443afb951503f727b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.TransformMovementTarget
-  moveSpeed: 5
-  sprintMultiplier: 2.5
-  turnSpeed: 540
-  viewCamera: {fileID: 1645460290}
-  lookSensitivity: 0.15
-  minPitch: 10
-  maxPitch: 85
-  startPitch: 48
-  groundOffset: 0
-  maxStepUp: 2
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 8
-  debugGround: 0
---- !u!54 &1113266352
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1113266349}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
 --- !u!1 &1175457861
 GameObject:
   m_ObjectHideFlags: 0
@@ -832,7 +655,7 @@ MonoBehaviour:
   m_OverrideVoxelSize: 0
   m_VoxelSize: 0.16666667
   m_MinRegionArea: 2
-  m_NavMeshData: {fileID: 23800000, guid: 3a48bf7cd5605f943ac70d1254ba10ff, type: 2}
+  m_NavMeshData: {fileID: 23800000, guid: 0c86499f1fa5ff147833e85c4ebdbc9d, type: 2}
   m_BuildHeightMesh: 0
 --- !u!114 &1175457864
 MonoBehaviour:
@@ -1344,7 +1167,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29d30f111c549664fa71789c9010a410, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.TestFollowCamera
-  target: {fileID: 1113266351}
+  target: {fileID: 0}
   offset: {x: 0, y: 4.5, z: 0}
   followSharpness: 10
 --- !u!1001 &1685987938
@@ -1405,14 +1228,25 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 5753637828753184512, guid: 4ea94935c308106458064ec04a545802, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1685987940}
+      addedObject: {fileID: 1685987956}
   m_SourcePrefab: {fileID: 100100000, guid: 4ea94935c308106458064ec04a545802, type: 3}
 --- !u!1 &1685987939 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5753637828753184512, guid: 4ea94935c308106458064ec04a545802, type: 3}
   m_PrefabInstance: {fileID: 1685987938}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1685987940
+--- !u!114 &1685987952 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7219419144724798672, guid: 4ea94935c308106458064ec04a545802, type: 3}
+  m_PrefabInstance: {fileID: 1685987938}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1685987939}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 031fca22247b2b44b82b1743d95ab170, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerController
+--- !u!114 &1685987956
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1438,17 +1272,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   debugGround: 0
---- !u!114 &1685987952 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7219419144724798672, guid: 4ea94935c308106458064ec04a545802, type: 3}
-  m_PrefabInstance: {fileID: 1685987938}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1685987939}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 031fca22247b2b44b82b1743d95ab170, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerController
 --- !u!1 &1785309836
 GameObject:
   m_ObjectHideFlags: 0
@@ -1479,7 +1302,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.MovementLabExample
   coordinator: {fileID: 2713737162465012031}
-  target: {fileID: 1685987940}
+  target: {fileID: 0}
   monsterRoot: {fileID: 1357165565}
   gizmos: {fileID: 628760751275931209}
   ownedRoot: {fileID: 1175457862}
@@ -2469,7 +2292,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.MovementLabGizmos
   coordinator: {fileID: 2713737162465012031}
   targetSource: {fileID: 1685987952}
-  optionalMonsterRoot: {fileID: 1357165565}
+  optionalMonsterRoot: {fileID: 0}
   showApproach: 1
   showWaiting: 1
   showFree: 1
@@ -18748,6 +18571,5 @@ SceneRoots:
   - {fileID: 1875854999}
   - {fileID: 1186703177}
   - {fileID: 7639047734907975239}
-  - {fileID: 1113266350}
   - {fileID: 3171359749072270106}
   - {fileID: 1685987938}
