@@ -83,6 +83,7 @@ namespace HybridShooter.Monster.Movement
         // ════════ 시선 (Think 가 갱신, LateUpdate 가 회전에 사용) ════════
         private Vector3 lookTarget;           // 마지막 Think 에서 얻은 플레이어 위치
         private bool hasLookTarget;           // 목표가 유효한가
+        private float viewHalfAngleDeg;
 
         // ════════ 외부 공개 (읽기 전용) ════════
         public MovementProfile Profile => profile;
@@ -203,6 +204,10 @@ namespace HybridShooter.Monster.Movement
             }
             else
                 directive = new CrowdDirective(DirectiveKind.Unrestricted, default, 0, false, 0f);
+            
+            // 5) 카메라 시야각 정보 캐싱
+            IPlayerTarget target = targetInfo ?? Target;
+            viewHalfAngleDeg = HorizontalHalfFovDeg(target.ViewPoint.GetComponent<Camera>());
         }
 
         /// <summary>
@@ -522,13 +527,13 @@ namespace HybridShooter.Monster.Movement
             Vector3 targetPosition = targetValid ? target.PlayerTrackingInfo.Position : self;
             Vector3 viewForward = Vector3.forward;
             Vector3 viewPosition = self;
-            float viewHalfAngleDeg = 0f;
+            // float viewHalfAngleDeg = 0f;
             if (targetValid)
             {
                 Transform viewPoint = target.ViewPoint;
                 viewForward = viewPoint.forward;
                 viewPosition = viewPoint.position;
-                viewHalfAngleDeg = HorizontalHalfFovDeg(viewPoint.GetComponent<Camera>());
+                // viewHalfAngleDeg = HorizontalHalfFovDeg(viewPoint.GetComponent<Camera>());
             }
             lookTarget = targetPosition;   // 시선 갱신 (실제 회전은 LateUpdate 의 ApplyLookRotation)
             hasLookTarget = targetValid;
