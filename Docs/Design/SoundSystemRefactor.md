@@ -3,6 +3,19 @@
 > 브랜치: `feat/SoundSystem` · 기준: develop `b097ea3f`(PR #27 돌진형 몬스터) 머지 `2dbcc206` + 사운드 에셋 커밋 `53277ae7`, `fab5592b`
 > v1 대비 바뀐 점: 새로 들어온 사운드(플레이어·무기·UI·아나운서·독가스)를 반영하고, 코드를 다시 확인해 **팀원 코드 수정이 필요 없어진 항목**을 정리했다. R1~R10 은 항목마다 **선택지 + 권장안 + 결정할 것**으로 다시 썼다.
 > v2.1: PR #27(중간체 돌진·기절) 반영 → **2-1장**, R1(기절 알림 추가), R6(돌진 소리), 에셋 요청 목록 보완.
+> v2.2: PR #29(보스 클리페오사우루스) 머지 `72e7dbde` 반영 → **0장 머지 점검**, **2-2장**, 새 항목 **R11 보스 사운드 경로 재설계**.
+
+---
+
+## ⚠️ 0. 머지 점검 결과 (`72e7dbde` 기준) — 회의 전 먼저 처리
+
+| # | 문제 | 원인 | 영향 | 조치 |
+|---|---|---|---|---|
+| M1 | **몬스터 사운드 키가 전부 비었다.** `MonsterTable` 의 Idle/Loop/Hurt/DeathSfxKey 4열, `MonsterAttackTable` 의 SfxKey 열이 헤더만 남고 값이 없다 | 사운드 키 열은 `feat/SoundSystem` 에만 있었다. 머지 충돌 해결 때 **헤더는 이 브랜치, 행은 develop 쪽**을 받아서 값이 빠졌다 | 일반·중간체 몬스터의 울음·루프·사망·공격음이 데이터에서 끊김 (`DataManager.LinkSounds` 가 빈 키를 "소리 없음"으로 처리 → 경고도 안 뜸) | ✅ **복구 완료** — develop 수치(1~15열 / 1~24열)는 그대로 두고 사운드 키 값만 `2dbcc206` 시점 값으로 되살림 (일반·중간체 7행 + 주석 보관된 보스 행). `MonsterAttackTable` 주석의 SfxKey 설명도 복원 |
+| M2 | 돌진 공격(200101) 수치가 앞선 머지 `2dbcc206` 에서 옛 값(Cooldown 10, Recovery 1, Range 15)으로 되돌아갔었다 | 같은 원인 (그때는 이 브랜치 쪽 행을 받음) | 이번 머지에서 develop 값(3 / 0 / 30)으로 **다시 맞춰져 현재는 정상** | 없음. M1 복구 시 develop 수치를 기준으로 할 것 |
+| M3 | `Core/Data/Dtos/BossDTO.cs.meta` 와 `BossDto.cs` 가 대소문자가 다르게 둘 다 Git 에 올라가 있다 (`BossDTO.cs` + `BossDto.cs`) | 보스 브랜치에서 파일명 대소문자만 바꿈 | Windows 에서는 파일 하나로 보이지만, .meta 와 이름이 어긋나 Unity 가 GUID 를 새로 만들 수 있고 macOS/Linux 에서는 클래스 중복 | **보스 담당**에게 전달 (`git mv` 로 한쪽 정리) |
+| M4 | 보스 데이터가 `MonsterTable`/`MonsterAttackTable`/`MonsterPartTable`/`BossPhaseTable` 에서 주석 처리되고 `BossTable`·`ClypeosaurusTable` 로 분리됐다 | PR #29 설계 변경 | `mon_clypeosaurus_*` 6개 키를 쓰는 곳이 사라짐. 기존 보스 사운드 경로(Router 의 `BossSkillPhaseChanged`·`BossDamageStageChanged`·`HurtSfx`·`DeathSfx`)가 데이터상 동작 불가 | **R11** 에서 재설계 |
+| M5 | `SoundTester` 의 보스 버튼(경고·등장·공격·페이즈)이 `MonsterTable` 의 보스(`IsBoss`)를 찾는데 이제 없다 | M4 | 테스트 씬에서 보스 소리 확인 불가 | R11 확정 후 테스터 갱신 |
 
 ---
 
@@ -20,6 +33,7 @@
 | R8 | AudioMixer 도입 | 지금 도입 | 없음 (에디터 작업 5분) | 도입 시기 |
 | R9 | `SoundService` 내부 정리 | 가벼운 정리만 | 없음 | 테스트용 asmdef 분리 여부 |
 | R10 | 독장판 틱 피격음 | **A** `DamageKind.Status` | 코어: enum 값 추가 / 몬스터: `PoisonZone` 1줄 | 방식 A/B/C |
+| **R11** | **보스 사운드 경로 재설계 (PR #29)** | **A** `BossSoundEmitter` + 테이블 키 | 보스: `BossController` 에 이벤트 추가 / 코어: 보스 이벤트 페이로드 | 이벤트 계약, 키 위치, 패턴별 소리 |
 
 ---
 
@@ -66,7 +80,7 @@
 | 아이템 | `PlayerItems.ThrowStarted / HealStarted / HealEnded` | 투척·회복 소리 연결 지점 |
 | 무기 | 총기 8종, **`GunSlot.GunChanged` 이벤트**, 탄이 0 이면 `TryFire` 가 자동 장전 | 교체음은 무기 코드 수정 없이, 빈 탄창음은 `Gun` 1줄 필요 |
 | 보급·보상 | `SupplyCollectedEvent`, `UpgradePurchasedEvent`, `RewardSelectionFinishedEvent` | 획득·구매 소리 연결 지점 |
-| 보스 | `Scripts/Boss/` 비어 있음. 보스 이벤트는 테스터만 발행 (PR #27 이후에도 동일) | 보스 사운드는 실게임 미검증 |
+| 보스 | PR #29 로 `BossController`·`BossHealth`·`BossMovement` 추가 (→ **2-2장**). 보스 EventBus 이벤트는 여전히 테스터만 발행 | 기존 보스 사운드 경로가 데이터 분리로 끊김 → R11 |
 
 ### 2-1. 최신 머지 — PR #27 돌진형 몬스터 (`feature/rusher-charge-attack`)
 
@@ -91,6 +105,32 @@
 | 벽 충돌 + 기절 | `StateMachine.Stun` → `StateChanged(Stunned)` | 벽 충돌음(에셋 없음) + `mon_letalobrach_groggy` | R1 기절 알림 |
 | 기절 해제 | `StateChanged(Stunned → Idle)` | 없음 | — |
 
+### 2-2. 최신 머지 — PR #29 보스 클리페오사우루스 (`feat/boss-Clypeosaurus`)
+
+| 바뀐 점 | 내용 | 사운드 영향 |
+|---|---|---|
+| **보스가 일반 몬스터 구조에서 분리** | `Scripts/Boss/BossController`(IDamageable), `BossHealth`, `BossMovement`(NavMesh 추적). 일반 몬스터의 `MonsterController`·`MonsterAttack`·상태 머신을 **쓰지 않는다** | R1 의 "보스도 `MonsterAttack` 이면 이미터로 통일" 가정이 깨짐 → 보스 전용 경로 필요 (R11) |
+| **데이터 분리** | `BossTable`(Id·MaxHp·MoveSpeed) + `ClypeosaurusTable`(1행: 짓밟기·마그마 포격·안테나 전격 수치, 안테나 개방 HP 비율 70%/40%). 옛 보스 행·공격·부위·페이즈는 주석 보관 | 보스 사운드 키를 둘 곳이 없다 (`mon_clypeosaurus_*` 6개 미사용) |
+| **보스 C# 이벤트** | `BossController.Damaged(DamageInfo)`, `Died` 만 있음 | 공격·패턴·안테나 개방·등장 알림이 아직 없다 → 보스 담당과 함께 추가해야 함 |
+| **패턴 (데이터만, 동작 코드 아직 없음)** | 짓밟기(예고 1.8초, 반경 10m), 마그마 포격(예고 1.5초, 0.3초 간격 연사), 안테나 전격(충전 1.5초, 직선 25m), HP 70%·40% 에서 안테나 4개·6개 개방 | 각 패턴의 **예고 시작**이 플레이어 회피 신호 → 예고음이 가장 중요 |
+| **애니메이션** | `Clypeosaurus_Controller`: SmashAttack(전·좌·우), SpittersAttack, RoarAntennaElectricAttack, GetHit(전·후·좌·우), Walk·Turn, IdleBreathe/LookAround, Death | 패턴 ↔ 클립: 짓밟기=SmashAttack, 포격=SpittersAttack, 전격=RoarAntennaElectric |
+| **EventBus 보스 이벤트와 타입 불일치** | `BossAppearedEvent(MonsterDef)`, `BossSkillPhaseChangedEvent(MonsterAttackDef)`, `BossDefeatedEvent(MonsterDef)` 인데 새 보스는 `BossDef` | Router 의 보스 처리(BGM 전환·경고·덕킹·사망음)를 새 보스가 발행할 수 없음. 보상(`KillRewardCollector`)도 같은 문제 → **코어 결정 필요** |
+| 프리팹·씬 | `Resources/Boss/Clypeosaurus/Prefab/Clypeosaurus.prefab`, `Scenes/CY/TestMap_V1` | 보스 프리팹에 사운드 컴포넌트 없음 |
+| 어셈블리 | `Scripts/Boss` 는 asmdef 없음 (Assembly-CSharp) | Audio 가 `BossController` 를 **직접 참조 가능** → 보스는 Core 인터페이스 없이도 연결 가능 |
+
+**보스 사운드 연결점 (현재 에셋 기준)**
+
+| 순간 | 필요한 보스 쪽 알림 | 소리 (현재 키) | 비고 |
+|---|---|---|---|
+| 등장 | 등장 이벤트 | `mon_clypeosaurus_shout` + BGM `bgm_boss` + 군중 덕킹 | 옛 SkyFall 등장 공격은 주석 처리됨 — 등장 연출 유무 확인 필요 |
+| 짓밟기 예고 | 패턴 단계(Windup) | `mon_clypeosaurus_attack` / `attack2` | 착지 충격음은 `sfx_explosion_large` 대여 가능 |
+| 마그마 포격 예고·발사 | 패턴 단계 + 발사 1발마다 | `mon_clypeosaurus_skill_attack` / 착탄 `sfx_explosion_small` | 0.3초 연사 → MaxInstances·Cooldown 으로 제한 |
+| 안테나 전격 충전·발사 | 패턴 단계(충전 시작, 발사) | 충전 `mon_clypeosaurus_shout`(Shout_2 변형) / 발사 (에셋 없음) | 전기 충전음·방전음 에셋 요청 |
+| 안테나 개방 (HP 70%, 40%) | 개방 이벤트(개수) | `mon_clypeosaurus_hurt` + 포효 | 옛 `BossDamageStageChanged` 역할 |
+| 피격 | `Damaged` (이미 있음) | 매번 재생하지 않음 (총알 타격음은 Router 의 `DamageDealt` 경로) | ※ `BossController` 는 `DamageDealtEvent` 를 발행하지 않음 → 히트마커·타격음도 안 남 |
+| 걷기 | `BossMovement.IsMoving` (이미 있음) | 무거운 발소리 (에셋 없음) | 이미터가 폴링 가능 |
+| 사망 | `Died` (이미 있음) | 사망음 (에셋 없음 — `mon_clypeosaurus_hurt` 대여) + BGM 정지 + `ui_stage_clear` | |
+
 ---
 
 ## 3. 현재 문제 (보완할 부분)
@@ -100,6 +140,9 @@
 | 🔴 | 몬스터 울음·이동 루프·공격음이 실게임에서 안 남 (`MonsterSoundEmitter` 가 어떤 프리팹에도 없음, 애니메이션 이벤트도 없음) | R1·R2 |
 | 🔴 | 사망 연출 중에도 울음·루프 계속 (애니메이션 이벤트 의존) | R3 |
 | 🔴 | 돌진 몬스터 벽 충돌·기절 소리 경로 없음 (`mon_letalobrach_groggy` 미사용), 기절 중에도 울음 계속 | R1 (기절 알림) |
+| 🔴 | 머지로 몬스터 사운드 키 값이 전부 빠짐 | 0장 M1 |
+| 🔴 | 보스 사운드 경로 단절 (데이터 분리 + 이벤트 타입 불일치 + 보스 알림 부족) | R11 |
+| 🔴 | 보스 피격 시 히트마커·타격음 없음 (`BossController` 가 `DamageDealtEvent` 미발행) | R11 |
 | 🔴 | 독장판 위에서 피격음이 틱마다 반복 | R10 |
 | 🔴 | 로켓·유탄 폭발음이 수류탄 소리 (코드·프리팹에 키 하드코딩) | R6 |
 | ✅ 해결 | ~~무기 8종이 같은 소리~~ → 총기별 키 연결 완료 (3종은 대여 클립) | — |
@@ -146,7 +189,7 @@ public interface IMonsterSoundSource
 | **a. 자동 부착 (권장)** | `GameSoundRouter` 가 `MonsterSpawnedEvent` 에서 이미터가 없으면 `AddComponent`. 씬에 직접 둔 몬스터는 시작 시 한 번 검색 |
 | b. 프리팹 직접 부착 | 몬스터 프리팹마다 컴포넌트 추가 (몬스터 담당 프리팹 수정) |
 
-- 보스: 보스도 `MonsterAttack` 을 쓰면 공격음은 이미터로 통일하고, Router 의 `BossSkillPhaseChanged` 처리는 **등장 공격 덕킹만** 남긴다 (소리 하나에 경로 하나).
+- 보스: ~~보스도 `MonsterAttack` 을 쓰면 이미터로 통일~~ → PR #29 에서 보스는 `MonsterAttack` 을 쓰지 않는 별도 구조로 확정. 보스는 **R11** 로 분리한다. R1 은 일반·중간체 몬스터 전용.
 - **수정 범위** Core 계약 1개 추가, `MonsterController` 구현 추가, `MonsterTable.StunSfxKey` 컬럼, `MonsterSoundEmitter` 수정(`PlayAttackSfx` 제거, `PlaySfxKey` 는 은신(Vanish)처럼 상태 머신 밖 동작용으로만 유지)
 - **결정할 것** ① A / B ② 부착 a / b ③ 보스가 `MonsterAttack` 을 재사용하는지 (보스 담당) ④ 기절음 키를 `MonsterTable` 컬럼으로 둘지
 
@@ -291,15 +334,61 @@ SoundHandle PlayLoop(string key, Transform follow);     // 키만 아는 쪽 (�
 
 **결정할 것** A / B / C (코어·몬스터 담당 합의)
 
+### R11. 보스 사운드 경로 재설계 (PR #29) ★신규
+**문제** 보스가 일반 몬스터 구조에서 분리되면서 ① 보스 사운드 키를 둘 데이터가 없고 ② EventBus 보스 이벤트가 옛 타입(`MonsterDef`/`MonsterAttackDef`)이라 새 보스가 발행할 수 없고 ③ `BossController` 에 패턴·등장·안테나 알림이 없다. 보스 공격 동작 코드는 아직 없으므로 **지금 계약을 정하면 보스 담당이 구현하면서 같이 넣을 수 있다.**
+
+**① 소리를 내는 쪽 — 역할 분담**
+
+| 선택지 | 내용 | 장점 | 단점 |
+|---|---|---|---|
+| **A. 전역은 Router, 보스 몸 소리는 `BossSoundEmitter` (권장)** | BGM 전환·경고·덕킹·스테이지 클리어 = EventBus 이벤트 → Router. 패턴 예고·발사·안테나·발소리·사망 = 보스 프리팹의 `BossSoundEmitter` 가 `BossController` C# 이벤트 구독 (3D, 보스 위치) | 일반 몬스터(R1 이미터)와 같은 구조. EventBus 에 패턴마다 이벤트를 늘리지 않아도 됨. Audio 가 `BossController` 를 직접 참조 가능(같은 어셈블리) | 보스 프리팹에 컴포넌트 부착 (또는 자동 부착) |
+| B. 전부 EventBus | `BossSkillPhaseChangedEvent` 등을 새 타입으로 바꿔 Router 가 모두 처리 | 기존 Router 코드 재사용 | 이벤트 페이로드가 보스 패턴 구조에 묶임. 보스가 바뀔 때마다 Core 수정 |
+
+**② `BossController` 에 필요한 알림 (보스 담당 — 패턴 구현 시 함께)**
+```csharp
+public enum BossPattern { Stomp, Barrage, Electric }
+public event Action<BossPattern, SkillPhase> PatternPhaseChanged; // Windup(예고)·Active(발동)·Recover·Idle
+public event Action<Vector3> BarrageShotFired;                    // 포격 1발 발사 (착탄 위치)
+public event Action<int> AntennaOpened;                           // 개방된 안테나 수 4 / 6
+public event Action Appeared;                                     // 등장 연출 시작
+// 이미 있음: Damaged(DamageInfo), Died
+```
+- `SkillPhase` 는 기존 Core enum 재사용 (Windup/Active/Recover/Idle) → 일반 몬스터와 단계 개념이 같다.
+
+**③ EventBus 보스 이벤트 페이로드 (코어 결정)**
+
+| 선택지 | 내용 |
+|---|---|
+| **a. `BossDef` 로 교체 (권장)** | `BossWarningEvent(BossDef)`, `BossAppearedEvent(BossDef, GameObject)`, `BossDefeatedEvent(BossDef, Vector3)`. `BossSkillPhaseChangedEvent`·`BossDamageStageChangedEvent` 는 R11-A 를 고르면 **삭제**(이미터가 대신함) |
+| b. 둘 다 유지 | 옛 `MonsterDef` 이벤트를 두고 새 이벤트 추가 → 중복 경로 위험 |
+
+보상(`KillRewardCollector`)·UI 도 같은 이벤트를 쓰므로 사운드만의 결정이 아니다.
+
+**④ 보스 사운드 키 위치**
+
+| 선택지 | 내용 |
+|---|---|
+| **a. `BossTable` 공통 + `ClypeosaurusTable` 패턴 (권장)** | `BossTable`: `AppearSfxKey`, `StepSfxKey`, `HurtSfxKey`(안테나 개방), `DeathSfxKey` / `ClypeosaurusTable`: `StompSfxKey`, `StompImpactSfxKey`, `BarrageSfxKey`, `BarrageImpactSfxKey`, `ElectricChargeSfxKey`, `ElectricFireSfxKey` — 기존 "엔티티 소리는 테이블" 규칙(R6)과 같음 |
+| b. `BossSoundEmitter` 직렬화 필드 | 보스가 1종이라 테이블 없이 프리팹에서 지정. 데이터 담당 작업 없음 |
+
+**⑤ 보스 피격 피드백** `BossController.TakeDamage` 가 `DamageDealtEvent` 를 발행하지 않아 보스를 쏴도 히트마커·타격음·처치 확인음이 없다. `MonsterController` 와 같이 1줄 발행 추가 필요 (보스 담당). 보스 처치 시 `IsKill = true` 로 처치 확인음까지 해결.
+
+**⑥ 기존 키 정리** `mon_clypeosaurus_attack/attack2/skill_attack/shout/hurt` + 미커밋 `Clypeosaurus_Shout_2` 를 패턴에 재배정 (2-2장 표). 에셋 요청: 보스 발소리, 전격 충전·방전, 마그마 착탄, 보스 사망.
+
+- **수정 범위** 보스: `BossController` 이벤트 선언·발행, `DamageDealtEvent` 1줄 / 코어: 보스 이벤트 타입 / 데이터: 보스 테이블 사운드 열(④-a 선택 시) / Audio: `BossSoundEmitter` 신규, Router 보스 partial 수정, `SoundTester` 보스 버튼 갱신
+- **결정할 것** ① A / B ② 알림 목록 확정 (보스 담당) ③ 이벤트 페이로드 a / b (코어) ④ 키 위치 a / b ⑤ 등장 연출(옛 SkyFall)을 유지하는지
+
 ---
 
 ## 5. 작업 순서 (결정 후)
 
 | 단계 | 내용 | 다른 파트 |
 |---|---|---|
+| 0. 머지 복구 | 0장 M1 (몬스터 사운드 키 값 복구) | 없음 |
 | 1. Audio 단독 | R3, R4 분할 + 새 이벤트 소리, R5, R9-A, 독가스 에셋 이름 정리 + SoundTable 키 추가 | 없음 |
 | 2. 계약 | R7 (`ISoundService` 확장), R1 계약, R10 enum | 코어 |
 | 3. 연결 | R1 (`MonsterController` 구현), R6 (무기·보급·독가스), R10 (`PoisonZone`) | 몬스터·무기·보급 |
+| 3-B. 보스 | R11 — 보스 패턴 구현과 같은 일정으로 (`BossController` 알림 → `BossSoundEmitter`) | 보스·코어 |
 | 4. 에디터 | R8 믹서 생성·연결, `SoundSystemTest` 씬·`SoundTester` 에 새 이벤트 추가 | 없음 |
 
 1단계는 결정 없이도 바로 진행 가능 (R4 의 아나운서 부분만 결정 대기).
@@ -309,6 +398,7 @@ SoundHandle PlayLoop(string key, Transform follow);     // 키만 아는 쪽 (�
 - [ ] **무기**: R6 빈 탄창 1줄, 로켓·유탄 폭발음 테이블 이전 / R7 `Gun.PlaySfx` 수정
 - [ ] **보급**: R6 `SupplyDropper` 키 하드코딩 제거
 - [ ] **코어**: R7 계약 확장 / R10 `DamageKind.Status` / R1 계약 위치
-- [ ] **보스**: 보스가 `MonsterAttack` 재사용 여부, `BossSkillPhaseChangedEvent` 발행 위치
+- [ ] **보스**: R11 `BossController` 알림 목록(패턴 단계·포격 발사·안테나 개방·등장) / `DamageDealtEvent` 발행 추가 / 등장 연출 유지 여부 / 0장 M3 `BossDTO.cs` 대소문자 정리
+- [ ] **코어**: R11 보스 EventBus 이벤트를 `BossDef` 기준으로 바꿀지 (보상·UI 담당과 함께)
 - [ ] **전장**: R5-B 를 고르면 금속 바닥 레이어·태그 규칙
 - [ ] **팀 전체**: R4 아나운서 사용 범위, R8 도입 시기, R9 테스트 범위
