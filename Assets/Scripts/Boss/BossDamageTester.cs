@@ -1,4 +1,5 @@
-﻿using HybridShooter.Core.Contracts;
+﻿using HybridShooter.Boss.Clypeosaurus;
+using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using UnityEngine;
 
@@ -43,7 +44,11 @@ namespace HybridShooter.Boss
             }
 
             boss.Initialize(def, target);
-
+            
+            var stomp = GetComponent<StompAttack>();
+            stomp.Initialize(DataManager.Clypeosaurus, target);
+            stomp.TryStart();
+            
             Debug.Log($"[Boss] 초기화 | ID: {boss.Def.Id} | " + $"HP: {boss.CurrentHp}/{boss.MaxHp}", boss);
         }
 

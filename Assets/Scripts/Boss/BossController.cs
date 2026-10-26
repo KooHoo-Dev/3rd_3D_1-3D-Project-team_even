@@ -10,6 +10,8 @@ namespace HybridShooter.Boss
     {
         private BossHealth health;
         private BossMovement movement;
+        private BossAttack currentAttack;
+        
         public BossDef Def { get; private set; }
 
         public Faction Faction => Faction.Monster;
@@ -32,6 +34,8 @@ namespace HybridShooter.Boss
             if (def == null) throw new ArgumentNullException(nameof(def));
             if (target?.Root == null) throw new ArgumentException("플레이어 Root가 필요합니다.", nameof(target));
             
+            currentAttack?.Cancel();
+            
             Def = def;
             health = new BossHealth(def.MaxHp);
             
@@ -45,11 +49,36 @@ namespace HybridShooter.Boss
 
             bool died = (health.IsAlive == false);
             
-            if (died) movement.Stop();
+            if (died)
+            {
+                movement.Stop();
+                currentAttack?.Cancel();
+            }
             
             Damaged?.Invoke(info);
             
             if (died) Died?.Invoke();
+        }
+        
+        internal bool TryBeginAttack(BossAttack attack)
+        {
+            if (isActiveAndEnabled == false || IsAlive == false) return false;
+
+            if (currentAttack != null) return false;
+
+            currentAttack = attack;
+            movement.Pause();
+            return true;
+        }
+
+        internal void EndAttack(BossAttack attack)
+        {
+            if (currentAttack != attack) return;
+
+            currentAttack = null;
+
+            if (IsAlive && isActiveAndEnabled) movement.Resume();
+            else movement.Stop();
         }
     }
 }

@@ -1495,7 +1495,13 @@ GameObject:
   m_Component:
   - component: {fileID: 5523472075302276702}
   - component: {fileID: 5523472075311308854}
-  - component: {fileID: 5523472075311308855}
+  - component: {fileID: 1757207513716776199}
+  - component: {fileID: 1455781389567725617}
+  - component: {fileID: 1387828447975887547}
+  - component: {fileID: 6465869196583418968}
+  - component: {fileID: 6183423561265755135}
+  - component: {fileID: 6204140023404708941}
+  - component: {fileID: 534779049517218803}
   m_Layer: 0
   m_Name: Clypeosaurus
   m_TagString: Untagged
@@ -1524,6 +1530,7 @@ Transform:
   - {fileID: 5523472075302276676}
   - {fileID: 5523472075302276674}
   - {fileID: 5523472075302276672}
+  - {fileID: 6740981237224775707}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &5523472075311308854
@@ -1548,7 +1555,50 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &5523472075311308855
+--- !u!65 &1757207513716776199
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 20, y: 20, z: 20}
+  m_Center: {x: 0, y: 10, z: 0}
+--- !u!195 &1455781389567725617
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &1387828447975887547
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1557,9 +1607,63 @@ MonoBehaviour:
   m_GameObject: {fileID: 5523472075301917310}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f405d86209244eac8fcc071b7bad8c64, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossAnimation
+  m_Script: {fileID: 11500000, guid: 6bd407663bf54957bb767c38a5136591, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.NavMeshMoveExecutor
+  repathDistance: 0.5
+  minRepathInterval: 0.25
+  sampleRadius: 4
+  engagedPriority: 30
+  defaultPriority: 60
+--- !u!114 &6465869196583418968
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b334516406b44591b762e8cb7fdd5e01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossMovement
+--- !u!114 &6183423561265755135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da303f293c0196e45ad1c3522857f90c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossController
+--- !u!114 &6204140023404708941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb69d9808e974c938eea5b0393f454b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossView
+--- !u!114 &534779049517218803
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 374c4e5b40204bd2a514e0b19a1b7faf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.StompAttack
+  stompCenter: {fileID: 5811802235873161716}
 --- !u!1 &5523472075301917568
 GameObject:
   m_ObjectHideFlags: 0
@@ -2227,8 +2331,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5523472075301917608}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.000000016939865, y: -0.0000000103962705, z: -0.102604784,
-    w: 0.99472225}
+  m_LocalRotation: {x: 0.000000016939865, y: -0.0000000103962705, z: -0.102604784, w: 0.99472225}
   m_LocalPosition: {x: -1.5152481, y: -0.00000032901764, z: 0.000000092097466}
   m_LocalScale: {x: 1.0000002, y: 1.0000002, z: 1}
   m_ConstrainProportionsScale: 0
@@ -2935,8 +3038,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5523472075301917684}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0000000053038445, y: -0.000000052256123, z: 0.037134454,
-    w: 0.9993103}
+  m_LocalRotation: {x: 0.0000000053038445, y: -0.000000052256123, z: 0.037134454, w: 0.9993103}
   m_LocalPosition: {x: -0.4872461, y: -0.00000061035155, z: -0.000000050690723}
   m_LocalScale: {x: 1.0000002, y: 1.0000002, z: 1}
   m_ConstrainProportionsScale: 0
@@ -3102,4 +3204,67 @@ Transform:
   m_Children:
   - {fileID: 5523472075302277084}
   m_Father: {fileID: 5523472075302277072}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7128792421623505780
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6740981237224775707}
+  m_Layer: 0
+  m_Name: Pattern
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6740981237224775707
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7128792421623505780}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5811802235873161716}
+  m_Father: {fileID: 5523472075302276702}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8076722774767653112
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5811802235873161716}
+  m_Layer: 0
+  m_Name: StompCenter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5811802235873161716
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8076722774767653112}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.0000022007869, y: 0, z: 14.615388}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6740981237224775707}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
