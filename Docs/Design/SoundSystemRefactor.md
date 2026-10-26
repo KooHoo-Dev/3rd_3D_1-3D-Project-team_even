@@ -519,6 +519,18 @@ public event Action Appeared;                                     // 등장 연�
 
 **참고 — 사운드와 무관한 기존 데이터 오류 (팀 전달)**: DataManager 로드 시 `WeaponTable` 8행·`MonsterTable` 7행의 `PrefabKey`(`Weapons/Rifle`, `Prefabs/Monsters/...`)가 Resources 에 없어 오류 15건. 사운드 작업 전부터 있던 것 → 무기·몬스터 담당 확인 필요
 
+**참고 — 플레이어 타깃 미등록 (플레이어 담당 전달)**: `PlayerController` 는 `IPlayerTarget` 을 구현하지만 `ServiceLocator.Register<IPlayerTarget>` 를 하지 않는다 (등록은 HS·보급 테스트용 플레이어에만 있음). 실제 플레이어로는 몬스터가 대상을 찾지 못하고, 보급 낙하 위치도 플레이어 기준이 아니게 된다. 사운드 테스트 씬은 임시로 `SoundTestPlayerTarget`(Audio/Tester)이 대신 등록한다
+
+**3단계 테스트 씬** — `Tools > Audio > Create Sound Test Scene` (이미 있으면 "다시 만들기") → `Scenes/GU/SoundIntegrationTest.unity`
+- 평평한 Terrain(120m, 독장판·포격이 Terrain 높이를 씀) + 점프 상자 + 플레이어 바로 뒤 돌진 충돌 벽, NavMesh 를 구워 `Scenes/GU/SoundIntegrationTest/NavMesh.asset` 으로 저장
+- 몬스터(HS 프리팹 배치만): 레탈로브라크(돌진→벽 충돌·기절), 파르다트록스(도약), 자이언트슬러그(플레이어가 4초 멈추면 독 포격→착탄·장판 루프·기침), 무스코모르프(근접·울음·루프). 이미터는 Router 가 시작 시 자동 부착
+- 무기 소리(빈 탄창·장전·폭발·교체)도 같은 씬에서 확인
+- 몬스터 인스턴스에 **임시 CapsuleCollider**(렌더러 경계 크기)를 붙인다 — 아래 몬스터 담당 전달 참고
+
+**참고 — 몬스터 담당 전달**
+- HS 몬스터 프리팹 5종(`HS/MonsterIntegrationLab/Prefabs/Monsters/`)에 **Collider 가 없다** → 총알 레이캐스트·폭발 OverlapSphere 가 맞지 않아 몬스터가 죽지 않는다. `MonsterController` 는 사망 시 자식 Collider 를 끄므로 히트박스가 있다는 전제. 정식 히트박스(부위별이면 Collider + 루트 `IDamageable`) 추가 필요. 사운드 테스트 씬은 인스턴스에만 임시 캡슐을 붙여 우회
+- 파르다트록스 `PounceAttack`: 테스트 씬에서 `InvalidOperationException: 도약 취소 복구 지점에 몸체가 들어갈 수 없다` 가 매 프레임 반복 (도약 중단 후 내려놓을 자리를 못 찾음). 예외 대신 다른 복구 지점으로 대체하는지 확인 필요
+
 ## 6. 담당자 확인 체크리스트
 - [ ] **몬스터**: R1 `IMonsterSoundSource` 구현 추가 허용 (공격 단계 + 기절 알림) / R6 독가스 착탄·장판 재생 호출 / R10 `PoisonZone` 의 DamageKind 변경 / 헤드샷 판정 가능 여부 / 침투형 은신(Vanish) 구현 일정 / 기절이 벽 충돌 외에도 생길 예정인지 / **도약 착지 알림(`AttackLanded`) 추가 허용, 도약 취소를 Windup 전에 판정할 수 있는지** / 테이블 수정 시 사운드 키 열(M7) 인지
 - [ ] **무기**: R6 빈 탄창 1줄, 로켓·유탄 폭발음 테이블 이전 / R7 `Gun.PlaySfx` 수정
