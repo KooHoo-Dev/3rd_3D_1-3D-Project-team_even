@@ -20,6 +20,10 @@ namespace HybridShooter.Audio
     ///  4) 전체 자리 : 빈 AudioSource 가 없으면 Priority 가 가장 낮은(같으면 오래된) 소리를 끊고 사용.
     ///                새 소리보다 중요한 소리만 남았으면 버린다
     /// 루프(PlayLoop)는 요청만 받아두고 loopRefreshInterval 마다 키별로 가까운 MaxInstances 개만 실제로 소리를 낸다.
+    ///
+    /// 믹서(GameMixer)를 연결하면 그룹은 이름(Bgm/Sfx/Monster/Ui)으로 자동으로 찾고, 볼륨은 Exposed 파라미터(dB)로,
+    /// 화면 효과는 스냅샷(Default/Reward)으로 처리한다. 믹서가 없으면 볼륨은 코드에서 곱한다.
+    /// 덕킹은 믹서와 상관없이 코드에서 처리한다 (Exposed 볼륨은 스냅샷이 바꿀 수 없으므로).
     /// </summary>
     public sealed class SoundService : MonoBehaviour, ISoundService
     {
@@ -43,7 +47,11 @@ namespace HybridShooter.Audio
         [Tooltip("덕킹(볼륨 잠시 낮춤)이 내려가고 돌아오는 시간(초)")]
         [SerializeField] private float duckFadeTime = 0.3f;
 
-        [Header("믹서 그룹 (비워도 동작)")]
+        [Header("믹서 (비워도 동작)")]
+        [Tooltip("GameMixer. 비어 있는 그룹은 여기서 이름으로 찾는다")]
+        [SerializeField] private AudioMixer mixer;
+        [Tooltip("스냅샷 전환 시간(초). 강화 화면(timeScale 0)에서도 진행된다")]
+        [SerializeField] private float snapshotFadeTime = 0.5f;
         [SerializeField] private AudioMixerGroup bgmGroup;
         [SerializeField] private AudioMixerGroup sfxGroup;
         [SerializeField] private AudioMixerGroup monsterGroup;
@@ -95,6 +103,15 @@ namespace HybridShooter.Audio
         private int nextLoopId;
         private float loopTimer;
 
+        /// <summary>GameMixer 스냅샷 이름</summary>
+        public const string DefaultSnapshot = "Default";
+        public const string RewardSnapshot = "Reward";
+
+        /// <summary>GameMixer Exposed 파라미터 이름. 인덱스 = SoundCategory</summary>
+        private static readonly string[] VolumeParams = { "BgmVolume", "SfxVolume", "MonsterVolume", "UiVolume" };
+        private const string MasterVolumeParam = "MasterVolume";
+        private const float MinDecibel = -80f;
+
         private const int CategoryCount = 4;
         private readonly float[] duck = { 1f, 1f, 1f, 1f };
         private readonly float[] duckLevel = { 1f, 1f, 1f, 1f };
@@ -123,6 +140,7 @@ namespace HybridShooter.Audio
         /// <summary>재생 자리(AudioSource)를 미리 만들어 둔다. 재생 중 생성/파괴가 없도록</summary>
         private void Awake()
         {
+            SetupMixer();
             for (int i = 0; i < voiceCount; i++)
             {
                 var go = new GameObject($"Voice {i:00}");
@@ -137,6 +155,15 @@ namespace HybridShooter.Audio
                 bgmSources[i].spatialBlend = 0f;
                 bgmSources[i].outputAudioMixerGroup = bgmGroup;
             }
+        }
+
+        /// <summary>믹서 볼륨 적용. Awake 의 SetFloat 는 무시될 수 있어서 Start 에서 한다</summary>
+        private void Start() => ApplyMixerVolumes();
+
+        /// <summary>Inspector 볼륨 슬라이더를 플레이 중에 바꾸면 믹서에도 반영</summary>
+        private void OnValidate()
+        {
+            if (Application.isPlaying) ApplyMixerVolumes();
         }
 
         /// <summary>서비스 등록 + 라운드 정리 구독 (OnDisable 과 짝)</summary>
@@ -272,7 +299,11 @@ namespace HybridShooter.Audio
         public float MasterVolume
         {
             get => masterVolume;
-            set => masterVolume = Mathf.Clamp01(value);
+            set
+            {
+                masterVolume = Mathf.Clamp01(value);
+                ApplyMixerVolumes();
+            }
         }
 
         public float GetVolume(SoundCategory category)
@@ -296,6 +327,16 @@ namespace HybridShooter.Audio
                 case SoundCategory.Ui: uiVolume = volume; break;
                 default: sfxVolume = volume; break;
             }
+            ApplyMixerVolumes();
+        }
+
+        /// <summary>믹서 스냅샷 전환 (Default / Reward). 믹서가 없거나 이름이 없으면 무시</summary>
+        public void TransitionToSnapshot(string snapshotName)
+        {
+            if (mixer == null) return;
+            var snapshot = mixer.FindSnapshot(snapshotName);
+            if (snapshot != null) snapshot.TransitionTo(snapshotFadeTime);
+            else if (warnedKeys.Add(snapshotName)) Debug.LogWarning($"[SoundService] {mixer.name} 에 '{snapshotName}' 스냅샷이 없습니다", this);
         }
 
         /// <summary>category 볼륨을 holdTime 초 동안 level 배로 낮춘다 (보스 포효 때 군중 소리 줄이기)</summary>
@@ -480,8 +521,45 @@ namespace HybridShooter.Audio
         private void ApplyVolume(Voice voice)
         {
             int c = (int)voice.Def.Category;
-            voice.Source.volume = voice.Def.Volume * masterVolume * GetVolume(voice.Def.Category) * duck[c] * voice.Fade;
+            voice.Source.volume = voice.Def.Volume * CodeVolume(voice.Def.Category) * duck[c] * voice.Fade;
         }
+
+        /// <summary>코드에서 곱할 옵션 볼륨. 믹서가 있으면 Exposed 파라미터가 맡으므로 1</summary>
+        private float CodeVolume(SoundCategory category) => mixer != null ? 1f : masterVolume * GetVolume(category);
+
+        /// <summary>
+        /// 비어 있는 그룹을 믹서에서 이름으로 찾고, 스냅샷 전환이 timeScale 0 에서도 진행되도록 UnscaledTime 으로 바꾼다.
+        /// 그룹이 없으면 경고만 하고 그 카테고리는 믹서를 거치지 않는다
+        /// </summary>
+        private void SetupMixer()
+        {
+            if (mixer == null) return;
+            mixer.updateMode = AudioMixerUpdateMode.UnscaledTime;
+            if (bgmGroup == null) bgmGroup = FindGroup(SoundCategory.Bgm);
+            if (sfxGroup == null) sfxGroup = FindGroup(SoundCategory.Sfx);
+            if (monsterGroup == null) monsterGroup = FindGroup(SoundCategory.Monster);
+            if (uiGroup == null) uiGroup = FindGroup(SoundCategory.Ui);
+        }
+
+        private AudioMixerGroup FindGroup(SoundCategory category)
+        {
+            string name = category.ToString();
+            foreach (var group in mixer.FindMatchingGroups(name))
+                if (group.name == name) return group;
+            Debug.LogWarning($"[SoundService] {mixer.name} 에 '{name}' 그룹이 없습니다", this);
+            return null;
+        }
+
+        /// <summary>옵션 볼륨(0~1)을 믹서 Exposed 파라미터(dB)로. 믹서가 없으면 ApplyVolume 이 코드에서 곱한다</summary>
+        private void ApplyMixerVolumes()
+        {
+            if (mixer == null) return;
+            mixer.SetFloat(MasterVolumeParam, ToDecibel(masterVolume));
+            for (int c = 0; c < CategoryCount; c++)
+                mixer.SetFloat(VolumeParams[c], ToDecibel(GetVolume((SoundCategory)c)));
+        }
+
+        private static float ToDecibel(float volume) => volume > 0.0001f ? Mathf.Log10(volume) * 20f : MinDecibel;
 
         private void UpdateDucks(float dt)
         {
@@ -506,7 +584,7 @@ namespace HybridShooter.Audio
                     continue;
                 }
                 float defVolume = bgmDefs[i] != null ? bgmDefs[i].Volume : 1f;
-                source.volume = defVolume * masterVolume * bgmVolume * duck[(int)SoundCategory.Bgm] * bgmFade[i];
+                source.volume = defVolume * CodeVolume(SoundCategory.Bgm) * duck[(int)SoundCategory.Bgm] * bgmFade[i];
             }
         }
 

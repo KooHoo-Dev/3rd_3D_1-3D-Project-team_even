@@ -22,6 +22,7 @@ namespace HybridShooter.Audio
     ///   보스 공격          BossSkillPhaseChangedEvent(Windup) → 공격 SfxKey (등장 공격이면 포효 + 덕킹)
     ///   보스 페이즈 전환   BossDamageStageChangedEvent  → HurtSfx
     ///   BGM               RoundStarted → 군중, BossAppeared → 보스, BossDefeated·GameOver → 정지
+    ///   강화 화면          GameStateChangedEvent(Reward) → 믹서 Reward 스냅샷 (효과음·몬스터 먹먹하게), 벗어나면 Default
     /// </summary>
     [RequireComponent(typeof(SoundService))]
     public sealed class GameSoundRouter : MonoBehaviour
@@ -52,6 +53,7 @@ namespace HybridShooter.Audio
         /// <summary>이벤트 구독 (OnDisable 과 짝)</summary>
         private void OnEnable()
         {
+            EventBus<GameStateChangedEvent>.Subscribe(OnGameStateChanged);
             EventBus<RoundStartedEvent>.Subscribe(OnRoundStarted);
             EventBus<GameOverEvent>.Subscribe(OnGameOver);
             EventBus<MonsterSpawnedEvent>.Subscribe(OnMonsterSpawned);
@@ -68,6 +70,7 @@ namespace HybridShooter.Audio
         /// <summary>구독 해제</summary>
         private void OnDisable()
         {
+            EventBus<GameStateChangedEvent>.Unsubscribe(OnGameStateChanged);
             EventBus<RoundStartedEvent>.Unsubscribe(OnRoundStarted);
             EventBus<GameOverEvent>.Unsubscribe(OnGameOver);
             EventBus<MonsterSpawnedEvent>.Unsubscribe(OnMonsterSpawned);
@@ -79,6 +82,13 @@ namespace HybridShooter.Audio
             EventBus<BossSkillPhaseChangedEvent>.Unsubscribe(OnBossSkillPhaseChanged);
             EventBus<BossDamageStageChangedEvent>.Unsubscribe(OnBossDamageStageChanged);
             EventBus<BossDefeatedEvent>.Unsubscribe(OnBossDefeated);
+        }
+
+        /// <summary>강화 화면 동안만 Reward 스냅샷</summary>
+        private void OnGameStateChanged(GameStateChangedEvent e)
+        {
+            if (e.Current == GameState.Reward) service.TransitionToSnapshot(SoundService.RewardSnapshot);
+            else if (e.Previous == GameState.Reward) service.TransitionToSnapshot(SoundService.DefaultSnapshot);
         }
 
         private void OnRoundStarted(RoundStartedEvent e)

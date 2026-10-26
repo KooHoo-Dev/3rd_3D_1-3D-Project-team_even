@@ -14,12 +14,12 @@
 |---|---|---|---|---|
 | M1 | **몬스터 사운드 키가 전부 비었다.** `MonsterTable` 의 Idle/Loop/Hurt/DeathSfxKey 4열, `MonsterAttackTable` 의 SfxKey 열이 헤더만 남고 값이 없다 | 사운드 키 열은 `feat/SoundSystem` 에만 있었다. 머지 충돌 해결 때 **헤더는 이 브랜치, 행은 develop 쪽**을 받아서 값이 빠졌다 | 일반·중간체 몬스터의 울음·루프·사망·공격음이 데이터에서 끊김 (`DataManager.LinkSounds` 가 빈 키를 "소리 없음"으로 처리 → 경고도 안 뜸) | ✅ **복구 완료** — develop 수치(1~15열 / 1~24열)는 그대로 두고 사운드 키 값만 `2dbcc206` 시점 값으로 되살림 (일반·중간체 7행 + 주석 보관된 보스 행). `MonsterAttackTable` 주석의 SfxKey 설명도 복원 |
 | M2 | 돌진 공격(200101) 수치가 앞선 머지 `2dbcc206` 에서 옛 값(Cooldown 10, Recovery 1, Range 15)으로 되돌아갔었다 | 같은 원인 (그때는 이 브랜치 쪽 행을 받음) | 이번 머지에서 develop 값(3 / 0 / 30)으로 **다시 맞춰져 현재는 정상** | 없음. M1 복구 시 develop 수치를 기준으로 할 것 |
-| M3 | `Core/Data/Dtos/BossDTO.cs.meta` 와 `BossDto.cs` 가 대소문자가 다르게 둘 다 Git 에 올라가 있다 (`BossDTO.cs` + `BossDto.cs`) | 보스 브랜치에서 파일명 대소문자만 바꿈 | Windows 에서는 파일 하나로 보이지만, .meta 와 이름이 어긋나 Unity 가 GUID 를 새로 만들 수 있고 macOS/Linux 에서는 클래스 중복 | **보스 담당**에게 전달 (`git mv` 로 한쪽 정리) |
+| M3 | `Core/Data/Dtos/BossDTO.cs.meta` 와 `BossDto.cs` 가 대소문자가 다르게 둘 다 Git 에 올라가 있다 (`BossDTO.cs` + `BossDto.cs`) | 보스 브랜치에서 파일명 대소문자만 바꿈 | Windows 에서는 파일 하나로 보이지만, .meta 와 이름이 어긋나 Unity 가 GUID 를 새로 만들 수 있고 macOS/Linux 에서는 클래스 중복 | ✅ **정리 완료** — 보스 담당 결정대로 `BossDTO.cs` 로 통일 (내용 동일한 `BossDto.cs` 인덱스 항목 제거, .meta GUID 유지, 클래스명 `BossDto` 는 그대로) |
 | M4 | 보스 데이터가 `MonsterTable`/`MonsterAttackTable`/`MonsterPartTable`/`BossPhaseTable` 에서 주석 처리되고 `BossTable`·`ClypeosaurusTable` 로 분리됐다 | PR #29 설계 변경 | `mon_clypeosaurus_*` 6개 키를 쓰는 곳이 사라짐. 기존 보스 사운드 경로(Router 의 `BossSkillPhaseChanged`·`BossDamageStageChanged`·`HurtSfx`·`DeathSfx`)가 데이터상 동작 불가 | **R11** 에서 재설계 |
 | M5 | `SoundTester` 의 보스 버튼(경고·등장·공격·페이즈)이 `MonsterTable` 의 보스(`IsBoss`)를 찾는데 이제 없다 | M4 | 테스트 씬에서 보스 소리 확인 불가 | R11 확정 후 테스터 갱신 |
 | M6 | `2074d30c` 머지에서 도약 공격(200201) 수치가 옛 값(Cooldown 8, Recovery 1.2)으로 남았다 (develop = 3 / 1.8) | M1·M2 와 같은 원인 — develop 은 24열, 이 브랜치는 SfxKey 포함 25열이라 행 단위 충돌에서 이 브랜치 행이 채택됨 | 파르다트록스 공격 빈도·회복이 의도와 다름 | ✅ **복구 완료** — develop 수치로 맞추고 SfxKey `mon_pardathrox_attack` 유지. SfxKey 열을 빼면 develop 과 동일 |
 | M7 | **같은 충돌이 머지마다 반복된다** (M1, M2, M6) | 사운드 키 열이 `feat/SoundSystem` 에만 있음 | 다음 테이블 수정 PR 에서도 재발 | **사운드 키 열만 먼저 develop 에 작은 PR 로 올리기** 제안 (팀 결정). 그 전까지는 머지 후 `cut -f1-24` 로 develop 과 비교 점검 |
-| M8 | 작업 PC 중 한 곳에 `git-lfs` 미설치 (`*.wav/mp3/ogg` 는 LFS 추적) | 환경 | 미커밋 독가스·보스 포효 wav 를 커밋하면 LFS 를 거치지 않음 | `brew install git-lfs` → `git lfs install` 후 커밋 |
+| M8 | 작업 PC 중 한 곳에 `git-lfs` 미설치 (`*.wav/mp3/ogg` 는 LFS 추적) | 환경 | 새 오디오 에셋을 커밋하면 LFS 를 거치지 않음 | ✅ **설치 완료** (git-lfs 3.6.1). 독가스·보스 포효 wav 는 `fab5592b` 에서 이미 LFS 로 커밋돼 있었음 |
 
 ---
 
@@ -39,6 +39,26 @@
 | R10 | 독장판 틱 피격음 | **A** `DamageKind.Status` | 코어: enum 값 추가 / 몬스터: `PoisonZone` 1줄 | 방식 A/B/C |
 | **R11** | **보스 사운드 경로 재설계 (PR #29)** | **A** `BossSoundEmitter` + 테이블 키 | 보스: `BossController` 에 이벤트 추가 / 코어: 보스 이벤트 페이로드 | 이벤트 계약, 키 위치, 패턴별 소리 |
 
+### ✅ 결정 결과 (2026-10-26)
+
+| # | 결정 | 남은 것 |
+|---|---|---|
+| 공통 | 다른 파트 파일(`MonsterController`·`PounceAttack`·`Gun`·`SupplyDropper`·`PoisonZone`·`BossController`·Core 계약)은 **이 브랜치에서 직접 수정**, PR 리뷰 때 담당자 확인 | — |
+| R1 | **A** `IMonsterSoundSource` 구현, 이미터 **a 자동 부착** (보스 이미터도 동일), 도약 착지 **안 2 `AttackLanded` 알림 추가**. 헤드샷 판정 현재 없음 → `ann_headshot` 미사용 | — |
+| R2·R3 | R1 따라감 / 이벤트 기반 | — |
+| R4 | partial 분할 + 아나운서 **A 최소** (`ann_fight`·`ann_victory`·`ann_game_over`) | — |
+| R5 | `PlayerSoundEmitter` 신설, 바닥 판별 **A 흙만**, 이미터를 적용한 신규 플레이어 프리팹 = `Scenes/MS/Prefabs/Player.prefab` 의 **Prefab Variant** (Audio 쪽 폴더, `PlayerSoundEmitter` 만 추가) | — (`Scenes/GU/` 신규 씬에서 사용) |
+| R6 | 제시안대로 (무기 교체·빈 탄창·폭발·보급·독가스 **A 테이블**·기절·돌진·도약 컬럼) | — |
+| R7 | 제시안대로 | — |
+| R8 | **지금 도입**. `BossIntro` 스냅샷은 삭제, 보스 등장 감쇠는 코드 덕킹 | ✅ 에디터·코드 완료, Unity 재생 확인 남음 |
+| R9 | **A** 가벼운 정리 | — |
+| R10 | **A** `DamageKind.Status` | — (확인: `DamageKind` 로 분기하는 곳은 `GameSoundRouter` 의 Bullet 판정뿐 → 다른 파트 영향 없음) |
+| R11 | 권장안: ① **A** `BossSoundEmitter` ③ **a** `BossDef` 이벤트 ④ **a** `BossTable`/`ClypeosaurusTable` 키. 보스 담당 답변: ② 2-2장 알림 목록(`PatternPhaseChanged`·`BarrageShotFired`·`AntennaOpened`·`Appeared`) **확정** ⑤ 등장 연출 **유지**. EventBus 보스 이벤트는 **발행자가 있다고 가정**하고 작업, 대신 이벤트를 발행해 주는 **테스터 코드**를 만든다 | — |
+| M3 | `BossDTO.cs` 로 통일 (보스 담당 결정) — 중복 인덱스 항목 `BossDto.cs` 제거, GUID 유지 | ✅ |
+| M7 | 사운드 작업이 모두 끝난 뒤 **한 번에 PR** (선행 PR 없음) | 그때까지 develop 머지 후 `cut -f1-24` 점검 |
+| 작업 씬 | `Assets/Scenes/GU/` 에 **신규 씬**을 만들어 작업 (플레이어 Variant 사용) | — |
+| 순서 | **R8 믹서를 먼저 완료**한 뒤 나머지 진행 | 에디터 작업 (4장 R8 절차) |
+
 ---
 
 ## 1. 사운드 에셋 현황
@@ -53,10 +73,10 @@
 | 플레이어 | 발소리 흙(달리기 12·착지 10)·금속 16, 목소리(피격·사망·점프·기침·숨) 10, 투척 5 | `sfx_player_*` 9, `sfx_grenade_throw` | 피격만 ✅ |
 | UI | 메뉴 커서·선택, 강화 선택, 체력 경고, 게임오버, 스테이지 클리어 | `ui_*` 6 | ❌ |
 | 아나운서 | Fight·카운트·연속 처치·헤드샷·승리·패배 등 18 | `ann_*` 18 | ❌ |
-| **독가스 (미커밋)** | `Monster/Attack SFX/PoisonGas_Escaped`(0.78초), `PoisonGas_inside`(3.05초) | 없음 → **추가 필요** | ❌ |
-| **보스 포효 (미커밋)** | `Clypeosaurus_Shout_2`(3.76초), `Clypeosaurus_Shout`·`GiantSlug_Attack` 교체 | `mon_clypeosaurus_shout` 에 변형으로 추가 가능 | 보스 미구현 |
+| **독가스 (`fab5592b`)** | `Monster/Attack SFX/PoisonGas_Escaped`(0.78초), `PoisonGas_inside`(3.05초) | 없음 → **추가 필요** | ❌ |
+| **보스 포효 (`fab5592b`)** | `Clypeosaurus_Shout_2`(3.76초), `Clypeosaurus_Shout`·`GiantSlug_Attack` 교체 | `mon_clypeosaurus_shout` 에 변형으로 추가 가능 | 보스 미구현 |
 
-> 미커밋 에셋 정리 제안: `Monster/Attack SFX/` → `Monster/Poison/` 로 옮기고 `Poison_Release`, `Poison_ZoneLoop` 로 이름 변경 (다른 폴더와 같은 `폴더명_동작` 규칙, 공백 없는 폴더명).
+> 독가스 에셋 정리 제안: `Monster/Attack SFX/` → `Monster/Poison/` 로 옮기고 `Poison_Release`, `Poison_ZoneLoop` 로 이름 변경 (다른 폴더와 같은 `폴더명_동작` 규칙, 공백 없는 폴더명).
 
 ### 1-2. 아직 없는 것 (에셋 요청 목록)
 
@@ -339,7 +359,7 @@ SoundHandle PlayLoop(string key, Transform follow);     // 키만 아는 쪽 (�
 ### R8. AudioMixer 도입
 **v1 대비 확인된 점** 믹서 에셋은 스크립트로 만들 수 없다 (Unity 공개 API 없음) → **에디터에서 직접 생성**해야 한다 (5분).
 - 구성: Master / Bgm / Sfx / Monster / Ui 그룹 + 그룹별 볼륨 Exposed 파라미터(dB)
-- 스냅샷: `Default`, `Reward`(강화 화면 — Sfx·Monster 로우패스), `BossIntro`(Monster 감쇠)
+- 스냅샷: `Default`, `Reward`(강화 화면 — Sfx·Monster 로우패스). ~~`BossIntro`(Monster 감쇠)~~ → **삭제**: Exposed 파라미터는 코드가 `SetFloat` 하면 스냅샷이 바꿀 수 없어 옵션 볼륨과 충돌한다. 보스 등장 감쇠는 기존 코드 덕킹(`GameSoundRouter.bossDuckLevel 0.3 / bossDuckTime 3`)이 맡는다
 - 코드: 믹서가 연결되면 `SetVolume` 이 Exposed 파라미터를 바꾸고, 없으면 지금처럼 코드 볼륨 곱셈 (현재의 "비워도 동작" 원칙 유지)
 
 | 선택지 | 내용 |
@@ -347,7 +367,25 @@ SoundHandle PlayLoop(string key, Transform follow);     // 키만 아는 쪽 (�
 | **A. 지금 도입 (권장)** | 옵션 화면이 생기기 전에 구조를 맞춰 둠 |
 | B. 옵션 UI 작업 때 | 그때까지 코드 볼륨만 사용 |
 
-**결정할 것** 도입 시기 A / B
+**결정할 것** 도입 시기 A / B → ✅ **A 지금 도입 (다른 작업보다 먼저)**
+
+**에디터 작업 절차** (믹서 에셋은 코드로 만들 수 없음)
+1. Project 창 `Assets/Resources/Audio/` 에서 우클릭 → Create → **Audio Mixer** → 이름 `GameMixer`
+2. Window → Audio → **Audio Mixer** 창을 연다. Groups 의 `Master` 를 선택하고 `+` 로 자식 그룹 4개: **`Bgm`, `Sfx`, `Monster`, `Ui`** (`SoundCategory` enum 이름과 같게)
+3. 그룹 볼륨 노출: 그룹을 선택 → Inspector 의 **Volume** 위에서 우클릭 → *Expose 'Volume (of …)' to script*. Master 포함 5개 모두
+4. Audio Mixer 창 오른쪽 위 **Exposed Parameters** 드롭다운에서 이름 변경: `MasterVolume`, `BgmVolume`, `SfxVolume`, `MonsterVolume`, `UiVolume`
+5. 효과 추가: `Sfx`, `Monster` 그룹 Inspector 아래 **Add Effect → Lowpass Simple** (Cutoff 22000 Hz = 꺼진 상태)
+6. 스냅샷 2개: 기본 `Snapshot` 이름을 **`Default`** 로 변경, `Default` 선택 상태에서 `+` 로 **`Reward`** 추가
+   - `Reward` 선택 상태에서 `Sfx`·`Monster` Lowpass Cutoff **800 Hz**
+   - 마지막에 `Default` 를 다시 선택해 두기 (별표 = 시작 스냅샷인지 확인)
+7. 믹서 Inspector 의 **Update Mode → Unscaled Time** (강화 화면 timeScale 0 에서도 스냅샷 전환이 진행되도록. 코드도 실행 시 같은 값으로 맞춘다)
+8. `Tools > Audio > Create Sound Service` 실행 → 씬의 `SoundService` 에 `GameMixer` 가 연결된다 (그룹 칸은 비워도 실행 시 이름으로 찾음)
+9. 저장 후 `GameMixer.mixer` + `.meta` 커밋 (텍스트 YAML, LFS 대상 아님)
+
+**진행 상황 (2026-10-26)**
+- ✅ 에디터: `Assets/Resources/Audio/GameMixer.mixer` — 그룹 4개, Exposed 5개, `Default`(Cutoff 22000)·`Reward`(Cutoff 800), 시작 스냅샷 `Default`, `SoundSystemTest` 그룹 연결. `BossIntro` 삭제
+- ✅ 코드: `SoundService` 에 `mixer` 필드 — 빈 그룹 자동 검색, 옵션 볼륨(0~1) → Exposed 파라미터(dB, 0 이면 -80 dB), 믹서가 있으면 코드 볼륨 곱셈 생략(이중 적용 방지), `TransitionToSnapshot`, `UpdateMode = UnscaledTime`. `GameSoundRouter` 가 `GameStateChangedEvent` 로 Reward 진입 시 `Reward`, 벗어나면 `Default`. `Create Sound Service` 메뉴가 `GameMixer` 자동 연결
+- 남은 것: Unity 에서 컴파일·재생 확인, `Sfx`/`Monster` 의 Lowpass 종류 통일(현재 Lowpass Simple / Lowpass — 동작은 같음, 선택)
 
 ### R9. `SoundService` 내부 정리
 **v1 대비 확인된 점** 사운드 로직을 EditMode 테스트하려면 Audio 폴더에 asmdef 가 필요한데, `PlayerSoundEmitter`·Router 가 `PlayerController`(asmdef 없음)를 참조하면 Audio 를 asmdef 로 분리할 수 없다.
@@ -409,7 +447,7 @@ public event Action Appeared;                                     // 등장 연�
 
 **⑤ 보스 피격 피드백** `BossController.TakeDamage` 가 `DamageDealtEvent` 를 발행하지 않아 보스를 쏴도 히트마커·타격음·처치 확인음이 없다. `MonsterController` 와 같이 1줄 발행 추가 필요 (보스 담당). 보스 처치 시 `IsKill = true` 로 처치 확인음까지 해결.
 
-**⑥ 기존 키 정리** `mon_clypeosaurus_attack/attack2/skill_attack/shout/hurt` + 미커밋 `Clypeosaurus_Shout_2` 를 패턴에 재배정 (2-2장 표). 에셋 요청: 보스 발소리, 전격 충전·방전, 마그마 착탄, 보스 사망.
+**⑥ 기존 키 정리** `mon_clypeosaurus_attack/attack2/skill_attack/shout/hurt` + `Clypeosaurus_Shout_2` 를 패턴에 재배정 (2-2장 표). 에셋 요청: 보스 발소리, 전격 충전·방전, 마그마 착탄, 보스 사망.
 
 - **수정 범위** 보스: `BossController` 이벤트 선언·발행, `DamageDealtEvent` 1줄 / 코어: 보스 이벤트 타입 / 데이터: 보스 테이블 사운드 열(④-a 선택 시) / Audio: `BossSoundEmitter` 신규, Router 보스 partial 수정, `SoundTester` 보스 버튼 갱신
 - **결정할 것** ① A / B ② 알림 목록 확정 (보스 담당) ③ 이벤트 페이로드 a / b (코어) ④ 키 위치 a / b ⑤ 등장 연출(옛 SkyFall)을 유지하는지

@@ -410,8 +410,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_IsGlobal: 1
   priority: 0
   blendDistance: 0
@@ -490,6 +490,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -511,9 +516,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &900000011
 GameObject:
@@ -558,8 +565,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5a05c20358bebe940a2539c5f1df36d4, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
+  voiceCount: 40
+  loopRefreshInterval: 0.25
+  loopFadeTime: 0.2
+  minDistance: 2
+  unlimitedDistance: 300
+  bgmFadeTime: 1.5
+  duckFadeTime: 0.3
+  mixer: {fileID: 24100000, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  snapshotFadeTime: 0.5
+  bgmGroup: {fileID: 1916248860737149651, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  sfxGroup: {fileID: -7809499384278224037, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  monsterGroup: {fileID: -2541985567382436315, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  uiGroup: {fileID: -261122123259414772, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  masterVolume: 1
+  bgmVolume: 1
+  sfxVolume: 1
+  monsterVolume: 1
+  uiVolume: 1
 --- !u!114 &900000014
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -570,8 +595,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dfe8fb3f8a637e94fbf82df2f73353e3, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
+  crowdBgmKey: bgm_crowd
+  bossBgmKey: bgm_boss
+  bossWarningKey: sfx_boss_warning
+  playerHitKey: sfx_player_hit
+  hitImpactKey: sfx_hit_flesh
+  hitMarkerKey: ui_hit_marker
+  killConfirmKey: ui_kill_confirm
+  bossDuckLevel: 0.3
+  bossDuckTime: 3
 --- !u!1 &900000021
 GameObject:
   m_ObjectHideFlags: 0
@@ -614,8 +648,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 10e3e088c129a634fb0248ec7fa11288, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
+  center: {fileID: 0}
+  testDistance: 8
+  dummyRadius: {x: 4, y: 40}
+  dummyOrbitSpeed: 20
+  startMonsterId: 1002
+  bossMonsterId: 3001
+  showStatus: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
