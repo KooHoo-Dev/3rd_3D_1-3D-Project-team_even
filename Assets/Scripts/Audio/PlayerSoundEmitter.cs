@@ -2,6 +2,7 @@ using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.Services;
 using HybridShooter.Player;
+using HybridShooter.Weapon;
 using UnityEngine;
 
 namespace HybridShooter.Audio
@@ -16,6 +17,7 @@ namespace HybridShooter.Audio
     ///   사망     PlayerController.Died
     ///   숨소리   PlayerStaminaChangedEvent — breathStartRatio 이하에서 루프 시작, breathStopRatio 이상에서 정지
     ///   투척     PlayerItems.ThrowStarted
+    ///   무기 교체 GunSlot.GunChanged → WeaponTable.SwitchSfxKey (시작 장착은 제외)
     /// 바닥 재질은 흙 하나만 (금속 발소리는 맵 확정 후 추가). 플레이어 피격음은 GameSoundRouter 담당.
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
@@ -41,12 +43,18 @@ namespace HybridShooter.Audio
         [Tooltip("이 시간(초)보다 짧게 떠 있었으면 착지음 없음 (턱·경사 흔들림)")]
         [SerializeField] private float minAirTime = 0.25f;
 
+        [Header("무기 교체")]
+        [Tooltip("켜진 직후 이 시간(초) 동안의 교체는 소리 없음 (시작 장착)")]
+        [SerializeField] private float switchMuteAfterSpawn = 0.5f;
+
         [Header("숨소리 (스태미나 비율)")]
         [Range(0f, 1f)][SerializeField] private float breathStartRatio = 0.25f;
         [Range(0f, 1f)][SerializeField] private float breathStopRatio = 0.6f;
 
         private PlayerController player;
         private PlayerItems items;
+        private GunSlot gunSlot;
+        private float enableTime;
         private float strideDistance;
         private float lastGroundedTime;
         private SoundHandle breathHandle;
@@ -55,6 +63,7 @@ namespace HybridShooter.Audio
         {
             player = GetComponent<PlayerController>();
             items = GetComponentInChildren<PlayerItems>(true);
+            gunSlot = GetComponentInChildren<GunSlot>(true);
         }
 
         /// <summary>이벤트 구독 (OnDisable 과 짝)</summary>
@@ -66,6 +75,8 @@ namespace HybridShooter.Audio
             player.Landed += OnLanded;
             player.Died += OnDied;
             if (items != null) items.ThrowStarted += OnThrowStarted;
+            if (gunSlot != null) gunSlot.GunChanged += OnGunChanged;
+            enableTime = Time.time;
             EventBus<PlayerStaminaChangedEvent>.Subscribe(OnStaminaChanged);
         }
 
@@ -76,6 +87,7 @@ namespace HybridShooter.Audio
             player.Landed -= OnLanded;
             player.Died -= OnDied;
             if (items != null) items.ThrowStarted -= OnThrowStarted;
+            if (gunSlot != null) gunSlot.GunChanged -= OnGunChanged;
             EventBus<PlayerStaminaChangedEvent>.Unsubscribe(OnStaminaChanged);
             StopBreath();
         }
@@ -118,6 +130,13 @@ namespace HybridShooter.Audio
         }
 
         private void OnThrowStarted() => Play(throwKey);
+
+        /// <summary>바꿔 든 무기의 교체음 (2D). 시작 장착(LoadLoadout)은 제외</summary>
+        private void OnGunChanged(int slot, Gun gun)
+        {
+            if (Time.time - enableTime < switchMuteAfterSpawn || gun == null || gun.Def?.SwitchSfx == null) return;
+            if (ServiceLocator.TryGet<ISoundService>(out var service)) service.PlaySfx(gun.Def.SwitchSfx);
+        }
 
         private void OnStaminaChanged(PlayerStaminaChangedEvent e)
         {

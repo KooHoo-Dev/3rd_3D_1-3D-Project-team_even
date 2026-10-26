@@ -22,7 +22,7 @@ namespace HybridShooter.Monster.Behaviour
     /// 라이플·수류탄은 IDamageable 로 이 클래스를 찾아 피해를 준다.
     /// </remarks>
     [RequireComponent(typeof(MonsterMovement), typeof(NavMeshMoveExecutor))]
-    public sealed class MonsterController : MonoBehaviour, IDamageable
+    public sealed class MonsterController : MonoBehaviour, IDamageable, IMonsterSoundSource
     {
         [Tooltip("MonsterTable Id")]
         [SerializeField] private int monsterId;
@@ -58,6 +58,11 @@ namespace HybridShooter.Monster.Behaviour
 
         public MonsterDef Def { get; private set; }
         public MonsterStateMachine StateMachine { get; private set; }
+
+        // ── 소리 알림 (IMonsterSoundSource. MonsterSoundEmitter 가 구독) ──
+        public event Action<MonsterAttackDef, SkillPhase> AttackPhaseChanged;
+        public event Action<float> Stunned;
+        public event Action<MonsterAttackDef, Vector3> AttackLanded;
 
         // ── 체력 ──
         public int MaxHp { get; private set; }
@@ -100,7 +105,11 @@ namespace HybridShooter.Monster.Behaviour
 
             StateMachine.Died += OnStateMachineDied;
             StateMachine.StateChanged += OnStateChanged;
-            foreach (MonsterAttack attack in StateMachine.Attacks) attack.PhaseChanged += OnAttackPhaseChanged;
+            foreach (MonsterAttack attack in StateMachine.Attacks)
+            {
+                attack.PhaseChanged += OnAttackPhaseChanged;
+                attack.BodyLanded += OnAttackBodyLanded;
+            }
             Subscribe();
         }
 
@@ -198,6 +207,7 @@ namespace HybridShooter.Monster.Behaviour
             if (current == StateMachine.Stunned)
             {
                 animator.SetBool("IsStunned", true);
+                Stunned?.Invoke(StateMachine.StunDuration);
                 return;
             }
             if (current == StateMachine.Dead)
@@ -214,7 +224,7 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 공격 Active 시작에 Attack 클립을 재생한다.
+        /// 소리 쪽에 단계 변경을 알리고, 공격 Active 시작에 Attack 클립을 재생한다.
         /// 재생 배율 = 클립 길이 ÷ Active 길이 → 클립이 Active 동안 정확히 1번 재생된다.
         /// </summary>
         /// <remarks>
@@ -225,12 +235,20 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="phase">새 단계. Active 일 때만 반응한다</param>
         private void OnAttackPhaseChanged(MonsterAttack attack, SkillPhase phase)
         {
+            AttackPhaseChanged?.Invoke(FindAttackDef(attack), phase); // 소리: 모든 단계를 알린다 (예고음 = Windup)
             if (phase != SkillPhase.Active) return;
             if (attack.UsesMoveAnimation) return;
 
             animator.SetFloat("AttackSpeed", ReadAttackClipSeconds() / attack.ActiveDuration);
             animator.SetTrigger("Attack");
         }
+
+        /// <summary>도약 착지를 소리 쪽에 알린다</summary>
+        private void OnAttackBodyLanded(MonsterAttack attack, Vector3 ground) => AttackLanded?.Invoke(FindAttackDef(attack), ground);
+
+        /// <summary>공격의 테이블 Def (Spec.SourceDefId). 테이블에 없으면 null</summary>
+        private static MonsterAttackDef FindAttackDef(MonsterAttack attack) =>
+            DataManager.MonsterAttacks.TryGet(attack.Spec.SourceDefId, out var def) ? def : null;
 
         /// <summary>
         /// Chase 중 실제 이동 속도로 IsMoving 을 매 프레임 넣어 Idle ↔ Move 전이를 일으킨다.

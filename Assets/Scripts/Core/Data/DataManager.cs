@@ -189,6 +189,9 @@ namespace HybridShooter.Core.Data
                 w.ReloadSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.ReloadSfx), w.ReloadSfxKey);
                 w.ReloadInsertSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.ReloadInsertSfx), w.ReloadInsertSfxKey);
                 w.ReloadEndSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.ReloadEndSfx), w.ReloadEndSfxKey);
+                w.SwitchSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.SwitchSfx), w.SwitchSfxKey);
+                w.DryFireSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.DryFireSfx), w.DryFireSfxKey);
+                w.ExplodeSfx = FindSound(r, WeaponDef.Table, w.Id, nameof(w.ExplodeSfx), w.ExplodeSfxKey);
             }
             foreach (var g in grenades)
                 g.ExplodeSfx = FindSound(r, GrenadeDef.Table, g.Id, nameof(g.ExplodeSfx), g.ExplodeSfxKey);
@@ -198,11 +201,26 @@ namespace HybridShooter.Core.Data
                 m.LoopSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.LoopSfx), m.LoopSfxKey);
                 m.HurtSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.HurtSfx), m.HurtSfxKey);
                 m.DeathSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.DeathSfx), m.DeathSfxKey);
+                m.StunSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.StunSfx), m.StunSfxKey);
                 if (m.LoopSfx != null && m.LoopSfx.Loop == false)
                     r.Warn(MonsterDef.Table, m.Id, $"LoopSfx '{m.LoopSfxKey}' 의 Loop 가 false 입니다");
             }
             foreach (var a in monsterAttacks)
+            {
                 a.Sfx = FindSound(r, MonsterAttackDef.Table, a.Id, nameof(a.Sfx), a.SfxKey);
+                a.ImpactSfx = FindSound(r, MonsterAttackDef.Table, a.Id, nameof(a.ImpactSfx), a.ImpactSfxKey);
+            }
+            foreach (var e in statusEffects)
+            {
+                e.LoopSfx = FindSound(r, StatusEffectDef.Table, e.Id, nameof(e.LoopSfx), e.LoopSfxKey);
+                if (e.LoopSfx != null && e.LoopSfx.Loop == false)
+                    r.Warn(StatusEffectDef.Table, e.Id, $"LoopSfx '{e.LoopSfxKey}' 의 Loop 가 false 입니다");
+            }
+            foreach (var s in supplies)
+            {
+                s.DropSfx = FindSound(r, SupplyDef.Table, s.Id, nameof(s.DropSfx), s.DropSfxKey);
+                s.CollectSfx = FindSound(r, SupplyDef.Table, s.Id, nameof(s.CollectSfx), s.CollectSfxKey);
+            }
         }
 
         /// <summary>키가 비었으면 null (사운드 없음). 키가 있는데 SoundTable 에 없으면 경고 후 null</summary>

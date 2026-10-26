@@ -1,17 +1,34 @@
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Events;
+using UnityEngine;
 
 namespace HybridShooter.Audio
 {
     /// <summary>전투: 몬스터 생성·사망, 총기 피격·처치, 플레이어 피격</summary>
     public sealed partial class GameSoundRouter
     {
-        /// <summary>프리팹(자식 포함)의 MonsterSoundEmitter 에 Def 연결 → 울음·루프 시작</summary>
+        /// <summary>
+        /// 이미터가 없으면 붙이고(자동 부착 — 몬스터 프리팹 수정 불필요) Def 연결 → 울음·루프 시작.
+        /// 보스는 구조가 달라 BossSoundEmitter 담당이므로 붙이지 않는다
+        /// </summary>
         private void OnMonsterSpawned(MonsterSpawnedEvent e)
         {
-            if (e.Instance == null) return;
-            var emitter = e.Instance.GetComponentInChildren<MonsterSoundEmitter>(true);
-            if (emitter != null) emitter.Bind(e.Def);
+            if (e.Instance == null || (e.Def != null && e.Def.IsBoss)) return;
+            EnsureEmitter(e.Instance).Bind(e.Def);
+        }
+
+        /// <summary>씬에 직접 둔 몬스터(MonsterSpawnedEvent 없음)에도 이미터를 붙인다. 시작 시 1번</summary>
+        private void AttachEmittersInScene()
+        {
+            foreach (var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+                if (behaviour is IMonsterSoundSource) EnsureEmitter(behaviour.gameObject);
+        }
+
+        /// <summary>자식 포함 이미터를 찾고, 없으면 소리 출처(IMonsterSoundSource)가 있는 오브젝트에 붙인다</summary>
+        private static MonsterSoundEmitter EnsureEmitter(GameObject monster)
+        {
+            var emitter = monster.GetComponentInChildren<MonsterSoundEmitter>(true);
+            return emitter != null ? emitter : monster.AddComponent<MonsterSoundEmitter>();
         }
 
         /// <summary>

@@ -68,6 +68,9 @@ namespace HybridShooter.Monster.Behaviour
         // 단계 변경 알림 (애니메이션·예고 표시·보스 이벤트). Idle = 종료
         public event Action<MonsterAttack, SkillPhase> PhaseChanged;
 
+        // 공격 몸 이동이 땅에 닿음 (도약 착지). 인자 = 착지 지점. 소리·연출용
+        public event Action<MonsterAttack, Vector3> BodyLanded;
+
         // 진행 중인 공격의 대상. 진행 중이 아니면 null
         protected IPlayerTarget Target { get; private set; }
 
@@ -208,6 +211,10 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>회복을 건너뛰고 즉시 끝낸다 (돌진 중 벽 충돌 등). 하위 클래스의 OnActive 안에서 부른다</summary>
         /// <param name="result">끝난 이유. LastResult 에 남는다 (WallHit 이면 AttackState 가 기절시킨다)</param>
         protected void EndEarly(AttackResult result) => Finish(result);
+
+        /// <summary>몸 이동이 땅에 닿았음을 알린다 (도약 착지). 하위 클래스가 실제로 내려앉은 순간에 부른다</summary>
+        /// <param name="ground">착지 지점</param>
+        protected void NotifyBodyLanded(Vector3 ground) => BodyLanded?.Invoke(this, ground);
 
         /// <summary>대상에게 Damage × HitCount 피해. 대상이 이미 죽었으면 주지 않는다</summary>
         /// <remarks>아직 전투시스템 관련 적용되지 않았음</remarks>

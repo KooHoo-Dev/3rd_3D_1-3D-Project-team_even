@@ -46,10 +46,13 @@ namespace HybridShooter.Core.Data.Defs
         /// <summary>보스 페이즈 전환 때만 사용 (일반 몬스터는 금방 죽어 피격음 대신 총기 타격음으로 대체)</summary>
         public SoundDef HurtSfx { get; internal set; }
         public SoundDef DeathSfx { get; internal set; }
+        /// <summary>기절 시작 (돌진 벽 충돌). 키가 비었으면 null</summary>
+        public SoundDef StunSfx { get; internal set; }
         internal string IdleSfxKey { get; }
         internal string LoopSfxKey { get; }
         internal string HurtSfxKey { get; }
         internal string DeathSfxKey { get; }
+        internal string StunSfxKey { get; }
 
         /// <summary>GradeId 에서 계산 (1 → Weak, 2 → Mid, 3 → Boss)</summary>
         public MonsterGrade Grade { get; internal set; }
@@ -85,6 +88,7 @@ namespace HybridShooter.Core.Data.Defs
             LoopSfxKey = d.LoopSfxKey;
             HurtSfxKey = d.HurtSfxKey;
             DeathSfxKey = d.DeathSfxKey;
+            StunSfxKey = d.StunSfxKey;
 
             r.Check(Enum.IsDefined(typeof(MonsterGrade), Grade), Table, Id, "GradeId 는 1(Weak)~3(Boss) 중 하나");
             r.Check(string.IsNullOrEmpty(Key) == false, Table, Id, "Key 가 비었습니다");

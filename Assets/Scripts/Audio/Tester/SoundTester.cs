@@ -17,7 +17,7 @@ namespace HybridShooter.Audio.Tester
     ///   [ / ] : 테스트 몬스터 선택 (MonsterTable 순서)
     ///   E     : 선택 몬스터 더미 1마리 생성 (MonsterSpawnedEvent → MonsterSoundEmitter 연결, 울음·루프 확인). 주변을 돈다
     ///   M     : 선택 몬스터 더미 12마리 한 번에 생성 (Herd) → 루프는 가까운 MaxInstances 개만 들려야 함
-    ///   A     : 더미 전부 공격음 (애니메이션 이벤트 PlayAttackSfx 대신). 더미가 없으면 선택 몬스터 공격음 1번
+    ///   A     : 더미 전부 공격음 (실게임은 IMonsterSoundSource 의 예고 시작). 더미가 없으면 선택 몬스터 공격음 1번
     ///   D     : 더미 1마리 처치 (MonsterDiedEvent) → 사망음, 그 더미의 루프 정지
     ///   C     : 군중 20마리 동시 사망 (이벤트만) → 사망음이 MaxInstances 개 이하로만 겹쳐야 함
     ///   H     : 총기 명중 (DamageDealtEvent Bullet)         → 타격음(3D) + 히트마커
@@ -187,7 +187,12 @@ namespace HybridShooter.Audio.Tester
                 lastAction = $"공격음 {attack?.Sfx?.Key ?? "없음"}";
                 return;
             }
-            foreach (var d in dummies) d.Go.GetComponent<MonsterSoundEmitter>().PlayAttackSfx("");
+            foreach (var d in dummies)
+            {
+                var def = d.Go.GetComponent<MonsterSoundEmitter>().Def;
+                var attack = def != null && def.BasicAttacks.Count > 0 ? def.BasicAttacks[0] : null;
+                Sound()?.PlaySfx(attack?.Sfx, d.Go.transform.position);
+            }
             lastAction = $"더미 {dummies.Count}마리 공격음";
         }
 

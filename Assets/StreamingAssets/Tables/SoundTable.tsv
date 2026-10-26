@@ -32,6 +32,8 @@ sfx_rifle_dry_fire	Sfx	Audio/Weapon/Reload/Reload_Rifle_DryFire	0.6	false	false	
 sfx_pistol_dry_fire	Sfx	Audio/Weapon/Reload/Reload_Pistol_DryFire	0.6	false	false	1	0.15	0.05	50	0
 sfx_semi_auto_dry_fire	Sfx	Audio/Weapon/Reload/Reload_SemiAuto_DryFire_01;Audio/Weapon/Reload/Reload_SemiAuto_DryFire_02	0.6	false	false	1	0.15	0.05	50	0
 sfx_shotgun_dry_fire	Sfx	Audio/Weapon/Reload/Reload_ShotGun_DryFire_01;Audio/Weapon/Reload/Reload_ShotGun_DryFire_02	0.6	false	false	1	0.15	0.05	50	0
+# 무기 교체 (WeaponTable.SwitchSfxKey): 전용 클립 없음 → 라이플 탄창 끼우는 소리 대여
+sfx_weapon_switch	Sfx	Audio/Weapon/Reload/Reload_Rifle_MagIn	0.5	false	false	1	0.1	0.05	50	0
 # ── 폭발 ──  sfx_grenade_explode: GrenadeTable + 로켓·유탄 투사체(코드의 sfxKey) 공용
 sfx_grenade_explode	Sfx	Audio/Weapon/Grenade/Grenade_Explode	0.9	false	true	3	0.05	0.05	90	120
 sfx_explosion_large	Sfx	Audio/Weapon/Explosion/Explosion_Large_01;Audio/Weapon/Explosion/Explosion_Large_02	1.0	false	true	3	0.05	0.05	90	150
@@ -40,6 +42,7 @@ sfx_explosion_small	Sfx	Audio/Weapon/Explosion/Explosion_Small_01;Audio/Weapon/E
 sfx_hit_flesh	Sfx	Audio/Sfx/HitFlesh	0.6	false	true	4	0.04	0.1	50	60
 sfx_boss_warning	Sfx	Audio/Sfx/BossWarning	1.0	false	false	1	1	0	100	0
 sfx_supply_drop	Sfx	Audio/Sfx/SupplyDrop	0.8	false	true	1	0.5	0	70	200
+sfx_supply_collect	Ui	Audio/UI/UI_MenuSelect	0.7	false	false	1	0.1	0	70	0
 # ── 플레이어 (자기 소리는 2D) ──
 sfx_player_hit	Sfx	Audio/Player/Voice/Voice_Hurt_01;Audio/Player/Voice/Voice_Hurt_02;Audio/Player/Voice/Voice_Hurt_03	0.8	false	false	1	0.15	0.05	90	0
 sfx_player_death	Sfx	Audio/Player/Voice/Voice_Death_01;Audio/Player/Voice/Voice_Death_02;Audio/Player/Voice/Voice_Death_03	1.0	false	false	1	1	0.03	100	0

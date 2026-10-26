@@ -9,11 +9,11 @@ namespace HybridShooter.Audio
     ///   .Round   게임 상태(강화 화면 스냅샷)·라운드 시작·게임오버
     ///   .Combat  몬스터 생성·사망, 총기 피격·처치, 플레이어 피격
     ///   .Boss    보스 경고·등장·공격·페이즈·처치
-    ///   .Items   강화 구매
+    ///   .Items   보급 획득, 강화 구매
     ///   .Ui      저체력 경고 반복, 아나운서
     ///
     /// 소리 하나에 재생 경로는 하나만 둔다. 아래 소리는 발행하는 쪽이 이미 직접 재생하므로 여기서 다루지 않는다.
-    ///   WeaponFiredEvent·Reload (Gun), GrenadeExplodedEvent (GunProjectile), SupplyDroppedEvent (SupplyDropper)
+    ///   WeaponFiredEvent·Reload·빈 탄창 (Gun), 폭발 (GunProjectile), SupplyDroppedEvent (SupplyDropper)
     /// 플레이어 몸 소리(발소리·점프·착지·사망·숨·투척)는 PlayerSoundEmitter 담당.
     /// 일반 몬스터의 공격·울음·루프는 MonsterSoundEmitter 담당.
     /// </summary>
@@ -59,6 +59,9 @@ namespace HybridShooter.Audio
         /// <summary>같은 오브젝트의 SoundService 사용 (RequireComponent)</summary>
         private void Awake() => service = GetComponent<SoundService>();
 
+        /// <summary>씬에 직접 둔 몬스터에 이미터 자동 부착 (생성되는 몬스터는 MonsterSpawnedEvent 에서)</summary>
+        private void Start() => AttachEmittersInScene();
+
         /// <summary>저체력 경고 반복·예약된 아나운서 재생 (강화 화면 timeScale 0 에서도 진행)</summary>
         private void Update()
         {
@@ -85,6 +88,7 @@ namespace HybridShooter.Audio
             EventBus<BossDamageStageChangedEvent>.Subscribe(OnBossDamageStageChanged);
             EventBus<BossDefeatedEvent>.Subscribe(OnBossDefeated);
             EventBus<UpgradePurchasedEvent>.Subscribe(OnUpgradePurchased);
+            EventBus<SupplyCollectedEvent>.Subscribe(OnSupplyCollected);
         }
 
         /// <summary>구독 해제</summary>
@@ -106,6 +110,7 @@ namespace HybridShooter.Audio
             EventBus<BossDamageStageChangedEvent>.Unsubscribe(OnBossDamageStageChanged);
             EventBus<BossDefeatedEvent>.Unsubscribe(OnBossDefeated);
             EventBus<UpgradePurchasedEvent>.Unsubscribe(OnUpgradePurchased);
+            EventBus<SupplyCollectedEvent>.Unsubscribe(OnSupplyCollected);
         }
     }
 }

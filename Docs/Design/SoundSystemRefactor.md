@@ -502,6 +502,21 @@ public event Action Appeared;                                     // 등장 연�
 | R1 | `IMonsterSoundSource` — `Def`, `AttackPhaseChanged(attack, phase)`, `Stunned(seconds)`, `AttackLanded(attack, position)`. 구현(`MonsterController`)은 3단계 | `Core/Contracts/MonsterContracts.cs` |
 | R10 | `DamageKind.Status` 를 enum **끝에** 추가 (기존 값 번호 유지). Router: Status 피해 → `sfx_player_cough`, 그 외 → `sfx_player_hit`. `PoisonZone` 변경은 3단계 | `CombatContracts.cs`, `GameSoundRouter.Combat.cs` |
 
+**3단계 진행 상황 (연결)**
+
+| 항목 | 내용 | 파일 |
+|---|---|---|
+| R1 | `MonsterController` 가 `IMonsterSoundSource` 구현 — 기존 `OnAttackPhaseChanged`·`OnStateChanged(Stunned)` 에서 발행만 추가 (기존 로직 변경 없음). 공격 Def 는 `Spec.SourceDefId` 로 조회. `MonsterAttack.BodyLanded` + `PounceAttack.Land` 로 도약 착지 알림 (정상 착지·비행 중 막힘 = 알림, 처치 등 취소 = 없음) | `MonsterController.cs`, `MonsterAttack.cs`, `PounceAttack.cs` |
+| R1 | `MonsterSoundEmitter` 개편: 예고(Windup) 공격음, 기절 = 울음·루프 일시 정지 + 벽 충돌음 + 기절음 → 기절 끝나면 재개, 도약 착지음. `PlayAttackSfx`(애니메이션 이벤트) 제거, `PlaySfxKey` 는 은신 등용으로 유지. Def 는 `IMonsterSoundSource.Def` 우선(R2) | `MonsterSoundEmitter.cs` |
+| R1 | 이미터 **자동 부착**: Router 가 `MonsterSpawnedEvent` 에서 없으면 `AddComponent` (보스 제외), 씬에 직접 둔 몬스터는 Router `Start` 에서 1번 검색 | `GameSoundRouter.Combat.cs` |
+| R6 | 테이블 열: `MonsterTable.StunSfxKey`(2001 = `mon_letalobrach_groggy`), `MonsterAttackTable.ImpactSfxKey`(200101 벽 충돌 = `sfx_explosion_small` 대여, 200301 독 착탄 = `mon_poison_release`, 200201 도약 착지 = 에셋 없음), `StatusEffectTable.LoopSfxKey`(1 = `mon_poison_zone_loop`), `WeaponTable.SwitchSfxKey`·`DryFireSfxKey`·`ExplodeSfxKey`(로켓 = `sfx_explosion_large`, 유탄 = `sfx_explosion_small`), `SupplyTable.DropSfxKey`·`CollectSfxKey` | 5개 테이블 + DTO·Def·`DataManager.LinkSounds` |
+| R6 | 무기: 빈 탄창음(`Gun.TryFire` 1줄) → 이어서 자동 장전음, 로켓·유탄 폭발음은 테이블 값 우선(프리팹 값은 대체용으로 남김, MS 프리팹 수정 없음), 교체음은 `PlayerSoundEmitter` 가 `GunSlot.GunChanged` 구독(시작 장착 0.5초 무시). 새 키 `sfx_weapon_switch`(라이플 탄창 클립 대여) | `Gun.cs`, `RocketLauncher.cs`, `GrenadeLauncher.cs`, `PlayerSoundEmitter.cs` |
+| R6 | 보급: `SupplyDropper` 하드코딩 키 → `SupplyDef.DropSfx`, 획득은 Router `SupplyCollectedEvent` → `CollectSfx`. 새 키 `sfx_supply_collect`(UI 선택음 대여) | `SupplyDropper.cs`, `GameSoundRouter.Items.cs` |
+| R6 | 독가스: 투사체 착탄 시 `ImpactSfx`, 장판 `Begin` 에서 루프 시작·`OnDisable`(풀 반납)에서 정지 | `PoisonProjectile.cs`, `PoisonZone.cs` |
+| R10 | `PoisonZone` 틱 피해를 `DamageKind.Status` 로 → 피격음 대신 기침 | `PoisonZone.cs` |
+
+남은 에셋 요청: 도약 착지음, 돌진 벽 충돌 전용음, 무기 교체 전용음, 보급 획득 전용음, 보급 투하음(`Audio/Sfx/SupplyDrop` 클립 없음)
+
 **참고 — 사운드와 무관한 기존 데이터 오류 (팀 전달)**: DataManager 로드 시 `WeaponTable` 8행·`MonsterTable` 7행의 `PrefabKey`(`Weapons/Rifle`, `Prefabs/Monsters/...`)가 Resources 에 없어 오류 15건. 사운드 작업 전부터 있던 것 → 무기·몬스터 담당 확인 필요
 
 ## 6. 담당자 확인 체크리스트

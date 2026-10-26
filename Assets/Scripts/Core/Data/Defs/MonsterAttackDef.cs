@@ -51,7 +51,10 @@ namespace HybridShooter.Core.Data.Defs
         public StatusEffectDef Effect { get; internal set; }
         /// <summary>공격 소리 (키가 비었으면 null). 예고 시작에 재생해 "곧 공격한다"는 신호로 쓴다</summary>
         public SoundDef Sfx { get; internal set; }
+        /// <summary>충돌·착지·착탄 소리 (돌진 벽 충돌, 도약 착지, 독 포격 착탄). 키가 비었으면 null</summary>
+        public SoundDef ImpactSfx { get; internal set; }
         internal string SfxKey { get; }
+        internal string ImpactSfxKey { get; }
 
         internal MonsterAttackDef(MonsterAttackDto d, DataLoadReport r)
         {
@@ -80,6 +83,7 @@ namespace HybridShooter.Core.Data.Defs
             ClearsMinions = d.ClearsMinions;
             AnimTrigger = d.AnimTrigger;
             SfxKey = d.SfxKey;
+            ImpactSfxKey = d.ImpactSfxKey;
 
             r.Check(string.IsNullOrEmpty(AttackKey) == false, Table, Id, "AttackKey 가 비었습니다");
             r.Check(Id / 100 == MonsterId, Table, Id, "Id 는 MonsterId×100+순번 이어야 합니다");

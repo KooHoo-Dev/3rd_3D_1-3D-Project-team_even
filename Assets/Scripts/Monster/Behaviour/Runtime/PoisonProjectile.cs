@@ -1,7 +1,9 @@
 using System;
 using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
+using HybridShooter.Core.Services;
 using UnityEngine;
 
 namespace HybridShooter.Monster.Behaviour
@@ -101,10 +103,12 @@ namespace HybridShooter.Monster.Behaviour
             if (progress >= 1f) Arrive();
         }
 
-        /// <summary>착탄: 표식을 반납하고, 착탄점에 독장판을 깔고, 자신을 반납한다</summary>
+        /// <summary>착탄: 표식을 반납하고, 착탄음(MonsterAttackTable.ImpactSfxKey)을 내고, 착탄점에 독장판을 깔고, 자신을 반납한다</summary>
         private void Arrive()
         {
             ReturnMarker();
+            if (DataManager.MonsterAttacks.TryGet(sourceDefId, out var attack) && ServiceLocator.TryGet<ISoundService>(out var sound))
+                sound.PlaySfx(attack.ImpactSfx, end);
             PoisonZone zone = settings.ZonePool.Get(end);
             zone.Begin(settings, end, zoneRadius, effect, target, findDamageable, sourceDefId);
             settings.ProjectilePool.Return(this);

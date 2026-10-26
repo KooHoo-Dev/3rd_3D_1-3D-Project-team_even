@@ -356,6 +356,7 @@ namespace HybridShooter.Weapon
             if (IsReloading && (CanInterruptReload == false || Ammo <= 0)) return false;
             if (Ammo <= 0)
             {
+                PlaySfx(Def?.DryFireSfx, transform.position); // 빈 탄창 → 이어서 자동 장전 시작음
                 Reload();
                 return false;
             }

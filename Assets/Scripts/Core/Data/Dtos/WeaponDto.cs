@@ -20,5 +20,8 @@ namespace HybridShooter.Core.Data.Dtos
         public string ReloadSfxKey = "";  // SoundTable.Key (장전 시작)
         public string ReloadInsertSfxKey = "";  // SoundTable.Key (탄창·탄 넣기)
         public string ReloadEndSfxKey = "";  // SoundTable.Key (장전 완료)
+        public string SwitchSfxKey = "";  // SoundTable.Key (무기 교체)
+        public string DryFireSfxKey = "";  // SoundTable.Key (빈 탄창으로 쏠 때)
+        public string ExplodeSfxKey = "";  // SoundTable.Key (투사체 폭발. 비우면 프리팹 값)
     }
 }

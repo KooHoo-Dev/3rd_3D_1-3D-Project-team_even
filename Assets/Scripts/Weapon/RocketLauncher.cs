@@ -59,6 +59,7 @@ namespace HybridShooter.Weapon
                 Explosion = explosion,
             };
             settings.Explosion.damage = Stats.damage;
+            if (Def?.ExplodeSfx != null) settings.Explosion.sfxKey = Def.ExplodeSfx.Key; // WeaponTable.ExplodeSfxKey 우선, 없으면 프리팹 값
             GunProjectile.Spawn(rocketPrefab, spawn, direction * rocketSpeed, settings, CreateProjectileContext());
         }
     }

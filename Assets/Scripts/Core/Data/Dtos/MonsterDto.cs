@@ -25,5 +25,6 @@ namespace HybridShooter.Core.Data.Dtos
         public string LoopSfxKey = "";  // 이동·날갯짓 루프
         public string HurtSfxKey = "";  // 보스 페이즈 전환 때만 사용
         public string DeathSfxKey = "";
+        public string StunSfxKey = "";  // 기절 시작 (돌진 벽 충돌)
     }
 }
