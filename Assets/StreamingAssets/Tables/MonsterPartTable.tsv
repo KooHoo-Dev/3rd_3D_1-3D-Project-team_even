@@ -4,10 +4,11 @@ Id	MonsterId	PartKey	Name	DamageMultiplier	Exposure	PartHp	LinkedAttackId	Transf
 2	2001	Mouth	입 안	2	WhileAttacking	0	0	0
 3	2002	Spine	등뼈 가시	1.5	Always	0	0	0
 4	2003	Gland	등 분비샘	2	Always	0	0	0
-5	3001	Antenna	안테나 발광구	2.5	Always	0	0	0
-6	3001	Spitter1	등 발사관 1	1	Always	120	300105	0
-7	3001	Spitter2	등 발사관 2	1	Always	120	300105	0
-8	3001	Spitter3	등 발사관 3	1	Always	120	300105	0
-9	3001	Spitter4	등 발사관 4	1	Always	120	300105	0
-10	3001	Spitter5	등 발사관 5	1	Always	120	300105	0
-11	3001	Spitter6	등 발사관 6	1	Always	120	300105	0
+# [구형 보스 부위 보관] 부위별 피격·파괴 대신 ClypeosaurusTable의 HP 기준 안테나 개방을 사용한다.
+# 5	3001	Antenna	안테나 발광구	2.5	Always	0	0	0
+# 6	3001	Spitter1	등 발사관 1	1	Always	120	300105	0
+# 7	3001	Spitter2	등 발사관 2	1	Always	120	300105	0
+# 8	3001	Spitter3	등 발사관 3	1	Always	120	300105	0
+# 9	3001	Spitter4	등 발사관 4	1	Always	120	300105	0
+# 10	3001	Spitter5	등 발사관 5	1	Always	120	300105	0
+# 11	3001	Spitter6	등 발사관 6	1	Always	120	300105	0
