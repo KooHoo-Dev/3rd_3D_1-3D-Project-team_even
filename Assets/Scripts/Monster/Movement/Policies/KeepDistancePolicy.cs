@@ -5,14 +5,19 @@ namespace HybridShooter.Monster.Movement
     /// <summary>위치 압박형(BL-011): 목표와의 수평 거리를 [min, max] 밴드에 유지. 방향 지시(Directive)는 무시한다</summary>
     public sealed class KeepDistancePolicy : IMovementPolicy
     {
+        /// <summary>MovementPolicyFactory 가 개체마다 하나씩 만든다. 내부 상태는 없다</summary>
         public KeepDistancePolicy(int seed) // 팩토리 시그니처 통일. seed 는 사용하지 않는다
         {
         }
 
-        /// <summary>밴드 안이면 정지(Engaged), 밖이면 목표 기준 같은 방향의 밴드 중앙 거리로 이동 (후퇴 또는 접근)</summary>
+        /// <summary>
+        /// 목표 무효 → Idle 정지. 밴드 안이면 정지(Engaged), 밖이면 목표 기준 같은 방향의 밴드 중앙 거리로 이동 (후퇴 또는 접근).
+        /// </summary>
+        /// <param name="ctx">자기·목표 위치, 군중 지시, 유형별 수치를 담은 판단 입력</param>
+        /// <returns>이번 판단의 이동 의도</returns>
         public MoveIntent Evaluate(in MovementContext ctx)
         {
-            if (!ctx.TargetValid)
+            if (ctx.TargetValid == false)
                 return MoveIntent.Stop(MovementState.Idle);
 
             var t = ctx.Tuning;

@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &484270416923930871
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4580875960392636587}
+  - component: {fileID: 2225439952682401403}
+  - component: {fileID: 3743255282526593293}
+  m_Layer: 0
+  m_Name: Crowd Coordinator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4580875960392636587
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 484270416923930871}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2225439952682401403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 484270416923930871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3487f5d42e47433f9640a565b6f9ef08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.CrowdCoordinator
+  targetSource: {fileID: 0}
+  settings:
+    EngageCapacity: 8
+    NearRadius: 6
+    ReleaseRadius: 10.5
+    AllocationInterval: 0.2
+    ThinkCycle: 0.5
+    EnableCrowdControl: 1
+    UseSlots: 1
+    Slots:
+      ApproachCount: 8
+      ApproachRadius: 1
+      MinimumRingGap: 1.2
+      MaxRingCount: 6
+      WaitingRadius: 8
+      MinimumSpacing: 1.1
+      SampleRadius: 0.3
+      ArrivalDistance: 0.2
+      ProgressTimeout: 6
+      ProgressDistance: 0.15
+      RejectionSeconds: 2
+      AgentTypeId: 0
+      AreaMask: -1
+--- !u!114 &3743255282526593293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 484270416923930871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 987a10021157ef54f9504827ff870bec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.MovementLabGizmos
+  coordinator: {fileID: 2225439952682401403}
+  targetSource: {fileID: 0}
+  optionalMonsterRoot: {fileID: 0}
+  showApproach: 1
+  showWaiting: 1
+  showFree: 1
+  showAssigned: 1
+  showInvalid: 1
+  showLines: 1
+  showMonsterIds: 1
+  showSlotIds: 1
+  showLabels: 1
+  maxDetailedMonsters: 32
+  slotSize: 0.28
+  approachColor: {r: 0.25, g: 0.75, b: 1, a: 1}
+  waitingColor: {r: 1, g: 0.7, b: 0.2, a: 1}
+  freeColor: {r: 1, g: 1, b: 1, a: 1}
+  assignedColor: {r: 0.2, g: 1, b: 0.35, a: 1}
+  invalidColor: {r: 1, g: 0, b: 0, a: 1}
+  reservationLineColor: {r: 1, g: 0.8, b: 0.1, a: 1}
+  intentLineColor: {r: 1, g: 0.35, b: 0.15, a: 1}

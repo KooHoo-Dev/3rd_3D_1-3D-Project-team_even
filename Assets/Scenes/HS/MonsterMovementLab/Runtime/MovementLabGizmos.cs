@@ -1,3 +1,4 @@
+using HybridShooter.Core.Contracts;
 using HybridShooter.Monster.Movement;
 using UnityEngine;
 
@@ -49,26 +50,28 @@ namespace HybridShooter.Monster.MovementLab
         private void OnDrawGizmos()
         {
             if (!enabled) return;
-            var target = coordinator != null ? coordinator.Target : targetSource as IMovementTarget;
+            var target = coordinator != null ? coordinator.Target : targetSource as IPlayerTarget;
             if (coordinator == null) return;
 
-            if (MovementTargetUtility.IsValid(target))
+            if (target != null)
             {
                 var settings = coordinator.Settings;
+                // 편집 모드에선 PlayerTrackingInfo 가 갱신되지 않으므로 transform 을 직접 읽는다
+                Vector3 targetPosition = target.Root.position;
                 Gizmos.color = new Color(.2f, .8f, 1f, .7f);
-                DrawRing(target.Position, settings.NearRadius);
+                DrawRing(targetPosition, settings.NearRadius);
                 Gizmos.color = new Color(1f, .25f, .2f, .5f);
-                DrawRing(target.Position, settings.ReleaseRadius);
+                DrawRing(targetPosition, settings.ReleaseRadius);
                 if (settings.UseSlots && showApproach)
                 {
                     Gizmos.color = approachColor;
-                    DrawRing(target.Position, settings.Slots.ApproachRadius);
+                    DrawRing(targetPosition, settings.Slots.ApproachRadius);
                 }
                 if (showWaiting)
                 {
                     Gizmos.color = waitingColor;
                     if (!settings.UseSlots)
-                        DrawRing(target.Position, settings.Slots.WaitingRadius);
+                        DrawRing(targetPosition, settings.Slots.WaitingRadius);
                     else
                     {
                         int lastRing = -1;
@@ -76,7 +79,7 @@ namespace HybridShooter.Monster.MovementLab
                         {
                             SlotSnapshot slot = coordinator.GetSlotSnapshot(i);
                             if (slot.RingIndex == 0 || slot.RingIndex == lastRing) continue;
-                            DrawRing(target.Position, (slot.CandidatePosition - target.Position).magnitude);
+                            DrawRing(targetPosition, (slot.CandidatePosition - targetPosition).magnitude);
                             lastRing = slot.RingIndex;
                         }
                     }

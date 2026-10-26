@@ -1,7 +1,7 @@
 {
     "name": "HybridShooter.Monster.Movement",
     "rootNamespace": "HybridShooter.Monster.Movement",
-    "references": [],
+    "references": ["HybridShooter.Core"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

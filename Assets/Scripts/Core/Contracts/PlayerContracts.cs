@@ -16,7 +16,7 @@ namespace HybridShooter.Core.Contracts
         // /// <summary>몬스터가 조준할 지점 (가슴 높이)</summary>
         // Transform AimPoint { get; }
         // Velocity: 일단 지금 필요하지 않아서 제거
-        public PlayerTrackingInfo playerTrackingInfo { get; }
+        public PlayerTrackingInfo PlayerTrackingInfo { get; }
     }
 
     public class PlayerTrackingInfo
