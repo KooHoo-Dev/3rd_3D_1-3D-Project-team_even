@@ -42,9 +42,20 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreEqual(25f, attack.Range);
         }
 
+        [Test]
+        public void InfiltratorGetsPounceAttack()
+        {
+            var pounce = new AttackSpec(AttackShape.Circle, 18, 1, 8f, 0.6f, 1.2f, 8f, radius: 2f);
+            var settings = monsterObject.AddComponent<PounceSettings>();
+            var attack = MonsterAttackFactory.CreateAttack(MonsterRole.Infiltrator, pounce, body,
+                                                          t => (IDamageable)t, null, settings);
+            Assert.IsInstanceOf<PounceAttack>(attack);
+            Assert.AreEqual(8f, attack.Range);
+        }
+
         [TestCase(MonsterRole.Air)]
         [TestCase(MonsterRole.Rusher)]
-        [TestCase(MonsterRole.Infiltrator)]
+
         [TestCase(MonsterRole.Boss)]
         public void UnimplementedRolesThrow(MonsterRole role)
         {
