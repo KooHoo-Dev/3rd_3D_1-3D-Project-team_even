@@ -5,6 +5,7 @@
         "HybridShooter.Monster.Behaviour",
         "HybridShooter.Monster.Movement",
         "HybridShooter.Core",
+        "Unity.AI.Navigation",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

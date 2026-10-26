@@ -1,6 +1,7 @@
 using System;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
+using HybridShooter.Monster.Movement;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -26,7 +27,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [Test]
         public void MeleeGetsStrikeAttack()
         {
-            var attack = MonsterAttackFactory.CreateAttack(MonsterRole.Melee, Bite, body, t => (IDamageable)t, null);
+            var attack = MonsterAttackFactory.CreateAttack(MonsterRole.Melee, Bite, body, t => (IDamageable)t, null, null, null);
             Assert.IsInstanceOf<StrikeAttack>(attack);
             Assert.AreEqual(1.5f, attack.Range);
         }
@@ -37,19 +38,30 @@ namespace HybridShooter.Monster.Behaviour.Tests
             var mortar = new AttackSpec(AttackShape.Circle, 6, 1, 10f, 1.5f, 1f, 25f,
                                         radius: 4f, projectileSpeed: 12f, effectId: 1);
             var settings = monsterObject.AddComponent<PoisonAreaSettings>();
-            var attack = MonsterAttackFactory.CreateAttack(MonsterRole.ZonePressure, mortar, body, t => (IDamageable)t, settings);
+            var attack = MonsterAttackFactory.CreateAttack(MonsterRole.ZonePressure, mortar, body, t => (IDamageable)t, settings, null, null);
             Assert.IsInstanceOf<PoisonAreaAttack>(attack);
             Assert.AreEqual(25f, attack.Range);
         }
 
+        [Test]
+        public void RusherGetsChargeAttack()
+        {
+            var headRam = new AttackSpec(AttackShape.Line, 25, 1, 10f, 1.2f, 0f, 15f, width: 2.5f);
+            var movement = monsterObject.AddComponent<MonsterMovement>();
+            var settings = monsterObject.AddComponent<ChargeSettings>();
+            var attack = MonsterAttackFactory.CreateAttack(MonsterRole.Rusher, headRam, body, t => (IDamageable)t, null, settings, movement);
+            Assert.IsInstanceOf<ChargeAttack>(attack);
+            Assert.AreEqual(15f, attack.Range);
+            Assert.AreEqual(AfterAttack.RestInIdle, attack.After);
+        }
+
         [TestCase(MonsterRole.Air)]
-        [TestCase(MonsterRole.Rusher)]
         [TestCase(MonsterRole.Infiltrator)]
         [TestCase(MonsterRole.Boss)]
         public void UnimplementedRolesThrow(MonsterRole role)
         {
             Assert.Throws<NotSupportedException>(() =>
-                MonsterAttackFactory.CreateAttack(role, Bite, body, t => (IDamageable)t, null));
+                MonsterAttackFactory.CreateAttack(role, Bite, body, t => (IDamageable)t, null, null, null));
         }
     }
 }
