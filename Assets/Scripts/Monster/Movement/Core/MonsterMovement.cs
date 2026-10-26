@@ -469,6 +469,19 @@ namespace HybridShooter.Monster.Movement
             SetState(MovementState.Suspended);
         }
 
+        /// <summary>
+        /// 공격·준비 동작 중 몸을 직접 옮긴다 (돌진 등). 실행기에 그대로 맡긴다.
+        /// ChargeAttack 이 Attack(돌진)과 Idle(준비 동작) 상태에서 호출한다. 두 상태 모두 SetSuspended(true) 로 경로 이동이 멈춰 있다.
+        /// </summary>
+        /// <param name="displacement">이번 틱 이동량 (월드, m)</param>
+        /// <returns>true = 벽에 막혔다</returns>
+        /// <exception cref="InvalidOperationException">정지(suspended) 상태가 아닐 때. 경로 이동과 직접 이동이 겹치지 않게 한다</exception>
+        public bool MoveDuringAttack(Vector3 displacement)
+        {
+            if (suspended == false) throw new InvalidOperationException("MoveDuringAttack 은 이동이 정지(suspended)된 상태에서만 쓴다");
+            return executor.MoveBy(displacement);
+        }
+
         // ── CrowdCoordinator 전용 (internal) ──
 
         /// <summary>토큰 배분 입력용 현재 상태를 만든다. CrowdCoordinator 가 배분 전에 호출한다</summary>

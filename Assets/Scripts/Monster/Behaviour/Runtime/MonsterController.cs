@@ -88,11 +88,12 @@ namespace HybridShooter.Monster.Behaviour
             var body = new MonsterBody(transform, GetComponent<NavMeshMoveExecutor>());
             var poisonSettings = GetComponent<PoisonAreaSettings>(); // 원거리 프리팹에만 있다. 없으면 null
             var pounceSettings = GetComponent<PounceSettings>();
+            var chargeSettings = GetComponent<ChargeSettings>();     // 돌진 프리팹에만 있다. 없으면 null
             var attacks = new List<MonsterAttack>();
             foreach (MonsterAttackDef attackDef in BasicAttackDefs(Def))
             {
                 var attackSpec = AttackSpec.From(attackDef);
-                attacks.Add(MonsterAttackFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable, poisonSettings, pounceSettings));
+                attacks.Add(MonsterAttackFactory.CreateAttack(Def.Role, attackSpec, body, FindPlayerDamageable, poisonSettings, pounceSettings, chargeSettings, movement));
             }
             movement.SetCombatTuning(Def.MoveSpeed, attacks[0].Range); // 이동의 전투 사거리는 첫 공격 기준
             StateMachine = new MonsterStateMachine(movement, body, attacks);
@@ -216,12 +217,16 @@ namespace HybridShooter.Monster.Behaviour
         /// 공격 Active 시작에 Attack 클립을 재생한다.
         /// 재생 배율 = 클립 길이 ÷ Active 길이 → 클립이 Active 동안 정확히 1번 재생된다.
         /// </summary>
-        /// <remarks>예고·회복·종료 단계는 무시한다. Animator 는 Exit Time 으로 이미 Idle 에 돌아가 있다.</remarks>
+        /// <remarks>
+        /// 예고·회복·종료 단계는 무시한다. Animator 는 Exit Time 으로 이미 Idle 에 돌아가 있다.
+        /// 이동 자체가 공격(UsesMoveAnimation, 돌진)이면 Attack 클립을 쓰지 않는다. 이동 클립은 UpdateMoveAnimation 이 맡는다.
+        /// </remarks>
         /// <param name="attack">단계가 바뀐 공격. ActiveDuration 을 읽는다</param>
         /// <param name="phase">새 단계. Active 일 때만 반응한다</param>
         private void OnAttackPhaseChanged(MonsterAttack attack, SkillPhase phase)
         {
             if (phase != SkillPhase.Active) return;
+            if (attack.UsesMoveAnimation) return;
 
             animator.SetFloat("AttackSpeed", ReadAttackClipSeconds() / attack.ActiveDuration);
             animator.SetTrigger("Attack");
@@ -229,13 +234,20 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// Chase 중 실제 이동 속도로 IsMoving 을 매 프레임 넣어 Idle ↔ Move 전이를 일으킨다.
+        /// 이동 자체가 공격인 몬스터(돌진)는 Attack 중과 Idle 준비 동작 중에도 공격이 알려준 몸 이동 속도로 같은 일을 한다.
         /// Move 면 재생 배율을 (속도 ÷ moveClipSpeed) 로 맞춰 발 미끄러짐을 줄인다.
         /// </summary>
         private void UpdateMoveAnimation()
         {
-            if (StateMachine.Current != StateMachine.Chase) return;
+            MonsterAttack currentAttack = StateMachine.CurrentAttack;
+            bool isChasing = StateMachine.Current == StateMachine.Chase;
+            bool isAttacking = StateMachine.Current == StateMachine.Attack;
+            bool isPreparingInIdle = StateMachine.Current == StateMachine.Idle && StateMachine.IsResting;
+            bool isAttackMovingBody = currentAttack.UsesMoveAnimation && (isAttacking || isPreparingInIdle);
+            if (isChasing == false && isAttackMovingBody == false) return;
 
             float speed = movement.Velocity.magnitude;
+            if (isAttackMovingBody) speed = currentAttack.BodyMoveSpeed;
             bool shouldMove = speed >= idleSpeedThreshold;
             animator.SetBool("IsMoving", shouldMove);
 
