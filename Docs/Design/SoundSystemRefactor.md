@@ -1,7 +1,8 @@
 # 사운드 시스템 리팩토링 설계 (v2 — 팀 결정용)
 
-> 브랜치: `feat/SoundSystem` · 기준: develop `ff7db504` 머지 + 사운드 에셋 커밋 `53277ae7`
+> 브랜치: `feat/SoundSystem` · 기준: develop `b097ea3f`(PR #27 돌진형 몬스터) 머지 `2dbcc206` + 사운드 에셋 커밋 `53277ae7`, `fab5592b`
 > v1 대비 바뀐 점: 새로 들어온 사운드(플레이어·무기·UI·아나운서·독가스)를 반영하고, 코드를 다시 확인해 **팀원 코드 수정이 필요 없어진 항목**을 정리했다. R1~R10 은 항목마다 **선택지 + 권장안 + 결정할 것**으로 다시 썼다.
+> v2.1: PR #27(중간체 돌진·기절) 반영 → **2-1장**, R1(기절 알림 추가), R6(돌진 소리), 에셋 요청 목록 보완.
 
 ---
 
@@ -9,7 +10,7 @@
 
 | # | 항목 | 권장안 | 다른 파트 수정 | 결정할 것 |
 |---|---|---|---|---|
-| R1 | 몬스터 공격음 → 예고(Windup) 이벤트 | **A** 코드 이벤트 | 몬스터: `MonsterController` 에 인터페이스 구현 (추가만) | 구현 방식 A/B, 이미터 부착 방식 |
+| R1 | 몬스터 공격음 → 예고(Windup) 이벤트 + **기절 알림** | **A** 코드 이벤트 | 몬스터: `MonsterController` 에 인터페이스 구현 (추가만) | 구현 방식 A/B, 이미터 부착 방식 |
 | R2 | 몬스터 Def 출처 단일화 | R1 과 함께 | 없음 (R1 에 포함) | — (R1 따라감) |
 | R3 | 사망 시 울음 정지 | 이벤트 기반 | 없음 | — |
 | R4 | Router 분할 + 새 이벤트 소리 | partial 분할 | 없음 | **아나운서를 어디에 쓸지** |
@@ -48,6 +49,8 @@
 | 🔴 | 보스 경고음 | 키만 있음, 무음 |
 | 🟠 | SMG·저격·유탄 전용 발사음 | 다른 총 소리 빌려 씀 |
 | 🟠 | 보급 낙하·획득 | 낙하 키만 있음, 무음 |
+| 🟠 | 돌진 벽 충돌음 (레탈로브라크가 벽에 박히는 순간) | 없음 — 임시로 `sfx_explosion_small` 대여 가능 |
+| 🟢 | 돌진 달리기 루프 (쿵쿵 발소리) | 없음 — 없어도 예고 포효로 신호는 충분 |
 | 🟢 | 무기 교체, 회복 사용, 구르기, 스태미나 고갈 숨소리(현재 `BreathLoop` 는 조깅 숨) | 없음 |
 
 ---
@@ -63,7 +66,30 @@
 | 아이템 | `PlayerItems.ThrowStarted / HealStarted / HealEnded` | 투척·회복 소리 연결 지점 |
 | 무기 | 총기 8종, **`GunSlot.GunChanged` 이벤트**, 탄이 0 이면 `TryFire` 가 자동 장전 | 교체음은 무기 코드 수정 없이, 빈 탄창음은 `Gun` 1줄 필요 |
 | 보급·보상 | `SupplyCollectedEvent`, `UpgradePurchasedEvent`, `RewardSelectionFinishedEvent` | 획득·구매 소리 연결 지점 |
-| 보스 | `Scripts/Boss/` 비어 있음. 보스 이벤트는 테스터만 발행 | 보스 사운드는 실게임 미검증 |
+| 보스 | `Scripts/Boss/` 비어 있음. 보스 이벤트는 테스터만 발행 (PR #27 이후에도 동일) | 보스 사운드는 실게임 미검증 |
+
+### 2-1. 최신 머지 — PR #27 돌진형 몬스터 (`feature/rusher-charge-attack`)
+
+> 보스(클리페오사우루스 3001)가 아니라 **중간체**(GradeId 2) 업데이트다. 보스 코드는 아직 없다.
+
+| 바뀐 점 | 내용 | 사운드 영향 |
+|---|---|---|
+| **돌진 공격** `ChargeAttack` (Rusher = 레탈로브라크 2001) | 예고 1.2초 동안 플레이어를 겨눔 → Active 에서 12m/s 로 돌진 → 접촉 1회 피해 → 감속 → 멈춤. 끝나면 Idle 에서 천천히 걸으며 정면을 다시 맞춘다 | 예고 시작 = 돌진 신호. `MonsterAttackTable 200101.SfxKey = mon_letalobrach_attack` 이 이미 있어서 **R1 만 되면 바로 "포효 → 돌진"이 된다** |
+| **벽 충돌 → 기절** | 달리다 벽에 막히면 `AttackResult.WallHit` → `StateMachine.Stun(WallHitStunTime=2초)` → `StunnedState`, Animator `IsStunned` | 기절 = 벽 충돌 순간. `mon_letalobrach_groggy` 클립이 있는데 **재생 경로가 없다** (애니메이션 이벤트 `PlaySfxKey` 전제였음) |
+| 이동 = 공격 | `MonsterAttack.UsesMoveAnimation`, `BodyMoveSpeed` 추가. 돌진은 Attack 클립 대신 이동 클립을 속도에 맞춰 재생 | Active 시작의 Animator `Attack` 트리거가 돌진에는 **없다** → 애니메이션 이벤트 방식(R1-B)은 돌진 몬스터에 쓸 수 없다 |
+| 침투형 공격 | Infiltrator(파르다트록스 2002)가 `StrikeAttack`(근접) 사용 | 근접 공격음은 R1 로 해결. **은신(Vanish) 동작은 아직 없음** → `mon_pardathrox_vanish` 는 대기 |
+| 프리팹 | `Letalobrach.prefab`, `Pardathrox.prefab` 추가 (`ChargeSettings` 포함) | 두 프리팹 모두 `MonsterSoundEmitter` **없음** → R1 의 자동 부착(a)이 필요한 이유가 하나 더 늘었다 |
+| 상태 머신 | `MonsterStateMachine.StateChanged(previous, current)`, `CurrentAttack`, `IsResting` 공개 | 기절·사망·Idle 복귀를 이벤트로 받을 수 있다 (R1 계약에 기절 알림 추가) |
+
+**이번 머지로 생긴 사운드 연결점 정리**
+
+| 순간 | 코드 위치 | 재생할 소리 | 경로 |
+|---|---|---|---|
+| 돌진 예고 시작 | `MonsterAttack.PhaseChanged(Windup)` | `mon_letalobrach_attack` (포효) | R1 |
+| 돌진 시작 | `PhaseChanged(Active)` | (선택) 돌진 달리기 루프 — 에셋 없음 | R6 |
+| 플레이어 접촉 | `PlayerDamagedEvent` | `sfx_player_hit` | 이미 동작 |
+| 벽 충돌 + 기절 | `StateMachine.Stun` → `StateChanged(Stunned)` | 벽 충돌음(에셋 없음) + `mon_letalobrach_groggy` | R1 기절 알림 |
+| 기절 해제 | `StateChanged(Stunned → Idle)` | 없음 | — |
 
 ---
 
@@ -73,6 +99,7 @@
 |---|---|---|
 | 🔴 | 몬스터 울음·이동 루프·공격음이 실게임에서 안 남 (`MonsterSoundEmitter` 가 어떤 프리팹에도 없음, 애니메이션 이벤트도 없음) | R1·R2 |
 | 🔴 | 사망 연출 중에도 울음·루프 계속 (애니메이션 이벤트 의존) | R3 |
+| 🔴 | 돌진 몬스터 벽 충돌·기절 소리 경로 없음 (`mon_letalobrach_groggy` 미사용), 기절 중에도 울음 계속 | R1 (기절 알림) |
 | 🔴 | 독장판 위에서 피격음이 틱마다 반복 | R10 |
 | 🔴 | 로켓·유탄 폭발음이 수류탄 소리 (코드·프리팹에 키 하드코딩) | R6 |
 | ✅ 해결 | ~~무기 8종이 같은 소리~~ → 총기별 키 연결 완료 (3종은 대여 클립) | — |
@@ -94,8 +121,23 @@
 
 | 선택지 | 내용 | 장점 | 단점 |
 |---|---|---|---|
-| **A. 코드 이벤트 (권장)** | Core 에 `IMonsterSoundSource { Def; event AttackPhaseChanged(MonsterAttackDef, SkillPhase) }` 추가 → `MonsterController` 가 구현 → 이미터가 Windup 에 재생 | 데이터와 시점이 정확히 맞음. 애니메이션 작업 불필요. 보스도 같은 구조면 그대로 동작 | 몬스터 담당 파일에 10줄 내외 추가 |
-| B. 애니메이션 이벤트 | 몬스터 클립마다 `PlayAttackSfx` 이벤트 삽입 | 몬스터 코드 수정 없음 | 클립·몬스터마다 수작업. Windup 이 아니라 Active 애니메이션 기준이라 "예고음" 역할 못함 |
+| **A. 코드 이벤트 (권장)** | Core 에 `IMonsterSoundSource` 추가 → `MonsterController` 가 구현 → 이미터가 Windup 에 재생 | 데이터와 시점이 정확히 맞음. 애니메이션 작업 불필요. 돌진처럼 Attack 클립이 없는 공격도 동작. 보스도 같은 구조면 그대로 동작 | 몬스터 담당 파일에 15줄 내외 추가 |
+| B. 애니메이션 이벤트 | 몬스터 클립마다 `PlayAttackSfx` 이벤트 삽입 | 몬스터 코드 수정 없음 | 클립·몬스터마다 수작업. Windup 이 아니라 Active 애니메이션 기준이라 "예고음" 역할 못함. **PR #27 돌진은 Attack 클립을 재생하지 않아 아예 불가** |
+
+**계약 (PR #27 반영 — 기절 알림 추가)**
+```csharp
+public interface IMonsterSoundSource
+{
+    MonsterDef Def { get; }
+    /// <summary>attack = 테이블 공격 Def (AttackSpec.SourceDefId 로 조회, 모르면 null)</summary>
+    event Action<MonsterAttackDef, SkillPhase> AttackPhaseChanged;
+    /// <summary>기절 시작. 지금은 돌진 벽 충돌(WallHit)에서만 발생. seconds = 기절 시간</summary>
+    event Action<float> Stunned;
+}
+```
+- `MonsterController` 쪽 구현: 이미 구독 중인 `OnAttackPhaseChanged` 에서 `AttackPhaseChanged` 발행, 이미 있는 `OnStateChanged` 의 `Stunned` 분기에서 `Stunned` 발행 → **기존 로직 변경 없이 발행 2줄 + 선언**.
+- 이미터: `Stunned` → 울음·루프 일시 정지 + 벽 충돌음 + 몬스터별 기절음 재생. 기절음 키는 `MonsterTable.StunSfxKey` 컬럼(신규, 레탈로브라크 = `mon_letalobrach_groggy`)으로 둔다 (R6 과 같은 패턴).
+- 같은 이유로 `PlaySfxKey("mon_letalobrach_groggy")` 애니메이션 이벤트 안은 철회.
 
 **이미터 부착 방식** (A·B 공통)
 
@@ -105,8 +147,8 @@
 | b. 프리팹 직접 부착 | 몬스터 프리팹마다 컴포넌트 추가 (몬스터 담당 프리팹 수정) |
 
 - 보스: 보스도 `MonsterAttack` 을 쓰면 공격음은 이미터로 통일하고, Router 의 `BossSkillPhaseChanged` 처리는 **등장 공격 덕킹만** 남긴다 (소리 하나에 경로 하나).
-- **수정 범위** Core 계약 1개 추가, `MonsterController` 구현 추가, `MonsterSoundEmitter` 수정(`PlayAttackSfx` 제거, `PlaySfxKey` 는 Groggy·Vanish 용으로 유지)
-- **결정할 것** ① A / B ② 부착 a / b ③ 보스가 `MonsterAttack` 을 재사용하는지 (보스 담당)
+- **수정 범위** Core 계약 1개 추가, `MonsterController` 구현 추가, `MonsterTable.StunSfxKey` 컬럼, `MonsterSoundEmitter` 수정(`PlayAttackSfx` 제거, `PlaySfxKey` 는 은신(Vanish)처럼 상태 머신 밖 동작용으로만 유지)
+- **결정할 것** ① A / B ② 부착 a / b ③ 보스가 `MonsterAttack` 을 재사용하는지 (보스 담당) ④ 기절음 키를 `MonsterTable` 컬럼으로 둘지
 
 ### R2. 몬스터 Def 출처 단일화
 **문제** `MonsterController` 는 `monsterId` 로 Def 를 읽고, 이미터는 `MonsterSpawnedEvent` 또는 자기 `monsterId` 로 따로 받는다. 종류 전환(날개 파괴 1003 → 1002) 시 두 곳을 맞춰야 한다.
@@ -190,6 +232,8 @@ GameSoundRouter.Ui.cs       저체력 경고, 아나운서
 | 로켓·유탄 폭발 | `WeaponTable.ExplodeSfxKey` | `RocketLauncher`·`GrenadeLauncher` 의 하드코딩 `sfx_grenade_explode` 제거, 프리팹 값도 정리 | 무기 2파일 + 프리팹 |
 | 보급 | `SupplyTable.DropSfxKey`, `CollectSfxKey` | `SupplyDropper` 하드코딩 제거, 획득은 Router | 보급 1줄 |
 | 독가스 | 아래 선택지 | `PoisonProjectile` 착탄 / `PoisonZone` 루프 | 몬스터 (선택지에 따라) |
+| 몬스터 기절 (PR #27) | `MonsterTable.StunSfxKey` | R1 의 `Stunned` 알림 | 없음 (R1 에 포함) |
+| 돌진 (PR #27) | `MonsterAttackTable.ActiveLoopSfxKey`(달리기 루프), `ImpactSfxKey`(벽 충돌) | R1 의 `AttackPhaseChanged(Active)` 에서 루프 시작, Recover/Idle 에서 정지 / `Stunned` 에서 충돌음 | 없음 (R1 에 포함) — 에셋이 오면 추가 |
 
 **독가스 키 위치 선택지** (클립: `PoisonGas_Escaped` 0.78초 = 터짐, `PoisonGas_inside` 3.05초 = 장판 루프)
 
@@ -261,7 +305,7 @@ SoundHandle PlayLoop(string key, Transform follow);     // 키만 아는 쪽 (�
 1단계는 결정 없이도 바로 진행 가능 (R4 의 아나운서 부분만 결정 대기).
 
 ## 6. 담당자 확인 체크리스트
-- [ ] **몬스터**: R1 `IMonsterSoundSource` 구현 추가 허용 / R6 독가스 착탄·장판 재생 호출 / R10 `PoisonZone` 의 DamageKind 변경 / 헤드샷 판정 가능 여부
+- [ ] **몬스터**: R1 `IMonsterSoundSource` 구현 추가 허용 (공격 단계 + 기절 알림) / R6 독가스 착탄·장판 재생 호출 / R10 `PoisonZone` 의 DamageKind 변경 / 헤드샷 판정 가능 여부 / 침투형 은신(Vanish) 구현 일정 / 기절이 벽 충돌 외에도 생길 예정인지
 - [ ] **무기**: R6 빈 탄창 1줄, 로켓·유탄 폭발음 테이블 이전 / R7 `Gun.PlaySfx` 수정
 - [ ] **보급**: R6 `SupplyDropper` 키 하드코딩 제거
 - [ ] **코어**: R7 계약 확장 / R10 `DamageKind.Status` / R1 계약 위치
