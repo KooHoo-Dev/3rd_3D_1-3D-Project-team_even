@@ -20,19 +20,20 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="body">공격자 몸체 (위치·방향)</param>
         /// <param name="findDamageable">공격 대상에서 피해를 줄 IDamageable 을 찾는 방법</param>
         /// <param name="poisonSettings">원거리(ZonePressure) 프리팹의 설정. 다른 역할은 null</param>
+        /// <param name="pounceSettings">추격형 도약 설정. Infiltrator 는 필수</param>
         /// <param name="chargeSettings">돌진(Rusher) 프리팹의 설정. 다른 역할은 null</param>
         /// <param name="movement">돌진이 몸을 직접 옮길 때 쓰는 이동 컴포넌트. Rusher 만 쓴다</param>
         /// <returns>역할에 맞는 공격 전략</returns>
         /// <exception cref="NotSupportedException">아직 공격이 구현되지 않은 역할일 때</exception>
         public static MonsterAttack CreateAttack(MonsterRole role, in AttackSpec spec, MonsterBody body,
                                                   Func<IPlayerTarget, IDamageable> findDamageable,
-                                                  PoisonAreaSettings poisonSettings, ChargeSettings chargeSettings,
+                                                  PoisonAreaSettings poisonSettings, PounceSettings pounceSettings, ChargeSettings chargeSettings,
                                                   MonsterMovement movement)
         {
             switch (role)
             {
                 case MonsterRole.Melee: return new StrikeAttack(spec, body, findDamageable);
-                case MonsterRole.Infiltrator: return new StrikeAttack(spec, body, findDamageable);
+                case MonsterRole.Infiltrator: return new PounceAttack(spec, body, findDamageable, pounceSettings);
                 case MonsterRole.ZonePressure:
                     StatusEffectDef effect = DataManager.StatusEffects.Get(spec.EffectId);
                     return new PoisonAreaAttack(spec, body, findDamageable, poisonSettings, effect);

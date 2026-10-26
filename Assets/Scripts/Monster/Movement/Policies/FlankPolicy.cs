@@ -27,7 +27,7 @@ namespace HybridShooter.Monster.Movement
         // ── 거리 모드와 시야 밖 목적지 ──
         private FlankMode mode;              // 전환 거리 이하에서 Near, 전환 거리 + 폭 초과에서 Far
         private bool hasFlankDestination;    // false = 다음 원거리 판단에서 목적지를 새로 고른다
-        private Vector3 flankDestination;    // 월드, 측면 링 위 시야 밖 지점
+        private float flankAngleDeg;         // 도, 목표 중심 측면 링 위 목적지의 방위각. 지점은 매 판단 현재 목표 위치로 다시 계산
 
         /// <summary>개체별 난수를 준비한다. MovementPolicyFactory 가 개체마다 하나씩 만든다</summary>
         /// <param name="seed">난수 시드 (개체 InstanceID)</param>
@@ -84,18 +84,23 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 원거리 접근: 저장한 시야 밖 목적지로 이동하는 의도를 만든다. Evaluate 가 원거리 모드일 때 호출한다.
-        /// 목적지가 없거나 카메라 시야에 들어왔으면 새로 고르고, 시야 밖에 있는 동안은 유지한다.
+        /// 원거리 접근: 저장한 링 각도의 시야 밖 목적지로 이동하는 의도를 만든다. Evaluate 가 원거리 모드일 때 호출한다.
+        /// 목적지는 매 판단 현재 목표 위치 기준으로 다시 계산해 목표가 움직여도 따라간다.
+        /// 목적지가 없거나 카메라 시야에 들어왔으면 각도를 새로 고르고, 시야 밖에 있는 동안은 유지한다.
         /// </summary>
         /// <param name="ctx">판단 입력. 목표 위치, 카메라 시야, 유형별 수치를 쓴다</param>
         /// <param name="distanceToTarget">목표까지 수평 거리 (m). 고를 목적지가 없어 돌입할 때 넘긴다</param>
         /// <returns>시야 밖 목적지로 향하는 Approach 의도. 고를 목적지가 없으면 RushToTarget 의 의도</returns>
         private MoveIntent ApproachOutOfView(in MovementContext ctx, float distanceToTarget)
         {
+            Vector3 flankDestination = WaitOrbit.PointOnRing(ctx.TargetPosition, flankAngleDeg, ctx.Tuning.FlankRadius);
             bool destinationInView = hasFlankDestination && IsInView(in ctx, flankDestination, ctx.ViewHalfAngleDeg);
             bool needsNewDestination = hasFlankDestination == false || destinationInView;
             if (needsNewDestination)
-                hasFlankDestination = ChooseOutOfViewDestination(in ctx, out flankDestination);
+            {
+                hasFlankDestination = ChooseOutOfViewAngle(in ctx, out flankAngleDeg);
+                flankDestination = WaitOrbit.PointOnRing(ctx.TargetPosition, flankAngleDeg, ctx.Tuning.FlankRadius);
+            }
             if (hasFlankDestination == false)
                 return RushToTarget(in ctx, distanceToTarget);
 
@@ -104,7 +109,7 @@ namespace HybridShooter.Monster.Movement
 
         /// <summary>
         /// 지점이 플레이어 카메라 시야 안인지 수평 각도로 판정한다. 가림은 보지 않는다.
-        /// ApproachOutOfView(유지 판정, 반각)와 ChooseOutOfViewDestination(후보 판정, 반각 + 여유)이 호출한다.
+        /// ApproachOutOfView(유지 판정, 반각)와 ChooseOutOfViewAngle(후보 판정, 반각 + 여유)이 호출한다.
         /// </summary>
         /// <param name="ctx">판단 입력. 카메라 위치(ViewPosition)와 정면(TargetForward)을 쓴다</param>
         /// <param name="point">판정할 지점 (월드)</param>
@@ -118,29 +123,30 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 목표 중심 FlankRadius 링 위 후보(CandidateStepDeg 간격) 중, 시야 반각 + 여유 밖이면서 몬스터에게 가장 가까운 지점을 고른다.
+        /// 목표 중심 FlankRadius 링 위 후보(CandidateStepDeg 간격) 중, 시야 반각 + 여유 밖이면서 몬스터에게 가장 가까운 지점의 방위각을 고른다.
         /// ApproachOutOfView 가 목적지를 새로 고를 때 호출한다.
         /// </summary>
         /// <param name="ctx">판단 입력. 자기·목표 위치, 카메라 시야, FlankRadius 를 쓴다</param>
-        /// <param name="destination">고른 지점 (월드). 못 찾으면 default</param>
+        /// <param name="angleDeg">고른 지점의 방위각 (도, WaitOrbit.PointOnRing 기준). 못 찾으면 0</param>
         /// <returns>시야 밖 후보를 찾았으면 true</returns>
-        private static bool ChooseOutOfViewDestination(in MovementContext ctx, out Vector3 destination)
+        private static bool ChooseOutOfViewAngle(in MovementContext ctx, out float angleDeg)
         {
             float chooseHalfAngleDeg = ctx.ViewHalfAngleDeg + BearingMarginDeg;
             int candidateCount = Mathf.RoundToInt(360f / CandidateStepDeg);
             bool found = false;
             float closestDistance = float.MaxValue;
-            destination = default;
+            angleDeg = 0f;
 
             for (int i = 0; i < candidateCount; i++)
             {
-                Vector3 candidate = WaitOrbit.PointOnRing(ctx.TargetPosition, i * CandidateStepDeg, ctx.Tuning.FlankRadius);
+                float candidateAngleDeg = i * CandidateStepDeg;
+                Vector3 candidate = WaitOrbit.PointOnRing(ctx.TargetPosition, candidateAngleDeg, ctx.Tuning.FlankRadius);
                 float distanceToSelf = WaitOrbit.HorizontalDistance(ctx.SelfPosition, candidate);
                 if (IsInView(in ctx, candidate, chooseHalfAngleDeg)) continue;
                 if (distanceToSelf >= closestDistance) continue;
 
                 closestDistance = distanceToSelf;
-                destination = candidate;
+                angleDeg = candidateAngleDeg;
                 found = true;
             }
             return found;
