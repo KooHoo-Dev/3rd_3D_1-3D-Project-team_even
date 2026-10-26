@@ -191,6 +191,7 @@ namespace HybridShooter.Monster.MovementLab
             GUILayout.Label("소환");
             // 소환 버튼을 누를 때 생성되는 몬스터 수 (다음 소환부터 적용)
             DrawSpawnCountField();
+            DrawPrefabIndexField();
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("슬롯 군중")) lab.SpawnSlotCrowd();
             if (GUILayout.Button("토큰 군중")) lab.SpawnTokenCrowd();
@@ -220,6 +221,25 @@ namespace HybridShooter.Monster.MovementLab
 
             string typed = GUILayout.TextField(lab.CrowdSpawnCount.ToString(), GUILayout.Width(50f));
             if (int.TryParse(typed, out int typedValue)) lab.CrowdSpawnCount = typedValue;
+            GUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// 소환 프리팹 번호 입력 칸 + 선택된 프리팹 이름. 숫자가 아니면 무시하고(타이핑 중 빈 칸 허용),
+        /// 범위 밖 숫자는 SpawnPrefabIndex 가 0 ~ 마지막 번호로 보정한다. 다음 소환부터 적용된다.
+        /// </summary>
+        private void DrawPrefabIndexField()
+        {
+            var prefabs = lab.MonsterPrefabs;
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("프리팹 번호", GUILayout.Width(100f));
+            string typed = GUILayout.TextField(lab.SpawnPrefabIndex.ToString(), GUILayout.Width(50f));
+            if (int.TryParse(typed, out int typedValue)) lab.SpawnPrefabIndex = typedValue;
+
+            if (prefabs.Count == 0)
+                GUILayout.Label("프리팹 없음");
+            else
+                GUILayout.Label($"{prefabs[lab.SpawnPrefabIndex].name} (0~{prefabs.Count - 1})");
             GUILayout.EndHorizontal();
         }
 
