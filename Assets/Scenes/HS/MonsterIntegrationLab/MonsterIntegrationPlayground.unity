@@ -1385,7 +1385,7 @@ MonoBehaviour:
   spawnRadius: 12
   spawnSampleDistance: 3
   monsterPrefabs:
-  - {fileID: 3281474137550595047, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+  - {fileID: 1438301292820702486, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
   monsterVisualScale: 1
   thinkCycle: 0.5
 --- !u!4 &1785309838
@@ -1944,67 +1944,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!1001 &333293112535237750
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 1716452437149150959, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_Name
-      value: Pardathrox
-      objectReference: {fileID: 0}
-    - target: {fileID: 3967654826282314174, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4199056805085213728, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -0.56
-      objectReference: {fileID: 0}
-    - target: {fileID: 4199056805085213728, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 13.990129
-      objectReference: {fileID: 0}
-    - target: {fileID: 4199056805085213728, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -4.23
-      objectReference: {fileID: 0}
-    - target: {fileID: 4199056805085213728, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4199056805085213728, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4199056805085213728, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4199056805085213728, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4199056805085213728, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4199056805085213728, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4199056805085213728, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
 --- !u!1001 &345228267841809082
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6651,18 +6590,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 531100188582995366, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 22100000, guid: f186a59d815689848ad3a3fdfe236cf3, type: 2}
     - target: {fileID: 1438301292820702486, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
       propertyPath: m_Name
       value: Letalobrach
       objectReference: {fileID: 0}
-    - target: {fileID: 7009483942553203710, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
-      propertyPath: profile
-      value: 
-      objectReference: {fileID: 11400000, guid: c619edd1badc47247a173191b35665e2, type: 2}
+    - target: {fileID: 8182058156753446464, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
+      propertyPath: useCooldownOverride
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8182058156753446464, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
+      propertyPath: cooldownOverrideSeconds
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 9069896505416824339, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
       propertyPath: m_LocalPosition.x
       value: -2.731147
@@ -6706,10 +6645,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 1438301292820702486, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 3984260426711783887}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
 --- !u!4 &3179117850329721560
 Transform:
@@ -8708,29 +8644,6 @@ ReflectionProbe:
   m_UseOcclusionCulling: 1
   m_Importance: 1
   m_CustomBakedTexture: {fileID: 0}
---- !u!1 &3984260426704366156 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1438301292820702486, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
-  m_PrefabInstance: {fileID: 3171359749072270106}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &3984260426711783887
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3984260426704366156}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ae35386ff291046488f8124707f8d7d4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.ChargeSettings
-  chargeSpeed: 12
-  chargeTurnSpeed: 45
-  brakeDeceleration: 15
-  maxChargeDistance: 30
-  prepTurnSpeed: 90
-  prepMoveSpeed: 1.5
 --- !u!1001 &4053716650102385236
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18734,5 +18647,4 @@ SceneRoots:
   - {fileID: 1186703177}
   - {fileID: 7639047734907975239}
   - {fileID: 1113266350}
-  - {fileID: 333293112535237750}
   - {fileID: 3171359749072270106}

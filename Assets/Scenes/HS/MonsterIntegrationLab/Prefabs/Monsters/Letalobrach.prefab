@@ -173,6 +173,7 @@ GameObject:
   - component: {fileID: 7009483942553203710}
   - component: {fileID: 6933845040553831818}
   - component: {fileID: 8182058156753446464}
+  - component: {fileID: 4691132091533479145}
   m_Layer: 0
   m_Name: Letalobrach
   m_TagString: Untagged
@@ -207,7 +208,7 @@ Animator:
   m_GameObject: {fileID: 1438301292820702486}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: f3544d008a0b5ad47a726f7e062e9514, type: 3}
-  m_Controller: {fileID: 9100000, guid: a1e4142731eea0e40bb56045e8232d7e, type: 2}
+  m_Controller: {fileID: 22100000, guid: f186a59d815689848ad3a3fdfe236cf3, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
@@ -253,7 +254,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f483ab3958142c0883214bbb5a4f607, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
-  profile: {fileID: 0}
+  profile: {fileID: 11400000, guid: c619edd1badc47247a173191b35665e2, type: 2}
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
@@ -294,6 +295,24 @@ MonoBehaviour:
   cooldownOverrideSeconds: 1
   hitTimeRatio: 0.5
   windupTurnSpeed: 360
+--- !u!114 &4691132091533479145
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1438301292820702486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae35386ff291046488f8124707f8d7d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.ChargeSettings
+  chargeSpeed: 12
+  chargeTurnSpeed: 10
+  brakeDeceleration: 5
+  maxChargeDistance: 60
+  prepTurnSpeed: 90
+  prepMoveSpeed: 1.5
 --- !u!1 &1905092912942143356
 GameObject:
   m_ObjectHideFlags: 0
