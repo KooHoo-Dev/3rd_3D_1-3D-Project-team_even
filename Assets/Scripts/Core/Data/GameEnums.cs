@@ -38,5 +38,6 @@ namespace HybridShooter.Core.Data
 
     public enum UpgradeType { ReloadSpeed, MagazineSize, GrenadeCapacity }
 
-    public enum SoundCategory { Bgm, Sfx, Ui }
+    /// <summary>믹서 그룹·볼륨 단위. Monster 는 보스 포효 때 따로 줄이기(덕킹) 위해 Sfx 에서 분리</summary>
+    public enum SoundCategory { Bgm, Sfx, Monster, Ui }
 }

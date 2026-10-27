@@ -44,7 +44,7 @@ namespace HybridShooter.Monster.Behaviour
             float next = Mathf.Clamp01((now - launchTime) / flightSeconds);
             if (IsArcClear(progress, next) == false)
             {
-                Body.EndAttackMotion(ResolveInterruptionGround());
+                Land(ResolveInterruptionGround());
                 return true; // 무피해. WallHit 기절 없이 기존 Active/회복 주기를 마친다.
             }
             Body.MoveForAttack(PositionAt(next));
@@ -55,10 +55,10 @@ namespace HybridShooter.Monster.Behaviour
             Vector3 ground = ResolveGround(landingGround);
             if (IsBodyClear(ground + rootOffset) == false)
             {
-                Body.EndAttackMotion(ResolveInterruptionGround());
+                Land(ResolveInterruptionGround());
                 return true;
             }
-            Body.EndAttackMotion(ground);
+            Land(ground);
             Vector3 player = Target.PlayerTrackingInfo.Position;
             if (landingArea.Contains(ground, Body.Forward, player) &&
                 Mathf.Abs(player.y - ground.y) <= settings.HitHeightTolerance)
@@ -95,6 +95,13 @@ namespace HybridShooter.Monster.Behaviour
             if (launched && Body.HasAttackMotion) Body.EndAttackMotion(ResolveInterruptionGround());
             launched = false;
             playerRoot = null;
+        }
+
+        /// <summary>비행을 끝내고 내려앉는다 (정상 착지·비행 중 막힘 공통). 착지 알림은 소리용. 처치 등 취소(OnCancel)는 알리지 않는다</summary>
+        private void Land(Vector3 ground)
+        {
+            Body.EndAttackMotion(ground);
+            NotifyBodyLanded(ground);
         }
 
         /// <summary>취소 위치 바로 아래로 내려놓는다. 그 지면이 NavMesh 밖이면 목표점에 가장 가까운 NavMesh 로 보정한다.</summary>

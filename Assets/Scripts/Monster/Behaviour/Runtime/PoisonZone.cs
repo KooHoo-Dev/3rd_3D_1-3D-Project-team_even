@@ -1,6 +1,8 @@
 using System;
 using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Data;
 using HybridShooter.Core.Events;
+using HybridShooter.Core.Services;
 using UnityEngine;
 
 namespace HybridShooter.Monster.Behaviour
@@ -20,6 +22,7 @@ namespace HybridShooter.Monster.Behaviour
         private int sourceDefId;
         private float nextTickTime;      // 다음 피해 검사 시각 (s, Time.time)
         private float endTime;           // 반납 시각 (s, Time.time)
+        private SoundHandle loopSound;   // 장판 루프 소리 (StatusEffectTable.LoopSfxKey)
 
         /// <summary>
         /// 장판을 깐다. PoisonProjectile 이 착탄 때 풀에서 꺼낸 직후 1번 부른다. XZ 크기를 지름(2·radius)으로 맞춘다.
@@ -45,6 +48,12 @@ namespace HybridShooter.Monster.Behaviour
             transform.localScale = new Vector3(diameter, transform.localScale.y, diameter);
             nextTickTime = Time.time;
             endTime = Time.time + settings.ZoneDuration;
+
+            StopLoopSound(); // 풀에서 바로 다시 꺼낸 경우 대비
+            // 피해 값은 PoisonAreaSettings, 소리는 공격의 EffectId → StatusEffectTable.LoopSfxKey
+            if (DataManager.MonsterAttacks.TryGet(sourceDefId, out var attack) && attack.Effect?.LoopSfx != null
+                && ServiceLocator.TryGet<ISoundService>(out var sound))
+                loopSound = sound.PlayLoop(attack.Effect.LoopSfx, transform); // 여러 장판이 겹쳐도 가까운 몇 개만 들린다
         }
 
         /// <summary>
@@ -67,8 +76,18 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>RoundCleanupEvent 구독. 풀에서 꺼내 켜질 때마다 호출된다</summary>
         private void OnEnable() => EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
 
-        /// <summary>RoundCleanupEvent 구독 해제. 반납으로 꺼질 때 호출된다</summary>
-        private void OnDisable() => EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
+        /// <summary>RoundCleanupEvent 구독 해제 + 루프 소리 정지. 반납으로 꺼질 때 호출된다</summary>
+        private void OnDisable()
+        {
+            EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
+            StopLoopSound();
+        }
+
+        private void StopLoopSound()
+        {
+            if (loopSound.IsValid && ServiceLocator.TryGet<ISoundService>(out var sound)) sound.StopLoop(loopSound);
+            loopSound = default;
+        }
 
         /// <summary>매 프레임: 틱 시각이면 피해 검사 → 지속 시간이 끝났으면 반납</summary>
         private void Update()
@@ -97,7 +116,8 @@ namespace HybridShooter.Monster.Behaviour
             if (damageable == null) throw new InvalidOperationException("독장판 대상에서 IDamageable 을 찾지 못했다");
             if (damageable.CanBeHitBy(Faction.Monster) == false) return;
 
-            var info = new DamageInfo(settings.TickDamage, DamageKind.MonsterAttack, Faction.Monster, null,
+            // 지속 피해 → Status (사운드는 틱마다 피격음 대신 기침, R10)
+            var info = new DamageInfo(settings.TickDamage, DamageKind.Status, Faction.Monster, null,
                                       playerPosition, Vector3.zero, sourceDefId);
             damageable.TakeDamage(in info);
         }
