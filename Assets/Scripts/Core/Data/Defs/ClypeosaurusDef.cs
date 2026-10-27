@@ -23,6 +23,8 @@ namespace HybridShooter.Core.Data.Defs
         public float BarrageInterval { get; }
         public float BarrageRecoveryTime { get; }
         public float BarrageCooldown { get; }
+        public float BarrageSpreadRadius { get; }
+        public float BarrageFlightTime { get; }
 
         // 안테나 전격
         public int ElectricDamage { get; }
@@ -52,6 +54,8 @@ namespace HybridShooter.Core.Data.Defs
             BarrageInterval = dto.BarrageInterval;
             BarrageRecoveryTime = dto.BarrageRecoveryTime;
             BarrageCooldown = dto.BarrageCooldown;
+            BarrageSpreadRadius = dto.BarrageSpreadRadius;
+            BarrageFlightTime = dto.BarrageFlightTime;
 
             ElectricDamage = dto.ElectricDamage;
             ElectricRange = dto.ElectricRange;
@@ -79,7 +83,8 @@ namespace HybridShooter.Core.Data.Defs
             report.Check(BarrageInterval > 0f, Table, "Barrage", "Interval은 0보다 커야 합니다.");
             report.Check(BarrageRecoveryTime >= 0f, Table, "Barrage", "RecoveryTime은 0 이상이어야 합니다.");
             report.Check(BarrageCooldown >= 0f, Table, "Barrage", "Cooldown은 0 이상이어야 합니다.");
-
+            report.Check(BarrageSpreadRadius > 0f, Table, "Barrage", "BarrageSpreadRadius는 0보다 커야 합니다.");
+            report.Check(BarrageFlightTime > 0f, Table, "Barrage", "BarrageFlightTime은 0보다 커야 합니다.");
             // 안테나 전격 검증
             report.Check(ElectricDamage >= 0, Table, "Electric", "Damage는 0 이상이어야 합니다.");
             report.Check(ElectricRange > 0f, Table, "Electric", "Range는 0보다 커야 합니다.");

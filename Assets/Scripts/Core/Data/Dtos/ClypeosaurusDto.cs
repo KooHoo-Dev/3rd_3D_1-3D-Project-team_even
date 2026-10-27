@@ -18,6 +18,8 @@
         public float BarrageInterval;
         public float BarrageRecoveryTime;
         public float BarrageCooldown;
+        public float BarrageSpreadRadius;
+        public float BarrageFlightTime;
 
         // 안테나 전격
         public int ElectricDamage;
