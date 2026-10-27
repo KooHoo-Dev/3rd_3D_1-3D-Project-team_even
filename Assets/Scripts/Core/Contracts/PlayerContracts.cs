@@ -55,20 +55,17 @@ namespace HybridShooter.Core.Contracts
     }
 
     /// <summary>
-    /// 플레이어를 한 점으로 끌어당긴다 (보스 패턴 등). ServiceLocator 에 등록된다. (ServiceLocator.Get&lt;IPlayerPullable&gt;())
-    ///  - 핸들 방식: StartPull 의 반환값을 StopPull 에 넘긴다. 여러 개가 겹치면 합쳐서 적용 (플레이어 쪽 상한 있음)
-    ///  - 패턴이 끝나면 반드시 StopPull. 보스가 도중에 사라질 때를 위해 OnDisable 에서도 부를 것
-    ///    (Anchor 가 파괴되거나 Duration 이 지나면 저절로 끝난다)
-    ///  - 플레이어가 쓰러짐·부활 연출·벽넘기 중에는 적용되지 않고(목록은 유지), 처음부터 재시작하면 모두 지워진다
+    /// 플레이어에게 외부 속도를 더하는 슬롯 (보스 흡입 등). ServiceLocator 에 등록된다. (ServiceLocator.Get&lt;IPlayerExternalVelocity&gt;())
+    ///  - 소스(IPlayerVelocitySource)를 붙이면 플레이어가 매 물리 프레임 그 소스를 불러 속도를 더한다. 여러 개면 모두 합친다
+    ///  - 보스 흡입은 미리 만든 InhaleSource.Start(...) 를 쓰면 붙이기·끝내기·종료 이유까지 처리된다
+    ///  - 플레이어가 쓰러짐·부활 연출·벽넘기 중에는 적용하지 않고(붙은 상태 유지), 처음부터 재시작하면 모두 뗀다
     /// </summary>
-    public interface IPlayerPullable
+    public interface IPlayerExternalVelocity
     {
-        /// <summary>끌어당김 시작. 반환값 = StopPull 에 넘길 핸들 (0 = 거부: Speed 0 이하)</summary>
-        int StartPull(in PlayerPullSettings settings);
-        /// <summary>중심을 이 위치로 옮긴다 (Anchor 를 쓰던 중이면 Anchor 대신 이 위치)</summary>
-        void SetPullCenter(int handle, Vector3 worldCenter);
-        /// <summary>fadeOut 동안 약해지며 끝난다 (0 = 바로). 이미 끝난 핸들이면 아무 일 없음</summary>
-        void StopPull(int handle, float fadeOut = 0.2f);
+        /// <summary>소스를 붙인다. null 이거나 이미 붙어 있으면 false</summary>
+        bool AddVelocitySource(IPlayerVelocitySource source);
+        /// <summary>소스를 뗀다 (OnRemovedByPlayer 는 불리지 않음). 붙어 있지 않으면 아무 일 없음</summary>
+        void RemoveVelocitySource(IPlayerVelocitySource source);
     }
 
     /// <summary>회복 팩 → 플레이어 (BL-006, BL-019). 가득 차서 못 먹으면 false</summary>
