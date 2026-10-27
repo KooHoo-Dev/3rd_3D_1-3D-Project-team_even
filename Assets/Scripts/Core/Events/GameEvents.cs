@@ -104,6 +104,16 @@ namespace HybridShooter.Core.Events
         public CameraModeRequestedEvent(CameraMode mode, float duration = -1f) { Mode = mode; Duration = duration; }
     }
 
+    /// <summary>
+    /// [누구나(보스 등장·걸음·공격)] → 플레이어 카메라. 화면 흔들림 요청 (값은 CameraShakePresets 참고).
+    /// Duration 0 이하(계속 흔들기)는 멈출 방법이 없어 무시한다 → 그런 흔들림은 PlayerController.Shake / StopShake 를 직접 쓴다
+    /// </summary>
+    public readonly struct CameraShakeRequestedEvent
+    {
+        public readonly CameraShakeSettings Settings;
+        public CameraShakeRequestedEvent(CameraShakeSettings settings) { Settings = settings; }
+    }
+
     /// <summary>[플레이어 스태미나] → UI(HUD). 값이 바뀔 때마다</summary>
     public readonly struct PlayerStaminaChangedEvent
     {

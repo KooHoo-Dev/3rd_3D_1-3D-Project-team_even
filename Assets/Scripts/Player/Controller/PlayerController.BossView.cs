@@ -41,6 +41,7 @@ namespace HybridShooter.Player
             ServiceLocator.Register<IPlayerTarget>(this);
             EventBus<GameStateChangedEvent>.Subscribe(OnGameStateChanged);
             EventBus<CameraModeRequestedEvent>.Subscribe(OnCameraModeRequested);
+            SubscribeShakeEvents();
         }
 
         private void UnsubscribeViewEvents()
@@ -48,6 +49,7 @@ namespace HybridShooter.Player
             ServiceLocator.Unregister<IPlayerTarget>(this);
             EventBus<GameStateChangedEvent>.Unsubscribe(OnGameStateChanged);
             EventBus<CameraModeRequestedEvent>.Unsubscribe(OnCameraModeRequested);
+            UnsubscribeShakeEvents();
         }
 
         private void OnGameStateChanged(GameStateChangedEvent e)
