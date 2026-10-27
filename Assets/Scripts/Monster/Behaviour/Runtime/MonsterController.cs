@@ -38,8 +38,10 @@ namespace HybridShooter.Monster.Behaviour
         [Header("공격")]
         [Tooltip("켜면 데이터 테이블 Cooldown 대신 아래 값을 쓴다. 다음 공격 시작부터 반영")]
         [SerializeField] private bool useCooldownOverride;
-        [Tooltip("공격 한 주기 총 시간 (s). 예고+회복보다 커야 한다 (같거나 작으면 예외)")]
+        [Tooltip("회복이 끝난 뒤 다음 공격 시작까지 기다리는 시간 (s)")]
         [SerializeField, Min(0f)] private float cooldownOverrideSeconds = 1f;
+        [Tooltip("Active 구간 최소 유지 시간 (s). 도약은 이 시간 동안 날고, Attack 클립은 이 시간에 맞춰 1번 재생된다. 다음 공격 시작부터 반영")]
+        [SerializeField, Min(0.01f)] private float activeSeconds = 0.5f;
         [Tooltip("Active 구간 중 판정 시점 비율. 0 = Active 시작, 1 = Active 끝. 다음 공격 시작부터 반영")]
         [SerializeField, Range(0f, 1f)] private float hitTimeRatio = 0.5f;
         [Tooltip("예고 중 바라볼 지점으로 도는 속도 (도/초). 0 = 돌지 않는다. 다음 프레임부터 반영")]
@@ -161,11 +163,10 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 인스펙터의 쿨다운·판정 비율·예고 회전 속도를 이 몬스터의 모든 공격에 넣는다.
+        /// 인스펙터의 쿨다운·Active 길이·판정 비율·예고 회전 속도를 이 몬스터의 모든 공격에 넣는다.
         /// 덮어쓰기가 꺼져 있으면 쿨다운은 각 공격의 데이터 테이블 값을 쓴다.
         /// </summary>
-        /// <remarks>쿨다운·판정 비율은 Begin 때 고정하므로 실제 반영은 다음 공격부터다. 예고 회전 속도는 다음 프레임부터 반영된다.</remarks>
-        /// <exception cref="InvalidOperationException">쿨다운이 예고+회복 이하라 Active 구간 길이가 없을 때</exception>
+        /// <remarks>쿨다운·Active 길이·판정 비율은 Begin 때 고정하므로 실제 반영은 다음 공격부터다. 예고 회전 속도는 다음 프레임부터 반영된다.</remarks>
         private void ApplyAttackTuning()
         {
             foreach (MonsterAttack attack in StateMachine.Attacks)
@@ -173,11 +174,8 @@ namespace HybridShooter.Monster.Behaviour
                 float cooldown = attack.Spec.Cooldown;
                 if (useCooldownOverride) cooldown = cooldownOverrideSeconds;
 
-                float windupAndRecoverySeconds = attack.Spec.TelegraphTime + attack.Spec.RecoveryTime;
-                if (cooldown <= windupAndRecoverySeconds)
-                    throw new InvalidOperationException($"{name}: 쿨다운({cooldown}s)은 예고+회복({windupAndRecoverySeconds}s)보다 커야 한다");
-
                 attack.Cooldown = cooldown;
+                attack.ActiveSeconds = activeSeconds;
                 attack.HitTimeRatio = hitTimeRatio;
                 attack.WindupTurnSpeed = windupTurnSpeed;
             }

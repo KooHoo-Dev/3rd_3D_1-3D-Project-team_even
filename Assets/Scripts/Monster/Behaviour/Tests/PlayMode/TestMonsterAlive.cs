@@ -33,7 +33,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         {
             target = new FakeTarget { Position = new Vector3(0f, 0f, 1f) };
             yield return CreateMonsterWithMovement();
-            attack = new StrikeAttack(Bite, new MonsterBody(monsterObject.transform), t => (IDamageable)t);
+            attack = new StrikeAttack(Bite, new MonsterBody(monsterObject.transform), t => (IDamageable)t) { ActiveSeconds = 0.5f };
             _stateMachine = new MonsterStateMachine(movement, new MonsterBody(monsterObject.transform), attack);
             now = 0f;
         }
