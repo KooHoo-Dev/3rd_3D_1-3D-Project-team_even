@@ -50,16 +50,13 @@ namespace HybridShooter.Boss
 
         public bool CanStart()
         {
-            // 공격 컴포넌트 상태
             if (initialized == false || isActiveAndEnabled == false || IsRunning) return false;
-            // 보스 상태
             if (Boss == null || Boss.CanStartAttack == false) return false;
-            // 타깃 상태
+
             if (TargetRoot == null) return false;
 
             return TargetDamageable.CanBeHitBy(Boss.Faction);
         }
-        
         public bool TryStart()
         {
             if (CanStart() == false) return false;

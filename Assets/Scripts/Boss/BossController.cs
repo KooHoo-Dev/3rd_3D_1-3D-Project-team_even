@@ -75,10 +75,8 @@ namespace HybridShooter.Boss
         internal void EndAttack(BossAttack attack, bool completed = false)
         {
             if (currentAttack != attack) return;
-
             currentAttack = null;
 
-            // 정상적으로 회복까지 마쳤을 때 공통 쿨타임을 시작한다.
             if (completed) nextAttackTime = Time.time + Def.PatternCooldown;
 
             if (IsAlive && isActiveAndEnabled) movement.Resume();

@@ -37,6 +37,15 @@ namespace HybridShooter.Core.Data.Defs
         // 본체 HP에 따른 안테나 개방 기준
         public float FourOpenHpRatio { get; }
         public float SixOpenHpRatio { get; }
+        
+        // 공기 흡입
+        public float SuctionTelegraphTime { get; }
+        public float SuctionMaxDuration { get; }
+        public float SuctionRecoveryTime { get; }
+        public float SuctionNearRadius { get; }
+        public float SuctionFarExtraSpeed { get; }
+        public float SuctionNearExtraSpeed { get; }
+        public float SuctionNearDwellTime { get; }
 
         public ClypeosaurusDef(ClypeosaurusDto dto, DataLoadReport report)
         {
@@ -66,6 +75,14 @@ namespace HybridShooter.Core.Data.Defs
 
             FourOpenHpRatio = dto.FourOpenHpRatio;
             SixOpenHpRatio = dto.SixOpenHpRatio;
+            
+            SuctionTelegraphTime = dto.SuctionTelegraphTime;
+            SuctionMaxDuration = dto.SuctionMaxDuration;
+            SuctionRecoveryTime = dto.SuctionRecoveryTime;
+            SuctionNearRadius = dto.SuctionNearRadius;
+            SuctionFarExtraSpeed = dto.SuctionFarExtraSpeed;
+            SuctionNearExtraSpeed = dto.SuctionNearExtraSpeed;
+            SuctionNearDwellTime = dto.SuctionNearDwellTime;
 
             report.Check(BossId > 0, Table, BossId, "BossId는 1 이상이어야 합니다.");
             
@@ -95,6 +112,15 @@ namespace HybridShooter.Core.Data.Defs
 
             // 안테나 개방 기준 검증
             report.Check(SixOpenHpRatio > 0f && SixOpenHpRatio < FourOpenHpRatio && FourOpenHpRatio < 1f, Table, "Antenna", "체력 기준은 0 < SixOpenHpRatio < FourOpenHpRatio < 1이어야 합니다.");
+            
+            // 공기 흡입 검증
+            report.Check(SuctionTelegraphTime >= 0f, Table, "Suction", "TelegraphTime은 0 이상이어야 합니다.");
+            report.Check(SuctionMaxDuration > 0f, Table, "Suction", "MaxDuration은 0보다 커야 합니다.");
+            report.Check(SuctionRecoveryTime >= 0f, Table, "Suction", "RecoveryTime은 0 이상이어야 합니다.");
+            report.Check(SuctionNearRadius > 0f, Table, "Suction", "NearRadius는 0보다 커야 합니다.");
+            report.Check(SuctionFarExtraSpeed > SuctionNearExtraSpeed, Table, "Suction", "FarExtraSpeed는 NearExtraSpeed보다 커야 합니다.");
+            report.Check(SuctionNearExtraSpeed >= 0f, Table, "Suction", "NearExtraSpeed는 0 이상이어야 합니다.");
+            report.Check(SuctionNearDwellTime > 0f && SuctionNearDwellTime <= SuctionMaxDuration, Table, "Suction", "NearDwellTime은 0보다 크고 MaxDuration 이하여야 합니다.");
         }
     }
 }

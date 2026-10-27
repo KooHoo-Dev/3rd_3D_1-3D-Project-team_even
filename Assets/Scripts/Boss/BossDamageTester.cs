@@ -52,6 +52,9 @@ namespace HybridShooter.Boss
 
             var barrage = GetComponent<MagmaBarrageAttack>();
             barrage.Initialize(attackData, target);
+            
+            var suction = GetComponent<SuctionAttack>();
+            suction.Initialize(attackData, target);
 
             Debug.Log($"[Boss] 초기화 | ID: {boss.Def.Id} | " + $"HP: {boss.CurrentHp}/{boss.MaxHp}", boss);
         }

@@ -32,5 +32,14 @@
         // 본체 HP에 따른 안테나 개방 기준
         public float FourOpenHpRatio; // 예: 0.7 = HP 70% 이하
         public float SixOpenHpRatio;  // 예: 0.4 = HP 40% 이하
+        
+        // 공기 흡입
+        public float SuctionTelegraphTime;
+        public float SuctionMaxDuration;
+        public float SuctionRecoveryTime;
+        public float SuctionNearRadius;
+        public float SuctionFarExtraSpeed;
+        public float SuctionNearExtraSpeed;
+        public float SuctionNearDwellTime;
     }
 }
