@@ -59,7 +59,7 @@ namespace HybridShooter.Monster.Behaviour
 
             elapsedTime += deltaTime;
             SpawnDueMonsters();
-            RaiseFinishedIfAllSpawned();
+            NotifySpawnFinished();
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// Count 마리를 다 처리했으면 Finished 를 발행한다. 다음 Tick 부터는 IsFinished 가드로 여기까지 오지 않아 한 번만 발행된다.
         /// </summary>
-        private void RaiseFinishedIfAllSpawned()
+        private void NotifySpawnFinished()
         {
             if (spawnedCount < spawner.Count) return;
 

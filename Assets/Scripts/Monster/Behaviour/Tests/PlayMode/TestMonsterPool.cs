@@ -46,6 +46,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
         private IEnumerator CreatePool()
         {
+            LogAssert.ignoreFailingMessages = true; 
             pool = new GameObject("MonsterPool").AddComponent<MonsterPool>();
             yield return null; // Start: 씬 몬스터 등록 + Warmup
         }

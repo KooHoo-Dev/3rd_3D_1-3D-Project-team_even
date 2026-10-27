@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
@@ -47,6 +48,12 @@ namespace HybridShooter.Monster.Behaviour
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
             EventBus<GameStateChangedEvent>.Unsubscribe(OnGameStateChanged);
             StopRound();
+        }
+
+        private void Awake()
+        {
+            if (monsterPool == null)
+                monsterPool = FindAnyObjectByType<MonsterPool>();
         }
 
         /// <summary>라운드 시작 이벤트로 그 라운드의 군중전 스테이지 진행을 시작한다</summary>
@@ -166,13 +173,13 @@ namespace HybridShooter.Monster.Behaviour
         private void OnStageFinished(MonsterWaveStage stage)
         {
             runningStages.Remove(stage);
-            EndRoundIfAllStagesDone();
+            EndHordePhaseIfAllDone();
         }
 
         /// <summary>
         /// 스테이지를 다 시작했고 실행 중 스테이지가 0개면 라운드 진행을 끝낸다. 이후 Update 는 아무것도 하지 않는다.
         /// </summary>
-        private void EndRoundIfAllStagesDone()
+        private void EndHordePhaseIfAllDone()
         {
             bool hasStartedAllStages = nextStageIndex >= roundStages.Count;
             bool hasNoRunningStage = runningStages.Count == 0;

@@ -113,14 +113,14 @@ namespace HybridShooter.Monster.Behaviour
         private void OnWaveFinished(MonsterWave wave)
         {
             runningWaves.Remove(wave);
-            RaiseFinishedIfAllWavesDone();
+            NotifyWaveFinished();
         }
 
         /// <summary>
         /// 웨이브를 다 시작했고 실행 중 웨이브가 0개면 Finished 를 발행한다.
         /// 마지막 웨이브는 반드시 시작된 뒤에 끝나므로, 마지막으로 끝나는 웨이브의 신호에서 한 번만 발행된다.
         /// </summary>
-        private void RaiseFinishedIfAllWavesDone()
+        private void NotifyWaveFinished()
         {
             bool hasStartedAllWaves = nextWaveIndex >= stage.Waves.Count;
             bool hasNoRunningWave = runningWaves.Count == 0;
