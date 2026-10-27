@@ -13,10 +13,10 @@ namespace HybridShooter.Player
         private void UpdateBodyVisualYaw()
         {
             if (bodyVisual == null) return;
-            if (facingMode == FacingMode.LockYaw && externalControl == false)
+            if (externalControl == false)
                 bodyVisual.rotation = Quaternion.Euler(0f, lookYaw, 0f);
             else if (bodyVisual.localRotation != Quaternion.identity)
-                bodyVisual.localRotation = Quaternion.identity; // FollowMove·외부 제어 중에는 리지드바디 회전을 그대로 따른다
+                bodyVisual.localRotation = Quaternion.identity; // 외부 제어 중에는 리지드바디 회전을 그대로 따른다
         }
     }
 }

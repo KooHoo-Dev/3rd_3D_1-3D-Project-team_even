@@ -19,8 +19,6 @@ namespace HybridShooter.Player
         [SerializeField] private float groundAcceleration = 45f;
         [SerializeField] private float groundDeceleration = 55f;
         [SerializeField] private float airAcceleration = 10f;
-        [Tooltip("FollowMove 모드에서 몸이 이동 방향으로 도는 속도(도/초). LockYaw 에서는 쓰지 않음")]
-        [SerializeField] private float turnSpeed = 720f;
         [Tooltip("몸 정면 기준 정반대로 움직일 때의 속도 배율. 옆걸음은 거의 감속 없음")]
         [SerializeField, Range(0.1f, 1f)] private float backwardMultiplier = 0.65f;
 
@@ -158,6 +156,30 @@ namespace HybridShooter.Player
         [SerializeField] private int maxHealth = 100;
         [SerializeField] private int currentHealth = 100;
 
+        [Header("부활")]
+        [Tooltip("Revive() 연출 길이(초). 이 동안 무적이고 입력을 받지 않는다")]
+        [SerializeField, Min(0f)] private float reviveDuration = 2.4f;
+        [Tooltip("연출 중 이 진행도(0~1)에서 사망 자세를 풀고 선 자세로 되돌린다. 이 뒤로 체력이 차오른다")]
+        [SerializeField, Range(0f, 1f)] private float reviveBodyRestoreAt = 0.4f;
+        [Tooltip("마지막 목숨으로 죽은 뒤 최종 사망(PlayerFinalDeathEvent)까지(초). 사망 동작을 보여 주는 시간이고, 이 사이 Revive·AddLives 가 오면 부활한다. 0 = 즉시")]
+        [SerializeField, Min(0f)] private float reviveWindow = 2f;
+
+        [Header("목숨 (PlayerTable.StartLives / MaxLives 가 우선)")]
+        [Tooltip("테이블이 없을 때 시작 목숨 (지금 목숨 포함)")]
+        [SerializeField, Min(1)] private int fallbackStartLives = 3;
+        [Tooltip("테이블이 없을 때 기본 최대 목숨")]
+        [SerializeField, Min(1)] private int fallbackMaxLives = 3;
+        [Tooltip("목숨이 남아 있을 때 사망 후 자동 부활까지(초). 사망 동작을 보여 주는 시간")]
+        [SerializeField, Min(0f)] private float livesReviveDelay = 1.5f;
+
+        [Header("부활 직후 보호 (부활 연출이 끝난 뒤)")]
+        [Tooltip("보호 시간(초). 0 = 없음")]
+        [SerializeField, Min(0f)] private float reviveBuffDuration = 5f;
+        [Tooltip("받는 피해 배율 (0.2 = 80% 경감)")]
+        [SerializeField, Range(0f, 1f)] private float reviveBuffDamageMultiplier = 0.2f;
+        [Tooltip("이동 속도 배율")]
+        [SerializeField, Min(1f)] private float reviveBuffSpeedMultiplier = 1.35f;
+
         [Header("스태미나")]
         [SerializeField] private float maxStamina = 100f;
         [Tooltip("달리는 동안 초당 소모량")]
@@ -180,7 +202,6 @@ namespace HybridShooter.Player
         // 외부 입력
         private Vector3 moveDirection;
         private bool sprintRequested;
-        private FacingMode facingMode = FacingMode.FollowMove;
         private float lockedYaw;
         private float jumpRequestedTime = float.NegativeInfinity;
 
@@ -269,6 +290,25 @@ namespace HybridShooter.Player
 
         // 체력
         private bool IsDead = false;
+
+        // 부활 연출
+        private bool isReviving;
+        private bool reviveBodyRestored;
+        private float reviveStartTime;
+        private float reviveCurrentDuration;
+        private float deathTime;
+        private bool finalDead;                 // 부활 대기 시간이 지나 최종 사망 확정 (더는 부활하지 않음)
+        private float reviveBuffEndTime = float.NegativeInfinity;
+        private const string ReviveBuffSpeedKey = "ReviveBuff";
+
+        // 목숨 (최대 = 난이도 기준 + 스테이지 클리어로 늘어난 몫)
+        private int lives;
+        private int baseMaxLives;
+        private int bonusMaxLives;
+
+        // 처음부터 재시작(RoundCleanupEvent.FullReset) 때 돌아갈 자리
+        private Vector3 spawnPosition;
+        private float spawnYaw;
 
         // 스태미나
         private float stamina;

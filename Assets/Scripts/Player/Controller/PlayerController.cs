@@ -30,10 +30,12 @@ namespace HybridShooter.Player
     ///  - PlayerController.Movement      : 바닥 판정, 걷기·구르기·점프(물리), 속도 배율
     ///  - PlayerController.Health        : 체력, 회복, 피격, 사망
     ///  - PlayerController.Stamina       : 스태미나 (달리기·구르기 소모, 회복)
+    ///  - PlayerController.Revive        : 사망 → 부활 연출(무적·입력 없음) → 부활 직후 보호, 최종 사망, 재시작
+    ///  - PlayerController.Lives         : 목숨 (IPlayerLives). 남아 있으면 사망 후 자동 부활, 마지막이면 최종 사망
     ///  - PlayerController.API           : 바깥에서 쓰는 이벤트·프로퍼티·메서드
     /// </summary>
     [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
-    public partial class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IDamageable
+    public partial class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IDamageable, IPlayerLives
     {
     }
 }

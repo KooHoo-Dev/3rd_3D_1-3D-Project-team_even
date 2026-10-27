@@ -77,6 +77,7 @@ flowchart TB
 | `IDamageable` + `DamageInfo` | 플레이어, 몬스터, 보스 | 라이플, 수류탄, 몬스터 공격, 보스 패턴 | 컴포넌트 (`collider.TryGetDamageable`) |
 | `IPlayerTarget` (Root, AimPoint, **ViewPoint**) | 플레이어 | 몬스터 추적, 침투형 시야 판정, 스폰 위치 | `ServiceLocator.Register` |
 | `IHealable`, `IGrenadeReceiver`, `IHealPackReceiver` | 플레이어 | 보급 획득 | 컴포넌트 (플레이어 루트) |
+| `IPlayerLives` (Lives, MaxLives, SetMaxLives, AddMaxLives, AddLives) | 플레이어 | 난이도 설정, 스테이지 클리어 보상 | `ServiceLocator.Register` |
 | `IMonsterFactory` | 몬스터 (풀링) | 군중 생성, 보스 등장 | 기본: `ResourcesMonsterFactory` |
 | `ISpawnZoneProvider` | 전장 | 군중 생성, 보급 낙하 | 기본: `RingSpawnZoneProvider` (플레이어 주변 링) |
 | `ISoundService` | UI·사운드 | 전원 | 기본: `NullSoundService` |
@@ -90,7 +91,11 @@ flowchart TB
 | `GameStateChangedEvent`, `RoundStartedEvent`, `GameOverEvent` | 코어 | 전원 (입력 잠금, BGM, 화면 전환) |
 | **`RoundCleanupEvent(FullReset)`** | 코어 | **전원** — 자기 몬스터·투사체·보급·타이머 정리 |
 | `BossWarningEvent` | 코어 | 몬스터(보스 준비), UI·사운드(지진음·조명) |
-| `PlayerHpChangedEvent`, `PlayerDamagedEvent`, `PlayerDiedEvent` | 플레이어 | UI·사운드(피격 표현), 코어(게임오버) |
+| `PlayerHpChangedEvent`, `PlayerDamagedEvent` | 플레이어 | UI·사운드(피격 표현) |
+| `PlayerDiedEvent` (사망, 부활 가능) | 플레이어 | 몬스터(대상 놓기), UI·사운드(사망 연출) |
+| `PlayerRevivedEvent` (부활 연출 끝) | 플레이어 | 몬스터(대상 다시 잡기), UI·사운드 |
+| `PlayerFinalDeathEvent` (최종 사망) | 플레이어 | **코어(게임오버)**, UI |
+| `PlayerLivesChangedEvent(Current, Max)` | 플레이어 | UI (목숨 표시) |
 | `CameraModeChangedEvent(Mode, IsComplete)` | 플레이어 | 보스(전환 완료 후 등장 공격), UI |
 | `AmmoChangedEvent`, `WeaponFiredEvent`, `ReloadStarted/FinishedEvent` | 무기 | UI(HUD), 사운드 |
 | `GrenadeCountChangedEvent`, `GrenadeExplodedEvent` | 무기 | UI, 몬스터(돌진형 유인 아이디어) |

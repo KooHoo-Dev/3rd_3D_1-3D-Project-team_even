@@ -32,6 +32,28 @@ namespace HybridShooter.Core.Contracts
             Rotation = rot;
         }
     }
+    /// <summary>
+    /// 플레이어 목숨. 난이도 설정·스테이지 클리어 보상 등이 쓴다. ServiceLocator 에 등록된다. (ServiceLocator.Get&lt;IPlayerLives&gt;())
+    /// 플레이어가 등록된 뒤(예: RoundStartedEvent 이후)에 부른다. 변화는 PlayerLivesChangedEvent 로 알린다.
+    ///  - 목숨이 남아 있으면 사망 후 자동 부활하며 1 소모, 마지막 목숨이면 최종 사망(PlayerFinalDeathEvent)
+    ///  - 처음부터 재시작(RoundCleanupEvent.FullReset) 때: SetMaxLives 값은 유지, AddMaxLives 로 늘린 몫은 사라지고 현재 = 최대
+    /// </summary>
+    public interface IPlayerLives
+    {
+        /// <summary>남은 목숨 (지금 목숨 포함). 1 이면 다음 사망이 최종 사망</summary>
+        int Lives { get; }
+        int MaxLives { get; }
+
+        /// <summary>최대 목숨을 정한다 (난이도). refill = true 면 현재도 최대로. 1 미만은 1</summary>
+        void SetMaxLives(int max, bool refill);
+
+        /// <summary>최대 목숨을 늘린다 (스테이지 클리어 보상). addLives = true 면 늘어난 만큼 현재도 늘린다</summary>
+        void AddMaxLives(int amount, bool addLives);
+
+        /// <summary>현재 목숨을 늘린다 (최대까지). 이미 최대라 못 늘리면 false</summary>
+        bool AddLives(int amount);
+    }
+
     /// <summary>회복 팩 → 플레이어 (BL-006, BL-019). 가득 차서 못 먹으면 false</summary>
     public interface IHealable
     {

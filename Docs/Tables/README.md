@@ -38,6 +38,7 @@
 | PitchMin / PitchMax | float | 상하 시야 제한(도) |
 | RifleId / GrenadeId | int | WeaponTable / GrenadeTable |
 | StartGrenades / MaxGrenades | int | 시작 수 / 강화 전 최대 보유 수 |
+| StartLives / MaxLives | int | 시작 목숨(지금 목숨 포함) / 기본 최대 목숨. 난이도(`IPlayerLives.SetMaxLives`)·스테이지 클리어(`AddMaxLives`)가 바꿀 수 있다 |
 
 ## WeaponTable — BL-003·004
 | 컬럼 | 타입 | 설명 |

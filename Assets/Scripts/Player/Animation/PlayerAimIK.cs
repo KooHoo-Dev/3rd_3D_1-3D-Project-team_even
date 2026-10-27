@@ -50,8 +50,6 @@ namespace HybridShooter.Player
         public float MuzzleError { get; private set; }
         /// <summary>디버그(1인칭 목 측정): null 이 아니면 firstPersonSpineWeightDown 대신 이 값</summary>
         public float? DebugSpineWeightDownOverride { get; set; }
-        /// <summary>디버그: 1인칭 척추 가중치 정면 값 (아래 보정 전)</summary>
-        public float FirstPersonSpineWeightUp => firstPersonSpineWeight;
 
         private void Awake()
         {

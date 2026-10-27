@@ -17,5 +17,7 @@ namespace HybridShooter.Core.Data.Dtos
         public int GrenadeId;  // GrenadeTable.Id
         public int StartGrenades;
         public int MaxGrenades;
+        public int StartLives;
+        public int MaxLives;
     }
 }

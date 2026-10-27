@@ -254,7 +254,7 @@ namespace HybridShooter.Player
 
         #region 내부
         // 공중(발이 땅에 닿지 않음)에서는 수류탄·회복을 쓸 수 없다
-        private bool CanAct => player.IsAlive && player.IsRolling == false && player.IsExternallyControlled == false && player.IsOnGround;
+        private bool CanAct => player.IsAlive && player.IsReviving == false && player.IsRolling == false && player.IsExternallyControlled == false && player.IsOnGround;
 
         /// <summary>지금 회복 팩을 쓸 수 없는 이유. 쓸 수 있으면 null (검사 순서 = CanAct 를 풀어 쓴 것)</summary>
         private string HealFailReason()
@@ -263,6 +263,7 @@ namespace HybridShooter.Player
             if (throwing) return "수류탄을 던지는 중";
             if (healPacks <= 0) return "회복 팩이 없음";
             if (player.IsAlive == false) return "죽은 상태";
+            if (player.IsReviving) return "부활 중";
             if (player.IsRolling) return "구르는 중";
             if (player.IsExternallyControlled) return "외부 제어 중 (컷신 등)";
             if (player.IsOnGround == false) return "공중에 떠 있음";

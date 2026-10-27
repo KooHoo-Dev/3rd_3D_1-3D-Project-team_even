@@ -28,20 +28,27 @@ namespace HybridShooter.Player
 
         public void TakeDamage(in DamageInfo info)
         {
-            currentHealth = Mathf.Max(0, currentHealth - info.Amount);
+            if (DebugInvincible || isReviving) return; // 부활 연출 중 무적 (PlayerController.Revive)
+            if (IsDead) return;                        // 이미 쓰러짐: 부활 대기 중 시체에 들어오는 피해는 무시
+
+            // 부활 직후 보호 중이면 줄인 피해. 피격 연출(PlayerDamagedEvent)도 실제로 받은 양으로 보낸다
+            int amount = ApplyReviveBuff(info.Amount);
+            DamageInfo applied = amount == info.Amount ? info
+                : new DamageInfo(amount, info.Kind, info.AttackerFaction, info.Attacker, info.HitPoint, info.Direction, info.SourceDefId);
+
+            currentHealth = Mathf.Max(0, currentHealth - applied.Amount);
             PublishHp();
-            if (IsDead == false && info.Amount > 0) EventBus<PlayerDamagedEvent>.Publish(new PlayerDamagedEvent(info));
-            if (IsDead == false && currentHealth == 0)
-            {
-                Die();
-            }
+            if (applied.Amount > 0) EventBus<PlayerDamagedEvent>.Publish(new PlayerDamagedEvent(applied));
+            if (currentHealth == 0) Die();
         }
 
+        /// <summary>쓰러짐. 최종 사망은 부활 대기 시간이 지난 뒤 (PlayerController.Revive)</summary>
         private void Die()
         {
             IsDead = true;
             SetMoveInput(Vector3.zero, false); // 죽은 뒤 마지막 이동 입력으로 미끄러지지 않게
             Died?.Invoke();
+            OnDeathForRevive();
         }
     }
 }

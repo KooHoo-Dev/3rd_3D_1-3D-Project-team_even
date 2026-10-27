@@ -5611,6 +5611,63 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 49e58e7878217479b9ac5240cb3c9b41, type: 3}
+--- !u!1001 &1039565138
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 5753637828753184512, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_Name
+      value: Player (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 140.30446
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.37077978
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -25.880802
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4ea94935c308106458064ec04a545802, type: 3}
 --- !u!1001 &1058506679
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11429,6 +11486,8 @@ MonoBehaviour:
   maxAimDistance: 100
   minAimDistance: 2
   firstPersonSpineWeight: 0.7
+  firstPersonSpineWeightDown: 0.3
+  firstPersonDownPitch: 55
 --- !u!4 &285578348935727682
 Transform:
   m_ObjectHideFlags: 0
@@ -11979,7 +12038,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &2258881243023439559
 GameObject:
   m_ObjectHideFlags: 0
@@ -12579,7 +12638,6 @@ MonoBehaviour:
   groundAcceleration: 45
   groundDeceleration: 55
   airAcceleration: 10
-  turnSpeed: 720
   backwardMultiplier: 0.65
   jumpHeight: 1.2
   coyoteTime: 0.1
@@ -12668,14 +12726,24 @@ MonoBehaviour:
   bodyAnimator: {fileID: 1820536764}
   bodyVisual: {fileID: 1268416598}
   eyeForwardOffset: 0.12
+  neckPivotWeight: 0
+  eyeFromNeck: {x: 0, y: 0.1, z: 0.08}
   followHeadBone: 0
   headFollowWeight: 0.5
   headEyeOffset: {x: 0, y: 0.08, z: 0.1}
   headFollowSmoothTime: 0.08
+  neckClearance: 0.15
+  neckGuardSmoothTime: 0.06
   gunSlot: {fileID: 0}
   aimZoomSpeed: 6
   maxHealth: 100
   currentHealth: 100
+  reviveDuration: 2.4
+  reviveBodyRestoreAt: 0.4
+  reviveWindow: 5
+  reviveBuffDuration: 5
+  reviveBuffDamageMultiplier: 0.2
+  reviveBuffSpeedMultiplier: 1.35
   maxStamina: 100
   sprintStaminaPerSecond: 20
   rollStaminaCost: 25
@@ -15220,7 +15288,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.03
+  near clip plane: 0.015
   far clip plane: 1000
   field of view: 70
   orthographic: 0
@@ -15228,7 +15296,7 @@ Camera:
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 7167
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -15413,3 +15481,4 @@ SceneRoots:
   - {fileID: 1380043801}
   - {fileID: 256847181}
   - {fileID: 2820530941051803232}
+  - {fileID: 1039565138}

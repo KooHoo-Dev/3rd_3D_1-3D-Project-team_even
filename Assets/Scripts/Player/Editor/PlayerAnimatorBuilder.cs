@@ -85,7 +85,7 @@ namespace HybridShooter.Player.EditorTools
                 EditorUtility.DisplayDialog(Title, $"애니메이터 컨트롤러가 없습니다:\n{ControllerPath}", "확인");
                 return;
             }
-            if (EditorUtility.DisplayDialog(Title, "Player_AC 의 내용을 모두 지우고 설계대로 다시 만듭니다.\n(이전 버전은 Player_AC_Old 에 있습니다)", "만들기", "취소") == false)
+            if (EditorUtility.DisplayDialog(Title, "Player_AC 의 내용을 모두 지우고 설계대로 다시 만듭니다.", "만들기", "취소") == false)
                 return;
 
             log.Clear();

@@ -69,7 +69,7 @@ namespace HybridShooter.Weapon
         /// <summary>0 = 정지, 1 = 달리기 최고 속도</summary>
         public float MoveRatio => Mathf.Clamp01(player.HorizontalSpeed / Mathf.Max(0.01f, player.WalkSpeed * player.SprintMultiplier));
         /// <summary>구르는 중, 수류탄을 던지는 중이거나 죽었으면 쏠 수 없다</summary>
-        public bool CanUseWeapon => player.IsAlive && player.IsRolling == false && player.IsExternallyControlled == false && player.IsThrowingGrenade == false;
+        public bool CanUseWeapon => player.IsAlive && player.IsReviving == false && player.IsRolling == false && player.IsExternallyControlled == false && player.IsThrowingGrenade == false;
 
         /// <summary>
         /// 조준선 = 지금 카메라의 정면. 3인칭에서는 출발점을 플레이어 옆까지 앞당겨

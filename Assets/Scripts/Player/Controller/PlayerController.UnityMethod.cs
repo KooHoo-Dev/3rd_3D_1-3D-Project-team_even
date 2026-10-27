@@ -37,6 +37,7 @@ namespace HybridShooter.Player
             // 씬·프리팹·빌더 어디서 만든 플레이어든 1인칭 목 숨김이 빠지지 않게
             if (GetComponent<PlayerFirstPersonNeck>() == null) gameObject.AddComponent<PlayerFirstPersonNeck>();
             stamina = maxStamina;
+            InitLives();
 
             CacheRig();
             CacheHeadRenderers();
@@ -52,12 +53,23 @@ namespace HybridShooter.Player
             ApplyViewModeImmediate(viewMode);
             SetCursorLocked(true);
             PublishStamina();
+            PublishLives();
             LoadBossViewConfig();
+            spawnPosition = rb.position;
+            spawnYaw = rb.rotation.eulerAngles.y;
         }
 
-        private void OnEnable() => SubscribeViewEvents();
+        private void OnEnable()
+        {
+            SubscribeViewEvents();
+            SubscribeLifeEvents();
+        }
 
-        private void OnDisable() => UnsubscribeViewEvents();
+        private void OnDisable()
+        {
+            UnsubscribeViewEvents();
+            UnsubscribeLifeEvents();
+        }
 
         private void OnDestroy()
         {
@@ -71,7 +83,8 @@ namespace HybridShooter.Player
 
         private void Update()
         {
-            if (externalControl || DebugBlockInput) return;
+            UpdateLifeCycle();
+            if (externalControl || DebugBlockInput || isReviving) return;
             InputHandle();
         }
 
@@ -89,7 +102,7 @@ namespace HybridShooter.Player
             UpdateJump();
             UpdateStamina(dt);
             ClampFallSpeed();
-            UpdateFacing(dt);
+            UpdateFacing();
             SetPlayerTrackingInfo();
         }
 
