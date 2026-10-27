@@ -15,12 +15,6 @@ namespace HybridShooter.Player
             SyncRigRotationNow();
             LockFacing(lookYaw);
             if(IsDead) return;
-            // 넉백 중에는 시선만 (이동·무기·아이템 입력 없음)
-            if (isKnockedBack)
-            {
-                SetMoveInput(Vector3.zero, false);
-                return;
-            }
             // 0) 커서 잠금 해제/복귀 (좌클릭은 조준용으로 비워 둔다)
             if (SimpleInput.GetKeyDown(keySettings.cursorToggleKey))
                 SetCursorLocked(Cursor.lockState != CursorLockMode.Locked);

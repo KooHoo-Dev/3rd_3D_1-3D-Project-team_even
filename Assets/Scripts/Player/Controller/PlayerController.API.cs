@@ -29,13 +29,13 @@ namespace HybridShooter.Player
         public bool IsSliding => isSliding;
         /// <summary>발 → 발밑 땅 거리(m). 3m 보다 멀거나 땅이 없으면 무한대</summary>
         public float GroundDistance => groundDistance;
-        /// <summary>구르기 직후 짧은 시간, 부활 연출 중, 넉백 중·직후. (TakeDamage 는 지금 부활·넉백·디버그 무적만 막는다. 구르기 무적 적용은 Docs 계획 참고)</summary>
-        public bool IsInvulnerable => isReviving || IsKnockbackInvulnerable || (isRolling && Time.time - rollStartTime < rollInvulnerableTime);
+        /// <summary>구르기 직후 짧은 시간 또는 부활 연출 중. (TakeDamage 는 지금 부활·디버그 무적만 막는다. 구르기 무적 적용은 Docs 계획 참고)</summary>
+        public bool IsInvulnerable => isReviving || (isRolling && Time.time - rollStartTime < rollInvulnerableTime);
         /// <summary>입력도 있어야 한다 (가만히 끌려가는 중에 Shift 만 눌러도 전력질주로 보이지 않게)</summary>
         public bool IsSprinting => sprintRequested && CanSprint && isGrounded && isRolling == false
                                    && moveDirection.sqrMagnitude > 0.0001f && HorizontalSpeed > 0.1f;
-        /// <summary>구르는 중·넉백 중이 아니고, 지상이고, 쿨다운이 끝났고, 스태미나가 rollStaminaCost 이상</summary>
-        public bool CanRoll => isRolling == false && isKnockedBack == false && isGrounded && Time.time >= rollReadyTime && HasRollStamina;
+        /// <summary>구르는 중이 아니고, 지상이고, 쿨다운이 끝났고, 스태미나가 rollStaminaCost 이상</summary>
+        public bool CanRoll => isRolling == false && isGrounded && Time.time >= rollReadyTime && HasRollStamina;
         public Vector3 Velocity => rb.linearVelocity;
         public float HorizontalSpeed { get { var v = rb.linearVelocity; return new Vector2(v.x, v.z).magnitude; } }
         public float WalkSpeed { get => walkSpeed; set => walkSpeed = Mathf.Max(0f, value); }
@@ -181,7 +181,6 @@ namespace HybridShooter.Player
             rb.linearVelocity = Vector3.zero;
             appliedExternal = Vector3.zero; // 속도를 0 으로 만들었으니 다음 프레임에 뺄 몫도 없다
             isRolling = false;
-            CancelKnockback();
         }
 
         /// <summary>
@@ -193,7 +192,6 @@ namespace HybridShooter.Player
             if (externalControl) return;
             externalControl = true;
             isRolling = false;
-            CancelKnockback();
             moveDirection = Vector3.zero;
             rb.linearVelocity = Vector3.zero;
             appliedExternal = Vector3.zero; // 외부 속도는 외부 제어 동안 멈춘다 (소스는 유지)

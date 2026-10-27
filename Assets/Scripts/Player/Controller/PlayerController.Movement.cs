@@ -190,7 +190,7 @@ namespace HybridShooter.Player
 
         private void UpdateJump()
         {
-            if (isRolling || isKnockedBack) return;
+            if (isRolling) return;
             if (Time.time - jumpRequestedTime > jumpBufferTime) return;
 
             bool canJump = isGrounded || (jumpedSinceGrounded == false && Time.time - lastGroundedTime <= coyoteTime);
