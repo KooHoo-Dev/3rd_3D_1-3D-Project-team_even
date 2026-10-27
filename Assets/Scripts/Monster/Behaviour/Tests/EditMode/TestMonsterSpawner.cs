@@ -10,7 +10,7 @@ using UnityEngine.TestTools;
 namespace HybridShooter.Monster.Behaviour.Tests
 {
     /// <summary>
-    /// MonsterSpawner 의 소환 시각·횟수·위치 재시도·중단을 확인한다 (B3 완료 기준 1~6).
+    /// MonsterSpawner 의 소환 시각·횟수·위치 재시도·중단·Finished 발행을 확인한다 (B3 완료 기준 1~6, B5 보정 1·3).
     /// 스포너 행은 실제 WaveSpawnerTable(DataManager)에서 읽고, 팩토리·위치 구현은 이 클래스가 대신한다 (소환 기록만, 몬스터는 안 만든다).
     /// </summary>
     public sealed class TestMonsterSpawner : IMonsterFactory, ISpawnZoneProvider
@@ -131,6 +131,36 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
             Assert.AreEqual(1, spawnCount);
             Assert.IsTrue(spawner.IsFinished);
+        }
+
+        [Test]
+        public void AllSpawned_RaisesFinishedOnce()
+        {
+            MonsterSpawner spawner = CreateSpawner(SurroundDelay0Interval1);
+            int finishedCount = 0;
+            spawner.Finished += _ => finishedCount++;
+
+            spawner.Tick(4f);  // 0~4초 5마리
+            Assert.AreEqual(0, finishedCount);
+            spawner.Tick(1f);  // 5초 마지막
+            Assert.AreEqual(1, finishedCount);
+
+            spawner.Tick(100f);
+            Assert.AreEqual(1, finishedCount, "끝난 뒤 Tick 은 다시 발행하지 않음");
+        }
+
+        [Test]
+        public void Stop_DoesNotRaiseFinished()
+        {
+            MonsterSpawner spawner = CreateSpawner(SurroundDelay0Interval1);
+            int finishedCount = 0;
+            spawner.Finished += _ => finishedCount++;
+            spawner.Tick(0f);
+
+            spawner.Stop();
+            spawner.Tick(100f);
+
+            Assert.AreEqual(0, finishedCount);
         }
 
         // ── IMonsterFactory / ISpawnZoneProvider 대역 ──

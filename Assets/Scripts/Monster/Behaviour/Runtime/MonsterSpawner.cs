@@ -1,12 +1,14 @@
+using System;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data.Defs;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
     /// 스포너 한 줄(WaveSpawnerDef)의 실행 1회. "StartDelay 초 뒤부터 SpawnInterval 간격으로 Monster 를 Count 마리, SpawnPattern 위치에" 소환한다.
-    /// 웨이브(B4)가 만들어 매 프레임 Tick 으로 시간을 넘기고, IsFinished 가 되면 버린다.
+    /// 웨이브(B4)가 만들어 매 프레임 Tick 으로 시간을 넘기고, Finished 를 받으면 목록에서 뺀다.
     /// </summary>
     /// <remarks>
     /// 스스로 시간을 재지 않는다. Tick 에 Time.deltaTime 을 넘기면 강화 화면(timeScale 0)에서 저절로 멈춘다.
@@ -27,8 +29,11 @@ namespace HybridShooter.Monster.Behaviour
         private int spawnedCount;   // 소환 차례를 처리한 수 (위치를 못 구해 건너뛴 것 포함)
         private bool isStopped;
 
-        /// <summary>Count 마리를 다 처리했거나 Stop 됐으면 true. 웨이브가 이 스포너를 버려도 된다는 뜻</summary>
+        // Count 마리를 다 처리했거나 Stop 됐으면 true. 상태 조회와 자기 Tick 가드용 (부모는 Finished 로 안다)
         public bool IsFinished => isStopped || spawnedCount >= spawner.Count;
+
+        // 마지막 소환 차례를 처리한 Tick 에서 정확히 한 번 발행. Stop 때는 발행하지 않는다 (멈춘 쪽이 이미 안다)
+        public event Action<MonsterSpawner> Finished;
 
         /// <summary>
         /// 스포너 한 줄의 실행을 준비한다. 첫 소환은 다음 Tick 부터다.
@@ -54,12 +59,23 @@ namespace HybridShooter.Monster.Behaviour
 
             elapsedTime += deltaTime;
             SpawnDueMonsters();
+            RaiseFinishedIfAllSpawned();
         }
 
         /// <summary>
         /// 남은 소환을 취소한다. 이미 소환된 몬스터는 그대로 둔다. 스테이지 중단·라운드 종료 때 소유자가 부른다.
         /// </summary>
         public void Stop() => isStopped = true;
+
+        /// <summary>
+        /// Count 마리를 다 처리했으면 Finished 를 발행한다. 다음 Tick 부터는 IsFinished 가드로 여기까지 오지 않아 한 번만 발행된다.
+        /// </summary>
+        private void RaiseFinishedIfAllSpawned()
+        {
+            if (spawnedCount < spawner.Count) return;
+
+            Finished?.Invoke(this);
+        }
 
         /// <summary>
         /// 소환 시각이 지난 차례를 모두 처리한다. 한 프레임에 여러 차례가 지났으면 몰아서 소환한다 (SpawnInterval 0 = 전부 한 번에).
