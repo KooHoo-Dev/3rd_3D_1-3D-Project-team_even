@@ -49,11 +49,13 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
             }
         }
 
-        /// <summary>실행 중 스테이지에 Time.deltaTime 을 넘기고, 끝난 스테이지는 목록에서 뺀다</summary>
+        /// <summary>
+        /// 실행 중 스테이지에 Time.deltaTime 을 넘긴다. 끝난 스테이지는 Finished 신호로 OnStageFinished 가 뺀다.
+        /// 뒤에서부터 돌아서, 도중에 목록에서 빠져도 아직 안 돈 앞쪽 인덱스는 그대로다.
+        /// </summary>
         private void TickRunningStages()
         {
-            foreach (MonsterWaveStage stage in runningStages) stage.Tick(Time.deltaTime);
-            runningStages.RemoveAll(stage => stage.IsFinished);
+            for (int i = runningStages.Count - 1; i >= 0; i--) runningStages[i].Tick(Time.deltaTime);
         }
 
         /// <summary>
@@ -66,8 +68,17 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
                 DataManager.WaveStages.Get(stageId),
                 ServiceLocator.Get<IMonsterFactory>(),
                 ServiceLocator.Get<ISpawnZoneProvider>());
+            stage.Finished += OnStageFinished;
             runningStages.Add(stage);
             Debug.Log($"[WaveLab] 스테이지 {stageId} 시작 (실행 중 {runningStages.Count}개)", this);
+        }
+
+        /// <summary>스테이지가 스스로 끝나면 목록에서 뺀다. 스테이지 Tick 안에서 불린다</summary>
+        /// <param name="stage">방금 끝난 스테이지</param>
+        private void OnStageFinished(MonsterWaveStage stage)
+        {
+            runningStages.Remove(stage);
+            Debug.Log($"[WaveLab] 스테이지 끝 (실행 중 {runningStages.Count}개)", this);
         }
 
         /// <summary>스테이지 1 을 시작한다</summary>
