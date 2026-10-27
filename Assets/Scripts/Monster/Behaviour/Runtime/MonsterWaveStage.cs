@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data.Defs;
@@ -6,10 +7,10 @@ namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
     /// 군중전 스테이지 한 줄(WaveStageDef)의 실행 1회. 스테이지 시작 뒤 경과 시간을 재고, 각 웨이브를 자기 StartTime 에 시작한다.
-    /// 소유자(B5)가 스테이지 시작 때 만들어 매 프레임 Tick 으로 시간을 넘기고, IsFinished 가 되면 버린다.
+    /// 소유자(B5)가 스테이지 시작 때 만들어 매 프레임 Tick 으로 시간을 넘기고, Finished 를 받으면 목록에서 뺀다.
     /// </summary>
     /// <remarks>
-    /// 스테이지 끝 시각(EndTime)은 모른다. 끝 판단은 소유자 몫이다. IsFinished 는 "더 소환할 게 없다"는 뜻일 뿐 스테이지 시간이 끝났다는 뜻이 아니다.
+    /// 스테이지 끝 시각(EndTime)은 모른다. 끝 판단은 소유자 몫이다. Finished 는 "더 소환할 게 없다"는 뜻일 뿐 스테이지 시간이 끝났다는 뜻이 아니다.
     /// 앞 웨이브가 일찍 끝나도 다음 웨이브를 앞당기지 않는다. 웨이브 시작은 StartTime 으로만 정한다.
     /// 스스로 시간을 재지 않는다. Tick 에 Time.deltaTime 을 넘기면 강화 화면(timeScale 0)에서 저절로 멈춘다.
     /// </remarks>
@@ -25,7 +26,7 @@ namespace HybridShooter.Monster.Behaviour
         private readonly List<MonsterWave> runningWaves = new List<MonsterWave>();
         private bool isStopped;
 
-        // Stop 됐거나, 웨이브를 다 시작했고 실행 중 웨이브가 0개면 true. 소유자가 이 스테이지를 버려도 된다는 뜻
+        // Stop 됐거나, 웨이브를 다 시작했고 실행 중 웨이브가 0개면 true. 상태 조회와 자기 Tick 가드용 (부모는 Finished 로 안다)
         public bool IsFinished
         {
             get
@@ -37,6 +38,9 @@ namespace HybridShooter.Monster.Behaviour
                 return hasStartedAllWaves && hasNoRunningWave;
             }
         }
+
+        // 웨이브를 다 시작했고 마지막 웨이브가 끝난 Tick 에서 정확히 한 번 발행. Stop 때는 발행하지 않는다
+        public event Action<MonsterWaveStage> Finished;
 
         /// <summary>
         /// 스테이지 실행을 준비한다. 경과 0 에서 시작하고, StartTime 0 인 웨이브도 첫 Tick 에서 시작한다.
@@ -79,13 +83,13 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 실행 중 웨이브에 시간을 넘기고, 끝난 웨이브는 버린다.
+        /// 실행 중 웨이브에 시간을 넘긴다. 끝난 웨이브는 Finished 신호로 OnWaveFinished 가 뺀다.
+        /// 뒤에서부터 돌아서, 도중에 목록에서 빠져도 아직 안 돈 앞쪽 인덱스는 그대로다.
         /// </summary>
         /// <param name="deltaTime">지난 시간 (초)</param>
         private void TickRunningWaves(float deltaTime)
         {
-            foreach (MonsterWave wave in runningWaves) wave.Tick(deltaTime);
-            runningWaves.RemoveAll(wave => wave.IsFinished);
+            for (int i = runningWaves.Count - 1; i >= 0; i--) runningWaves[i].Tick(deltaTime);
         }
 
         /// <summary>
@@ -95,9 +99,35 @@ namespace HybridShooter.Monster.Behaviour
         {
             while (nextWaveIndex < stage.Waves.Count && stage.Waves[nextWaveIndex].StartTime <= elapsedTime)
             {
-                runningWaves.Add(new MonsterWave(stage.Waves[nextWaveIndex], monsterFactory, spawnZones));
+                var wave = new MonsterWave(stage.Waves[nextWaveIndex], monsterFactory, spawnZones);
+                wave.Finished += OnWaveFinished;
+                runningWaves.Add(wave);
                 nextWaveIndex++;
             }
+        }
+
+        /// <summary>
+        /// 웨이브가 끝나면 목록에서 빼고, 스테이지가 끝났는지 본다. 웨이브 Tick 안에서 불린다.
+        /// </summary>
+        /// <param name="wave">방금 끝난 웨이브</param>
+        private void OnWaveFinished(MonsterWave wave)
+        {
+            runningWaves.Remove(wave);
+            RaiseFinishedIfAllWavesDone();
+        }
+
+        /// <summary>
+        /// 웨이브를 다 시작했고 실행 중 웨이브가 0개면 Finished 를 발행한다.
+        /// 마지막 웨이브는 반드시 시작된 뒤에 끝나므로, 마지막으로 끝나는 웨이브의 신호에서 한 번만 발행된다.
+        /// </summary>
+        private void RaiseFinishedIfAllWavesDone()
+        {
+            bool hasStartedAllWaves = nextWaveIndex >= stage.Waves.Count;
+            bool hasNoRunningWave = runningWaves.Count == 0;
+            if (hasStartedAllWaves == false) return;
+            if (hasNoRunningWave == false) return;
+
+            Finished?.Invoke(this);
         }
     }
 }
