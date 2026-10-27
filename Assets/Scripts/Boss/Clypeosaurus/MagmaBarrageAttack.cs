@@ -2,20 +2,26 @@
 using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data.Defs;
+using HybridShooter.Core.GameFlow;
 using UnityEngine;
 
 namespace HybridShooter.Boss.Clypeosaurus
 {
+    [RequireComponent(typeof(BossView))]
     public class MagmaBarrageAttack : BossAttack
     {
+        // Animation
+        private const string WindupState = "Base Layer.IdleLookAround";
+        private const string BarrageState = "Base Layer.SpittersAttack";
+        private const string IdleState = "Base Layer.IdleBreathe";
+        
         [Header("Prefab·fire")] [SerializeField]
         private MagmaProjectile projectilePrefab;
 
         [SerializeField] private Transform[] firePoints;
 
-        [Header("fall point")] [SerializeField]
-        private LayerMask groundMask;
-
+        [Header("fall point")] 
+        [SerializeField] private LayerMask groundMask;
         // Raycast 설정, Height: 시작 높이 / Distance: 탐색 거리
         [SerializeField, Min(0f)] private float groundProbeHeight = 50f;
         [SerializeField, Min(0f)] private float groundProbeDistance = 100f;
@@ -31,7 +37,17 @@ namespace HybridShooter.Boss.Clypeosaurus
 
         private int nextShot;
         private float nextShotTime;
+        
+        private BossView view;
+        private bool fireStarted;
+        private bool animationFinished;
 
+        protected override void Awake()
+        {
+            base.Awake();
+            view = GetComponent<BossView>();
+        }
+        
         public void Initialize(ClypeosaurusDef def, IPlayerTarget target)
         {
             if (def == null) throw new ArgumentNullException(nameof(def));
@@ -47,12 +63,18 @@ namespace HybridShooter.Boss.Clypeosaurus
         protected override void OnWindup()
         {
             nextShot = 0;
+            fireStarted = false;
+            animationFinished = false;
 
-            if (BuildPlan()) return;
+            if (BuildPlan() == false)
+            {
+                Debug.LogWarning("[MagmaBarrage] 낙하 지점 확보 실패. Ground Mask, 분산 반경, 발사 지점을 확인해주세요.", this);
 
-            Debug.LogWarning("[MagmaBarrage] 낙하 지점 확보 실패. " + "Ground Mask, 분산 반경, 발사 지점을 확인해주세요.", this);
-            
-            Cancel();
+                Cancel();
+                return;
+            }
+
+            view.PlayState(WindupState);
         }
 
         private bool BuildPlan()
@@ -113,12 +135,27 @@ namespace HybridShooter.Boss.Clypeosaurus
         
         protected override void OnActiveStarted()
         {
+            view.PlayState(BarrageState);
+        }
+        
+        public void OnBarrageFire()
+        {
+            if (isActiveAndEnabled == false ||
+                Phase != SkillPhase.Active ||
+                fireStarted || animationFinished ||
+                Boss.IsAlive == false ||
+                Boss.isActiveAndEnabled == false ||
+                TargetRoot == null)
+                return;
+
+            // 이벤트가 중복 호출되어도 발사는 한 번만 시작한다.
+            fireStarted = true;
             FireNext();
         }
 
         protected override void OnActiveTick(float deltaTime)
         {
-            if (nextShot < landingPoints.Count && Time.time >= nextShotTime)
+            if (fireStarted && nextShot < landingPoints.Count && Time.time >= nextShotTime)
             {
                 FireNext();
             }
@@ -131,7 +168,22 @@ namespace HybridShooter.Boss.Clypeosaurus
                 } 
             }
 
-            if (nextShot == landingPoints.Count && projectiles.Count == 0)
+            if (animationFinished == false && view.IsStateFinished(BarrageState))
+            {
+                animationFinished = true;
+                view.PlayState(IdleState);
+
+                // 이벤트가 누락되어도 Active 상태에 갇히지 않도록 처리.
+                if (fireStarted == false)
+                {
+                    Debug.LogWarning("[MagmaBarrage] OnBarrageFire 이벤트가 호출되지 않았습니다.", this);
+
+                    CompleteActive();
+                    return;
+                }
+            }
+            
+            if (animationFinished && nextShot == landingPoints.Count && projectiles.Count == 0)
             {
                 CompleteActive();
             }
@@ -157,12 +209,18 @@ namespace HybridShooter.Boss.Clypeosaurus
         {
             foreach (var projectile in projectiles)
             {
-                if (projectile != null) projectile.Cancel();
+                if (projectile != null)
+                    projectile.Cancel();
             }
 
             projectiles.Clear();
             sources.Clear();
             landingPoints.Clear();
+
+            fireStarted = false;
+            animationFinished = false;
+
+            if (Boss.IsAlive && gameObject.activeInHierarchy) view.PlayState(IdleState);
         }
         
 #if UNITY_EDITOR

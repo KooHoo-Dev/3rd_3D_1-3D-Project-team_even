@@ -38,8 +38,15 @@ namespace HybridShooter.Boss.Clypeosaurus
                 Physics.IgnoreCollision(sphere, ownCollider);
             }
 
-            Vector3 arrival = destination + Vector3.up * sphere.radius;
+            Vector3 scale = sphere.transform.lossyScale;
 
+            float worldRadius = sphere.radius * Mathf.Max(
+                Mathf.Abs(scale.x),
+                Mathf.Abs(scale.y),
+                Mathf.Abs(scale.z));
+
+            Vector3 arrival = destination + Vector3.up * worldRadius;
+            
             float time = data.BarrageFlightTime;
             // arrival - body.position : 거리, 방향
             // - (0.5f * Physics.gravity * time * time) : 중력이 아래로 잡아당기는 양을 빼서 위쪽으로 다시 보정
