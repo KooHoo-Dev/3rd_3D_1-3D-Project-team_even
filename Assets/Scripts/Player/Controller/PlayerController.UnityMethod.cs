@@ -108,7 +108,7 @@ namespace HybridShooter.Player
 
         /// <summary>
         /// 애니메이터가 뼈를 움직인 뒤, 몸(보간된 위치)이 움직인 뒤에 실행된다.
-        /// 순서: 몸 회전 → 리그 회전 → 1인칭 눈 위치 → 3인칭 벽 충돌 → 시점 전환 중이면 전환 위치
+        /// 순서: 몸 회전 → 리그 회전 → 1인칭 눈 위치 → 3인칭 벽 충돌 → 시점 전환 중이면 전환 위치 → 흔들림 계산 (렌더 직전에만 더한다)
         /// </summary>
         private void LateUpdate()
         {
@@ -122,6 +122,7 @@ namespace HybridShooter.Player
             UpdateCameraArm(dt);
             UpdateAimZoom(dt);
             if (CameraChanging) ApplyTransitionPose();
+            UpdateCameraShake();
         }
     }
 }
