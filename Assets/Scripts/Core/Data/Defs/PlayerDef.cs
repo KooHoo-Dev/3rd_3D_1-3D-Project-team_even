@@ -23,6 +23,10 @@ namespace HybridShooter.Core.Data.Defs
         public int StartGrenades { get; }
         /// <summary>강화 전 기본 최대 보유 수. 실제 값 = MaxGrenades + 강화(GrenadeCapacity)</summary>
         public int MaxGrenades { get; }
+        /// <summary>시작 목숨 (지금 목숨 포함)</summary>
+        public int StartLives { get; }
+        /// <summary>기본 최대 목숨. 난이도·스테이지 클리어가 IPlayerLives 로 바꿀 수 있다</summary>
+        public int MaxLives { get; }
 
         /// <summary>Link 단계에서 채워짐</summary>
         public WeaponDef Rifle { get; internal set; }
@@ -41,11 +45,14 @@ namespace HybridShooter.Core.Data.Defs
             GrenadeId = d.GrenadeId;
             StartGrenades = d.StartGrenades;
             MaxGrenades = d.MaxGrenades;
+            StartLives = d.StartLives;
+            MaxLives = d.MaxLives;
 
             r.Check(MaxHp > 0, Table, Id, "MaxHp 는 1 이상");
             r.Check(MoveSpeed > 0f, Table, Id, "MoveSpeed 는 0 초과");
             r.Check(PitchMin < PitchMax, Table, Id, "PitchMin 은 PitchMax 보다 작아야 합니다");
             r.Check(StartGrenades >= 0 && StartGrenades <= MaxGrenades, Table, Id, "StartGrenades 는 0 ~ MaxGrenades");
+            r.Check(StartLives >= 1 && StartLives <= MaxLives, Table, Id, "StartLives 는 1 ~ MaxLives");
         }
     }
 }

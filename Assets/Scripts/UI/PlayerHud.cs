@@ -10,11 +10,12 @@ namespace HybridShooter.UI
 {
     /// <summary>
     /// 플레이어 기본 HUD. Player 루트에 붙인다. 시작할 때 화면 맨 위 Canvas 를 코드로 만든다.
+    ///  - 왼쪽 아래 맨 위: 남은 목숨 ×n / 최대 (PlayerLivesChangedEvent). 줄면 깜빡이고 마지막이면 빨강. 사망·부활 중에도 보인다
     ///  - 왼쪽 아래: 체력 바·숫자 (PlayerHpChangedEvent). 저체력이면 빨갛게 깜빡임
     ///  - 체력 아래: 수류탄·회복 팩 개수/최대 (GrenadeCountChangedEvent, HealPackCountChangedEvent). 1개 이상일 때만
     ///  - 가운데 아래: 스태미나 (PlayerStaminaChangedEvent). 움직이는 동안, 또는 가득 찰 때까지만. 가득 차면 서서히 사라짐
     ///  - 오른쪽 아래: 무기 이름·사격 모드, 탄약/탄창 (AmmoChangedEvent), 탄창 눈금 바. 재장전 중엔 바가 차오른다 (ReloadStarted/FinishedEvent)
-    /// 스코프 화면에서는 탄약만 남기고, 강화 선택·게임 오버·일시정지·사망 때는 모두 숨긴다.
+    /// 스코프 화면에서는 탄약만 남기고, 사망 때는 목숨만 남기고, 강화 선택·게임 오버·일시정지 때는 모두 숨긴다.
     /// 그림은 SCI-FI UI Pack (컴포넌트를 붙일 때 자동 연결), 수류탄 아이콘은 실행 중에 그린다
     /// </summary>
     [DisallowMultipleComponent]
@@ -57,15 +58,18 @@ namespace HybridShooter.UI
         [SerializeField, Range(0f, 1f)] private float lowAmmoRatio = 0.25f;
         [Tooltip("깜빡임 속도 (회/초)")]
         [SerializeField] private float blinkRate = 2.5f;
+        [Tooltip("목숨이 줄어든 뒤 깜빡이는 시간(초)")]
+        [SerializeField] private float livesFlashTime = 1.2f;
 
         [Header("스태미나")]
         [Tooltip("멈춰 있고 가득 찼을 때 사라지는 시간(초)")]
         [SerializeField] private float staminaFadeTime = 0.5f;
 
         private Canvas canvas;
-        private CanvasGroup rootGroup, vitalsGroup, staminaGroup;
+        private CanvasGroup rootGroup, mainGroup, vitalsGroup, staminaGroup, livesGroup;
         private Image hpBar, ammoBar, staminaBar;
-        private TextMeshProUGUI hpText, ammoText, infoText, statusText, grenadeText, healText;
+        private TextMeshProUGUI hpText, ammoText, infoText, statusText, grenadeText, healText, livesText;
+        private Image livesIcon;
         private GameObject grenadeSlot, healSlot;
 
         private int hp = 1, maxHp = 1;
@@ -77,6 +81,8 @@ namespace HybridShooter.UI
         private Gun shownGun;
         private string shownInfo;
         private int shownHp = -1, shownAmmo = -1, shownMagazine = -1;
+        private int lives = 1, maxLives = 1, shownLives = -1, shownMaxLives = -1;
+        private float livesFlashUntil;
 
         private void Reset() => AssignAssets();
 
@@ -122,6 +128,7 @@ namespace HybridShooter.UI
             EventBus<ReloadFinishedEvent>.Subscribe(OnReloadFinished);
             EventBus<GrenadeCountChangedEvent>.Subscribe(OnGrenadeCountChanged);
             EventBus<HealPackCountChangedEvent>.Subscribe(OnHealPackCountChanged);
+            EventBus<PlayerLivesChangedEvent>.Subscribe(OnLivesChanged);
             EventBus<GameStateChangedEvent>.Subscribe(OnGameStateChanged);
             if (gunSlot != null) gunSlot.GunChanged += OnGunChanged;
             if (canvas != null) canvas.gameObject.SetActive(true);
@@ -136,6 +143,7 @@ namespace HybridShooter.UI
             EventBus<ReloadFinishedEvent>.Unsubscribe(OnReloadFinished);
             EventBus<GrenadeCountChangedEvent>.Unsubscribe(OnGrenadeCountChanged);
             EventBus<HealPackCountChangedEvent>.Unsubscribe(OnHealPackCountChanged);
+            EventBus<PlayerLivesChangedEvent>.Unsubscribe(OnLivesChanged);
             EventBus<GameStateChangedEvent>.Unsubscribe(OnGameStateChanged);
             if (gunSlot != null) gunSlot.GunChanged -= OnGunChanged;
             if (canvas != null) canvas.gameObject.SetActive(false);
@@ -155,15 +163,21 @@ namespace HybridShooter.UI
                 maxHp = player.MaxHealth;
                 stamina = player.CurrentStamina;
                 maxStamina = player.MaxStamina;
+                lives = player.Lives;
+                maxLives = player.MaxLives;
             }
             if (gunSlot != null) OnGunChanged(gunSlot.CurrentIndex, gunSlot.CurrentGun);
         }
 
         private void Update()
         {
+            rootGroup.alpha = stateHidden ? 0f : 1f;
+            if (stateHidden) return;
+            UpdateLives(); // 사망·부활 중에도 보인다 (곧 부활할지 알려야 하므로)
+
             bool alive = player == null || player.IsAlive;
-            rootGroup.alpha = stateHidden || alive == false ? 0f : 1f;
-            if (rootGroup.alpha <= 0f) return;
+            mainGroup.alpha = alive ? 1f : 0f;
+            if (alive == false) return;
 
             bool scoped = aimView != null && aimView.Scoped;
             float blink = 0.55f + 0.45f * Mathf.Cos(Time.time * blinkRate * Mathf.PI * 2f);
@@ -190,6 +204,25 @@ namespace HybridShooter.UI
                 shownHp = hp;
                 hpText.SetText("{0}", hp);
             }
+        }
+
+        /// <summary>남은 목숨 ×n / 최대. 줄어든 직후 깜빡이고, 마지막 목숨(또는 0)이면 빨강</summary>
+        private void UpdateLives()
+        {
+            livesGroup.alpha = aimView != null && aimView.Scoped ? 0f : 1f; // 스코프 화면에서는 숨김
+            if (shownLives != lives || shownMaxLives != maxLives)
+            {
+                shownLives = lives;
+                shownMaxLives = maxLives;
+                livesText.SetText("×{0}<size=60%><color=#9FE8F5> / {1}</color></size>", lives, maxLives);
+            }
+
+            bool last = lives <= 1;
+            Color color = last ? Red : AimReticleHud.Cyan;
+            if (Time.time < livesFlashUntil)
+                color = Mathf.Repeat(Time.time * 6f, 1f) < 0.5f ? Color.white : Red;
+            livesIcon.color = color;
+            livesText.color = last || Time.time < livesFlashUntil ? color : TextColor;
         }
 
         /// <summary>움직이는 동안, 또는 가득 찰 때까지 보인다. 멈춰서 가득 차면 staminaFadeTime 동안 사라진다</summary>
@@ -313,6 +346,13 @@ namespace HybridShooter.UI
 
         private void OnHealPackCountChanged(HealPackCountChangedEvent e) => SetItem(healSlot, healText, e.Current, e.Max);
 
+        private void OnLivesChanged(PlayerLivesChangedEvent e)
+        {
+            if (e.Current < lives) livesFlashUntil = Time.time + livesFlashTime;
+            lives = e.Current;
+            maxLives = e.Max;
+        }
+
         /// <summary>1개 이상일 때만 보인다 (가로 정렬이 빈칸을 당겨 준다)</summary>
         private static void SetItem(GameObject slot, TextMeshProUGUI text, int current, int max)
         {
@@ -347,7 +387,21 @@ namespace HybridShooter.UI
             rootGroup = go.AddComponent<CanvasGroup>();
             rootGroup.blocksRaycasts = false;
             rootGroup.interactable = false;
-            Transform root = go.transform;
+            // 사망 중 숨기는 묶음 (체력·소모품·스태미나·무기). 목숨은 이 밖에 둔다
+            var main = Rect(go.transform, "Main", Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
+            main.anchorMax = Vector2.one;
+            mainGroup = main.gameObject.AddComponent<CanvasGroup>();
+            mainGroup.blocksRaycasts = false;
+            mainGroup.interactable = false;
+            Transform root = main;
+
+            // 왼쪽 아래, 체력 위: 목숨
+            livesGroup = Group(go.transform, "Lives", new Vector2(0f, 0f), new Vector2(56f, 158f), new Vector2(300f, 44f));
+            livesIcon = NewImage(Rect(livesGroup.transform, "Icon", Vector2.zero, new Vector2(0f, 0.5f), new Vector2(0f, 22f), new Vector2(34f, 34f)), HeartSprite());
+            livesIcon.preserveAspect = true;
+            livesIcon.color = AimReticleHud.Cyan;
+            livesText = Label(livesGroup.transform, "Count", numberFont, 32f, TextAlignmentOptions.MidlineLeft,
+                new Vector2(44f, 2f), new Vector2(240f, 40f));
 
             // 왼쪽 아래: 체력 + 소모품
             vitalsGroup = Group(root, "Vitals", new Vector2(0f, 0f), new Vector2(56f, 40f), new Vector2(560f, 110f));
@@ -476,6 +530,32 @@ namespace HybridShooter.UI
                 float d = Mathf.Min(Mathf.Min(body, neck), Mathf.Min(lever, ring));
                 byte a = (byte)(Mathf.Clamp01(0.5f - d) * 255f);
                 pixels[y * size + x] = new Color32(255, 255, 255, a);
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+        }
+
+        /// <summary>목숨 하트 (64px, 흰색). 하트 곡선 (x²+y²-1)³ - x²y³ ≤ 0 을 4×4 표본으로 가장자리를 부드럽게. 색은 Image.color 로</summary>
+        private static Sprite HeartSprite()
+        {
+            const int size = 64;
+            const int samples = 4;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "HudHeart", wrapMode = TextureWrapMode.Clamp };
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                int inside = 0;
+                for (int sy = 0; sy < samples; sy++)
+                for (int sx = 0; sx < samples; sx++)
+                {
+                    float hx = ((x + (sx + 0.5f) / samples) / size - 0.5f) * 2.6f;
+                    float hy = ((y + (sy + 0.5f) / samples) / size - 0.45f) * 2.6f;
+                    float a = hx * hx + hy * hy - 1f;
+                    if (a * a * a - hx * hx * hy * hy * hy <= 0f) inside++;
+                }
+                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(255 * inside / (samples * samples)));
             }
             texture.SetPixels32(pixels);
             texture.Apply(false, true);

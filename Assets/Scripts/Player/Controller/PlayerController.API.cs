@@ -12,7 +12,7 @@ namespace HybridShooter.Player
         /// <summary>인자 = 구르는 월드 방향</summary>
         public event Action<Vector3> RollStarted;
         public event Action RollEnded;
-        /// <summary>체력이 0 이 된 순간 한 번 (애니메이션 등)</summary>
+        /// <summary>체력이 0 이 된 순간 한 번 (애니메이션 등). 최종 사망은 FinalDied (부활 대기 시간 뒤)</summary>
         public event Action Died;
         /// <summary>시점 전환이 끝났을 때 알림 (UI 등)</summary>
         public event Action<ViewMode> ViewModeChanged;
@@ -29,7 +29,8 @@ namespace HybridShooter.Player
         public bool IsSliding => isSliding;
         /// <summary>발 → 발밑 땅 거리(m). 3m 보다 멀거나 땅이 없으면 무한대</summary>
         public float GroundDistance => groundDistance;
-        public bool IsInvulnerable => isRolling && Time.time - rollStartTime < rollInvulnerableTime;
+        /// <summary>구르기 직후 짧은 시간 또는 부활 연출 중. (TakeDamage 는 지금 부활·디버그 무적만 막는다. 구르기 무적 적용은 Docs 계획 참고)</summary>
+        public bool IsInvulnerable => isReviving || (isRolling && Time.time - rollStartTime < rollInvulnerableTime);
         public bool IsSprinting => sprintRequested && CanSprint && isGrounded && isRolling == false && HorizontalSpeed > 0.1f;
         /// <summary>구르는 중이 아니고, 지상이고, 쿨다운이 끝났고, 스태미나가 rollStaminaCost 이상</summary>
         public bool CanRoll => isRolling == false && isGrounded && Time.time >= rollReadyTime && HasRollStamina;
@@ -79,6 +80,8 @@ namespace HybridShooter.Player
 
         /// <summary>디버그(애니메이션 떨림 측정): 키보드·마우스 입력을 읽지 않는다. 이동·시선은 바깥에서 SetMoveInput·DebugSetLook 으로 넣는다</summary>
         public bool DebugBlockInput { get; set; }
+        /// <summary>디버그(PlayerDebugMode): 피해를 받지 않는다</summary>
+        public bool DebugInvincible { get; set; }
         /// <summary>디버그(1인칭 목 측정): null 이 아니면 neckPivotWeight 대신 이 값</summary>
         public float? DebugNeckPivotOverride { get; set; }
 
@@ -115,10 +118,7 @@ namespace HybridShooter.Player
         }
 
         /// <summary>몸을 이 방향(yaw)에 고정. 1인칭·3인칭 공통으로 카메라 yaw 를 넘긴다</summary>
-        public void LockFacing(float yaw) { facingMode = FacingMode.LockYaw; lockedYaw = yaw; }
-
-        /// <summary>이동(구르기) 방향으로 몸을 돌림. 지금은 쓰지 않지만 나중에 자유 시점이 필요하면 호출</summary>
-        public void FollowMoveFacing() => facingMode = FacingMode.FollowMove;
+        public void LockFacing(float yaw) => lockedYaw = yaw;
 
         public void RequestJump() => jumpRequestedTime = Time.time;
 

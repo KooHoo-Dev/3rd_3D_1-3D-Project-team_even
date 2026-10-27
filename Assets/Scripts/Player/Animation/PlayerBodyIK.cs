@@ -74,8 +74,6 @@ namespace HybridShooter.Player
         public Quaternion AnimLeftRotInRight => leftRotInRight;
         /// <summary>왼손 IK 목표 (마지막으로 푼 값)</summary>
         public Vector3 LeftHandTarget => leftArmIK != null ? leftArmIK.solver.IKPosition : Vector3.zero;
-        /// <summary>아이템 사용으로 왼손을 옮기는 정도 (0 = 총 손잡이)</summary>
-        public float LeftHandOverrideWeight => overrideWeight;
         public WeaponGripTable GripTable => driver != null && driver.Profile != null ? driver.Profile.gripTable : null;
         /// <summary>디버그(애니메이션 떨림 측정): 3인칭 왼손 LimbIK 를 풀지 않는다</summary>
         public bool DebugDisableLeftHand { get; set; }

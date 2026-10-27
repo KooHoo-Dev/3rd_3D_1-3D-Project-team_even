@@ -13,9 +13,9 @@ stateDiagram-v2
     BossIntro --> BossBattle: CameraModeChanged(3인칭, 완료) (BL-022)<br/>→ 등장 공격 + MonsterWipeRequested (BL-023)
     BossBattle --> Reward: BossDefeatedEvent (BL-020)
     Reward --> CrowdBattle: RewardSelectionFinished<br/>RoundCleanup(FullReset=false), 1인칭 복귀 (BL-032)
-    CrowdBattle --> GameOver: PlayerDiedEvent
-    BossIntro --> GameOver: PlayerDiedEvent
-    BossBattle --> GameOver: PlayerDiedEvent
+    CrowdBattle --> GameOver: PlayerFinalDeathEvent
+    BossIntro --> GameOver: PlayerFinalDeathEvent
+    BossBattle --> GameOver: PlayerFinalDeathEvent
     GameOver --> Ready: RoundCleanup(FullReset=true) (BL-033)
 ```
 
@@ -30,7 +30,7 @@ stateDiagram-v2
 | 003 | 라이플 사격 | E2 | 플레이어 | WeaponDef | IDamageable | WeaponFired, DamageDealt | — |
 | 004 | 탄약·재장전 | E2 | 플레이어 | WeaponDef.MagazineSize/ReloadTime | IUpgradeState | AmmoChanged, ReloadStarted/Finished | UpgradePurchased |
 | 005 | 수류탄 | E2 | 플레이어 | GrenadeDef, PlayerDef.Start/MaxGrenades | IDamageable | GrenadeCountChanged, GrenadeExploded | — |
-| 006 | 피격·사망 | E1 | 플레이어 | PlayerDef.MaxHp, Config.PlayerInvincibleTime | IDamageable, IHealable | PlayerHpChanged, PlayerDamaged, PlayerDied | — |
+| 006 | 피격·사망 | E1 | 플레이어 | PlayerDef.MaxHp, Config.PlayerInvincibleTime | IDamageable, IHealable | PlayerHpChanged, PlayerDamaged, PlayerDied, PlayerRevived, PlayerFinalDeath, PlayerLivesChanged | — |
 | 007 | 피격·위험 표현 | E1 | UI·사운드 (+플레이어) | Config.LowHpRatio | ISoundService | — | PlayerDamaged, PlayerHpChanged |
 | 008 | 개활지·외곽 벽 | E6 | ★ | — | — | — | — |
 | 009 | 건물·엄폐물·고지대 | E6 | ★ | — | ISpawnZoneProvider(구역) | — | — |
@@ -55,4 +55,4 @@ stateDiagram-v2
 | 030 | 강화 선택·구매 | E8 | 보급·보상 + UI | UpgradeTrackDef | IUpgradeState, ICurrencyWallet | UpgradePurchased, RewardSelectionFinished | GameStateChanged(Reward) |
 | 031 | 강화 실제 적용 | E2 | 플레이어 | UpgradeTrackDef | IUpgradeState | AmmoChanged, GrenadeCountChanged | UpgradePurchased |
 | 032 | 강화 유지 다음 라운드 | E9 | 코어 | GetRound(n+1) | — | RoundStarted, RoundCleanup(false) | RewardSelectionFinished |
-| 033 | 사망 후 재시작 | E9 | 코어 | — | ICurrencyWallet.ResetTo, IUpgradeState.ResetAll | RoundCleanup(true), GameOver | PlayerDied |
+| 033 | 사망 후 재시작 | E9 | 코어 | — | ICurrencyWallet.ResetTo, IUpgradeState.ResetAll | RoundCleanup(true), GameOver | PlayerFinalDeath |

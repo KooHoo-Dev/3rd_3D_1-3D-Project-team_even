@@ -63,7 +63,24 @@ namespace HybridShooter.Core.Events
         public PlayerDamagedEvent(in DamageInfo info) { Info = info; }
     }
 
+    /// <summary>
+    /// 사망 (체력 0). 최종 사망이 아니다: 부활 대기 시간 안에 부활(PlayerRevivedEvent)할 수 있다.
+    /// 몬스터는 대상 확보를 멈추고, UI·사운드는 사망 연출. 게임오버는 PlayerFinalDeathEvent 로 판단한다.
+    /// </summary>
     public readonly struct PlayerDiedEvent { }
+
+    /// <summary>[플레이어] → 몬스터, UI·사운드. 부활 연출이 끝나 다시 조작할 수 있게 된 순간. 몬스터는 다시 대상을 잡는다</summary>
+    public readonly struct PlayerRevivedEvent { }
+
+    /// <summary>[플레이어] → 코어(게임오버), UI. 부활 대기 시간 안에 부활하지 못해 확정된 최종 사망. 이 뒤로는 부활하지 않는다</summary>
+    public readonly struct PlayerFinalDeathEvent { }
+
+    /// <summary>[플레이어] → UI. 남은 목숨(지금 목숨 포함) / 최대 목숨 변화. 시작할 때 한 번, 바뀔 때마다</summary>
+    public readonly struct PlayerLivesChangedEvent
+    {
+        public readonly int Current, Max;
+        public PlayerLivesChangedEvent(int current, int max) { Current = current; Max = max; }
+    }
 
     /// <summary>
     /// [플레이어 카메라] → 보스, 코어, UI. 시점 전환 시작/완료 (BL-022).

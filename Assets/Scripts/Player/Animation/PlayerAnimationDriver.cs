@@ -99,13 +99,18 @@ namespace HybridShooter.Player
             // 위치는 리지드바디가 움직인다. 루트모션이 켜져 있으면 몸이 캡슐에서 빠져나간다
             animator.applyRootMotion = false;
             currentSet = profile.DefaultSet;
-            animator.SetFloat(PlayerAnimNames.Hash.MoveSpeedScale, 1f);
             upperPoseLayer = animator.GetLayerIndex(PlayerAnimNames.Layers.UpperPose);
             upperActionLayer = animator.GetLayerIndex(PlayerAnimNames.Layers.UpperAction);
             hitReactionLayer = animator.GetLayerIndex(PlayerAnimNames.Layers.HitReaction);
+            SetDefaultParams();
+            SetupThrow();
+        }
+
+        private void SetDefaultParams()
+        {
+            animator.SetFloat(PlayerAnimNames.Hash.MoveSpeedScale, 1f);
             animator.SetFloat(PlayerAnimNames.Hash.DodgeSpeed, 1f);
             animator.SetFloat(PlayerAnimNames.Hash.ActionSpeed, 1f);
-            SetupThrow();
         }
 
         /// <summary>던지기 클립이 있으면 수류탄을 애니메이션 순간에 놓고, 던지는 손에서 날아가게 한다</summary>
@@ -122,6 +127,8 @@ namespace HybridShooter.Player
             player.Jumped += OnJumped;
             player.RollStarted += OnRollStarted;
             player.Died += OnDied;
+            player.ReviveBodyRestored += OnReviveBodyRestored;
+            player.LifeReset += OnReviveBodyRestored;
             EventBus<PlayerDamagedEvent>.Subscribe(OnDamaged);
             EventBus<WeaponFiredEvent>.Subscribe(OnWeaponFired);
             EventBus<ReloadStartedEvent>.Subscribe(OnReloadStarted);
@@ -137,6 +144,8 @@ namespace HybridShooter.Player
                 player.Jumped -= OnJumped;
                 player.RollStarted -= OnRollStarted;
                 player.Died -= OnDied;
+                player.ReviveBodyRestored -= OnReviveBodyRestored;
+                player.LifeReset -= OnReviveBodyRestored;
             }
             EventBus<PlayerDamagedEvent>.Unsubscribe(OnDamaged);
             EventBus<WeaponFiredEvent>.Unsubscribe(OnWeaponFired);
@@ -207,6 +216,14 @@ namespace HybridShooter.Player
             animator.SetInteger(PlayerAnimNames.Hash.DeathDir, dir);
             animator.SetBool(PlayerAnimNames.Hash.Dead, true);
             animator.SetTrigger(PlayerAnimNames.Hash.Die);
+        }
+
+        /// <summary>부활·재시작: 사망 상태에는 나가는 전이가 없으므로 애니메이터를 처음 상태로 되돌린다 (파라미터는 매 프레임 다시 채워진다)</summary>
+        private void OnReviveBodyRestored()
+        {
+            animator.Rebind();
+            SetDefaultParams();
+            lastHitDirection = Vector2.up;
         }
 
         /// <summary>몸 기준 맞은 쪽. 피해 방향(공격자 → 플레이어)의 반대. 없으면 공격자 위치, 그것도 없으면 정면</summary>

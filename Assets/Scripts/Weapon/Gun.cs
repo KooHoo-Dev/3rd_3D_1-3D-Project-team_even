@@ -289,6 +289,12 @@ namespace HybridShooter.Weapon
             FinishReload();
         }
 
+        /// <summary>재장전 동작 없이 탄창을 바로 채운다 (디버그 무한 탄약 등)</summary>
+        public void RefillAmmo()
+        {
+            if (Ammo < Stats.magazineSize) SetAmmo(Stats.magazineSize);
+        }
+
         /// <summary>사격 모드 전환 (B). 지원하지 않는 총은 false</summary>
         public virtual bool ToggleFireMode() => false;
 

@@ -150,7 +150,7 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 몬스터가 반응하는 게임 이벤트 3개(보스 정리, 라운드 정리, 플레이어 사망)를 구독한다.
+        /// 몬스터가 반응하는 게임 이벤트 4개(보스 정리, 라운드 정리, 플레이어 사망, 플레이어 부활)를 구독한다.
         /// 해제는 OnDisable 이 한다.
         /// </summary>
         private void Subscribe()
@@ -158,6 +158,7 @@ namespace HybridShooter.Monster.Behaviour
             EventBus<MonsterWipeRequestedEvent>.Subscribe(OnWipeRequested);
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
             EventBus<PlayerDiedEvent>.Subscribe(OnPlayerDied);
+            EventBus<PlayerRevivedEvent>.Subscribe(OnPlayerRevived);
         }
 
         /// <summary>
@@ -170,6 +171,7 @@ namespace HybridShooter.Monster.Behaviour
             EventBus<MonsterWipeRequestedEvent>.Unsubscribe(OnWipeRequested);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
             EventBus<PlayerDiedEvent>.Unsubscribe(OnPlayerDied);
+            EventBus<PlayerRevivedEvent>.Unsubscribe(OnPlayerRevived);
         }
 
         /// <summary>
@@ -384,6 +386,7 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// 플레이어가 죽으면 상태 머신과 이동의 대상을 비우고, 이후 대상 확보를 멈춘다.
+        /// 최종 사망이 아니다: 부활하면 OnPlayerRevived 가 대상 확보를 다시 연다.
         /// </summary>
         private void OnPlayerDied(PlayerDiedEvent e)
         {
@@ -391,6 +394,11 @@ namespace HybridShooter.Monster.Behaviour
             StateMachine.SetTarget(null);
             SetMovementTarget(null);
         }
+
+        /// <summary>
+        /// 플레이어가 부활하면 대상 확보를 다시 연다. 실제 대상 지정은 다음 Update 의 AcquireTarget 이 한다.
+        /// </summary>
+        private void OnPlayerRevived(PlayerRevivedEvent e) => playerDead = false;
 
         /// <summary>
         /// 상태 머신·이동·이 컴포넌트를 끄고 팩토리에 회수를 맡긴다. 여러 번 불려도 1번만 실행한다.
