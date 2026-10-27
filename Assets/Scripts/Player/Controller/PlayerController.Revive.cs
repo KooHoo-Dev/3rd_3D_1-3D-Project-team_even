@@ -193,6 +193,7 @@ namespace HybridShooter.Player
         {
             if (evt.FullReset == false) return;
             ResetLife();
+            ClearVelocitySources(); // 보스가 Stop 없이 사라졌어도 남지 않게
             Teleport(spawnPosition);
             SetRotationImmediate(spawnYaw);
             SyncRigRotationNow();
