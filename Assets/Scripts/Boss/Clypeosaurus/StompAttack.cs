@@ -31,7 +31,7 @@ namespace HybridShooter.Boss.Clypeosaurus
             if (def == null) throw new ArgumentNullException(nameof(def));
             if (stompCenter == null) throw new InvalidOperationException("Stomp Center를 연결해주세요.");
 
-            InitializeAttack(target, def.StompTelegraphTime, def.StompRecoveryTime, def.StompCooldown);
+            InitializeAttack(target, def.StompTelegraphTime, def.StompRecoveryTime);
 
             data = def;
         }

@@ -18,9 +18,7 @@ namespace HybridShooter.Boss
         private bool initialized;
         private float windupTime;
         private float recoveryTime;
-        private float cooldown;
         private float phaseEndTime;
-        private float readyTime;
         
         protected virtual void Awake()
         {
@@ -32,7 +30,7 @@ namespace HybridShooter.Boss
             Cancel();
         }
 
-        protected void InitializeAttack(IPlayerTarget target, float windupTime, float recoveryTime, float cooldown)
+        protected void InitializeAttack(IPlayerTarget target, float windupTime, float recoveryTime)
         {
             if (target?.Root == null) throw new ArgumentException("플레이어 Root가 필요합니다.", nameof(target));
             
@@ -46,9 +44,7 @@ namespace HybridShooter.Boss
 
             this.windupTime = windupTime;
             this.recoveryTime = recoveryTime;
-            this.cooldown = cooldown;
 
-            readyTime = Time.time;
             initialized = true;
         }
 
@@ -56,11 +52,8 @@ namespace HybridShooter.Boss
         {
             // 공격 컴포넌트 상태
             if (initialized == false || isActiveAndEnabled == false || IsRunning) return false;
-            // 쿨다운
-            if (Time.time < readyTime) return false;
             // 보스 상태
-            if (Boss == null || Boss.isActiveAndEnabled == false || Boss.IsAlive == false 
-                || Boss.IsAttacking) return false;
+            if (Boss == null || Boss.CanStartAttack == false) return false;
             // 타깃 상태
             if (TargetRoot == null) return false;
 
@@ -107,8 +100,7 @@ namespace HybridShooter.Boss
                     if (Time.time < phaseEndTime) return;
                     
                     Phase = SkillPhase.Idle;
-                    readyTime = Time.time + cooldown;
-                    Boss.EndAttack(this);
+                    Boss.EndAttack(this, completed: true);
                     break;
             }
         }

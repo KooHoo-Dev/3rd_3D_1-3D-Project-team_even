@@ -17,14 +17,13 @@ namespace HybridShooter.Boss
 
         private void Update()
         {
-            if (boss.isActiveAndEnabled == false || boss.IsAlive == false || boss.IsAttacking || attacks == null) return;
+            if (boss.CanStartAttack == false || attacks == null) return;
             
             candidates.Clear();
 
             foreach (var attack in attacks)
             {
-                if (attacks == null || attack.gameObject != gameObject || attack.CanStart() == false 
-                    || candidates.Contains(attack)) continue;
+                if (attack == null || attack.gameObject != gameObject || attack.CanStart() == false || candidates.Contains(attack)) continue;
                 
                 candidates.Add(attack);
             }

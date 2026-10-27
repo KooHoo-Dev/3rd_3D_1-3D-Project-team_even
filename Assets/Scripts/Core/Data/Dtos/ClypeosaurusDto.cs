@@ -9,7 +9,7 @@
         public float StompTelegraphTime;
         public float StompRadius;
         public float StompRecoveryTime;
-        public float StompCooldown;
+        // public float StompCooldown;
 
         // 마그마 포격
         public int BarrageDamage;
@@ -17,7 +17,7 @@
         public float BarrageTelegraphTime;
         public float BarrageInterval;
         public float BarrageRecoveryTime;
-        public float BarrageCooldown;
+        // public float BarrageCooldown;
         public float BarrageSpreadRadius;
         public float BarrageFlightTime;
 
@@ -27,7 +27,7 @@
         public float ElectricWidth;
         public float ElectricChargeTime;
         public float ElectricRecoveryTime;
-        public float ElectricCooldown;
+        // public float ElectricCooldown;
 
         // 본체 HP에 따른 안테나 개방 기준
         public float FourOpenHpRatio; // 예: 0.7 = HP 70% 이하

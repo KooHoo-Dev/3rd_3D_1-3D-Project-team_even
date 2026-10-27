@@ -1,2 +1,5 @@
-BossId	StompDamage	StompTelegraphTime	StompRadius	StompRecoveryTime	StompCooldown	BarrageDamage	BarrageRadius	BarrageTelegraphTime	BarrageInterval	BarrageRecoveryTime	BarrageCooldown	BarrageSpreadRadius	BarrageFlightTime	ElectricDamage	ElectricRange	ElectricWidth	ElectricChargeTime	ElectricRecoveryTime	ElectricCooldown	FourOpenHpRatio	SixOpenHpRatio
-1	38	1.8	10	3	10	25	4	1.5	0.3	2.5	12	15	2	30	25	2	1.5	1	11	0.7	0.4
+BossId	StompDamage	StompTelegraphTime	StompRadius	StompRecoveryTime	BarrageDamage	BarrageRadius	BarrageTelegraphTime	BarrageInterval	BarrageRecoveryTime	BarrageSpreadRadius	BarrageFlightTime	ElectricDamage	ElectricRange	ElectricWidth	ElectricChargeTime	ElectricRecoveryTime	FourOpenHpRatio	SixOpenHpRatio
+# 개별 쿨타임 원본 보관. 현재는 BossTable.PatternCooldown 사용.
+# BossId	StompDamage	StompTelegraphTime	StompRadius	StompRecoveryTime	StompCooldown	BarrageDamage	BarrageRadius	BarrageTelegraphTime	BarrageInterval	BarrageRecoveryTime	BarrageCooldown	BarrageSpreadRadius	BarrageFlightTime	ElectricDamage	ElectricRange	ElectricWidth	ElectricChargeTime	ElectricRecoveryTime	ElectricCooldown	FourOpenHpRatio	SixOpenHpRatio
+# 1	38	1.8	10	3	10	25	4	1.5	0.3	2.5	12	15	2	30	25	2	1.5	1	11	0.7	0.4
+1	38	1.8	10	3	25	4	1.5	0.3	2.5	15	2	30	25	2	1.5	1	0.7	0.4

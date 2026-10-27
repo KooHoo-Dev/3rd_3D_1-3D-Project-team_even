@@ -55,7 +55,7 @@ namespace HybridShooter.Boss.Clypeosaurus
             if (firePoints == null || firePoints.Length == 0)
                 throw new InvalidOperationException("Fire Points를 연결해주세요.");
 
-            InitializeAttack(target, def.BarrageTelegraphTime, def.BarrageRecoveryTime, def.BarrageCooldown);
+            InitializeAttack(target, def.BarrageTelegraphTime, def.BarrageRecoveryTime);
 
             data = def;
         }

@@ -11,6 +11,7 @@ namespace HybridShooter.Boss
         private BossHealth health;
         private BossMovement movement;
         private BossAttack currentAttack;
+        private float nextAttackTime;
         
         public BossDef Def { get; private set; }
 
@@ -20,6 +21,7 @@ namespace HybridShooter.Boss
         public int CurrentHp => health?.CurrentHp ?? 0;
         public float HpRatio => health?.HpRatio ?? 0f;
         public bool IsAttacking => currentAttack != null;
+        public bool CanStartAttack => isActiveAndEnabled && IsAlive && IsAttacking == false && Time.time >= nextAttackTime;
         
         public event Action<DamageInfo> Damaged;
         public event Action Died;
@@ -38,6 +40,7 @@ namespace HybridShooter.Boss
             
             Def = def;
             health = new BossHealth(def.MaxHp);
+            nextAttackTime = Time.time;
             
             movement.Initialize(def.MoveSpeed, target.Root);
         }
@@ -62,20 +65,21 @@ namespace HybridShooter.Boss
         
         internal bool TryBeginAttack(BossAttack attack)
         {
-            if (isActiveAndEnabled == false || IsAlive == false) return false;
-
-            if (currentAttack != null) return false;
+            if (CanStartAttack == false) return false;
 
             currentAttack = attack;
             movement.Pause();
             return true;
         }
 
-        internal void EndAttack(BossAttack attack)
+        internal void EndAttack(BossAttack attack, bool completed = false)
         {
             if (currentAttack != attack) return;
 
             currentAttack = null;
+
+            // 정상적으로 회복까지 마쳤을 때 공통 쿨타임을 시작한다.
+            if (completed) nextAttackTime = Time.time + Def.PatternCooldown;
 
             if (IsAlive && isActiveAndEnabled) movement.Resume();
             else movement.Stop();
