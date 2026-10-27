@@ -16,10 +16,10 @@ namespace HybridShooter.Boss
 
         public Faction Faction => Faction.Monster;
         public bool IsAlive => health != null && health.IsAlive;
-
         public int MaxHp => health?.MaxHp ?? 0;
         public int CurrentHp => health?.CurrentHp ?? 0;
         public float HpRatio => health?.HpRatio ?? 0f;
+        public bool IsAttacking => currentAttack != null;
         
         public event Action<DamageInfo> Damaged;
         public event Action Died;

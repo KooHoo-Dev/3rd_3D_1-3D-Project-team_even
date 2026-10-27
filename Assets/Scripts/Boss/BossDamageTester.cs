@@ -45,10 +45,14 @@ namespace HybridShooter.Boss
 
             boss.Initialize(def, target);
             
+            var attackData = DataManager.Clypeosaurus;
+
+            var stomp = GetComponent<StompAttack>();
+            stomp.Initialize(attackData, target);
+
             var barrage = GetComponent<MagmaBarrageAttack>();
-            barrage.Initialize(DataManager.Clypeosaurus, target);
-            barrage.TryStart();
-            
+            barrage.Initialize(attackData, target);
+
             Debug.Log($"[Boss] 초기화 | ID: {boss.Def.Id} | " + $"HP: {boss.CurrentHp}/{boss.MaxHp}", boss);
         }
 

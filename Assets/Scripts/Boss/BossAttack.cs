@@ -51,12 +51,25 @@ namespace HybridShooter.Boss
             readyTime = Time.time;
             initialized = true;
         }
+
+        public bool CanStart()
+        {
+            // 공격 컴포넌트 상태
+            if (initialized == false || isActiveAndEnabled == false || IsRunning) return false;
+            // 쿨다운
+            if (Time.time < readyTime) return false;
+            // 보스 상태
+            if (Boss == null || Boss.isActiveAndEnabled == false || Boss.IsAlive == false 
+                || Boss.IsAttacking) return false;
+            // 타깃 상태
+            if (TargetRoot == null) return false;
+
+            return TargetDamageable.CanBeHitBy(Boss.Faction);
+        }
         
         public bool TryStart()
         {
-            if (initialized == false || isActiveAndEnabled == false) return false;
-            if (IsRunning || Time.time < readyTime || TargetRoot == null) return false;
-            if (TargetDamageable.CanBeHitBy(Boss.Faction) == false) return false;
+            if (CanStart() == false) return false;
             // 다른 패턴이 실행 중이면 시작할 수 없다.
             if (Boss.TryBeginAttack(this) == false) return false;
 
@@ -64,7 +77,8 @@ namespace HybridShooter.Boss
             phaseEndTime = Time.time + windupTime;
 
             OnWindup();
-            return true;
+            
+            return IsRunning;
         }
         
         private void Update()

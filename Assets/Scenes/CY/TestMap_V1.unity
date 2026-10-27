@@ -678,6 +678,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+      propertyPath: 'attacks.Array.data[1]'
+      value: 
+      objectReference: {fileID: 1194398169}
     - target: {fileID: 5523472075301917310, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: m_Name
       value: Clypeosaurus
@@ -7852,6 +7856,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossDamageTester
   bossId: 1
   playerSource: {fileID: 159822770}
+--- !u!114 &1194398169 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2158953421807436580, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+  m_PrefabInstance: {fileID: 67786932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1194398158}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e4b5d9c5c2a42ed8ca18ad43469c215, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.MagmaBarrageAttack
 --- !u!1 &1209849844
 GameObject:
   m_ObjectHideFlags: 0

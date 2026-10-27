@@ -1662,6 +1662,7 @@ GameObject:
   - component: {fileID: 6465869196583418968}
   - component: {fileID: 6183423561265755135}
   - component: {fileID: 6204140023404708941}
+  - component: {fileID: 823172667169261941}
   - component: {fileID: 534779049517218803}
   - component: {fileID: 2158953421807436580}
   m_Layer: 0
@@ -1813,6 +1814,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb69d9808e974c938eea5b0393f454b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossView
+--- !u!114 &823172667169261941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c77e17071df422eb23a86e8864799f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossPatternRunner
+  attacks:
+  - {fileID: 534779049517218803}
+  - {fileID: 534779049517218803}
 --- !u!114 &534779049517218803
 MonoBehaviour:
   m_ObjectHideFlags: 0
