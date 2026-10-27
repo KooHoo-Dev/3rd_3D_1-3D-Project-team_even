@@ -1,0 +1,5 @@
+Id	Round	StartTime	EndTime	WaveList
+# 군중전 스테이지 (보스 없음)  ·  Round: RoundTable.Round  ·  StartTime/EndTime: 라운드 시작 기준(초)  ·  WaveList: WaveTable.Id 를 ';' 로 구분 (웨이브 StartTime 순으로 실행)
+1	1	0	60	101;102;103
+2	1	60	120	104;105;106
+3	1	120	180	107;108;109
