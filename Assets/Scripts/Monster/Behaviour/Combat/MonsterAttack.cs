@@ -100,6 +100,14 @@ namespace HybridShooter.Monster.Behaviour
             this.findDamageable = findDamageable;
         }
 
+        /// <summary>
+        /// 몸 이동 중 이동 클립 재생 배율의 기준 속도를 알려준다. MonsterController.UpdateMoveAnimation 이 UsesMoveAnimation 인 공격에 묻는다.
+        /// 기본은 받은 값(몬스터 공통 이동 클립 기준 속도)을 그대로 돌려준다. 하위 클래스가 단계별로 바꾼다 (돌진).
+        /// </summary>
+        /// <param name="defaultClipSpeed">몬스터 공통 이동 클립 기준 속도 (m/s). MonsterController.moveClipSpeed</param>
+        /// <returns>이동 클립을 1배속으로 재생할 때의 이동 속도 (m/s)</returns>
+        public virtual float MoveClipSpeedFor(float defaultClipSpeed) => defaultClipSpeed;
+
         /// <summary>쿨다운 확인. AttackState 가 Begin 전에 부른다. 하위 클래스가 발동 조건을 더할 수 있다</summary>
         /// <param name="now">현재 시각 (s)</param>
         /// <returns>진행 중이 아니고 쿨다운이 지났으면 true (정상 완료 = 회복 끝 기준, 취소·조기 종료 = Begin 기준)</returns>

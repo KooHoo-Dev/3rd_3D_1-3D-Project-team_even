@@ -17,6 +17,8 @@ namespace HybridShooter.Monster.Behaviour
         [SerializeField, Min(0.1f)] private float brakeDeceleration = 15f;
         [Tooltip("플레이어를 지나치지 못해도 이 거리(m)를 달리면 감속한다")]
         [SerializeField, Min(0f)] private float maxChargeDistance = 30f;
+        [Tooltip("돌진 중 Move 클립을 1배속으로 재생할 때의 이동 속도 (m/s). 재생 배율 = 돌진 속도 ÷ 이 값")]
+        [SerializeField, Min(0.01f)] private float chargeClipSpeed = 18f;
 
         [Header("Idle 준비 동작")]
         [Tooltip("휴식 중 플레이어 쪽으로 도는 속도 (도/초)")]
@@ -28,6 +30,7 @@ namespace HybridShooter.Monster.Behaviour
         public float ChargeTurnSpeed => chargeTurnSpeed;
         public float BrakeDeceleration => brakeDeceleration;
         public float MaxChargeDistance => maxChargeDistance;
+        public float ChargeClipSpeed => chargeClipSpeed;
         public float PrepTurnSpeed => prepTurnSpeed;
         public float PrepMoveSpeed => prepMoveSpeed;
     }

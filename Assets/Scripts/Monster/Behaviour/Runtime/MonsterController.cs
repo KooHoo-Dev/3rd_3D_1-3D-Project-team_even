@@ -86,6 +86,36 @@ namespace HybridShooter.Monster.Behaviour
         /// <remarks>모든 컴포넌트 Awake 이후에 실행되어야 한다. 상태 머신 생성 직후 Idle.Stop 이 이동 실행기를 쓴다.</remarks>
         private void Start()
         {
+            AssembleStateMachine();
+            Subscribe();
+        }
+
+        /// <summary>
+        /// 풀에서 다시 꺼낸 몬스터를 처음 소환된 상태로 되살린다.
+        /// 풀(팩토리)이 재사용 개체를 켠 직후 1번 부른다. 처음 만든 개체는 Start 가 조립하므로 부르지 않는다.
+        /// </summary>
+        /// <remarks>
+        /// Dead 는 상태 머신의 종료 상태라 상태 머신을 새로 만든다.
+        /// 마지막에 enabled = true 로 OnEnable 을 태워 이동을 켜고 게임 이벤트를 다시 구독한다.
+        /// Animator 는 GameObject 를 끄고 켤 때 초기화된다 (Keep Animator State On Disable 꺼짐 전제).
+        /// </remarks>
+        public void Respawn()
+        {
+            despawned = false;
+            despawnTime = -1f;
+            playerDead = false;
+            InitializeHealth(Def.MaxHp);
+            foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = true; // OnStateMachineDied 가 끈 피격 판정 복구
+            AssembleStateMachine();
+            enabled = true;
+        }
+
+        /// <summary>
+        /// Def 로 공격 목록과 상태 머신을 만들고 상태 머신·공격 이벤트를 구독한다.
+        /// Start(최초 조립)와 Respawn(재사용 시 재조립)이 호출한다.
+        /// </summary>
+        private void AssembleStateMachine()
+        {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
             var body = new MonsterBody(transform, GetComponent<NavMeshMoveExecutor>());
             var attackSettings = new MonsterAttackSettings(GetComponent<PoisonAreaSettings>(),
@@ -106,7 +136,6 @@ namespace HybridShooter.Monster.Behaviour
             StateMachine.Died += OnStateMachineDied;
             StateMachine.StateChanged += OnStateChanged;
             foreach (MonsterAttack attack in StateMachine.Attacks) attack.PhaseChanged += OnAttackPhaseChanged;
-            Subscribe();
         }
 
         /// <summary>
@@ -236,7 +265,8 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// Chase 중 실제 이동 속도로 IsMoving 을 매 프레임 넣어 Idle ↔ Move 전이를 일으킨다.
         /// 이동 자체가 공격인 몬스터(돌진)는 Attack 중과 Idle 준비 동작 중에도 공격이 알려준 몸 이동 속도로 같은 일을 한다.
-        /// Move 면 재생 배율을 (속도 ÷ moveClipSpeed) 로 맞춰 발 미끄러짐을 줄인다.
+        /// Move 면 재생 배율을 (속도 ÷ 클립 기준 속도) 로 맞춰 발 미끄러짐을 줄인다.
+        /// 클립 기준 속도는 Chase 면 moveClipSpeed, 공격 이동 중이면 공격의 MoveClipSpeedFor (돌진 = ChargeSettings.ChargeClipSpeed).
         /// </summary>
         private void UpdateMoveAnimation()
         {
@@ -248,11 +278,16 @@ namespace HybridShooter.Monster.Behaviour
             if (isChasing == false && isAttackMovingBody == false) return;
 
             float speed = movement.Velocity.magnitude;
-            if (isAttackMovingBody) speed = currentAttack.BodyMoveSpeed;
+            float clipSpeed = moveClipSpeed;
+            if (isAttackMovingBody)
+            {
+                speed = currentAttack.BodyMoveSpeed;
+                clipSpeed = currentAttack.MoveClipSpeedFor(moveClipSpeed);
+            }
             bool shouldMove = speed >= idleSpeedThreshold;
             animator.SetBool("IsMoving", shouldMove);
 
-            if (shouldMove) animator.speed = speed / moveClipSpeed;
+            if (shouldMove) animator.speed = speed / clipSpeed;
             else animator.speed = 1f;
         }
 

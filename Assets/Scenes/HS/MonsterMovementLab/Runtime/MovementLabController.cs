@@ -104,7 +104,9 @@ namespace HybridShooter.Monster.MovementLab
             {
                 var monster = monsters[i];
                 if (!monster.gameObject.activeInHierarchy) continue;
-                if (HitBounds(monster).IntersectRay(ray, out float distance) && distance < bestDistance)
+                Bounds bounds = HitBounds(monster);
+                if (bounds != null && bounds.IntersectRay(ray, out float distance) 
+                                   && distance < bestDistance)
                 {
                     best = monster;
                     bestDistance = distance;
@@ -119,11 +121,16 @@ namespace HybridShooter.Monster.MovementLab
         private static Bounds HitBounds(MovementLabOwnedMonster monster)
         {
             var agent = monster.GetComponent<NavMeshAgent>();
-            var bounds = new Bounds(monster.transform.position + Vector3.up * agent.height * .5f,
-                new Vector3(agent.radius * 2f, agent.height, agent.radius * 2f));
-            foreach (var renderer in monster.GetComponentsInChildren<Renderer>())
-                bounds.Encapsulate(renderer.bounds);
-            return bounds;
+            if (agent != null)
+            {
+                var bounds = new Bounds(monster.transform.position + Vector3.up * agent.height * .5f,
+                    new Vector3(agent.radius * 2f, agent.height, agent.radius * 2f));
+                foreach (var renderer in monster.GetComponentsInChildren<Renderer>())
+                    bounds.Encapsulate(renderer.bounds);
+                return bounds;
+            }
+
+            return new Bounds();
         }
 
         private void ReviveAll()
