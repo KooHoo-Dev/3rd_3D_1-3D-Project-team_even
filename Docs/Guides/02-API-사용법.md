@@ -233,6 +233,23 @@ if (gr != null && gr.AddGrenades(1)) { /* 획득 성공 */ }
 
 (플레이어 담당은 플레이어 루트에 `IHealable`, `IGrenadeReceiver` 를 구현한 컴포넌트를 붙입니다.)
 
+### 2-5. ❤ 목숨 — `IPlayerLives` (ServiceLocator)
+
+```csharp
+// 난이도 설정: 최대 목숨을 정하고 가득 채운다. 플레이어가 등록된 뒤(예: RoundStartedEvent 이후)에 부른다
+if (ServiceLocator.TryGet<IPlayerLives>(out var lives)) lives.SetMaxLives(5, refill: true);
+
+// 스테이지 클리어 보상: 최대 +1, 현재도 +1 (호출하는 곳은 한 군데로 — 중복 지급 주의)
+lives.AddMaxLives(1, addLives: true);
+
+// 현재 목숨 +1 (최대까지). 이미 최대면 false
+bool ok = lives.AddLives(1);
+```
+
+- `Lives` 는 **지금 목숨을 포함**한다 (3 = 기회 3번). 목숨이 남아 있으면 사망 후 자동 부활하며 1 줄고, 마지막 목숨이면 최종 사망(`PlayerFinalDeathEvent`)
+- 처음부터 재시작(`RoundCleanupEvent.FullReset`) 때: `SetMaxLives` 값은 유지, `AddMaxLives` 로 늘린 몫은 사라지고 현재 = 최대
+- 시작 값은 `PlayerTable.StartLives` / `MaxLives`
+
 ---
 
 ## 3. ☎ ServiceLocator 사용하기
@@ -423,7 +440,10 @@ public class KillCounter : MonoBehaviour
 |---|---|---|
 | `PlayerHpChangedEvent` | `Current`, `Max`, `Ratio`(0~1) | UI (체력바) |
 | `PlayerDamagedEvent` | `Info` (DamageInfo) | UI·사운드 (피격 연출) |
-| `PlayerDiedEvent` | (없음) | 코어 (게임오버) |
+| `PlayerDiedEvent` | (없음). 사망이지만 **최종이 아님** (부활 대기) | 몬스터 (대상 놓기), UI·사운드 |
+| `PlayerRevivedEvent` | (없음). 부활 연출이 끝나 다시 조작 가능 | 몬스터 (대상 다시 잡기), UI·사운드 |
+| `PlayerFinalDeathEvent` | (없음). 마지막 목숨으로 쓰러져 부활 못 함 | 코어 (게임오버), UI |
+| `PlayerLivesChangedEvent` | `Current`(지금 목숨 포함), `Max` | UI (목숨 표시) |
 | `CameraModeChangedEvent` | `Mode` (FirstPerson/ThirdPerson), `IsComplete` | 보스(전환 **완료 후** 등장 공격), UI |
 
 #### 🔫 무기 (발행: 무기)

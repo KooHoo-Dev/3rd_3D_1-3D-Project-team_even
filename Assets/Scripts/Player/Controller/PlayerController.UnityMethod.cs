@@ -1,4 +1,6 @@
 ﻿using DG.Tweening;
+using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Services;
 using HybridShooter.Weapon;
 using UnityEngine;
 
@@ -32,7 +34,10 @@ namespace HybridShooter.Player
             if (bodyVisual == transform) bodyVisual = null; // 리지드바디 자신은 돌리면 안 된다
             if (gunSlot == null) gunSlot = GetComponent<GunSlot>();
             items = GetComponent<PlayerItems>();
+            // 씬·프리팹·빌더 어디서 만든 플레이어든 1인칭 목 숨김이 빠지지 않게
+            if (GetComponent<PlayerFirstPersonNeck>() == null) gameObject.AddComponent<PlayerFirstPersonNeck>();
             stamina = maxStamina;
+            InitLives();
 
             CacheRig();
             CacheHeadRenderers();
@@ -48,12 +53,25 @@ namespace HybridShooter.Player
             ApplyViewModeImmediate(viewMode);
             SetCursorLocked(true);
             PublishStamina();
+            PublishLives();
             LoadBossViewConfig();
+            spawnPosition = rb.position;
+            spawnYaw = rb.rotation.eulerAngles.y;
         }
 
-        private void OnEnable() => SubscribeViewEvents();
+        private void OnEnable()
+        {
+            SubscribeViewEvents();
+            SubscribeLifeEvents();
+            SubscribeExternalVelocityEvents();
+        }
 
-        private void OnDisable() => UnsubscribeViewEvents();
+        private void OnDisable()
+        {
+            UnsubscribeViewEvents();
+            UnsubscribeLifeEvents();
+            UnsubscribeExternalVelocityEvents();
+        }
 
         private void OnDestroy()
         {
@@ -67,7 +85,8 @@ namespace HybridShooter.Player
 
         private void Update()
         {
-            if (externalControl) return;
+            UpdateLifeCycle();
+            if (externalControl || DebugBlockInput || isReviving) return;
             InputHandle();
         }
 
@@ -78,20 +97,22 @@ namespace HybridShooter.Player
 
             UpdateGround(dt);
 
+            RemoveAppliedExternal(); // 모터는 지난 프레임 rb 속도에서 출발한다 → 외부 속도 몫을 먼저 뺀다
             if (isSliding) UpdateSlide(dt);
             else if (isRolling) UpdateRoll(dt);
             else UpdateWalk(dt);
+            ApplyExternal(dt);
 
             UpdateJump();
             UpdateStamina(dt);
             ClampFallSpeed();
-            UpdateFacing(dt);
+            UpdateFacing();
             SetPlayerTrackingInfo();
         }
 
         /// <summary>
         /// 애니메이터가 뼈를 움직인 뒤, 몸(보간된 위치)이 움직인 뒤에 실행된다.
-        /// 순서: 몸 회전 → 리그 회전 → 1인칭 눈 위치 → 3인칭 벽 충돌 → 시점 전환 중이면 전환 위치
+        /// 순서: 몸 회전 → 리그 회전 → 1인칭 눈 위치 → 3인칭 벽 충돌 → 시점 전환 중이면 전환 위치 → 흔들림 계산 (렌더 직전에만 더한다)
         /// </summary>
         private void LateUpdate()
         {
@@ -105,6 +126,7 @@ namespace HybridShooter.Player
             UpdateCameraArm(dt);
             UpdateAimZoom(dt);
             if (CameraChanging) ApplyTransitionPose();
+            UpdateCameraShake();
         }
     }
 }

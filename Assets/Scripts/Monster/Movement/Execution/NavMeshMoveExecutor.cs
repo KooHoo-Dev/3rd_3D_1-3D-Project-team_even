@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -42,7 +43,75 @@ namespace HybridShooter.Monster.Movement
         private float lastSampleWarnTime = float.NegativeInfinity; // 목적지 근처 NavMesh 없음 경고 간격 제한
 
         // ════════ 외부 공개 ════════
+        private bool attackMotion;
+        private bool savedUpdatePosition;
+        private Vector3 attackRootOffset;
+        private Vector3 attackReturnGround;
+        private bool needsAttackWarp;
+        private Func<Vector3> resolveAttackInterruption;
+
+        public bool HasAttackMotion => attackMotion;
+        public float AttackRadius => agent.radius;
+        public float AttackHeight => agent.height;
+        public Vector3 AttackGroundOrigin => transform.position - Vector3.up * agent.baseOffset;
+
+        public NavMeshQueryFilter AttackNavigationFilter => new NavMeshQueryFilter { agentTypeID = agent.agentTypeID, areaMask = agent.areaMask };
+
+        /// <summary>정지된 Agent 의 자동 위치 갱신을 잠시 인계한다. 일반 이동의 Stop 과 별개다.</summary>
+        public void BeginAttackMotion(Vector3 startGround, Func<Vector3> resolveInterruption)
+        {
+            if (attackMotion) throw new InvalidOperationException("이미 공격이 위치를 제어하고 있다");
+            if (agent.isActiveAndEnabled == false || agent.isOnNavMesh == false)
+                throw new InvalidOperationException("도약 시작에는 활성 NavMeshAgent 가 필요하다");
+            resolveAttackInterruption = resolveInterruption;
+            savedUpdatePosition = agent.updatePosition;
+            attackRootOffset = Vector3.up * (transform.position.y - startGround.y);
+            attackReturnGround = startGround;
+            Stop();
+            agent.updatePosition = false;
+            attackMotion = true;
+        }
+
+        /// <summary>공격이 검증한 루트 위치로 이동한다. Agent 내부 위치는 이륙 지면에 남겨 둔다.</summary>
+        public void MoveForAttack(Vector3 position)
+        {
+            if (attackMotion == false) throw new InvalidOperationException("공격 위치 제어를 시작하지 않았다");
+            transform.position = position;
+        }
+
+        /// <summary>정상 착지 또는 취소 지면으로 Agent 와 루트를 동기화하고 원래 갱신 설정을 복원한다.</summary>
+        public void EndAttackMotion(Vector3 ground)
+        {
+            if (attackMotion == false) return; // 실행기 OnDisable 이 먼저 복원한 경우
+            attackReturnGround = ground;
+            transform.position = ground + attackRootOffset;
+            agent.updatePosition = savedUpdatePosition;
+            attackMotion = false;
+            resolveAttackInterruption = null;
+            needsAttackWarp = true;
+            if (agent.isActiveAndEnabled) RestoreAttackAgent();
+        }
+
+        /// <summary>오브젝트 비활성 중에는 Warp 할 수 없으므로 다시 활성화될 때 동기화를 마친다.</summary>
+        private void OnEnable()
+        {
+            if (needsAttackWarp) RestoreAttackAgent();
+        }
+
+        private void RestoreAttackAgent()
+        {
+            Vector3 root = attackReturnGround + attackRootOffset;
+            if (agent.Warp(root) == false)
+                throw new InvalidOperationException($"도약 후 NavMesh 복귀 실패: {name} @ {root}");
+            transform.position = root;
+            agent.nextPosition = root;
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+            needsAttackWarp = false;
+        }
+
         public Vector3 Velocity => agent.isActiveAndEnabled ? agent.velocity : Vector3.zero;
+        public float Radius => agent.radius;
 
         // 디버그: 누적 SetPath 호출 수
         public int RepathCount => repathCount;
@@ -76,6 +145,7 @@ namespace HybridShooter.Monster.Movement
         /// <summary>비활성화 시 경로 추적 상태 초기화</summary>
         private void OnDisable()
         {
+            if (attackMotion) EndAttackMotion(resolveAttackInterruption());
             hasDestination = false;
             warnedOffMesh = false;
         }
@@ -191,7 +261,25 @@ namespace HybridShooter.Monster.Movement
             agent.ResetPath();
             agent.isStopped = true;
             agent.velocity = Vector3.zero;
-            agent.nextPosition = transform.position;
+            if (attackMotion == false) agent.nextPosition = transform.position;
+        }
+
+        /// <summary>
+        /// 경로 없이 몸을 정해진 양만큼 옮긴다. 이동 구간에 NavMesh 경계(벽)가 있으면 경계까지만 옮긴다.
+        /// MonsterMovement.MoveDuringAttack 이 돌진·준비 동작 중에 호출한다.
+        /// </summary>
+        /// <param name="displacement">이번 틱 이동량 (월드, m). 높이는 NavMesh 표면을 따른다</param>
+        /// <returns>true = NavMesh 경계에 막혔다</returns>
+        public bool MoveBy(Vector3 displacement)
+        {
+            Vector3 from = agent.nextPosition;
+            Vector3 to = from + displacement;
+            bool hitWall = NavMesh.Raycast(from, to, out NavMeshHit hit, agent.areaMask);
+            Vector3 allowedDisplacement = displacement;
+            if (hitWall) allowedDisplacement = hit.position - from;
+
+            agent.Move(allowedDisplacement);
+            return hitWall;
         }
     }
 }

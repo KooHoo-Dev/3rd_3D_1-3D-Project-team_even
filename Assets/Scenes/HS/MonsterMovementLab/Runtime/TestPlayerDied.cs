@@ -11,5 +11,9 @@ namespace HybridShooter.Monster.MovementLab
     {
         [ContextMenu("Publish PlayerDiedEvent")]
         private void PublishPlayerDied() => EventBus<PlayerDiedEvent>.Publish(new PlayerDiedEvent());
+
+        /// <summary>부활: MonsterController.OnPlayerRevived → 다음 Update 에서 대상을 다시 잡는다</summary>
+        [ContextMenu("Publish PlayerRevivedEvent")]
+        private void PublishPlayerRevived() => EventBus<PlayerRevivedEvent>.Publish(new PlayerRevivedEvent());
     }
 }

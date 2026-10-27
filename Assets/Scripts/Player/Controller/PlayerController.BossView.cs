@@ -1,7 +1,9 @@
+using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
+using HybridShooter.Core.Services;
 using UnityEngine;
 
 namespace HybridShooter.Player
@@ -36,14 +38,18 @@ namespace HybridShooter.Player
 
         private void SubscribeViewEvents()
         {
+            ServiceLocator.Register<IPlayerTarget>(this);
             EventBus<GameStateChangedEvent>.Subscribe(OnGameStateChanged);
             EventBus<CameraModeRequestedEvent>.Subscribe(OnCameraModeRequested);
+            SubscribeShakeEvents();
         }
 
         private void UnsubscribeViewEvents()
         {
+            ServiceLocator.Unregister<IPlayerTarget>(this);
             EventBus<GameStateChangedEvent>.Unsubscribe(OnGameStateChanged);
             EventBus<CameraModeRequestedEvent>.Unsubscribe(OnCameraModeRequested);
+            UnsubscribeShakeEvents();
         }
 
         private void OnGameStateChanged(GameStateChangedEvent e)

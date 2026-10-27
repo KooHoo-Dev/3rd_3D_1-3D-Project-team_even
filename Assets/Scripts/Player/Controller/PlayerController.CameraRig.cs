@@ -59,12 +59,26 @@ namespace HybridShooter.Player
         }
 
         /// <summary>
-        /// 1인칭 리그 위치 = 원래 높이 + 정면으로 조금 내밀기.
+        /// 시선이 바뀐 자리(Update)에서 리그 회전을 바로 맞춘다 → 같은 프레임에 쏘는 총(GunSlot.AimRay = 카메라 정면)이
+        /// 지난 프레임 방향이 아니라 이번 프레임 화면과 같은 방향을 쓴다. LateUpdate 에서 다시 돌려도 결과는 같다
+        /// </summary>
+        private void SyncRigRotationNow()
+        {
+            if (rigReady) UpdateRigRotation();
+        }
+
+        /// <summary>
+        /// 1인칭 리그 위치 = 원래 높이 + 정면으로 조금 내밀기 + (선택) 목을 축으로 돈 만큼.
+        /// 아래를 보면 눈이 목 축을 따라 앞·아래로 간다 (neckPivotWeight 0 = 끔)
         /// (선택) followHeadBone 이면 머리 뼈 위치를 부분적으로, 부드럽게 따라간다 (애니메이션 흔들림 포함)
         /// </summary>
         private void UpdateEyePosition()
         {
             Vector3 basePos = fpRigHomePos + new Vector3(0f, 0f, eyeForwardOffset);
+            float pivotWeight = DebugNeckPivotOverride ?? neckPivotWeight;
+            if (pivotWeight > 0f && lookPitch > 0f)
+                basePos += (Quaternion.Euler(lookPitch, 0f, 0f) * eyeFromNeck - eyeFromNeck) * pivotWeight;
+            basePos += NeckGuardOffset(basePos);
 
             if (followHeadBone == false || headBone == null)
             {
@@ -76,6 +90,21 @@ namespace HybridShooter.Player
             Vector3 headLocal = fpRig.parent.InverseTransformPoint(headBone.position) + headEyeOffset;
             Vector3 target = Vector3.Lerp(basePos, headLocal, headFollowWeight);
             fpRig.localPosition = Vector3.SmoothDamp(fpRig.localPosition, target, ref headFollowVelocity, headFollowSmoothTime);
+        }
+
+        /// <summary>
+        /// 목 보호: 눈(eyeLocal)이 목 뼈보다 시선 수평 정면으로 neckClearance 만큼 앞에 있도록 앞으로 미는 양 (FP_Rig 부모 기준).
+        /// 목 위치는 지난 프레임 IK 가 끝난 뒤 값 (PlayerFirstPersonNeck 이 ReportNeckPosition 으로 넘긴다). 부모 기준이라 이동해도 1프레임 차이는 작다.
+        /// 1인칭 총 자리는 눈(FirstPersonEyePose)을 따라가므로 총도 같이 앞으로 간다. 1인칭 정도(FirstPersonBlend)만큼만 적용
+        /// </summary>
+        private Vector3 NeckGuardOffset(Vector3 eyeLocal)
+        {
+            float target = 0f;
+            Vector3 forward = Quaternion.Inverse(fpRig.parent.rotation) * (Quaternion.Euler(0f, lookYaw, 0f) * Vector3.forward);
+            if (neckClearance > 0f && hasNeckSample)
+                target = Mathf.Max(0f, neckClearance - Vector3.Dot(eyeLocal - neckLocal, forward)) * FirstPersonBlend;
+            neckPush = Mathf.SmoothDamp(neckPush, target, ref neckPushVelocity, neckGuardSmoothTime);
+            return forward * neckPush;
         }
 
         /// <summary>

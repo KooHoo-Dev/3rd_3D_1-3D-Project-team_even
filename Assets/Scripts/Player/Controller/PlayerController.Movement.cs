@@ -209,21 +209,7 @@ namespace HybridShooter.Player
             Jumped?.Invoke();
         }
 
-        private void UpdateFacing(float dt)
-        {
-            if (facingMode == FacingMode.LockYaw)
-            {
-                rb.MoveRotation(Quaternion.Euler(0f, lockedYaw, 0f));
-                return;
-            }
-
-            Vector3 dir = isRolling ? rollDirection : moveDirection;
-            if (dir.sqrMagnitude < 0.01f) return;
-
-            float targetYaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
-            float yaw = Mathf.MoveTowardsAngle(rb.rotation.eulerAngles.y, targetYaw, turnSpeed * dt);
-            rb.MoveRotation(Quaternion.Euler(0f, yaw, 0f));
-        }
+        private void UpdateFacing() => rb.MoveRotation(Quaternion.Euler(0f, lockedYaw, 0f));
         #endregion
 
         #region 보조
@@ -239,8 +225,6 @@ namespace HybridShooter.Player
         private float FacingSpeedFactor()
         {
             if (moveDirection.sqrMagnitude < 0.0001f) return 1f;
-            // FollowMove 는 몸이 곧 이동 방향으로 돌기 때문에 뒷걸음 감속을 걸지 않는다 (현재 미사용)
-            if (facingMode == FacingMode.FollowMove) return 1f;
             float dot = Vector3.Dot(rb.rotation * Vector3.forward, moveDirection.normalized);
             return Mathf.Lerp(backwardMultiplier, 1f, Mathf.InverseLerp(-0.6f, 0.2f, dot));
         }

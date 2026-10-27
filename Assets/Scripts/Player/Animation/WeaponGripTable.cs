@@ -82,7 +82,6 @@ namespace HybridShooter.Player
             {
                 this.pitch = pitch; this.back = back; this.yaw = yaw; this.roll = roll; this.kickTime = kickTime; this.maxStack = maxStack;
             }
-            public RecoilSettings Clone() => (RecoilSettings)MemberwiseClone();
         }
 
         private static readonly Dictionary<string, RecoilSettings> DefaultRecoils = new Dictionary<string, RecoilSettings>

@@ -18,6 +18,9 @@ namespace HybridShooter.Core.Data.Defs
         public float TickInterval { get; }
         /// <summary>바닥 구역 효과 (구역 안에 있는 동안 적용)</summary>
         public bool IsZone { get; }
+        /// <summary>구역 효과가 깔려 있는 동안 반복 재생 (키가 비었으면 null)</summary>
+        public SoundDef LoopSfx { get; internal set; }
+        internal string LoopSfxKey { get; }
 
         internal StatusEffectDef(StatusEffectDto d, DataLoadReport r)
         {
@@ -29,6 +32,7 @@ namespace HybridShooter.Core.Data.Defs
             Duration = d.Duration;
             TickInterval = d.TickInterval;
             IsZone = d.IsZone;
+            LoopSfxKey = d.LoopSfxKey;
 
             r.Check(Id > 0, Table, Id, "Id 는 1 이상 (0 = 효과 없음)");
             r.Check(Duration > 0f, Table, Id, "Duration 은 0 초과");

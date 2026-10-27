@@ -8848,7 +8848,7 @@ MonoBehaviour:
   messageText: {fileID: 0}
   helpText: {fileID: 0}
   help: "[1] \uBCF4\uAE09 \uD22C\uD558   [W A S D] \uC774\uB3D9   [Shift] \uB2EC\uB9AC\uAE30  
-    [G] \uC218\uB958\uD0C4 \uC0AC\uC6A9   [H] \uD68C\uBCF5 \uD329 \uC0AC\uC6A9"
+    [G] \uC218\uB958\uD0C4 \uC0AC\uC6A9   [V] \uD68C\uBCF5 \uD329 \uC0AC\uC6A9"
   messageDuration: 4
   maxMessages: 5
   highlightColor: {r: 1, g: 0.85, b: 0.2, a: 1}

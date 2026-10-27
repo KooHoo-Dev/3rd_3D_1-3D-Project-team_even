@@ -25,9 +25,25 @@ namespace HybridShooter.Core.Data.Defs
         public GameObject Prefab { get; }
         /// <summary>Link 단계에서 채워짐 (키가 비었으면 null)</summary>
         public SoundDef FireSfx { get; internal set; }
+        /// <summary>장전 시작</summary>
         public SoundDef ReloadSfx { get; internal set; }
+        /// <summary>탄창·탄 넣기 (기본 총 = 장전 중간, 산탄총 = 한 발마다)</summary>
+        public SoundDef ReloadInsertSfx { get; internal set; }
+        /// <summary>장전 완료 (노리쇠·펌프). 취소되면 재생하지 않음</summary>
+        public SoundDef ReloadEndSfx { get; internal set; }
+        /// <summary>이 무기로 바꿔 들 때</summary>
+        public SoundDef SwitchSfx { get; internal set; }
+        /// <summary>빈 탄창으로 쏠 때 (이어서 자동 장전)</summary>
+        public SoundDef DryFireSfx { get; internal set; }
+        /// <summary>투사체 폭발 (로켓·유탄). null 이면 프리팹 ExplosionSettings.sfxKey</summary>
+        public SoundDef ExplodeSfx { get; internal set; }
         internal string FireSfxKey { get; }
         internal string ReloadSfxKey { get; }
+        internal string ReloadInsertSfxKey { get; }
+        internal string ReloadEndSfxKey { get; }
+        internal string SwitchSfxKey { get; }
+        internal string DryFireSfxKey { get; }
+        internal string ExplodeSfxKey { get; }
 
         internal WeaponDef(WeaponDto d, DataLoadReport r)
         {
@@ -44,6 +60,11 @@ namespace HybridShooter.Core.Data.Defs
             Prefab = ParseUtil.Asset<GameObject>(d.PrefabKey, r, Table, Id, nameof(d.PrefabKey));
             FireSfxKey = d.FireSfxKey;
             ReloadSfxKey = d.ReloadSfxKey;
+            ReloadInsertSfxKey = d.ReloadInsertSfxKey;
+            ReloadEndSfxKey = d.ReloadEndSfxKey;
+            SwitchSfxKey = d.SwitchSfxKey;
+            DryFireSfxKey = d.DryFireSfxKey;
+            ExplodeSfxKey = d.ExplodeSfxKey;
 
             r.Check(Damage >= 0, Table, Id, "Damage 는 0 이상");
             r.Check(FireRate > 0f, Table, Id, "FireRate(RPM) 는 0 초과");

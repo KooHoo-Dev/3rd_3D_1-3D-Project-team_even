@@ -1,7 +1,8 @@
 using System;
 using HybridShooter.Core.Contracts;
-using HybridShooter.Core.Data.Defs;
+using HybridShooter.Core.Data;
 using HybridShooter.Core.Events;
+using HybridShooter.Core.Services;
 using UnityEngine;
 
 namespace HybridShooter.Monster.Behaviour
@@ -16,30 +17,28 @@ namespace HybridShooter.Monster.Behaviour
         private PoisonAreaSettings settings;
         private Vector3 center;
         private float radius;            // m
-        private StatusEffectDef effect;
         private IPlayerTarget target;
         private Func<IPlayerTarget, IDamageable> findDamageable;
         private int sourceDefId;
         private float nextTickTime;      // 다음 피해 검사 시각 (s, Time.time)
         private float endTime;           // 반납 시각 (s, Time.time)
+        private SoundHandle loopSound;   // 장판 루프 소리 (StatusEffectTable.LoopSfxKey)
 
         /// <summary>
         /// 장판을 깐다. PoisonProjectile 이 착탄 때 풀에서 꺼낸 직후 1번 부른다. XZ 크기를 지름(2·radius)으로 맞춘다.
         /// </summary>
-        /// <param name="settings">풀과 피해 높이 허용값을 가진 몬스터 설정</param>
+        /// <param name="settings">풀, 틱 피해·간격·지속, 피해 높이 허용값을 가진 몬스터 설정</param>
         /// <param name="center">장판 중심 (Terrain 표면)</param>
         /// <param name="radius">반경 (m)</param>
-        /// <param name="effect">틱 피해(Value)·간격(TickInterval)·지속(Duration)</param>
         /// <param name="target">피해를 줄 대상</param>
         /// <param name="findDamageable">대상에서 IDamageable 을 찾는 방법</param>
         /// <param name="sourceDefId">MonsterAttackTable Id. 피해 정보에 남긴다</param>
-        public void Begin(PoisonAreaSettings settings, Vector3 center, float radius, StatusEffectDef effect,
+        public void Begin(PoisonAreaSettings settings, Vector3 center, float radius,
                           IPlayerTarget target, Func<IPlayerTarget, IDamageable> findDamageable, int sourceDefId)
         {
             this.settings = settings;
             this.center = center;
             this.radius = radius;
-            this.effect = effect;
             this.target = target;
             this.findDamageable = findDamageable;
             this.sourceDefId = sourceDefId;
@@ -48,7 +47,13 @@ namespace HybridShooter.Monster.Behaviour
             transform.position = center;
             transform.localScale = new Vector3(diameter, transform.localScale.y, diameter);
             nextTickTime = Time.time;
-            endTime = Time.time + effect.Duration;
+            endTime = Time.time + settings.ZoneDuration;
+
+            StopLoopSound(); // 풀에서 바로 다시 꺼낸 경우 대비
+            // 피해 값은 PoisonAreaSettings, 소리는 공격의 EffectId → StatusEffectTable.LoopSfxKey
+            if (DataManager.MonsterAttacks.TryGet(sourceDefId, out var attack) && attack.Effect?.LoopSfx != null
+                && ServiceLocator.TryGet<ISoundService>(out var sound))
+                loopSound = sound.PlayLoop(attack.Effect.LoopSfx, transform); // 여러 장판이 겹쳐도 가까운 몇 개만 들린다
         }
 
         /// <summary>
@@ -71,8 +76,18 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>RoundCleanupEvent 구독. 풀에서 꺼내 켜질 때마다 호출된다</summary>
         private void OnEnable() => EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
 
-        /// <summary>RoundCleanupEvent 구독 해제. 반납으로 꺼질 때 호출된다</summary>
-        private void OnDisable() => EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
+        /// <summary>RoundCleanupEvent 구독 해제 + 루프 소리 정지. 반납으로 꺼질 때 호출된다</summary>
+        private void OnDisable()
+        {
+            EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
+            StopLoopSound();
+        }
+
+        private void StopLoopSound()
+        {
+            if (loopSound.IsValid && ServiceLocator.TryGet<ISoundService>(out var sound)) sound.StopLoop(loopSound);
+            loopSound = default;
+        }
 
         /// <summary>매 프레임: 틱 시각이면 피해 검사 → 지속 시간이 끝났으면 반납</summary>
         private void Update()
@@ -84,7 +99,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>틱 1회: 대상이 장판 안이면 피해를 주고, 다음 틱 시각을 정한다</summary>
         private void TickDamage()
         {
-            nextTickTime += effect.TickInterval;
+            nextTickTime += settings.TickInterval;
             Vector3 playerPosition = target.PlayerTrackingInfo.Position;
             float groundHeight = TerrainGround.HeightAt(playerPosition);
             if (IsInsideZone(center, radius, playerPosition, groundHeight, settings.ZoneHeightTolerance) == false) return;
@@ -92,7 +107,7 @@ namespace HybridShooter.Monster.Behaviour
             DealDamage(playerPosition);
         }
 
-        /// <summary>대상에게 틱 피해(effect.Value) 1회. 대상이 이 진영의 피해를 받지 않으면(사망 등) 주지 않는다</summary>
+        /// <summary>대상에게 틱 피해(settings.TickDamage) 1회. 대상이 이 진영의 피해를 받지 않으면(사망 등) 주지 않는다</summary>
         /// <param name="playerPosition">피해 지점</param>
         /// <exception cref="InvalidOperationException">대상에서 IDamageable 을 찾지 못했을 때</exception>
         private void DealDamage(Vector3 playerPosition)
@@ -101,7 +116,8 @@ namespace HybridShooter.Monster.Behaviour
             if (damageable == null) throw new InvalidOperationException("독장판 대상에서 IDamageable 을 찾지 못했다");
             if (damageable.CanBeHitBy(Faction.Monster) == false) return;
 
-            var info = new DamageInfo(Mathf.RoundToInt(effect.Value), DamageKind.MonsterAttack, Faction.Monster, null,
+            // 지속 피해 → Status (사운드는 틱마다 피격음 대신 기침, R10)
+            var info = new DamageInfo(settings.TickDamage, DamageKind.Status, Faction.Monster, null,
                                       playerPosition, Vector3.zero, sourceDefId);
             damageable.TakeDamage(in info);
         }

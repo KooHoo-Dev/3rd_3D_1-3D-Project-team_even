@@ -11,7 +11,7 @@ namespace HybridShooter.Player
     ///  - 조준 기준: 지금 든 총의 총구(Gun.Muzzle). 총구의 정면이 조준점을 향하도록 척추를 돌린다 (총이 없으면 오른손 아래 AimTransform)
     ///  - 가중치: 드라이버의 조준 정도(Aim) × 상체 자세 레이어 가중치 × 팔 동작 없음(ActionBlend)
     ///  - 1인칭: 총은 PlayerFirstPersonIK 가 눈 기준 자리로 옮기므로, AimIK 는 가슴 정면을 조준점으로 돌린다 (척추가 시선을 따라가 팔이 덜 뻗게).
-    ///    가중치는 조준 여부와 상관없이 firstPersonSpineWeight
+    ///    가중치는 조준 여부와 상관없이 firstPersonSpineWeight, 아래를 볼수록 firstPersonSpineWeightDown 쪽으로 (허리를 덜 숙여 목이 카메라 앞으로 안 나오게)
     ///    → 들고 다닐 때 0, 조준·사격할 때 1, 재장전·꺼내기·구르기·사망 중 0
     /// AimIK(실행 순서 9997)는 이 스크립트(100)와 PlayerController 의 카메라 갱신(0) 다음에 풀린다
     /// </summary>
@@ -32,6 +32,9 @@ namespace HybridShooter.Player
         [SerializeField] private float minAimDistance = 2f;
         [Tooltip("1인칭에서 척추가 시선을 따라가는 정도 (1 = 가슴 정면이 조준점을 정확히 향함)")]
         [SerializeField, Range(0f, 1f)] private float firstPersonSpineWeight = 0.7f;
+        [Tooltip("1인칭에서 firstPersonDownPitch 만큼 아래를 볼 때의 척추 가중치 (그 사이는 보간). 낮을수록 허리를 덜 숙여 목이 카메라 앞으로 덜 나온다. firstPersonSpineWeight 와 같으면 예전과 같다")]
+        [SerializeField, Range(0f, 1f)] private float firstPersonSpineWeightDown = 0.3f;
+        [SerializeField] private float firstPersonDownPitch = 55f;
 
         private readonly RaycastHit[] hits = new RaycastHit[16];
         private Transform defaultAimTransform;
@@ -45,6 +48,8 @@ namespace HybridShooter.Player
         public Vector3 AimPoint { get; private set; }
         /// <summary>조준 중일 때 총구 정면과 (총구 → 조준점) 사이 각도(도). 조준 중이 아니면 0 (디버그용)</summary>
         public float MuzzleError { get; private set; }
+        /// <summary>디버그(1인칭 목 측정): null 이 아니면 firstPersonSpineWeightDown 대신 이 값</summary>
+        public float? DebugSpineWeightDownOverride { get; set; }
 
         private void Awake()
         {
@@ -90,7 +95,7 @@ namespace HybridShooter.Player
             // 시작 시 자세가 아니라 이번 프레임 애니메이션 자세 기준 몸 정면 → AimIK 는 시선과의 차이(주로 위아래)만큼만 척추를 돌린다
             if (chestAim != null) chestAim.rotation = Quaternion.LookRotation(body.forward, body.up);
 
-            float aim = Mathf.Lerp(driver.AimWeight, firstPersonSpineWeight, player.FirstPersonBlend);
+            float aim = Mathf.Lerp(driver.AimWeight, FirstPersonSpineWeight(), player.FirstPersonBlend);
             float weight = aim * driver.UpperPoseWeight * driver.ActionBlend;
             if (player.CurrentCameraTransform == null || weight <= 0f)
             {
@@ -103,6 +108,13 @@ namespace HybridShooter.Player
             AimPoint = FindAimPoint(ray.origin, ray.direction);
             aimIK.solver.IKPosition = AimPoint;
             aimIK.solver.IKPositionWeight = weight;
+        }
+
+        /// <summary>1인칭 척추 가중치: 정면·위 = firstPersonSpineWeight, 아래로 갈수록 firstPersonSpineWeightDown 쪽으로</summary>
+        private float FirstPersonSpineWeight()
+        {
+            float down = DebugSpineWeightDownOverride ?? firstPersonSpineWeightDown;
+            return Mathf.Lerp(firstPersonSpineWeight, down, Mathf.InverseLerp(0f, firstPersonDownPitch, player.LookPitch));
         }
 
         /// <summary>AimIK 가 풀린 직후 총구가 조준점에서 얼마나 벗어났는지 (1인칭은 총구 기준이 아니라 0)</summary>

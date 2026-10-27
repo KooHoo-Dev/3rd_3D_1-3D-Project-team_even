@@ -65,7 +65,7 @@ namespace HybridShooter.Player
                           $"Scale {anim.GetFloat(PlayerAnimNames.Hash.MoveSpeedScale):0.00}  Moving {anim.GetBool(PlayerAnimNames.Hash.Moving)}  Sprint {anim.GetBool(PlayerAnimNames.Hash.Sprint)}");
             sb.AppendLine($"Grounded {anim.GetBool(PlayerAnimNames.Hash.Grounded)}  Falling {anim.GetBool(PlayerAnimNames.Hash.Falling)}  " +
                           $"LandType {anim.GetInteger(PlayerAnimNames.Hash.LandType)}");
-            sb.AppendLine($"Aim {driver.AimWeight:0.00}  UpperPose w{driver.UpperPoseWeight:0.00}  " +
+            sb.AppendLine($"Aim {driver.AimWeight:0.00}  UpperPose state {driver.UpperPoseWeight:0.00} layer {driver.UpperPoseLayerWeight:0.00}  " +
                           $"AimIK w{(aimIK != null && aimIK.isActiveAndEnabled ? aimIK.solver.IKPositionWeight : 0f):0.00}  " +
                           $"ActionBlend {driver.ActionBlend:0.00}  ActionSpeed {anim.GetFloat(PlayerAnimNames.Hash.ActionSpeed):0.00}");
             sb.AppendLine($"Rolling {anim.GetBool(PlayerAnimNames.Hash.Rolling)}  Dodge ({anim.GetFloat(PlayerAnimNames.Hash.DodgeX):0.0},{anim.GetFloat(PlayerAnimNames.Hash.DodgeY):0.0}) x{anim.GetFloat(PlayerAnimNames.Hash.DodgeSpeed):0.00}  " +
@@ -73,6 +73,7 @@ namespace HybridShooter.Player
             if (bodyIK != null) sb.Append($"LeftHand IK w{bodyIK.LeftHandWeight:0.00}  Foot IK w{bodyIK.FootWeight:0.00}");
             if (playerAimIK != null) sb.Append($"  Muzzle err {playerAimIK.MuzzleError:0.0}°");
             if (fpIK != null) sb.Append($"  FP IK w{fpIK.Weight:0.00} wall {fpIK.WallPull * 100f:0}cm hand err {fpIK.HandPositionError:0.0}cm {fpIK.HandRotationError:0}° gun {fpIK.GunAngleError:0}°");
+            if (fpIK != null && player != null) sb.Append($" neck push {player.NeckPush * 100f:0}cm");
             if (bodyIK != null || playerAimIK != null) sb.AppendLine();
             if (player != null)
                 sb.AppendLine($"speed {player.HorizontalSpeed:0.00} m/s  grounded {player.IsGrounded}  sliding {player.IsSliding}  " +

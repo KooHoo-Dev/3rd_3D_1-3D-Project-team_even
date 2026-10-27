@@ -100,14 +100,15 @@ namespace HybridShooter.Monster.MovementLab
         private void Awake()
         {
             body = GetComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = false;
-            body.interpolation = RigidbodyInterpolation.Interpolate;
-            viewPitch = Mathf.Clamp(startPitch, minPitch, maxPitch);
-
-            playerTrackingInfo.Position = transform.position;
-            playerTrackingInfo.Forward = transform.forward;
-            playerTrackingInfo.Rotation = transform.rotation;
+            // 통합 씬 용 임시 비활성화
+            // body.isKinematic = true;
+            // body.useGravity = false;
+            // body.interpolation = RigidbodyInterpolation.Interpolate;
+            // viewPitch = Mathf.Clamp(startPitch, minPitch, maxPitch);
+            //
+            // playerTrackingInfo.Position = transform.position;
+            // playerTrackingInfo.Forward = transform.forward;
+            // playerTrackingInfo.Rotation = transform.rotation;
         }
 
         /// <summary>시작 위치를 지형 위로 맞춘다. 맵 위 아무 높이에 놓아도 바닥에 선다</summary>

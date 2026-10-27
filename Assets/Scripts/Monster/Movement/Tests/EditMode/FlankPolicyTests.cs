@@ -76,6 +76,22 @@ namespace HybridShooter.Monster.Movement.Tests
         }
 
         [Test]
+        public void FarDestinationFollowsMovedTarget()
+        {
+            // 목적지 도착 후 목표(카메라 포함)가 20m 이동해도, 같은 링 각도로 새 목표 기준 지점을 다시 낸다 (옛 지점에 멈추지 않음)
+            var policy = new FlankPolicy(1);
+            Vector3 first = policy.Evaluate(Context(new Vector3(0f, 0f, 30f), Vector3.forward)).Destination;
+
+            Vector3 movedTarget = new Vector3(0f, 0f, -20f);
+            var context = new MovementContext(first, movedTarget, Vector3.forward, movedTarget, HalfAngle, true,
+                                              EngageWithoutSlot, Tuning, 0f, 0.1f);
+            MoveIntent intent = policy.Evaluate(context);
+
+            Assert.AreEqual(MovementState.Approach, intent.State);
+            Assert.That(Vector3.Distance(intent.Destination, movedTarget + first), Is.LessThan(Tolerance));
+        }
+
+        [Test]
         public void WithinSwitchDistanceRushesToTargetWithMultiplier()
         {
             var policy = new FlankPolicy(1);

@@ -17,6 +17,12 @@ namespace HybridShooter.Core.Data.Defs
         public string PrefabKey { get; }
         /// <summary>낙하 위치 표시(마커) 키 (BL-018 "종류와 낙하 위치를 구분")</summary>
         public string MarkerKey { get; }
+        /// <summary>투하 시작에 착지 지점에서 (키가 비었으면 null)</summary>
+        public SoundDef DropSfx { get; internal set; }
+        /// <summary>획득 (키가 비었으면 null)</summary>
+        public SoundDef CollectSfx { get; internal set; }
+        internal string DropSfxKey { get; }
+        internal string CollectSfxKey { get; }
 
         internal SupplyDef(SupplyDto supplyDto, DataLoadReport dataLoadReport)
         {
@@ -26,6 +32,8 @@ namespace HybridShooter.Core.Data.Defs
             Weight = supplyDto.Weight;
             PrefabKey = supplyDto.PrefabKey;
             MarkerKey = supplyDto.MarkerKey;
+            DropSfxKey = supplyDto.DropSfxKey;
+            CollectSfxKey = supplyDto.CollectSfxKey;
 
             dataLoadReport.Check(Amount > 0, Table, Id, "Amount 는 1 이상");
             dataLoadReport.Check(Weight > 0, Table, Id, "Weight 는 1 이상");

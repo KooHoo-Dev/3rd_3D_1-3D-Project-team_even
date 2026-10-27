@@ -26,8 +26,10 @@ namespace HybridShooter.Monster.MovementLab
         [SerializeField, Min(0.1f)] private float spawnSampleDistance = 3f;
 
         [Header("Monster Prefabs")]
-        [Tooltip("소환할 실제 몬스터 프리팹(모델만 있어도 됨). 이동 컴포넌트는 소환 시 코드로 붙인다. 순서대로 돌려 쓴다")]
+        [Tooltip("소환할 실제 몬스터 프리팹 목록. 이 중 spawnPrefabIndex 번 프리팹 하나로 소환한다")]
         [SerializeField] private GameObject[] monsterPrefabs;
+        [Tooltip("소환할 프리팹의 monsterPrefabs 배열 번호 (0부터). 조작 창 입력칸이 Play 중 바꾼다")]
+        [SerializeField, Min(0)] private int spawnPrefabIndex;
         [Tooltip("프리팹 크기 배율")]
         [SerializeField, Min(0.01f)] private float monsterVisualScale = 1f;
 
@@ -36,7 +38,6 @@ namespace HybridShooter.Monster.MovementLab
         [SerializeField, Min(0.02f)] private float thinkCycle = 0.5f;
 
         private readonly List<MovementLabOwnedMonster> ownedMonsters = new List<MovementLabOwnedMonster>();
-        private int spawnSerial;
         // 조립 중인 몬스터를 잠시 두는 비활성 부모. 이 밑에서는 Awake/OnEnable/OnDisable 이 한 번도 실행되지 않는다
         private Transform spawnHolder;
 
@@ -46,6 +47,16 @@ namespace HybridShooter.Monster.MovementLab
             get => crowdSpawnCount;
             set => crowdSpawnCount = Mathf.Max(1, value);
         }
+
+        /// <summary>소환할 프리팹의 배열 번호. 조작 창(MovementLabController)의 입력칸이 Play 중 바꾸며, 다음 소환부터 적용된다</summary>
+        public int SpawnPrefabIndex
+        {
+            get => spawnPrefabIndex;
+            set => spawnPrefabIndex = Mathf.Clamp(value, 0, Mathf.Max(0, monsterPrefabs.Length - 1));
+        }
+
+        /// <summary>소환 후보 프리팹 목록. 조작 창이 선택한 프리팹 이름과 번호 범위를 보여 줄 때 쓴다</summary>
+        public IReadOnlyList<GameObject> MonsterPrefabs => monsterPrefabs;
 
         public CrowdCoordinator Coordinator => coordinator;
         public TestPlayer Target => target;
@@ -251,7 +262,7 @@ namespace HybridShooter.Monster.MovementLab
                 Debug.LogError("Monster Prefabs 가 비어 있습니다. MovementLabExample 의 Monster Prefabs 에 몬스터 프리팹을 지정하세요.", this);
                 return;
             }
-            var prefab = monsterPrefabs[spawnSerial++ % monsterPrefabs.Length];
+            var prefab = monsterPrefabs[spawnPrefabIndex];
             // 비활성 부모 밑에 만들어 Configure 가 끝날 때까지 Awake/OnEnable 을 막는다.
             // SetActive(false) 는 MonsterController.OnDisable 이 movement 를 꺼 버려서 쓰지 않는다
             var go = Instantiate(prefab, position, Quaternion.identity, spawnHolder);
@@ -261,8 +272,11 @@ namespace HybridShooter.Monster.MovementLab
             var ownedMonster = go.AddComponent<MovementLabOwnedMonster>();
             var movement = go.GetComponent<MonsterMovement>();
             var agent = go.GetComponent<NavMeshAgent>();
-            agent.radius = .45f; agent.height = 1.8f; agent.speed = 3.5f; agent.stoppingDistance = .1f;
-            agent.avoidancePriority = Random.Range(20, 80);
+            if (agent != null)
+            {
+                agent.radius = .45f; agent.height = 1.8f; agent.speed = 3.5f; agent.stoppingDistance = .1f;
+                agent.avoidancePriority = Random.Range(20, 80);
+            }
             // 프리팹의 Profile 은 프로젝트 에셋이다. 복사본을 넘겨야 Lab 이 파괴/교체(SetPolicy)해도 에셋이 안전하다
             ownedMonster.Initialize(Instantiate(movement.Profile), useCoordinator ? coordinator : null, target);
             ownedMonsters.Add(ownedMonster);

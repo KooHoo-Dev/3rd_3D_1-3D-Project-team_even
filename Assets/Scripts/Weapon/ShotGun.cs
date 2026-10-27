@@ -60,9 +60,14 @@ namespace HybridShooter.Weapon
             {
                 Vector2 offset = PelletOffset(i, innerCount, spread);
                 Vector3 direction = OffsetDirection(aim.direction, offset);
-                if (Raycast(new Ray(aim.origin, direction), Stats.range, out var hit) == false) continue;
+                if (Raycast(new Ray(aim.origin, direction), Stats.range, out var hit) == false)
+                {
+                    SpawnTracer(aim.origin + direction * Stats.range);
+                    continue;
+                }
 
                 SpawnImpact(hit);
+                SpawnTracer(hit.point);
                 if (hit.collider.TryGetDamageable(out var target) == false || target.CanBeHitBy(Owner.Faction) == false) continue;
 
                 int damage = DamageAtDistance(hit.distance);
@@ -102,7 +107,8 @@ namespace HybridShooter.Weapon
             while (IsReloading && Time.time >= nextShellTime)
             {
                 SetAmmo(Ammo + 1);
-                if (Ammo >= Stats.magazineSize) FinishReload();
+                PlayReloadInsertSfx(); // 한 발 넣을 때마다
+                if (Ammo >= Stats.magazineSize) CompleteReload();
                 else nextShellTime += Stats.reloadTime;
             }
         }

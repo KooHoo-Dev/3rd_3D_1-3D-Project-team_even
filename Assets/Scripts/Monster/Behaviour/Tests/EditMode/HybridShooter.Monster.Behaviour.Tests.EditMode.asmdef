@@ -3,6 +3,7 @@
     "rootNamespace": "HybridShooter.Monster.Behaviour.Tests",
     "references": [
         "HybridShooter.Monster.Behaviour",
+        "HybridShooter.Monster.Movement",
         "HybridShooter.Core",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"

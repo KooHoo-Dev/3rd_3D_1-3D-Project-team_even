@@ -104,7 +104,9 @@ namespace HybridShooter.Monster.MovementLab
             {
                 var monster = monsters[i];
                 if (!monster.gameObject.activeInHierarchy) continue;
-                if (HitBounds(monster).IntersectRay(ray, out float distance) && distance < bestDistance)
+                Bounds bounds = HitBounds(monster);
+                if (bounds != null && bounds.IntersectRay(ray, out float distance) 
+                                   && distance < bestDistance)
                 {
                     best = monster;
                     bestDistance = distance;
@@ -119,11 +121,16 @@ namespace HybridShooter.Monster.MovementLab
         private static Bounds HitBounds(MovementLabOwnedMonster monster)
         {
             var agent = monster.GetComponent<NavMeshAgent>();
-            var bounds = new Bounds(monster.transform.position + Vector3.up * agent.height * .5f,
-                new Vector3(agent.radius * 2f, agent.height, agent.radius * 2f));
-            foreach (var renderer in monster.GetComponentsInChildren<Renderer>())
-                bounds.Encapsulate(renderer.bounds);
-            return bounds;
+            if (agent != null)
+            {
+                var bounds = new Bounds(monster.transform.position + Vector3.up * agent.height * .5f,
+                    new Vector3(agent.radius * 2f, agent.height, agent.radius * 2f));
+                foreach (var renderer in monster.GetComponentsInChildren<Renderer>())
+                    bounds.Encapsulate(renderer.bounds);
+                return bounds;
+            }
+
+            return new Bounds();
         }
 
         private void ReviveAll()
@@ -191,6 +198,7 @@ namespace HybridShooter.Monster.MovementLab
             GUILayout.Label("소환");
             // 소환 버튼을 누를 때 생성되는 몬스터 수 (다음 소환부터 적용)
             DrawSpawnCountField();
+            DrawPrefabIndexField();
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("슬롯 군중")) lab.SpawnSlotCrowd();
             if (GUILayout.Button("토큰 군중")) lab.SpawnTokenCrowd();
@@ -220,6 +228,25 @@ namespace HybridShooter.Monster.MovementLab
 
             string typed = GUILayout.TextField(lab.CrowdSpawnCount.ToString(), GUILayout.Width(50f));
             if (int.TryParse(typed, out int typedValue)) lab.CrowdSpawnCount = typedValue;
+            GUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// 소환 프리팹 번호 입력 칸 + 선택된 프리팹 이름. 숫자가 아니면 무시하고(타이핑 중 빈 칸 허용),
+        /// 범위 밖 숫자는 SpawnPrefabIndex 가 0 ~ 마지막 번호로 보정한다. 다음 소환부터 적용된다.
+        /// </summary>
+        private void DrawPrefabIndexField()
+        {
+            var prefabs = lab.MonsterPrefabs;
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("프리팹 번호", GUILayout.Width(100f));
+            string typed = GUILayout.TextField(lab.SpawnPrefabIndex.ToString(), GUILayout.Width(50f));
+            if (int.TryParse(typed, out int typedValue)) lab.SpawnPrefabIndex = typedValue;
+
+            if (prefabs.Count == 0)
+                GUILayout.Label("프리팹 없음");
+            else
+                GUILayout.Label($"{prefabs[lab.SpawnPrefabIndex].name} (0~{prefabs.Count - 1})");
             GUILayout.EndHorizontal();
         }
 

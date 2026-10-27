@@ -19,8 +19,6 @@ namespace HybridShooter.Player
         [SerializeField] private float groundAcceleration = 45f;
         [SerializeField] private float groundDeceleration = 55f;
         [SerializeField] private float airAcceleration = 10f;
-        [Tooltip("FollowMove 모드에서 몸이 이동 방향으로 도는 속도(도/초). LockYaw 에서는 쓰지 않음")]
-        [SerializeField] private float turnSpeed = 720f;
         [Tooltip("몸 정면 기준 정반대로 움직일 때의 속도 배율. 옆걸음은 거의 감속 없음")]
         [SerializeField, Range(0.1f, 1f)] private float backwardMultiplier = 0.65f;
 
@@ -132,6 +130,10 @@ namespace HybridShooter.Player
         [Header("1인칭 눈 위치")]
         [Tooltip("눈을 몸 정면 쪽으로 이만큼 내민다(m). 숨긴 머리 자리에 남는 목 구멍이 카메라 뒤로 가게 한다")]
         [SerializeField] private float eyeForwardOffset = 0.12f;
+        [Tooltip("아래를 볼 때 눈이 목을 축으로 도는 정도. 0 = 끔(눈 고정), 1 = 실제 머리처럼 앞·아래로")]
+        [SerializeField, Range(0f, 1f)] private float neckPivotWeight = 0f;
+        [Tooltip("목 축 → 눈 (FP_Rig 로컬, m). 위·앞으로 멀수록 아래를 볼 때 눈이 많이 나간다")]
+        [SerializeField] private Vector3 eyeFromNeck = new Vector3(0f, 0.1f, 0.08f);
         [Tooltip("켜면 FP_Rig 높이가 머리 뼈 위치를 부분적으로 따라간다 (걷기 흔들림이 약간 생김)")]
         [SerializeField] private bool followHeadBone = false;
         [Tooltip("0 = 원래 높이 고정, 1 = 머리 뼈 위치 그대로")]
@@ -139,6 +141,10 @@ namespace HybridShooter.Player
         [Tooltip("머리 뼈 → 눈 위치 보정 (ViewRig 로컬 기준)")]
         [SerializeField] private Vector3 headEyeOffset = new Vector3(0f, 0.08f, 0.1f);
         [SerializeField] private float headFollowSmoothTime = 0.08f;
+        [Tooltip("눈이 목 뼈보다 시선 수평 정면으로 최소 이만큼(m) 앞에 있게 한다. 걷기·달리기로 허리가 굽어 목이 앞으로 나오면 눈을 그만큼 앞으로 민다. 0 = 끔")]
+        [SerializeField] private float neckClearance = 0.15f;
+        [Tooltip("목 때문에 눈을 미는 양이 따라가는 시간(초). 작을수록 빠르게 (애니메이션 흔들림이 카메라에 더 전해진다)")]
+        [SerializeField] private float neckGuardSmoothTime = 0.06f;
 
         [Header("무기")]
         [Tooltip("비워 두면 같은 오브젝트에서 찾는다")]
@@ -149,6 +155,30 @@ namespace HybridShooter.Player
         [Header("체력")]
         [SerializeField] private int maxHealth = 100;
         [SerializeField] private int currentHealth = 100;
+
+        [Header("부활")]
+        [Tooltip("Revive() 연출 길이(초). 이 동안 무적이고 입력을 받지 않는다")]
+        [SerializeField, Min(0f)] private float reviveDuration = 2.4f;
+        [Tooltip("연출 중 이 진행도(0~1)에서 사망 자세를 풀고 선 자세로 되돌린다. 이 뒤로 체력이 차오른다")]
+        [SerializeField, Range(0f, 1f)] private float reviveBodyRestoreAt = 0.4f;
+        [Tooltip("마지막 목숨으로 죽은 뒤 최종 사망(PlayerFinalDeathEvent)까지(초). 사망 동작을 보여 주는 시간이고, 이 사이 Revive·AddLives 가 오면 부활한다. 0 = 즉시")]
+        [SerializeField, Min(0f)] private float reviveWindow = 2f;
+
+        [Header("목숨 (PlayerTable.StartLives / MaxLives 가 우선)")]
+        [Tooltip("테이블이 없을 때 시작 목숨 (지금 목숨 포함)")]
+        [SerializeField, Min(1)] private int fallbackStartLives = 3;
+        [Tooltip("테이블이 없을 때 기본 최대 목숨")]
+        [SerializeField, Min(1)] private int fallbackMaxLives = 3;
+        [Tooltip("목숨이 남아 있을 때 사망 후 자동 부활까지(초). 사망 동작을 보여 주는 시간")]
+        [SerializeField, Min(0f)] private float livesReviveDelay = 1.5f;
+
+        [Header("부활 직후 보호 (부활 연출이 끝난 뒤)")]
+        [Tooltip("보호 시간(초). 0 = 없음")]
+        [SerializeField, Min(0f)] private float reviveBuffDuration = 5f;
+        [Tooltip("받는 피해 배율 (0.2 = 80% 경감)")]
+        [SerializeField, Range(0f, 1f)] private float reviveBuffDamageMultiplier = 0.2f;
+        [Tooltip("이동 속도 배율")]
+        [SerializeField, Min(1f)] private float reviveBuffSpeedMultiplier = 1.35f;
 
         [Header("스태미나")]
         [SerializeField] private float maxStamina = 100f;
@@ -172,7 +202,6 @@ namespace HybridShooter.Player
         // 외부 입력
         private Vector3 moveDirection;
         private bool sprintRequested;
-        private FacingMode facingMode = FacingMode.FollowMove;
         private float lockedYaw;
         private float jumpRequestedTime = float.NegativeInfinity;
 
@@ -214,6 +243,10 @@ namespace HybridShooter.Player
         private Vector3 tpArmHomePos;
         private float tpArmDistance;
         private Vector3 headFollowVelocity;
+        private Vector3 neckLocal;             // 지난 프레임 IK 뒤 목 뼈 위치 (FP_Rig 부모 기준)
+        private bool hasNeckSample;
+        private float neckPush;                // 목 때문에 눈을 앞으로 민 거리(m)
+        private float neckPushVelocity;
         private Transform currentCameraTransform;
         private readonly RaycastHit[] cameraHits = new RaycastHit[8];
         private readonly RaycastHit[] wallHits = new RaycastHit[8];
@@ -257,6 +290,25 @@ namespace HybridShooter.Player
 
         // 체력
         private bool IsDead = false;
+
+        // 부활 연출
+        private bool isReviving;
+        private bool reviveBodyRestored;
+        private float reviveStartTime;
+        private float reviveCurrentDuration;
+        private float deathTime;
+        private bool finalDead;                 // 부활 대기 시간이 지나 최종 사망 확정 (더는 부활하지 않음)
+        private float reviveBuffEndTime = float.NegativeInfinity;
+        private const string ReviveBuffSpeedKey = "ReviveBuff";
+
+        // 목숨 (최대 = 난이도 기준 + 스테이지 클리어로 늘어난 몫)
+        private int lives;
+        private int baseMaxLives;
+        private int bonusMaxLives;
+
+        // 처음부터 재시작(RoundCleanupEvent.FullReset) 때 돌아갈 자리
+        private Vector3 spawnPosition;
+        private float spawnYaw;
 
         // 스태미나
         private float stamina;

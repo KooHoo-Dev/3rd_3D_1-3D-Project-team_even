@@ -5611,6 +5611,63 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 49e58e7878217479b9ac5240cb3c9b41, type: 3}
+--- !u!1001 &1039565138
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 5753637828753184512, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_Name
+      value: Player (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 140.30446
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.37077978
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -25.880802
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4ea94935c308106458064ec04a545802, type: 3}
 --- !u!1001 &1058506679
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11144,6 +11201,52 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1626650434582979196, guid: 1df8118404a186c4cae3922da0346fc7, type: 3}
   m_PrefabInstance: {fileID: 1097310845117541821}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2100000400
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2100000401}
+  - component: {fileID: 2100000402}
+  m_Layer: 0
+  m_Name: BossViewTester
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2100000401
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000400}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2100000402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000400}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b672d716d754d2491f3196b1203a017, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.Tester.BossViewTester
+  player: {fileID: 0}
+  maxLines: 8
 --- !u!1001 &2102522460
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11383,6 +11486,8 @@ MonoBehaviour:
   maxAimDistance: 100
   minAimDistance: 2
   firstPersonSpineWeight: 0.7
+  firstPersonSpineWeightDown: 0.3
+  firstPersonDownPitch: 55
 --- !u!4 &285578348935727682
 Transform:
   m_ObjectHideFlags: 0
@@ -11439,8 +11544,9 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
-  muzzleFlashPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
+  muzzleFlashPrefab: {fileID: 2916307278277949526, guid: 353aa8731541509449a96d6bf5760179, type: 3}
+  tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.2
   maxBloom: 2.5
   bloomRecovery: 6
@@ -11503,7 +11609,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   impactEffectPrefab: {fileID: 0}
-  muzzleFlashPrefab: {fileID: 0}
+  muzzleFlashPrefab: {fileID: 5283753518260634811, guid: 4f2b24f8cc507254b8f5e7ded5360d1c, type: 3}
+  tracerPrefab: {fileID: 0}
   bloomPerShot: 0
   maxBloom: 3
   bloomRecovery: 6
@@ -11519,6 +11626,7 @@ MonoBehaviour:
   aimSensitivityMultiplier: 0.8
   aimMoveSpeedMultiplier: 0.6
   rocketPrefab: {fileID: 8419116684924657853, guid: 16d0d10b388117341aa70cf76a6e4a77, type: 3}
+  rocketTrail: {fileID: 3741179576499916000, guid: b7b92e5629480b9429a6fa5f084a3550, type: 3}
   rocketSpeed: 30
   rocketRadius: 0.15
   armDistance: 2
@@ -11528,7 +11636,7 @@ MonoBehaviour:
     radius: 4
     minDamageRatio: 0.3
     force: 12
-    effectPrefab: {fileID: 0}
+    effectPrefab: {fileID: 5543976136519851074, guid: 9d8acd80d0e8af34c8d9bbfec68150be, type: 3}
     sfxKey: sfx_grenade_explode
 --- !u!1 &1067381889377422727
 GameObject:
@@ -11802,8 +11910,9 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
-  muzzleFlashPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3135451856461241760, guid: f4807c26312187c4ab351ee90479788e, type: 3}
+  muzzleFlashPrefab: {fileID: 3158766558265931166, guid: 5884ef90c12467a49b43757449083aa1, type: 3}
+  tracerPrefab: {fileID: 4207196726780303395, guid: 402740e791d5e2d4180130c8d95d5c07, type: 3}
   bloomPerShot: 0
   maxBloom: 3
   bloomRecovery: 6
@@ -11866,6 +11975,7 @@ MonoBehaviour:
   lowHealthRatio: 0.3
   lowAmmoRatio: 0.25
   blinkRate: 2.5
+  livesFlashTime: 1.2
   staminaFadeTime: 0.5
 --- !u!1 &2145754591375728362
 GameObject:
@@ -11929,7 +12039,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &2258881243023439559
 GameObject:
   m_ObjectHideFlags: 0
@@ -11967,6 +12077,7 @@ MonoBehaviour:
   driver: {fileID: 0}
   items: {fileID: 0}
   bodyIK: {fileID: 0}
+  fbbik: {fileID: 0}
 --- !u!1 &2563305406086574402
 GameObject:
   m_ObjectHideFlags: 0
@@ -12009,8 +12120,9 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
-  muzzleFlashPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
+  muzzleFlashPrefab: {fileID: 5613628641074969012, guid: eee3da5c99e8cfe41ae2d154761dc8e0, type: 3}
+  tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.12
   maxBloom: 2
   bloomRecovery: 8
@@ -12177,8 +12289,9 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
-  muzzleFlashPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
+  muzzleFlashPrefab: {fileID: 2916307278277949526, guid: 353aa8731541509449a96d6bf5760179, type: 3}
+  tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.15
   maxBloom: 2.5
   bloomRecovery: 6
@@ -12289,8 +12402,9 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
-  muzzleFlashPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 4282389121136097272, guid: e7d185f3584a2a04abe1f4e8db953ae1, type: 3}
+  muzzleFlashPrefab: {fileID: 3158766558265931166, guid: 5884ef90c12467a49b43757449083aa1, type: 3}
+  tracerPrefab: {fileID: 5853604608837392148, guid: 24286bef60761174e885a82cfccad4d9, type: 3}
   bloomPerShot: 0
   maxBloom: 3
   bloomRecovery: 6
@@ -12525,7 +12639,6 @@ MonoBehaviour:
   groundAcceleration: 45
   groundDeceleration: 55
   airAcceleration: 10
-  turnSpeed: 720
   backwardMultiplier: 0.65
   jumpHeight: 1.2
   coyoteTime: 0.1
@@ -12571,10 +12684,14 @@ MonoBehaviour:
   steepSlideSteer: 0.5
   viewMode: 0
   viewTransitionTime: 0.5
+  autoTransitionTime: 1.2
+  bossArmPosition: {x: 0.6, y: 0.9, z: -5.5}
+  bossFovAdd: 10
   mouseSensitivity: 0.12
   invertY: 0
   minPitch: -70
   maxPitch: 80
+  fpMaxPitch: 55
   FirstParsonCam: {fileID: 2809953028969472742}
   ThirdParsonCam: {fileID: 8434002770608292357}
   fpRig: {fileID: 6707804878502982561}
@@ -12610,14 +12727,27 @@ MonoBehaviour:
   bodyAnimator: {fileID: 1820536764}
   bodyVisual: {fileID: 1268416598}
   eyeForwardOffset: 0.12
+  neckPivotWeight: 0
+  eyeFromNeck: {x: 0, y: 0.1, z: 0.08}
   followHeadBone: 0
   headFollowWeight: 0.5
   headEyeOffset: {x: 0, y: 0.08, z: 0.1}
   headFollowSmoothTime: 0.08
+  neckClearance: 0.15
+  neckGuardSmoothTime: 0.06
   gunSlot: {fileID: 0}
   aimZoomSpeed: 6
   maxHealth: 100
   currentHealth: 100
+  reviveDuration: 2.4
+  reviveBodyRestoreAt: 0.4
+  reviveWindow: 5
+  fallbackStartLives: 3
+  fallbackMaxLives: 3
+  livesReviveDelay: 1.5
+  reviveBuffDuration: 5
+  reviveBuffDamageMultiplier: 0.2
+  reviveBuffSpeedMultiplier: 1.35
   maxStamina: 100
   sprintStaminaPerSecond: 20
   rollStaminaCost: 25
@@ -13996,8 +14126,9 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
-  muzzleFlashPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
+  muzzleFlashPrefab: {fileID: 5613628641074969012, guid: eee3da5c99e8cfe41ae2d154761dc8e0, type: 3}
+  tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.6
   maxBloom: 3
   bloomRecovery: 10
@@ -14212,7 +14343,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   impactEffectPrefab: {fileID: 0}
-  muzzleFlashPrefab: {fileID: 0}
+  muzzleFlashPrefab: {fileID: 5283753518260634811, guid: 4f2b24f8cc507254b8f5e7ded5360d1c, type: 3}
+  tracerPrefab: {fileID: 0}
   bloomPerShot: 0
   maxBloom: 3
   bloomRecovery: 6
@@ -14228,6 +14360,7 @@ MonoBehaviour:
   aimSensitivityMultiplier: 0.8
   aimMoveSpeedMultiplier: 0.7
   grenadePrefab: {fileID: 4580178011567319365, guid: b1b63967c17ec2744b06620f8ae2ef08, type: 3}
+  grenadeTrail: {fileID: 2344922079739685002, guid: 81357c90b6518954685dc85da5403f6d, type: 3}
   launchSpeed: 28
   launchAngle: 4
   gravityScale: 1
@@ -14241,7 +14374,7 @@ MonoBehaviour:
     radius: 3
     minDamageRatio: 0.25
     force: 8
-    effectPrefab: {fileID: 0}
+    effectPrefab: {fileID: 9013632277072667206, guid: 3396a0908f2a90b41938df348ea83166, type: 3}
     sfxKey: sfx_grenade_explode
 --- !u!114 &7005324274330937514
 MonoBehaviour:
@@ -14263,6 +14396,8 @@ MonoBehaviour:
   hipSight: {x: 0.13, y: -0.14, z: 0.32}
   adsDistance: 0.15
   shoulderSight: {x: 0.17, y: -0.12, z: 0.3}
+  elbowDirection: {x: 0.5, y: -1, z: -0.3}
+  elbowWeight: 1
   wallMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -15157,7 +15292,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.03
+  near clip plane: 0.015
   far clip plane: 1000
   field of view: 70
   orthographic: 0
@@ -15165,7 +15300,7 @@ Camera:
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 7167
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -15339,52 +15474,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!1 &2100000400
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2100000401}
-  - component: {fileID: 2100000402}
-  m_Layer: 0
-  m_Name: BossViewTester
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2100000401
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000400}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2100000402
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000400}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3b672d716d754d2491f3196b1203a017, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.Tester.BossViewTester
-  player: {fileID: 0}
-  maxLines: 8
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -15396,3 +15485,4 @@ SceneRoots:
   - {fileID: 1380043801}
   - {fileID: 256847181}
   - {fileID: 2820530941051803232}
+  - {fileID: 1039565138}

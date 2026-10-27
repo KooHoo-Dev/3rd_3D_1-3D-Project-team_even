@@ -1,6 +1,5 @@
 using System;
 using HybridShooter.Core.Contracts;
-using HybridShooter.Core.Data.Defs;
 using UnityEngine;
 
 namespace HybridShooter.Monster.Behaviour
@@ -12,7 +11,6 @@ namespace HybridShooter.Monster.Behaviour
     public sealed class PoisonAreaAttack : MonsterAttack
     {
         private readonly PoisonAreaSettings settings;
-        private readonly StatusEffectDef effect;
         private readonly Func<IPlayerTarget, IDamageable> findDamageable;
 
         // ── 이번 주기 (예고 시작에 정하고 발사 때 투사체로 넘긴다) ──
@@ -28,18 +26,15 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="spec">공격 값 묶음. Radius = 장판 반경, ProjectileSpeed = 포탄 수평 속도</param>
         /// <param name="body">공격자 몸체. 발사 위치와 조준 방향</param>
         /// <param name="findDamageable">대상에서 피해를 줄 IDamageable 을 찾는 방법. 장판이 쓴다</param>
-        /// <param name="settings">원거리 프리팹의 설정 (풀·발사 높이·피해 높이 허용값)</param>
-        /// <param name="effect">장판의 틱 피해·간격·지속 (StatusEffectTable)</param>
-        /// <exception cref="ArgumentNullException">body, settings, effect 중 하나가 null 일 때 (프리팹에 PoisonAreaSettings 가 없을 때 등). body 는 기반 생성자가 던진다</exception>
+        /// <param name="settings">원거리 프리팹의 설정 (풀·발사 높이·장판 틱 피해·간격·지속·피해 높이 허용값)</param>
+        /// <exception cref="ArgumentNullException">body, settings 중 하나가 null 일 때 (프리팹에 PoisonAreaSettings 가 없을 때 등). body 는 기반 생성자가 던진다</exception>
         public PoisonAreaAttack(in AttackSpec spec, MonsterBody body, Func<IPlayerTarget, IDamageable> findDamageable,
-                                PoisonAreaSettings settings, StatusEffectDef effect)
+                                PoisonAreaSettings settings)
             : base(spec, body, findDamageable)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings), "원거리 몬스터 프리팹에 PoisonAreaSettings 가 없다");
-            if (effect == null) throw new ArgumentNullException(nameof(effect));
 
             this.settings = settings;
-            this.effect = effect;
             this.findDamageable = findDamageable;
         }
 
@@ -60,7 +55,7 @@ namespace HybridShooter.Monster.Behaviour
             Vector3 launchPoint = Body.Position + Vector3.up * settings.LaunchHeight;
             PoisonProjectile projectile = settings.ProjectilePool.Get(launchPoint);
             projectile.Launch(settings, launchPoint, targetPoint, Spec.ProjectileSpeed, marker,
-                              Target, Spec.Radius, effect, findDamageable, Spec.SourceDefId);
+                              Target, Spec.Radius, findDamageable, Spec.SourceDefId);
             marker = null;
             return true;
         }

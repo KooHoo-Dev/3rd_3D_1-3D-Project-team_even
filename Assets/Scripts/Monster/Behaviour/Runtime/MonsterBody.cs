@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using HybridShooter.Monster.Movement;
 
 namespace HybridShooter.Monster.Behaviour
 {
@@ -10,15 +11,38 @@ namespace HybridShooter.Monster.Behaviour
     public sealed class MonsterBody
     {
         private readonly Transform transform;
+        private readonly NavMeshMoveExecutor executor;
 
         /// <summary>MonsterController.Start 가 자기 Transform 으로 만들어 상태 머신과 공격에 넘긴다</summary>
         /// <param name="transform">몬스터 루트 Transform</param>
         /// <exception cref="ArgumentNullException">transform 이 null(또는 파괴됨)일 때</exception>
-        public MonsterBody(Transform transform)
+        public MonsterBody(Transform transform) : this(transform, null) { }
+
+        /// <summary>위치 제어가 필요한 공격에는 같은 루트의 이동 실행기를 연결한다.</summary>
+        /// <param name="transform">몬스터 루트</param>
+        /// <param name="executor">NavMesh 위치 제어 담당</param>
+        public MonsterBody(Transform transform, NavMeshMoveExecutor executor)
         {
             if (transform == null) throw new ArgumentNullException(nameof(transform));
             this.transform = transform;
+            this.executor = executor;
         }
+
+        // 공격 위치 제어에만 쓰는 좁은 통로. 기존 정지 공격은 executor 없이 사용할 수 있다.
+        public Transform Root => transform;
+        public UnityEngine.AI.NavMeshQueryFilter AttackNavigationFilter => executor.AttackNavigationFilter;
+        // public UnityEngine.AI.NavMeshQueryFilter AttackNavigationFilter =>
+        //     executor is NavMeshMoveExecutor navMeshExecutor
+        //         ? navMeshExecutor.AttackNavigationFilter
+        //         : default; 
+        public bool HasAttackMotion => executor.HasAttackMotion;
+        public float AttackRadius => executor.AttackRadius;
+        public float AttackHeight => executor.AttackHeight;
+        public Vector3 AttackGroundOrigin => executor.AttackGroundOrigin;
+        public bool OwnsCollider(Collider collider) => collider.transform.IsChildOf(transform);
+        public void BeginAttackMotion(Vector3 ground, Func<Vector3> resolveInterruption) => executor.BeginAttackMotion(ground, resolveInterruption);
+        public void MoveForAttack(Vector3 position) => executor.MoveForAttack(position);
+        public void EndAttackMotion(Vector3 ground) => executor.EndAttackMotion(ground);
 
         // 월드 좌표 (m)
         public Vector3 Position => transform.position;

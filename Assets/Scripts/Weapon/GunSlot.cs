@@ -14,8 +14,10 @@ namespace HybridShooter.Weapon
     ///  - 0번 슬롯(주무기)만 게임 중 교체된다. 교체된 총은 파괴된다.
     ///  - PlayerController 의 입력을 지금 든 총(CurrentGun)으로 넘긴다. 실제 동작은 각 총이 덮어쓴 함수가 정한다.
     ///  - 총이 필요로 하는 조준선·반동·확대·이동 상태를 PlayerController 와 이어준다.
+    /// 실행 순서 20: PlayerController.Update(0, 시선 입력 → 리그 회전) 다음에 총을 Tick → 연사도 이번 프레임 시선으로 쏜다
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
+    [DefaultExecutionOrder(20)]
     public class GunSlot : MonoBehaviour
     {
         public const int SlotCount = 4;
@@ -67,7 +69,7 @@ namespace HybridShooter.Weapon
         /// <summary>0 = 정지, 1 = 달리기 최고 속도</summary>
         public float MoveRatio => Mathf.Clamp01(player.HorizontalSpeed / Mathf.Max(0.01f, player.WalkSpeed * player.SprintMultiplier));
         /// <summary>구르는 중, 수류탄을 던지는 중이거나 죽었으면 쏠 수 없다</summary>
-        public bool CanUseWeapon => player.IsAlive && player.IsRolling == false && player.IsExternallyControlled == false && player.IsThrowingGrenade == false;
+        public bool CanUseWeapon => player.IsAlive && player.IsReviving == false && player.IsRolling == false && player.IsExternallyControlled == false && player.IsThrowingGrenade == false;
 
         /// <summary>
         /// 조준선 = 지금 카메라의 정면. 3인칭에서는 출발점을 플레이어 옆까지 앞당겨

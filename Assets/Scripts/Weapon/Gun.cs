@@ -74,6 +74,8 @@ namespace HybridShooter.Weapon
         [SerializeField] protected GameObject impactEffectPrefab;
         [Tooltip("총구 화염 (선택)")]
         [SerializeField] protected GameObject muzzleFlashPrefab;
+        [Tooltip("히트스캔 탄 궤적 (선택). 총구에서 맞은 자리(빗나가면 사거리 끝)까지 날아가고, 도착할 때 탄착 이펙트가 터진다")]
+        [SerializeField] protected BulletTracer tracerPrefab;
 
         [Header("탄 퍼짐 (도)")]
         [Tooltip("한 발 쏠 때마다 늘어나는 퍼짐")]
@@ -107,12 +109,18 @@ namespace HybridShooter.Weapon
         [SerializeField, Range(0.1f, 1f)] protected float aimSensitivityMultiplier = 0.8f;
         [Tooltip("조준 중 이동 속도 배율")]
         [SerializeField, Range(0.1f, 1f)] protected float aimMoveSpeedMultiplier = 0.75f;
+
+        [Header("장전 소리")]
+        [Tooltip("장전 시간 중 탄창을 넣는 소리(ReloadInsertSfx)를 낼 시점 비율. 한 발씩 넣는 산탄총은 쓰지 않음")]
+        [SerializeField, Range(0.1f, 0.9f)] protected float reloadInsertAt = 0.55f;
         #endregion
 
         #region 상태
         private float nextFireTime;
         private float readyTime;
         private float reloadEndTime;
+        private float reloadInsertTime;
+        private bool reloadInserted;
         private float bloom;
         private float recoilToRecover;
         private float lastShotTime = float.NegativeInfinity;
@@ -120,6 +128,45 @@ namespace HybridShooter.Weapon
         private bool subscribed;
 
         protected static readonly RaycastHit[] SharedHits = new RaycastHit[32];
+        /// <summary>다음 SpawnTracer 의 총알이 도착할 때 생성할 탄착 자리 (SpawnImpact 가 쌓는다)</summary>
+        private readonly System.Collections.Generic.List<Pose> pendingImpacts = new System.Collections.Generic.List<Pose>();
+
+        private Vector3 shotEnd;
+        private bool shotEndRecorded;
+        private Collider shotCollider;
+        #endregion
+
+        #region 디버그 (사격 측정)
+        /// <summary>히트스캔 한 발의 기록. 각도는 도</summary>
+        public struct ShotDebugInfo
+        {
+            /// <summary>쏠 때의 조준선 (퍼짐 전)</summary>
+            public Ray aim;
+            /// <summary>쏠 때 적용된 퍼짐(반각)</summary>
+            public float spread;
+            /// <summary>쏠 때 총구 위치와 총의 정면 (이번 프레임 IK 전 = 지난 프레임에 그려진 자세)</summary>
+            public Vector3 muzzle, gunForward;
+            /// <summary>탄착점 (빗나가면 사거리 끝). 산탄은 첫 알</summary>
+            public Vector3 end;
+            /// <summary>맞은 콜라이더 (빗나갔거나 FireBullet 을 쓰지 않는 총이면 null)</summary>
+            public Collider hitCollider;
+        }
+
+        /// <summary>디버그: 히트스캔 총이 한 발 쏠 때마다 (탄 궤적을 그리는 총만. 투사체 총은 없음). 구독자가 없으면 아무것도 하지 않는다</summary>
+        public static event Action<Gun, ShotDebugInfo> DebugShotFired;
+
+        private ShotDebugInfo BeginShotDebug()
+        {
+            shotEndRecorded = false;
+            shotCollider = null;
+            return new ShotDebugInfo
+            {
+                aim = Owner.AimRay,
+                spread = CurrentSpread,
+                muzzle = Muzzle.position,
+                gunForward = transform.forward,
+            };
+        }
         #endregion
 
         #region 외부 API
@@ -248,6 +295,12 @@ namespace HybridShooter.Weapon
             FinishReload();
         }
 
+        /// <summary>재장전 동작 없이 탄창을 바로 채운다 (디버그 무한 탄약 등)</summary>
+        public void RefillAmmo()
+        {
+            if (Ammo < Stats.magazineSize) SetAmmo(Stats.magazineSize);
+        }
+
         /// <summary>사격 모드 전환 (B). 지원하지 않는 총은 false</summary>
         public virtual bool ToggleFireMode() => false;
 
@@ -296,19 +349,26 @@ namespace HybridShooter.Weapon
         /// <summary>거리에 따른 피해. 기본은 감쇠 없음</summary>
         protected virtual int DamageAtDistance(float distance) => Stats.damage;
 
-        /// <summary>기본: 탄창 전체를 ReloadTime 뒤에 한 번에 채운다</summary>
+        /// <summary>기본: 탄창 전체를 ReloadTime 뒤에 한 번에 채운다 (소리: 시작 → reloadInsertAt 시점 탄창 넣기 → 완료)</summary>
         protected virtual void StartReload()
         {
             IsReloading = true;
             reloadEndTime = Time.time + Stats.reloadTime;
+            reloadInsertTime = Time.time + Stats.reloadTime * reloadInsertAt;
+            reloadInserted = false;
             NotifyReloadStarted(Stats.reloadTime);
         }
 
         protected virtual void UpdateReload()
         {
+            if (reloadInserted == false && Time.time >= reloadInsertTime)
+            {
+                reloadInserted = true;
+                PlayReloadInsertSfx();
+            }
             if (Time.time < reloadEndTime) return;
             SetAmmo(Stats.magazineSize);
-            FinishReload();
+            CompleteReload();
         }
         #endregion
 
@@ -343,6 +403,7 @@ namespace HybridShooter.Weapon
             if (IsReloading && (CanInterruptReload == false || Ammo <= 0)) return false;
             if (Ammo <= 0)
             {
+                PlaySfx(Def?.DryFireSfx, transform.position); // 빈 탄창 → 이어서 자동 장전 시작음
                 Reload();
                 return false;
             }
@@ -356,12 +417,16 @@ namespace HybridShooter.Weapon
             lastShotTime = Time.time;
 
             SetAmmo(Ammo - 1);
+            ShotDebugInfo debug = default;
+            if (DebugShotFired != null) debug = BeginShotDebug();
             Shoot();
+            FlushPendingImpacts(); // 탄 궤적에 실리지 않은 탄착은 바로
+            if (DebugShotFired != null && shotEndRecorded) { debug.end = shotEnd; debug.hitCollider = shotCollider; DebugShotFired(this, debug); }
             ApplyRecoil();
             bloom = Mathf.Min(bloom + bloomPerShot, maxBloom);
 
             Vector3 muzzlePos = Muzzle.position;
-            if (muzzleFlashPrefab != null) Destroy(Instantiate(muzzleFlashPrefab, muzzlePos, Muzzle.rotation, Muzzle), 1f);
+            if (muzzleFlashPrefab != null) SpawnMuzzleFlash();
             PlaySfx(Def?.FireSfx, muzzlePos);
             if (IsCurrent) EventBus<WeaponFiredEvent>.Publish(new WeaponFiredEvent(Def, muzzlePos));
             return true;
@@ -382,6 +447,16 @@ namespace HybridShooter.Weapon
             if (IsCurrent) EventBus<ReloadStartedEvent>.Publish(new ReloadStartedEvent(duration));
         }
 
+        /// <summary>탄창·탄 넣는 소리 (기본 총은 장전 중간, 산탄총은 한 발마다)</summary>
+        protected void PlayReloadInsertSfx() => PlaySfx(Def?.ReloadInsertSfx, transform.position);
+
+        /// <summary>탄을 끝까지 채운 장전 완료. 완료음(노리쇠·펌프) 후 FinishReload. 취소는 CancelReload → FinishReload 로 완료음 없음</summary>
+        protected void CompleteReload()
+        {
+            PlaySfx(Def?.ReloadEndSfx, transform.position);
+            FinishReload();
+        }
+
         /// <summary>장전 종료 (완료·취소 공통). UI 진행 표시를 닫도록 ReloadFinishedEvent 를 보낸다</summary>
         protected void FinishReload()
         {
@@ -399,11 +474,14 @@ namespace HybridShooter.Weapon
             if (Raycast(ray, Stats.range, out var hit) == false)
             {
                 Debug.DrawRay(ray.origin, direction * Stats.range, Color.yellow, 0.1f);
+                SpawnTracer(ray.GetPoint(Stats.range));
                 return false;
             }
             Debug.DrawLine(ray.origin, hit.point, Color.red, 0.1f);
-            DealDamage(hit.collider, DamageAtDistance(hit.distance), hit.point, direction);
+            if (shotEndRecorded == false) shotCollider = hit.collider; // 디버그: 이번 발의 첫 명중 콜라이더
             SpawnImpact(hit);
+            SpawnTracer(hit.point);
+            DealDamage(hit.collider, DamageAtDistance(hit.distance), hit.point, direction);
             return true;
         }
 
@@ -443,10 +521,31 @@ namespace HybridShooter.Weapon
             return true;
         }
 
+        /// <summary>
+        /// 탄착 이펙트. 탄 궤적이 있으면 바로 만들지 않고 쌓아 두었다가 다음 SpawnTracer 의 총알이 도착할 때 생성한다.
+        /// 그래서 한 알의 탄착은 그 알의 SpawnTracer 보다 먼저 부른다
+        /// </summary>
         protected void SpawnImpact(in RaycastHit hit)
         {
             if (impactEffectPrefab == null) return;
-            Destroy(Instantiate(impactEffectPrefab, hit.point, Quaternion.LookRotation(hit.normal)), 2f);
+            Quaternion rotation = Quaternion.LookRotation(hit.normal);
+            if (tracerPrefab != null) pendingImpacts.Add(new Pose(hit.point, rotation));
+            else Destroy(Instantiate(impactEffectPrefab, hit.point, rotation), 2f);
+        }
+
+        /// <summary>총구에서 end 까지 탄 궤적 한 줄. 쌓아 둔 탄착은 총알이 그 자리에 닿을 때 생성된다</summary>
+        protected void SpawnTracer(Vector3 end)
+        {
+            if (shotEndRecorded == false) { shotEnd = end; shotEndRecorded = true; } // 디버그: 이번 발의 첫 탄착점 (산탄은 첫 알)
+            if (tracerPrefab == null) return;
+            if (BulletTracer.Fire(tracerPrefab, Muzzle.position, end, impactEffectPrefab, pendingImpacts)) pendingImpacts.Clear();
+            else FlushPendingImpacts(); // 너무 가까워 궤적을 그리지 않으면 바로
+        }
+
+        private void FlushPendingImpacts()
+        {
+            foreach (Pose pose in pendingImpacts) Destroy(Instantiate(impactEffectPrefab, pose.position, pose.rotation), 2f);
+            pendingImpacts.Clear();
         }
 
         /// <summary>투사체 생성 위치. 총구가 벽 너머에 있으면 벽 앞에서 생성 (벽 뚫기 방지)</summary>
@@ -467,7 +566,7 @@ namespace HybridShooter.Weapon
         protected static void PlaySfx(SoundDef sound, Vector3 position)
         {
             if (sound == null) return;
-            if (ServiceLocator.TryGet<ISoundService>(out var service)) service.PlaySfx(sound.Key, position);
+            if (ServiceLocator.TryGet<ISoundService>(out var service)) service.PlaySfx(sound, position);
         }
 
         /// <summary>forward 를 중심으로 반각 halfAngle(도) 원뿔 안의 무작위 방향 (원판 균등 분포)</summary>
@@ -508,6 +607,18 @@ namespace HybridShooter.Weapon
             if (IsCurrent) EventBus<AmmoChangedEvent>.Publish(new AmmoChangedEvent(Ammo, Stats.magazineSize));
         }
 
+        /// <summary>총구 자리에 생성 (IK 뒤 총구를 따라감). 레이어를 총과 맞춰 저격 조준(무기 레이어 숨김) 때 같이 숨는다</summary>
+        private void SpawnMuzzleFlash()
+        {
+            // 총구의 자식으로 두지 않는다: 자식이면 파티클이 IK 전(애니메이션 자세) 총구에서 터진다 (MuzzleFlash 참고).
+            // 지금 총구 = 지난 프레임 IK 뒤 자리 = 화면에 보이던 총구. 이후는 MuzzleFlash 가 IK 뒤에 따라간다
+            GameObject flash = Instantiate(muzzleFlashPrefab, Muzzle.position, Muzzle.rotation);
+            if (flash.TryGetComponent(out MuzzleFlash follower)) follower.Follow(Muzzle);
+            int layer = gameObject.layer;
+            foreach (var t in flash.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = layer;
+            Destroy(flash, 1f);
+        }
+
         private void ApplyRecoil()
         {
             Vector2 kick = GetRecoilKick();
@@ -532,21 +643,44 @@ namespace HybridShooter.Weapon
             foreach (var t in GetComponentsInChildren<Transform>(true)) t.gameObject.layer = layer;
         }
 
-        /// <summary>총구가 비어 있으면 모델 경계상자의 앞 끝에 만든다</summary>
+        /// <summary>총구가 비어 있으면 모델 경계상자(총 기준)의 앞 끝 가운데에 만든다</summary>
         private void EnsureMuzzle()
         {
             if (muzzle != null) return;
             muzzle = new GameObject("Muzzle").transform;
             muzzle.SetParent(transform, false);
+            if (TryGetLocalBounds(out Bounds bounds))
+                muzzle.localPosition = new Vector3(bounds.center.x, bounds.center.y, bounds.max.z);
+        }
 
-            var renderers = GetComponentsInChildren<Renderer>();
-            if (renderers.Length == 0) return;
-            Bounds bounds = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+        /// <summary>
+        /// 모델 경계상자를 총 기준(로컬)으로. 렌더러의 월드 bounds 는 쓰지 않는다:
+        /// 방금 켠 총(Equip 의 SetActive)은 꺼지기 전 자리의 bounds 가 남아 있어 총구가 엉뚱한 곳(게임 시작 때 총이 있던 자리)에 생긴다.
+        /// 대신 메시 자체의 bounds 를 총 기준으로 옮겨 계산한다 (자세·활성 상태와 무관)
+        /// </summary>
+        private bool TryGetLocalBounds(out Bounds result)
+        {
+            result = default;
+            bool any = false;
+            Matrix4x4 toGun = transform.worldToLocalMatrix;
+            foreach (var r in GetComponentsInChildren<Renderer>())
+            {
+                Bounds local;
+                if (r is SkinnedMeshRenderer skinned) local = skinned.localBounds;
+                else if (r is MeshRenderer && r.TryGetComponent(out MeshFilter filter) && filter.sharedMesh != null) local = filter.sharedMesh.bounds;
+                else continue; // 파티클·선 등 모델이 아닌 렌더러
 
-            Vector3 f = transform.forward;
-            float extent = Mathf.Abs(f.x) * bounds.extents.x + Mathf.Abs(f.y) * bounds.extents.y + Mathf.Abs(f.z) * bounds.extents.z;
-            muzzle.position = bounds.center + f * extent;
+                Matrix4x4 toGunFromMesh = toGun * r.transform.localToWorldMatrix;
+                for (int i = 0; i < 8; i++)
+                {
+                    Vector3 corner = local.center + Vector3.Scale(local.extents,
+                        new Vector3((i & 1) == 0 ? -1f : 1f, (i & 2) == 0 ? -1f : 1f, (i & 4) == 0 ? -1f : 1f));
+                    Vector3 p = toGunFromMesh.MultiplyPoint3x4(corner);
+                    if (any) result.Encapsulate(p);
+                    else { result = new Bounds(p, Vector3.zero); any = true; }
+                }
+            }
+            return any;
         }
 
         private sealed class HitDistanceComparer : System.Collections.Generic.IComparer<RaycastHit>

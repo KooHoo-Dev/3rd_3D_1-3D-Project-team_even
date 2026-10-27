@@ -4,8 +4,11 @@ namespace HybridShooter.Core.Contracts
 {
     public enum Faction { Player, Monster, Neutral }
 
-    /// <summary>피해 원인. 피격 반응/연출을 다르게 할 때 사용 (BL-007, BL-017)</summary>
-    public enum DamageKind { Bullet, Explosion, MonsterAttack, MonsterSkill }
+    /// <summary>
+    /// 피해 원인. 피격 반응/연출을 다르게 할 때 사용 (BL-007, BL-017).
+    /// Status = 상태 효과의 지속 피해 (독장판 틱 등). 피격음 대신 기침처럼 가벼운 반응을 낸다. 새 값은 기존 값 뒤에만 추가
+    /// </summary>
+    public enum DamageKind { Bullet, Explosion, MonsterAttack, MonsterSkill, Status }
 
     /// <summary>
     /// 피해 한 번의 정보. 라이플 → 몬스터, 수류탄 → 범위 내 전부, 몬스터/보스 → 플레이어 모두 이 구조체 하나로 주고받는다.

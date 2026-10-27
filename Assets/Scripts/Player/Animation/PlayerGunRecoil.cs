@@ -53,7 +53,6 @@ namespace HybridShooter.Player
         /// <summary>이번 반동(연사 포함) 동안 가장 크게 튄 값 (IK Pose Lab 표시)</summary>
         public float PeakPitch { get; private set; }
         public float PeakBack { get; private set; }
-        public float AdsScale => adsScale;
         /// <summary>이번 반동 동안의 총구 위치 (프레임 끝 기준, IK Pose Lab 씬 뷰 표시)</summary>
         public int TrailCount => trailCount;
         public Vector3 TrailPoint(int i) => trail[i];

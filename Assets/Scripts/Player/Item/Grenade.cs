@@ -35,8 +35,6 @@ namespace HybridShooter.Player
         private float explodeTime;
         private bool launched;
 
-        public bool IsLaunched => launched;
-
         private void Awake()
         {
             body = GetComponent<Rigidbody>();

@@ -42,7 +42,7 @@ namespace HybridShooter.Player
 
         private void SpendStamina(float amount)
         {
-            if (amount <= 0f) return;
+            if (amount <= 0f || IsReviveBuffActive) return; // 부활 직후 보호 중 스태미나 무한
             stamina = Mathf.Max(0f, stamina - amount);
             lastStaminaUseTime = Time.time;
             if (stamina <= 0f) staminaExhausted = true;

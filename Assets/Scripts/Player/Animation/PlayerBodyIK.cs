@@ -74,9 +74,9 @@ namespace HybridShooter.Player
         public Quaternion AnimLeftRotInRight => leftRotInRight;
         /// <summary>왼손 IK 목표 (마지막으로 푼 값)</summary>
         public Vector3 LeftHandTarget => leftArmIK != null ? leftArmIK.solver.IKPosition : Vector3.zero;
-        /// <summary>아이템 사용으로 왼손을 옮기는 정도 (0 = 총 손잡이)</summary>
-        public float LeftHandOverrideWeight => overrideWeight;
         public WeaponGripTable GripTable => driver != null && driver.Profile != null ? driver.Profile.gripTable : null;
+        /// <summary>디버그(애니메이션 떨림 측정): 3인칭 왼손 LimbIK 를 풀지 않는다</summary>
+        public bool DebugDisableLeftHand { get; set; }
 
         private void Awake()
         {
@@ -187,7 +187,7 @@ namespace HybridShooter.Player
         /// <summary>왼손을 총 손잡이(있으면) 또는 기록해 둔 오른손 기준 자리로</summary>
         private void SolveLeftHand()
         {
-            if (leftArmIK == null || leftHand == null || rightHand == null || leftHandWeight <= 0f) return;
+            if (leftArmIK == null || leftHand == null || rightHand == null || leftHandWeight <= 0f || DebugDisableLeftHand) return;
 
             Vector3 position = grip != null ? grip.position : rightHand.TransformPoint(leftPosInRight);
             Quaternion rotation = grip != null ? grip.rotation : rightHand.rotation * leftRotInRight;
