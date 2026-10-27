@@ -24,7 +24,7 @@ namespace HybridShooter.Core.Contracts
     /// </summary>
     public interface ISpawnZoneProvider
     {
-        /// <summary>군중 생성 위치. Herd 는 같은 groupSeed 끼리 한 방향에 모인다</summary>
+        /// <summary>군중 생성 위치. Herd 는 같은 groupSeed 끼리 한 방향에 모인다. false = 이번 점은 소환 불가 (플레이어 안전 반경 안 등), 다시 요청하면 된다</summary>
         bool TryGetSpawnPose(SpawnPattern pattern, int groupSeed, out Vector3 position, out Quaternion rotation);
         /// <summary>보급 낙하 위치 (BL-018)</summary>
         bool TryGetSupplyDropPosition(out Vector3 position);
