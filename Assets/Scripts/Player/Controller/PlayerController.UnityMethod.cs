@@ -63,12 +63,14 @@ namespace HybridShooter.Player
         {
             SubscribeViewEvents();
             SubscribeLifeEvents();
+            SubscribePullEvents();
         }
 
         private void OnDisable()
         {
             UnsubscribeViewEvents();
             UnsubscribeLifeEvents();
+            UnsubscribePullEvents();
         }
 
         private void OnDestroy()
@@ -95,9 +97,11 @@ namespace HybridShooter.Player
 
             UpdateGround(dt);
 
+            RemoveAppliedPull(); // 모터는 지난 프레임 rb 속도에서 출발한다 → 끌어당김 몫을 먼저 뺀다
             if (isSliding) UpdateSlide(dt);
             else if (isRolling) UpdateRoll(dt);
             else UpdateWalk(dt);
+            ApplyPull(dt);
 
             UpdateJump();
             UpdateStamina(dt);

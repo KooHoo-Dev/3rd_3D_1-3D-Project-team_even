@@ -17,6 +17,7 @@ namespace HybridShooter.Player
     ///  - 감속/가속: 이름(key)이 있는 속도 배율 목록. 곱해서 적용한다. (피격 둔화, 스태미나 바닥, 상태이상 등)
     ///    + 자동: 몸이 이동 방향과 어긋나 있을 때(뒤로 걷기, 뒤돌아 출발) 느려짐.
     ///  - 외부 제어: 벽넘기처럼 애니메이션이 몸을 직접 옮겨야 할 때 BeginExternalControl ~ EndExternalControl 동안 물리를 멈춘다.
+    ///  - 끌어당김: 보스 패턴 등이 StartPull ~ StopPull 동안 모터 속도 위에 중심 쪽 수평 속도를 더한다 (입력은 살아 있음).
     ///
     /// 파일 구성 (partial)
     ///  - PlayerController.Data          : 인스펙터 설정 + 내부 상태 필드
@@ -28,6 +29,7 @@ namespace HybridShooter.Player
     ///  - PlayerController.CameraRig     : 카메라 리그 회전, 눈 위치, 3인칭 벽 충돌, 조준 확대, 1인칭 머리 숨김
     ///  - PlayerController.BodyVisual    : 보이는 몸 yaw 맞추기
     ///  - PlayerController.Movement      : 바닥 판정, 걷기·구르기·점프(물리), 속도 배율
+    ///  - PlayerController.Pull          : 끌어당김 (IPlayerPullable). 보스 빨아들이기 등
     ///  - PlayerController.Health        : 체력, 회복, 피격, 사망
     ///  - PlayerController.Stamina       : 스태미나 (달리기·구르기 소모, 회복)
     ///  - PlayerController.Revive        : 사망 → 부활 연출(무적·입력 없음) → 부활 직후 보호, 최종 사망, 재시작
@@ -35,7 +37,7 @@ namespace HybridShooter.Player
     ///  - PlayerController.API           : 바깥에서 쓰는 이벤트·프로퍼티·메서드
     /// </summary>
     [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
-    public partial class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IDamageable, IPlayerLives
+    public partial class PlayerController : MonoBehaviour, IPlayerTarget, IHealable, IDamageable, IPlayerLives, IPlayerPullable
     {
     }
 }
