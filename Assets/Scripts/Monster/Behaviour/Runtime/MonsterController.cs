@@ -58,6 +58,7 @@ namespace HybridShooter.Monster.Behaviour
         // ── 애니메이션 ──
         private Animator animator;
 
+        public int MonsterId => monsterId;
         public MonsterDef Def { get; private set; }
         public MonsterStateMachine StateMachine { get; private set; }
 
