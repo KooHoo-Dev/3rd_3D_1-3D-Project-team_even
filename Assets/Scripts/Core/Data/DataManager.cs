@@ -39,6 +39,9 @@ namespace HybridShooter.Core.Data
         private static DefTable<int, StatusEffectDef> statusEffects;
         private static DefTable<int, RoundDef> rounds;
         private static DefTable<int, CrowdSpawnRuleDef> crowdSpawnRules;
+        private static DefTable<int, WaveStageDef> waveStages;
+        private static DefTable<int, WaveDef> waves;
+        private static DefTable<int, WaveSpawnerDef> waveSpawners;
         private static DefTable<int, SupplyDef> supplies;
         private static DefTable<int, UpgradeDef> upgrades;
         private static DefTable<UpgradeType, UpgradeTrackDef> upgradeTracks;
@@ -59,6 +62,9 @@ namespace HybridShooter.Core.Data
         /// <summary>Key = Round 번호. 마지막 행 이후 라운드는 GetRound 사용</summary>
         public static DefTable<int, RoundDef> Rounds { get { EnsureLoaded(); return rounds; } }
         public static DefTable<int, CrowdSpawnRuleDef> CrowdSpawnRules { get { EnsureLoaded(); return crowdSpawnRules; } }
+        public static DefTable<int, WaveStageDef> WaveStages { get { EnsureLoaded(); return waveStages; } }
+        public static DefTable<int, WaveDef> Waves { get { EnsureLoaded(); return waves; } }
+        public static DefTable<int, WaveSpawnerDef> WaveSpawners { get { EnsureLoaded(); return waveSpawners; } }
         public static DefTable<int, SupplyDef> Supplies { get { EnsureLoaded(); return supplies; } }
         public static DefTable<int, UpgradeDef> Upgrades { get { EnsureLoaded(); return upgrades; } }
         /// <summary>Key = UpgradeType. 레벨별 강화 묶음</summary>
@@ -120,6 +126,9 @@ namespace HybridShooter.Core.Data
             statusEffects   = Build<StatusEffectDto, int, StatusEffectDef>(folder, StatusEffectDef.Table, r, d => d.Id, d => new StatusEffectDef(d, r));
             rounds          = Build<RoundDto, int, RoundDef>(folder, RoundDef.Table, r, d => d.Round, d => new RoundDef(d, r));
             crowdSpawnRules = Build<CrowdSpawnDto, int, CrowdSpawnRuleDef>(folder, CrowdSpawnRuleDef.Table, r, d => d.Id, d => new CrowdSpawnRuleDef(d, r));
+            waveStages      = Build<WaveStageDto, int, WaveStageDef>(folder, WaveStageDef.Table, r, d => d.Id, d => new WaveStageDef(d, r));
+            waves           = Build<WaveDto, int, WaveDef>(folder, WaveDef.Table, r, d => d.Id, d => new WaveDef(d, r));
+            waveSpawners    = Build<WaveSpawnerDto, int, WaveSpawnerDef>(folder, WaveSpawnerDef.Table, r, d => d.Id, d => new WaveSpawnerDef(d, r));
             supplies        = Build<SupplyDto, int, SupplyDef>(folder, SupplyDef.Table, r, d => d.Id, d => new SupplyDef(d, r));
             upgrades        = Build<UpgradeDto, int, UpgradeDef>(folder, UpgradeDef.Table, r, d => d.Id, d => new UpgradeDef(d, r));
             sounds          = Build<SoundDto, string, SoundDef>(folder, SoundDef.Table, r, d => d.Key, d => new SoundDef(d, r));
@@ -133,6 +142,7 @@ namespace HybridShooter.Core.Data
             LinkPlayer(r);
             LinkMonsters(r);
             LinkRounds(r);
+            LinkWaves(r);
             upgradeTracks = GroupUpgrades(r);
 
             // 3) Validate : 테이블 간 규칙
@@ -375,6 +385,50 @@ namespace HybridShooter.Core.Data
             }
         }
 
+        /// <summary>
+        /// 군중전 웨이브 3개 테이블의 Id 참조를 Def 참조로 바꾼다. Load 의 Link 단계에서 LinkRounds 다음에 호출된다.
+        /// 없는 Id·보스 몬스터·없는 라운드는 오류로 남기고, 없는 Id 는 연결 목록에서 뺀다.
+        /// </summary>
+        /// <param name="r">오류를 모으는 로드 보고서</param>
+        private static void LinkWaves(DataLoadReport r)
+        {
+            // 스포너 → 몬스터 (V7, V8)
+            foreach (var spawner in waveSpawners)
+            {
+                if (monsters.TryGet(spawner.MonsterId, out var monster)) spawner.Monster = monster;
+                else r.Error(WaveSpawnerDef.Table, spawner.Id, $"MonsterId {spawner.MonsterId} 가 MonsterTable 에 없습니다");
+                if (spawner.Monster != null && spawner.Monster.IsBoss)
+                    r.Error(WaveSpawnerDef.Table, spawner.Id, $"MonsterId {spawner.MonsterId} 는 보스라 넣을 수 없습니다 (웨이브는 군중전 전용)");
+            }
+
+            // 웨이브 → 스포너 (V6)
+            foreach (var wave in waves)
+            {
+                var spawnerList = new List<WaveSpawnerDef>();
+                foreach (int spawnerId in wave.SpawnerIds)
+                {
+                    if (waveSpawners.TryGet(spawnerId, out var spawner)) spawnerList.Add(spawner);
+                    else r.Error(WaveDef.Table, wave.Id, $"SpawnList 의 {spawnerId} 가 WaveSpawnerTable 에 없습니다");
+                }
+                wave.Spawners = spawnerList;
+            }
+
+            // 스테이지 → 라운드 확인, 웨이브 연결 후 StartTime 순 정렬 (V6, V15)
+            foreach (var stage in waveStages)
+            {
+                if (rounds.Contains(stage.RoundNo) == false)
+                    r.Error(WaveStageDef.Table, stage.Id, $"Round {stage.RoundNo} 가 RoundTable 에 없습니다");
+
+                var waveList = new List<WaveDef>();
+                foreach (int waveId in stage.WaveIds)
+                {
+                    if (waves.TryGet(waveId, out var wave)) waveList.Add(wave);
+                    else r.Error(WaveStageDef.Table, stage.Id, $"WaveList 의 {waveId} 가 WaveTable 에 없습니다");
+                }
+                stage.Waves = waveList.OrderBy(w => w.StartTime).ToList();
+            }
+        }
+
         private static DefTable<UpgradeType, UpgradeTrackDef> GroupUpgrades(DataLoadReport r)
         {
             var table = new DefTable<UpgradeType, UpgradeTrackDef>("UpgradeTrack");
@@ -421,6 +475,57 @@ namespace HybridShooter.Core.Data
             r.Check(reloadTotal < 1f, UpgradeDef.Table, UpgradeType.ReloadSpeed, $"재장전 감소율 합계가 {reloadTotal} 입니다 (1 미만이어야 함)");
     
             if (clypeosaurus != null) r.Check(bosses.Contains(clypeosaurus.BossId), ClypeosaurusDef.Table, clypeosaurus.BossId, $"BossTable에 Id {clypeosaurus.BossId}인 보스가 없습니다.");
+
+            ValidateWaves(r);
+        }
+
+        /// <summary>
+        /// 군중전 웨이브 데이터의 테이블 간 규칙(V9~V13)을 경고로 검사한다. Validate 끝에서 호출된다.
+        /// 실행되지 않는 웨이브, 같은 라운드 스테이지의 겹침·빈틈, 안 쓰이거나 여러 번 쓰인 웨이브·스포너를 찾는다.
+        /// </summary>
+        /// <param name="r">경고를 모으는 로드 보고서</param>
+        private static void ValidateWaves(DataLoadReport r)
+        {
+            // V9 스테이지 길이 안에 시작하지 못하는 웨이브
+            foreach (var stage in waveStages)
+            {
+                float stageLength = stage.EndTime - stage.StartTime;
+                foreach (var wave in stage.Waves)
+                    if (wave.StartTime >= stageLength)
+                        r.Warn(WaveDef.Table, wave.Id, $"StartTime {wave.StartTime} 이 스테이지 {stage.Id} 길이 {stageLength} 이상이라 실행되지 않습니다");
+            }
+
+            // V10·V11 같은 라운드 스테이지끼리 시간 구간 겹침·빈틈 (StartTime 순으로 이웃끼리 비교)
+            foreach (var stagesInRound in waveStages.GroupBy(s => s.RoundNo))
+            {
+                var orderedStages = stagesInRound.OrderBy(s => s.StartTime).ToList();
+                for (int i = 1; i < orderedStages.Count; i++)
+                {
+                    var previous = orderedStages[i - 1];
+                    var current = orderedStages[i];
+                    if (current.StartTime < previous.EndTime)
+                        r.Warn(WaveStageDef.Table, current.Id, $"스테이지 {previous.Id} 와 시간 구간이 겹칩니다 ({current.StartTime} < {previous.EndTime})");
+                    if (current.StartTime > previous.EndTime)
+                        r.Warn(WaveStageDef.Table, current.Id, $"스테이지 {previous.Id} 와 사이에 빈 시간이 있습니다 ({previous.EndTime}~{current.StartTime})");
+                }
+            }
+
+            // V12·V13 사용 횟수: 0 = 안 쓰임, 2 이상 = 여러 곳에서 공유
+            var waveUseCounts = waveStages.SelectMany(s => s.Waves).GroupBy(w => w.Id).ToDictionary(g => g.Key, g => g.Count());
+            foreach (var wave in waves)
+            {
+                waveUseCounts.TryGetValue(wave.Id, out int useCount);  // 없으면 0
+                if (useCount == 0) r.Warn(WaveDef.Table, wave.Id, "어떤 스테이지에도 쓰이지 않습니다");
+                if (useCount > 1) r.Warn(WaveDef.Table, wave.Id, $"스테이지 WaveList 에 {useCount} 번 쓰였습니다 (한 번만 써야 합니다)");
+            }
+
+            var spawnerUseCounts = waves.SelectMany(w => w.Spawners).GroupBy(s => s.Id).ToDictionary(g => g.Key, g => g.Count());
+            foreach (var spawner in waveSpawners)
+            {
+                spawnerUseCounts.TryGetValue(spawner.Id, out int useCount);  // 없으면 0
+                if (useCount == 0) r.Warn(WaveSpawnerDef.Table, spawner.Id, "어떤 웨이브에도 쓰이지 않습니다");
+                if (useCount > 1) r.Warn(WaveSpawnerDef.Table, spawner.Id, $"웨이브 SpawnList 에 {useCount} 번 쓰였습니다 (한 번만 써야 합니다)");
+            }
         }
 
         private static void ValidateMonsters(DataLoadReport r)
