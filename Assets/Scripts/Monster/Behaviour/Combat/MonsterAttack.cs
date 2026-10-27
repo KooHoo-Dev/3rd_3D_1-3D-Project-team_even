@@ -11,7 +11,8 @@ namespace HybridShooter.Monster.Behaviour
     /// 하위 클래스는 각 단계의 내용(OnWindup / OnActive / OnRecover / OnCancel)만 정한다.
     /// 단계는 Tick 1번에 최대 1개씩 넘어간다.
     /// 예고 중에는 모든 공격이 WindupLookPoint 쪽으로 WindupTurnSpeed 만큼씩 돈다 (회전 코드는 이 클래스 한 곳).
-    /// 공격 한 주기 = Cooldown. Active 는 ActiveDuration(= Cooldown − 예고 − 회복) 동안 유지되고, 판정(OnActive)은 Active 의 HitTimeRatio 지점에서 시작한다.
+    /// 공격 한 사이클 = 예고 → Active(ActiveSeconds) → 회복 → 쿨다운(Cooldown). 판정(OnActive)은 Active 의 HitTimeRatio 지점에서 시작한다.
+    /// 쿨다운은 회복까지 정상 완료한 시점부터 센다. 취소·조기 종료는 Begin 시점부터 센다.
     /// </summary>
     public abstract class MonsterAttack
     {
@@ -21,14 +22,18 @@ namespace HybridShooter.Monster.Behaviour
 
         // ── 공격 주기 (Begin 때 고정, 진행 중 값 변경은 다음 Begin 부터) ──
         private float cycleCooldown;      // s
+        private float cycleActiveSeconds; // s
         private float cycleHitTimeRatio;  // 0~1
         private float activeStartTime;    // s
         private bool isActionDone;        // OnActive 가 true 를 돌려줬으면 같은 Active 에서 다시 부르지 않는다
 
         public AttackSpec Spec { get; }
 
-        // 공격 한 주기 총 시간 (s). 기본값 = Spec.Cooldown. MonsterController 가 인스펙터 값을 넣는다
+        // 회복이 끝난 뒤 다음 공격 시작까지 기다리는 시간 (s). 기본값 = Spec.Cooldown. MonsterController 가 인스펙터 값을 넣는다
         public float Cooldown { get; set; }
+
+        // Active 최소 유지 시간 (s). 0 = 동작이 끝나면 바로 회복. 도약은 이 시간 동안 난다. MonsterController 가 인스펙터 값을 넣는다
+        public float ActiveSeconds { get; set; }
 
         // Active 시작부터 판정까지의 비율 (0~1). 0 = Active 첫 틱에 판정
         public float HitTimeRatio { get; set; } = 0.5f;
@@ -37,7 +42,7 @@ namespace HybridShooter.Monster.Behaviour
         public float WindupTurnSpeed { get; set; }
 
         // 진행 중(또는 마지막) 주기의 Active 길이 (s). MonsterController 가 Attack 클립 재생 배율 계산에 쓴다
-        public float ActiveDuration => cycleCooldown - Spec.TelegraphTime - Spec.RecoveryTime;
+        public float ActiveDuration => cycleActiveSeconds;
         public SkillPhase Phase { get; private set; } = SkillPhase.Idle;
 
         // 예고·공격·회복 중 하나에 있으면 true
@@ -68,6 +73,9 @@ namespace HybridShooter.Monster.Behaviour
         // 단계 변경 알림 (애니메이션·예고 표시·보스 이벤트). Idle = 종료
         public event Action<MonsterAttack, SkillPhase> PhaseChanged;
 
+        // 공격 몸 이동이 땅에 닿음 (도약 착지). 인자 = 착지 지점. 소리·연출용
+        public event Action<MonsterAttack, Vector3> BodyLanded;
+
         // 진행 중인 공격의 대상. 진행 중이 아니면 null
         protected IPlayerTarget Target { get; private set; }
 
@@ -95,16 +103,25 @@ namespace HybridShooter.Monster.Behaviour
             this.findDamageable = findDamageable;
         }
 
+        /// <summary>
+        /// 몸 이동 중 이동 클립 재생 배율의 기준 속도를 알려준다. MonsterController.UpdateMoveAnimation 이 UsesMoveAnimation 인 공격에 묻는다.
+        /// 기본은 받은 값(몬스터 공통 이동 클립 기준 속도)을 그대로 돌려준다. 하위 클래스가 단계별로 바꾼다 (돌진).
+        /// </summary>
+        /// <param name="defaultClipSpeed">몬스터 공통 이동 클립 기준 속도 (m/s). MonsterController.moveClipSpeed</param>
+        /// <returns>이동 클립을 1배속으로 재생할 때의 이동 속도 (m/s)</returns>
+        public virtual float MoveClipSpeedFor(float defaultClipSpeed) => defaultClipSpeed;
+
         /// <summary>쿨다운 확인. AttackState 가 Begin 전에 부른다. 하위 클래스가 발동 조건을 더할 수 있다</summary>
         /// <param name="now">현재 시각 (s)</param>
-        /// <returns>진행 중이 아니고 이전 Begin 으로부터 쿨다운이 지났으면 true</returns>
+        /// <returns>진행 중이 아니고 쿨다운이 지났으면 true (정상 완료 = 회복 끝 기준, 취소·조기 종료 = Begin 기준)</returns>
         public virtual bool CanStart(float now) => IsAttacking == false && now >= nextReadyTime;
 
         /// <summary>
         /// 공격 한 주기를 시작한다 (예고 진입). AttackState 가 사거리 안·공격 허가·CanStart 일 때 부른다.
-        /// 이 주기의 쿨다운·판정 비율을 여기서 고정하므로
-        /// 진행 중에 Cooldown / HitTimeRatio 가 바뀌어도 다음 Begin 부터 반영된다.
+        /// 이 주기의 쿨다운·Active 길이·판정 비율을 여기서 고정하므로
+        /// 진행 중에 Cooldown / ActiveSeconds / HitTimeRatio 가 바뀌어도 다음 Begin 부터 반영된다.
         /// </summary>
+        /// <remarks>여기서 정하는 다음 시작 시각(시작 + 쿨다운)은 취소·조기 종료용이다. 정상 완료하면 Tick 이 회복 끝 기준으로 다시 정한다.</remarks>
         /// <param name="target">이번 주기의 공격 대상</param>
         /// <param name="now">현재 시각 (s)</param>
         /// <exception cref="InvalidOperationException">이미 진행 중인 공격이 있을 때</exception>
@@ -116,6 +133,7 @@ namespace HybridShooter.Monster.Behaviour
             Target = target;
             LastResult = AttackResult.None;
             cycleCooldown = Cooldown;
+            cycleActiveSeconds = ActiveSeconds;
             cycleHitTimeRatio = HitTimeRatio;
             nextReadyTime = now + cycleCooldown;
             SetPhase(SkillPhase.Windup, now + Spec.TelegraphTime);
@@ -125,6 +143,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// 단계를 진행한다. 예고 중에는 매 Tick WindupLookPoint 쪽으로 WindupTurnSpeed 만큼 돈다. Active 는 판정 시각(시작 + ActiveDuration × 판정 비율)까지 기다렸다가 OnActive 를 부르고,
         /// OnActive 가 끝났다고 알린 뒤 Active 시간이 다 지나야 회복으로 넘어간다.
+        /// 회복이 끝나면 그 시각부터 쿨다운을 센다.
         /// AttackState 가 공격 진행 중 매 판단마다 부른다.
         /// </summary>
         /// <param name="now">현재 시각 (s)</param>
@@ -154,7 +173,9 @@ namespace HybridShooter.Monster.Behaviour
                     OnRecover();
                     return;
                 case SkillPhase.Recover:
-                    if (now >= phaseEndTime) Finish(AttackResult.Completed);
+                    if (now < phaseEndTime) return;
+                    nextReadyTime = now + cycleCooldown;
+                    Finish(AttackResult.Completed);
                     return;
                 default:
                     throw new InvalidOperationException("진행 중이 아닌 공격은 Tick 할 수 없다");
@@ -208,6 +229,10 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>회복을 건너뛰고 즉시 끝낸다 (돌진 중 벽 충돌 등). 하위 클래스의 OnActive 안에서 부른다</summary>
         /// <param name="result">끝난 이유. LastResult 에 남는다 (WallHit 이면 AttackState 가 기절시킨다)</param>
         protected void EndEarly(AttackResult result) => Finish(result);
+
+        /// <summary>몸 이동이 땅에 닿았음을 알린다 (도약 착지). 하위 클래스가 실제로 내려앉은 순간에 부른다</summary>
+        /// <param name="ground">착지 지점</param>
+        protected void NotifyBodyLanded(Vector3 ground) => BodyLanded?.Invoke(this, ground);
 
         /// <summary>대상에게 Damage × HitCount 피해. 대상이 이미 죽었으면 주지 않는다</summary>
         /// <remarks>아직 전투시스템 관련 적용되지 않았음</remarks>

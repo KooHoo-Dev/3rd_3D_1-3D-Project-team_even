@@ -32,21 +32,18 @@ namespace HybridShooter.Monster.Behaviour
         public readonly float WallHitStunTime;
         public readonly float TriggerValue;
         public readonly string AnimTrigger;
-        // StatusEffectTable Id (독장판 등). 0 = 효과 없음
-        public readonly int EffectId;
 
         /// <summary>
         /// 값을 직접 채운다. 테이블 값은 From 이 이 생성자로 넘기고, 테스트는 값을 직접 넣을 때 쓴다.
         /// 각 인자는 같은 이름의 필드에 그대로 저장된다 (단위는 필드 주석 참고).
         /// </summary>
         /// <param name="sourceDefId">MonsterAttackTable Id. 0 = 알 수 없음</param>
-        /// <param name="effectId">StatusEffectTable Id. 0 = 효과 없음</param>
         public AttackSpec(AttackShape shape, int damage, int hitCount, float cooldown,
                           float telegraphTime, float recoveryTime, float range,
                           float radius = 0f, float angle = 0f, float width = 0f,
                           float projectileSpeed = 0f, float knockbackDistance = 0f,
                           float wallHitStunTime = 0f, float triggerValue = 0f,
-                          string animTrigger = null, int sourceDefId = 0, int effectId = 0)
+                          string animTrigger = null, int sourceDefId = 0)
         {
             SourceDefId = sourceDefId;
             Shape = shape;
@@ -64,7 +61,6 @@ namespace HybridShooter.Monster.Behaviour
             WallHitStunTime = wallHitStunTime;
             TriggerValue = triggerValue;
             AnimTrigger = animTrigger;
-            EffectId = effectId;
         }
 
         /// <summary>
@@ -75,6 +71,6 @@ namespace HybridShooter.Monster.Behaviour
         public static AttackSpec From(MonsterAttackDef def) => new AttackSpec(
             def.Shape, def.Damage, def.HitCount, def.Cooldown, def.TelegraphTime, def.RecoveryTime, def.Range,
             def.Radius, def.Angle, def.Width, def.ProjectileSpeed, def.KnockbackDistance,
-            def.WallHitStunTime, def.TriggerValue, def.AnimTrigger, def.Id, def.EffectId);
+            def.WallHitStunTime, def.TriggerValue, def.AnimTrigger, def.Id);
     }
 }

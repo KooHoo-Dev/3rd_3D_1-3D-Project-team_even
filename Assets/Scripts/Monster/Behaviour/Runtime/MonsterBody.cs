@@ -31,6 +31,10 @@ namespace HybridShooter.Monster.Behaviour
         // 공격 위치 제어에만 쓰는 좁은 통로. 기존 정지 공격은 executor 없이 사용할 수 있다.
         public Transform Root => transform;
         public UnityEngine.AI.NavMeshQueryFilter AttackNavigationFilter => executor.AttackNavigationFilter;
+        // public UnityEngine.AI.NavMeshQueryFilter AttackNavigationFilter =>
+        //     executor is NavMeshMoveExecutor navMeshExecutor
+        //         ? navMeshExecutor.AttackNavigationFilter
+        //         : default; 
         public bool HasAttackMotion => executor.HasAttackMotion;
         public float AttackRadius => executor.AttackRadius;
         public float AttackHeight => executor.AttackHeight;

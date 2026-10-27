@@ -1,4 +1,4 @@
-Id	SupplyType	Amount	Weight	PrefabKey	MarkerKey
-# SupplyType: Grenade/Heal  ·  Weight: 투하 종류 가중치  ·  BL-018/019
-4001	Grenade	2	50	Supply/GrenadeCrate	marker_grenade
-4002	Heal	1	50	Supply/HealCrate	marker_heal
+Id	SupplyType	Amount	Weight	PrefabKey	MarkerKey	DropSfxKey	CollectSfxKey
+# SupplyType: Grenade/Heal  ·  Weight: 투하 종류 가중치  ·  BL-018/019  ·  DropSfxKey 투하 시작(착지 지점) · CollectSfxKey 획득
+4001	Grenade	2	50	Supply/GrenadeCrate	marker_grenade	sfx_supply_drop	sfx_supply_collect
+4002	Heal	1	50	Supply/HealCrate	marker_heal	sfx_supply_drop	sfx_supply_collect

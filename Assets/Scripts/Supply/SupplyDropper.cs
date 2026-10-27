@@ -121,7 +121,7 @@ namespace HybridShooter.Supply
             crate.Removed += OnCrateRemoved;
             activeCrates.Add(crate);
 
-            ServiceLocator.Get<ISoundService>()?.PlaySfx("sfx_supply_drop", crate.LandingPosition);
+            ServiceLocator.Get<ISoundService>()?.PlaySfx(def.DropSfx, crate.LandingPosition); // SupplyTable.DropSfxKey (비우면 없음)
             EventBus<SupplyDroppedEvent>.Publish(new SupplyDroppedEvent(def, crate.LandingPosition));
             return crate;
         }

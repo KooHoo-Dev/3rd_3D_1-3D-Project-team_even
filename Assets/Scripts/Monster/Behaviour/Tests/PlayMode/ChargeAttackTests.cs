@@ -59,6 +59,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             body = new MonsterBody(monsterObject.transform);
             attack = new ChargeAttack(HeadRam, body, t => (IDamageable)t, movement, settings);
             attack.HitTimeRatio = 0f;
+            attack.ActiveSeconds = 2.8f;
             now = 0f;
         }
 

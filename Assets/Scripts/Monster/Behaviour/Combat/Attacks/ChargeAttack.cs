@@ -61,6 +61,18 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
+        /// 달리는(Charging) 동안만 돌진 전용 클립 기준 속도를 쓴다. 감속·준비 동작은 몬스터 공통 값을 쓴다.
+        /// MonsterController.UpdateMoveAnimation 이 매 프레임 묻는다.
+        /// </summary>
+        /// <param name="defaultClipSpeed">몬스터 공통 이동 클립 기준 속도 (m/s)</param>
+        /// <returns>Charging 이면 ChargeSettings.ChargeClipSpeed, 아니면 defaultClipSpeed (m/s)</returns>
+        public override float MoveClipSpeedFor(float defaultClipSpeed)
+        {
+            if (stage == ChargeStage.Charging) return settings.ChargeClipSpeed;
+            return defaultClipSpeed;
+        }
+
+        /// <summary>
         /// Idle 휴식 중 준비 동작 1틱. 정면이 플레이어 쪽 30° 이내면 멈추고 준비 완료, 아니면 천천히 돌면서 정면으로 걷는다.
         /// IdleState 가 IsPrepared 를 읽기 전에 매 틱 부른다.
         /// </summary>

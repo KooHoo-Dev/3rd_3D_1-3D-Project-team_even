@@ -109,12 +109,18 @@ namespace HybridShooter.Weapon
         [SerializeField, Range(0.1f, 1f)] protected float aimSensitivityMultiplier = 0.8f;
         [Tooltip("조준 중 이동 속도 배율")]
         [SerializeField, Range(0.1f, 1f)] protected float aimMoveSpeedMultiplier = 0.75f;
+
+        [Header("장전 소리")]
+        [Tooltip("장전 시간 중 탄창을 넣는 소리(ReloadInsertSfx)를 낼 시점 비율. 한 발씩 넣는 산탄총은 쓰지 않음")]
+        [SerializeField, Range(0.1f, 0.9f)] protected float reloadInsertAt = 0.55f;
         #endregion
 
         #region 상태
         private float nextFireTime;
         private float readyTime;
         private float reloadEndTime;
+        private float reloadInsertTime;
+        private bool reloadInserted;
         private float bloom;
         private float recoilToRecover;
         private float lastShotTime = float.NegativeInfinity;
@@ -343,19 +349,26 @@ namespace HybridShooter.Weapon
         /// <summary>거리에 따른 피해. 기본은 감쇠 없음</summary>
         protected virtual int DamageAtDistance(float distance) => Stats.damage;
 
-        /// <summary>기본: 탄창 전체를 ReloadTime 뒤에 한 번에 채운다</summary>
+        /// <summary>기본: 탄창 전체를 ReloadTime 뒤에 한 번에 채운다 (소리: 시작 → reloadInsertAt 시점 탄창 넣기 → 완료)</summary>
         protected virtual void StartReload()
         {
             IsReloading = true;
             reloadEndTime = Time.time + Stats.reloadTime;
+            reloadInsertTime = Time.time + Stats.reloadTime * reloadInsertAt;
+            reloadInserted = false;
             NotifyReloadStarted(Stats.reloadTime);
         }
 
         protected virtual void UpdateReload()
         {
+            if (reloadInserted == false && Time.time >= reloadInsertTime)
+            {
+                reloadInserted = true;
+                PlayReloadInsertSfx();
+            }
             if (Time.time < reloadEndTime) return;
             SetAmmo(Stats.magazineSize);
-            FinishReload();
+            CompleteReload();
         }
         #endregion
 
@@ -390,6 +403,7 @@ namespace HybridShooter.Weapon
             if (IsReloading && (CanInterruptReload == false || Ammo <= 0)) return false;
             if (Ammo <= 0)
             {
+                PlaySfx(Def?.DryFireSfx, transform.position); // 빈 탄창 → 이어서 자동 장전 시작음
                 Reload();
                 return false;
             }
@@ -431,6 +445,16 @@ namespace HybridShooter.Weapon
         {
             PlaySfx(Def?.ReloadSfx, transform.position);
             if (IsCurrent) EventBus<ReloadStartedEvent>.Publish(new ReloadStartedEvent(duration));
+        }
+
+        /// <summary>탄창·탄 넣는 소리 (기본 총은 장전 중간, 산탄총은 한 발마다)</summary>
+        protected void PlayReloadInsertSfx() => PlaySfx(Def?.ReloadInsertSfx, transform.position);
+
+        /// <summary>탄을 끝까지 채운 장전 완료. 완료음(노리쇠·펌프) 후 FinishReload. 취소는 CancelReload → FinishReload 로 완료음 없음</summary>
+        protected void CompleteReload()
+        {
+            PlaySfx(Def?.ReloadEndSfx, transform.position);
+            FinishReload();
         }
 
         /// <summary>장전 종료 (완료·취소 공통). UI 진행 표시를 닫도록 ReloadFinishedEvent 를 보낸다</summary>
@@ -542,7 +566,7 @@ namespace HybridShooter.Weapon
         protected static void PlaySfx(SoundDef sound, Vector3 position)
         {
             if (sound == null) return;
-            if (ServiceLocator.TryGet<ISoundService>(out var service)) service.PlaySfx(sound.Key, position);
+            if (ServiceLocator.TryGet<ISoundService>(out var service)) service.PlaySfx(sound, position);
         }
 
         /// <summary>forward 를 중심으로 반각 halfAngle(도) 원뿔 안의 무작위 방향 (원판 균등 분포)</summary>

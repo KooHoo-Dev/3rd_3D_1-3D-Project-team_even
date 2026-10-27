@@ -73,7 +73,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             movement.SetSuspended(true);
             start = monster.transform.position;
             body = new MonsterBody(monster.transform, executor);
-            attack = new PounceAttack(Spec, body, _ => target, settings) { HitTimeRatio = 0f, WindupTurnSpeed = 360f };
+            attack = new PounceAttack(Spec, body, _ => target, settings) { HitTimeRatio = 0f, WindupTurnSpeed = 360f, ActiveSeconds = 6.2f };
             Physics.SyncTransforms();
         }
 
@@ -137,8 +137,9 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [Test]
-        public void ActiveLastsEntireTableDurationAndHitsOnceOnlyOnLanding()
+        public void ActiveLastsActiveSecondsAndHitsOnceOnlyOnLanding()
         {
+            attack.Cooldown = 1f; // 쿨다운을 바꿔도 비행 시간(ActiveSeconds 6.2s)은 그대로다
             Launch();
             attack.Tick(Takeoff + 6.19f, 6.19f);
             Assert.AreEqual(0, target.Hits);
@@ -150,7 +151,6 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreEqual(1, target.Hits);
             attack.Tick(Landing + 1.201f, 0.701f);
             Assert.IsFalse(attack.IsAttacking);
-            Assert.AreEqual(8f, attack.Cooldown);
         }
 
         [TestCase(2.1f, 0f)]
@@ -376,6 +376,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [UnityTest]
         public IEnumerator ConsecutiveAttacksAndChaseResumeAfterLanding()
         {
+            attack.Cooldown = 0.05f; // 회복 끝(≈8.02s) 뒤 0.05s 대기 → 8.1s 에 다음 Begin
             var brain = new MonsterStateMachine(movement, body, attack);
             brain.SetTarget(target);
             brain.ChangeState(brain.Attack);

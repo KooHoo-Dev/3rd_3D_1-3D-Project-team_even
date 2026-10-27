@@ -3,7 +3,7 @@ using UnityEngine;
 namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
-    /// 원거리(독장판) 몬스터 프리팹에 붙이는 설정. 투사체·장판·표식 프리팹과 Inspector 값을 갖고, 각각의 풀을 만든다.
+    /// 원거리(독장판) 몬스터 프리팹에 붙이는 설정. 투사체·장판·표식 프리팹과 Inspector 값(장판 틱 피해·간격·지속 포함)을 갖고, 각각의 풀을 만든다.
     /// MonsterController.Start 가 찾아 MonsterAttackFactory 로 넘기고, PoisonAreaAttack·투사체·장판이 읽는다.
     /// </summary>
     /// <remarks>풀은 Awake 에서 만든다. MonsterController.Start 보다 먼저 준비된다.</remarks>
@@ -23,12 +23,23 @@ namespace HybridShooter.Monster.Behaviour
         [Tooltip("포물선 최고 높이. 발사점·착탄점을 잇는 직선 위로 올라가는 높이 (m)")]
         [SerializeField, Min(0f)] private float arcHeight = 4f;
 
+        [Header("독장판 피해")]
+        [Tooltip("틱 1회 피해량")]
+        [SerializeField, Min(0)] private int tickDamage = 6;
+        [Tooltip("틱 간격 (s). 첫 틱은 장판이 깔리는 순간")]
+        [SerializeField, Min(0.01f)] private float tickInterval = 1f;
+        [Tooltip("장판 지속 시간 (s). 끝나면 반납")]
+        [SerializeField, Min(0.01f)] private float zoneDuration = 5f;
+
         [Header("독장판 피해 조건")]
         [Tooltip("플레이어 Y 와 플레이어 XZ 의 Terrain 높이 차이 허용값 ± (m). 바위·다리 위면 이 값을 넘어 피해가 없다")]
         [SerializeField, Min(0f)] private float zoneHeightTolerance = 0.5f;
 
         public float LaunchHeight => launchHeight;
         public float ArcHeight => arcHeight;
+        public int TickDamage => tickDamage;
+        public float TickInterval => tickInterval;
+        public float ZoneDuration => zoneDuration;
         public float ZoneHeightTolerance => zoneHeightTolerance;
 
         public SimplePool<PoisonProjectile> ProjectilePool { get; private set; }

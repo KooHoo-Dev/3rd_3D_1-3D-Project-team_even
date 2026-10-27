@@ -8,8 +8,14 @@ namespace HybridShooter.Core.Data.Dtos
     {
         public string Key = "";
         public string Category = "";  // SoundCategory enum
-        public string Path = "";  // Resources 기준
+        public string Path = "";  // Resources 기준. ';' 로 여러 개 → 랜덤 재생
         public float Volume;
         public bool Loop;
+        public bool Spatial;  // true = 위치가 있는 3D 소리
+        public int MaxInstances;  // 같은 키 동시 재생 수 (0 = 제한 없음)
+        public float Cooldown;  // 같은 키 최소 재생 간격(초)
+        public float PitchJitter;  // 피치 랜덤 폭 (0.05 = ±5%)
+        public int Priority;  // 0~100, 클수록 중요 (자리가 없을 때 낮은 것부터 끊김)
+        public float MaxDistance;  // 3D 최대 들리는 거리(m), 0 = 제한 없음
     }
 }

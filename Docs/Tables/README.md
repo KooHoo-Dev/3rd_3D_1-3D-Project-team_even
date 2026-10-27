@@ -49,7 +49,7 @@
 | MagazineSize | int | 강화 전 탄창 |
 | ReloadTime | float | 강화 전 재장전(초) |
 | Range / SpreadAngle | float | 사거리(m) / 퍼짐 반각(도) |
-| PrefabKey, FireSfxKey, ReloadSfxKey | string | |
+| PrefabKey, FireSfxKey, ReloadSfxKey, ReloadInsertSfxKey, ReloadEndSfxKey | string | 장전음: 시작 · 탄창·탄 넣기(기본 총 = 장전 55% 시점, 산탄총 = 한 발마다) · 완료(취소 시 없음) |
 
 ## GrenadeTable — BL-005
 | 컬럼 | 타입 | 설명 |
@@ -84,6 +84,8 @@
 | MeshVariant | enum | `Default` / `WingsOff` / `WingsOn` (무스코모프 육상·공중이 같은 프리팹 사용) |
 | Reward | int | 처치 재화 (BL-029) |
 | PrefabKey | string | `Resources/` 기준 경로 |
+| IdleSfxKey / LoopSfxKey / DeathSfxKey | string | SoundTable 키 (빈칸 = 없음). 울음 / 이동·날갯짓 루프 / 사망 |
+| HurtSfxKey | string | 보스 페이즈 전환 때만 (일반 몬스터는 금방 죽어 총기 타격음으로 대체) |
 
 ### MonsterAttackTable
 Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수 4).
@@ -99,6 +101,7 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | Trigger / TriggerValue | `None` / `PlayerStationary`(TriggerValue 초 동안 플레이어 정지 시 발동) |
 | ClearsMinions | 적중 시 일반 몬스터 정리 (등장 공격) |
 | AnimTrigger | Animator 트리거명 (임시 이름) |
+| SfxKey | 공격 소리 (SoundTable 키). 예고 시작에 재생. 보스 Entrance = 등장 포효 |
 
 ### MonsterPartTable
 | 컬럼 | 설명 |
@@ -164,7 +167,7 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 ## SoundTable / ConfigTable
 | 테이블 | 컬럼 |
 |---|---|
-| SoundTable | Key, Category(`Bgm`/`Sfx`/`Ui`), Path(Resources 경로), Volume(0~1), Loop |
+| SoundTable | Key, Category(`Bgm`/`Sfx`/`Monster`/`Ui`), Path(Resources 경로, `;` 로 여러 개 → 랜덤), Volume(0~1), Loop, Spatial(3D), MaxInstances(같은 키 동시 재생 수, 0 = 무제한), Cooldown(초), PitchJitter(±비율), Priority(0~100, 클수록 중요), MaxDistance(m, 0 = 무제한) — 클립이 없으면 오류가 아니라 경고 |
 | ConfigTable | Key, Value, Desc — 코드는 `GameConfig` 상수 키로 접근 |
 
 | Config Key | 의미 | 백로그 |

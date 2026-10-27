@@ -12,5 +12,7 @@ namespace HybridShooter.Core.Data.Dtos
         public int Weight;
         public string PrefabKey = "";
         public string MarkerKey = "";
+        public string DropSfxKey = "";  // SoundTable.Key (투하, 착지 지점)
+        public string CollectSfxKey = "";  // SoundTable.Key (획득)
     }
 }

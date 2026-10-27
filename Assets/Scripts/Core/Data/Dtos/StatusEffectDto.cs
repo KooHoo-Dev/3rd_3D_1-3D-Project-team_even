@@ -14,5 +14,6 @@ namespace HybridShooter.Core.Data.Dtos
         public float Duration;
         public float TickInterval;
         public bool IsZone;
+        public string LoopSfxKey = "";  // SoundTable.Key. 구역 효과가 깔려 있는 동안 반복
     }
 }
