@@ -11544,7 +11544,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 2916307278277949526, guid: 353aa8731541509449a96d6bf5760179, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.2
@@ -11910,7 +11910,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3135451856461241760, guid: f4807c26312187c4ab351ee90479788e, type: 3}
   muzzleFlashPrefab: {fileID: 3158766558265931166, guid: 5884ef90c12467a49b43757449083aa1, type: 3}
   tracerPrefab: {fileID: 4207196726780303395, guid: 402740e791d5e2d4180130c8d95d5c07, type: 3}
   bloomPerShot: 0
@@ -11975,6 +11975,7 @@ MonoBehaviour:
   lowHealthRatio: 0.3
   lowAmmoRatio: 0.25
   blinkRate: 2.5
+  livesFlashTime: 1.2
   staminaFadeTime: 0.5
 --- !u!1 &2145754591375728362
 GameObject:
@@ -12119,7 +12120,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 5613628641074969012, guid: eee3da5c99e8cfe41ae2d154761dc8e0, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.12
@@ -12288,7 +12289,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 2916307278277949526, guid: 353aa8731541509449a96d6bf5760179, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.15
@@ -12401,7 +12402,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 4282389121136097272, guid: e7d185f3584a2a04abe1f4e8db953ae1, type: 3}
   muzzleFlashPrefab: {fileID: 3158766558265931166, guid: 5884ef90c12467a49b43757449083aa1, type: 3}
   tracerPrefab: {fileID: 5853604608837392148, guid: 24286bef60761174e885a82cfccad4d9, type: 3}
   bloomPerShot: 0
@@ -12741,6 +12742,9 @@ MonoBehaviour:
   reviveDuration: 2.4
   reviveBodyRestoreAt: 0.4
   reviveWindow: 5
+  fallbackStartLives: 3
+  fallbackMaxLives: 3
+  livesReviveDelay: 1.5
   reviveBuffDuration: 5
   reviveBuffDamageMultiplier: 0.2
   reviveBuffSpeedMultiplier: 1.35
@@ -14122,7 +14126,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 5613628641074969012, guid: eee3da5c99e8cfe41ae2d154761dc8e0, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.6

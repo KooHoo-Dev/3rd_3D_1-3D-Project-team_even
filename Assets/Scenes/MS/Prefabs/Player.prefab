@@ -518,7 +518,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 5613628641074969012, guid: eee3da5c99e8cfe41ae2d154761dc8e0, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.12
@@ -851,7 +851,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 2916307278277949526, guid: 353aa8731541509449a96d6bf5760179, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.15
@@ -1006,7 +1006,6 @@ MonoBehaviour:
   groundAcceleration: 45
   groundDeceleration: 55
   airAcceleration: 10
-  turnSpeed: 720
   backwardMultiplier: 0.65
   jumpHeight: 1.2
   coyoteTime: 0.1
@@ -1095,14 +1094,27 @@ MonoBehaviour:
   bodyAnimator: {fileID: 8844872386174927466}
   bodyVisual: {fileID: 9022387839330611747}
   eyeForwardOffset: 0.12
+  neckPivotWeight: 0
+  eyeFromNeck: {x: 0, y: 0.1, z: 0.08}
   followHeadBone: 0
   headFollowWeight: 0.5
   headEyeOffset: {x: 0, y: 0.08, z: 0.1}
   headFollowSmoothTime: 0.08
+  neckClearance: 0.15
+  neckGuardSmoothTime: 0.06
   gunSlot: {fileID: 0}
   aimZoomSpeed: 6
   maxHealth: 100
   currentHealth: 100
+  reviveDuration: 2.4
+  reviveBodyRestoreAt: 0.4
+  reviveWindow: 2
+  fallbackStartLives: 3
+  fallbackMaxLives: 3
+  livesReviveDelay: 1.5
+  reviveBuffDuration: 5
+  reviveBuffDamageMultiplier: 0.2
+  reviveBuffSpeedMultiplier: 1.35
   maxStamina: 100
   sprintStaminaPerSecond: 20
   rollStaminaCost: 25
@@ -1217,6 +1229,8 @@ MonoBehaviour:
   maxAimDistance: 100
   minAimDistance: 2
   firstPersonSpineWeight: 0.7
+  firstPersonSpineWeightDown: 0.3
+  firstPersonDownPitch: 55
 --- !u!114 &4034804946924796211
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1354,6 +1368,54 @@ MonoBehaviour:
   blinkRate: 2.5
   livesFlashTime: 1.2
   staminaFadeTime: 0.5
+--- !u!114 &4815162342108153829
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5753637828753184512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e729c29d0dd244e093ccd93e569a1816, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.Tester.PlayerDebugMode
+  invincible: 0
+  infiniteStamina: 0
+  infiniteAmmo: 0
+  infiniteLives: 0
+  holdFinalDeath: 0
+  selfDamageAmount: 20
+  maxLivesToSet: 5
+  showStatus: 1
+--- !u!114 &6180339887498948482
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5753637828753184512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d1449714e3c426090c51eddc9e63ef0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerReviveEffect
+  hologramMaterial: {fileID: 2100000, guid: ee51262f98654b75a5456ecb4f1e17a5, type: 2}
+  screenMaterial: {fileID: 2100000, guid: 6a1efc5759df42b8a4d8efd06a126e1c, type: 2}
+  bitsMaterial: {fileID: 2100000, guid: d97e487bd091469fb7e2cb2f7135153f, type: 2}
+  bodyRoot: {fileID: 0}
+  bodyHeight: 1.95
+  baseGlitch: 0.25
+  thirdPersonScreenScale: 0.45
+  showText: 1
+  bitsColorA: {r: 0.35, g: 1, b: 1, a: 1}
+  bitsColorB: {r: 0.6, g: 0.75, b: 1, a: 1}
+  curtainRate: 90
+  burstCount: 90
+  buffBodyIntensity: 0.22
+  buffScreenIntensity: 0.22
+  buffTrailRate: 40
+  buffWarningTime: 1.2
 --- !u!1 &6833522934525979748
 GameObject:
   m_ObjectHideFlags: 0
@@ -1452,7 +1514,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 2916307278277949526, guid: 353aa8731541509449a96d6bf5760179, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.2
@@ -1595,7 +1657,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3135451856461241760, guid: f4807c26312187c4ab351ee90479788e, type: 3}
   muzzleFlashPrefab: {fileID: 3158766558265931166, guid: 5884ef90c12467a49b43757449083aa1, type: 3}
   tracerPrefab: {fileID: 4207196726780303395, guid: 402740e791d5e2d4180130c8d95d5c07, type: 3}
   bloomPerShot: 0
@@ -1706,7 +1768,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 4282389121136097272, guid: e7d185f3584a2a04abe1f4e8db953ae1, type: 3}
   muzzleFlashPrefab: {fileID: 3158766558265931166, guid: 5884ef90c12467a49b43757449083aa1, type: 3}
   tracerPrefab: {fileID: 5853604608837392148, guid: 24286bef60761174e885a82cfccad4d9, type: 3}
   bloomPerShot: 0
@@ -1786,7 +1848,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 5613628641074969012, guid: eee3da5c99e8cfe41ae2d154761dc8e0, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
   bloomPerShot: 0.6
@@ -4131,51 +4193,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4406393802129974210, guid: 7ce10cefc6c95974f85d79af747f9a0d, type: 3}
   m_PrefabInstance: {fileID: 7124585000679259706}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &4815162342108153829
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5753637828753184512}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e729c29d0dd244e093ccd93e569a1816, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.Tester.PlayerDebugMode
-  invincible: 0
-  infiniteStamina: 0
-  infiniteAmmo: 0
-  infiniteLives: 0
-  holdFinalDeath: 0
-  selfDamageAmount: 20
-  maxLivesToSet: 5
-  showStatus: 1
---- !u!114 &6180339887498948482
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5753637828753184512}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7d1449714e3c426090c51eddc9e63ef0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerReviveEffect
-  hologramMaterial: {fileID: 2100000, guid: ee51262f98654b75a5456ecb4f1e17a5, type: 2}
-  screenMaterial: {fileID: 2100000, guid: 6a1efc5759df42b8a4d8efd06a126e1c, type: 2}
-  bitsMaterial: {fileID: 2100000, guid: d97e487bd091469fb7e2cb2f7135153f, type: 2}
-  bodyRoot: {fileID: 0}
-  bodyHeight: 1.95
-  baseGlitch: 0.25
-  thirdPersonScreenScale: 0.45
-  showText: 1
-  bitsColorA: {r: 0.35, g: 1, b: 1, a: 1}
-  bitsColorB: {r: 0.6, g: 0.75, b: 1, a: 1}
-  curtainRate: 90
-  burstCount: 90
-  buffBodyIntensity: 0.22
-  buffScreenIntensity: 0.22
-  buffTrailRate: 40
-  buffWarningTime: 1.2
