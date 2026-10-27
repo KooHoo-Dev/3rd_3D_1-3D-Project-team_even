@@ -8,7 +8,7 @@ using UnityEngine.TestTools;
 namespace HybridShooter.Monster.Behaviour.Tests
 {
     /// <summary>
-    /// MonsterWave 의 스포너 동시 시작·StartDelay 시차·완료·중단을 확인한다 (B4 완료 기준 2·5).
+    /// MonsterWave 의 스포너 동시 시작·StartDelay 시차·완료·중단·Finished 발행을 확인한다 (B4 완료 기준 2·5, B5 보정 2·3).
     /// 웨이브 행은 실제 WaveTable(DataManager)에서 읽고, 팩토리·위치 구현은 이 클래스가 대신한다 (소환 수만 센다).
     /// </summary>
     public sealed class TestMonsterWave : IMonsterFactory, ISpawnZoneProvider
@@ -78,6 +78,36 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
             Assert.AreEqual(1, spawnCount);
             Assert.IsTrue(wave.IsFinished);
+        }
+
+        [Test]
+        public void LastSpawnerDone_RaisesFinishedOnce()
+        {
+            MonsterWave wave = CreateWave(Wave103);
+            int finishedCount = 0;
+            wave.Finished += _ => finishedCount++;
+
+            wave.Tick(0f);    // 203 끝 (204 는 남음)
+            Assert.AreEqual(0, finishedCount);
+            wave.Tick(9f);    // 204 마지막 9초
+            Assert.AreEqual(1, finishedCount);
+
+            wave.Tick(100f);
+            Assert.AreEqual(1, finishedCount, "끝난 뒤 Tick 은 다시 발행하지 않음");
+        }
+
+        [Test]
+        public void Stop_DoesNotRaiseFinished()
+        {
+            MonsterWave wave = CreateWave(Wave103);
+            int finishedCount = 0;
+            wave.Finished += _ => finishedCount++;
+            wave.Tick(0f);
+
+            wave.Stop();
+            wave.Tick(100f);
+
+            Assert.AreEqual(0, finishedCount);
         }
 
         // ── IMonsterFactory / ISpawnZoneProvider 대역 ──

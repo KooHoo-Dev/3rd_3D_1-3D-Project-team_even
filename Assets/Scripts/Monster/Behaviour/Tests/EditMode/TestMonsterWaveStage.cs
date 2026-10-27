@@ -8,7 +8,7 @@ using UnityEngine.TestTools;
 namespace HybridShooter.Monster.Behaviour.Tests
 {
     /// <summary>
-    /// MonsterWaveStage 의 웨이브 시작 시각·시작 프레임·앞당김 없음·완료·중단을 확인한다 (B4 완료 기준 1·3·4·5).
+    /// MonsterWaveStage 의 웨이브 시작 시각·시작 프레임·앞당김 없음·완료·중단·Finished 발행을 확인한다 (B4 완료 기준 1·3·4·5, B5 보정 2·3).
     /// 스테이지 행은 실제 WaveStageTable(DataManager)에서 읽고, 팩토리·위치 구현은 이 클래스가 대신한다 (소환 수만 센다).
     /// </summary>
     /// <remarks>
@@ -119,6 +119,39 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
             Assert.AreEqual(1, spawnCount);
             Assert.IsTrue(stage.IsFinished);
+        }
+
+        [Test]
+        public void LastWaveDone_RaisesFinishedOnce_ThroughSpawnerAndWaveChain()
+        {
+            MonsterWaveStage stage = CreateStage(Stage1);
+            int finishedCount = 0;
+            stage.Finished += _ => finishedCount++;
+
+            TickRepeatedly(stage, 0.5f, 20);  // 10초: 101 은 5초에 끝났지만 102·103 이 남음
+            Assert.AreEqual(0, finishedCount, "웨이브를 다 시작하기 전엔 발행하지 않음");
+
+            TickRepeatedly(stage, 0.5f, 80);  // 50초: 103 의 204 까지 끝
+            Assert.AreEqual(Stage1TotalCount, spawnCount);
+            Assert.AreEqual(1, finishedCount);
+
+            TickRepeatedly(stage, 0.5f, 10);
+            Assert.AreEqual(1, finishedCount, "끝난 뒤 Tick 은 다시 발행하지 않음");
+        }
+
+        [Test]
+        public void Stop_DoesNotRaiseFinished()
+        {
+            MonsterWaveStage stage = CreateStage(Stage1);
+            int finishedCount = 0;
+            stage.Finished += _ => finishedCount++;
+            stage.Tick(0f);
+            stage.Tick(0f);
+
+            stage.Stop();
+            TickRepeatedly(stage, 0.5f, 100);
+
+            Assert.AreEqual(0, finishedCount);
         }
 
         // ── IMonsterFactory / ISpawnZoneProvider 대역 ──
