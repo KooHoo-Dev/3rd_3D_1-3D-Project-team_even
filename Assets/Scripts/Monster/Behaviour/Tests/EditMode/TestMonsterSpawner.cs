@@ -26,15 +26,18 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [SetUp]
         public void SetUp()
         {
-            // DataManager 첫 로드 때 MonsterTable 1001·1004 프리팹 없음 오류 로그가 난다 (B2 구현 결과). 이 테스트와 무관
-            LogAssert.ignoreFailingMessages = true;
             spawnCount = 0;
             poseFailuresLeft = 0;
             requestedSeeds.Clear();
         }
 
-        private MonsterSpawner CreateSpawner(int spawnerId) =>
-            new MonsterSpawner(DataManager.WaveSpawners.Get(spawnerId), this, this);
+        private MonsterSpawner CreateSpawner(int spawnerId)
+        {
+            // DataManager 첫 로드 때 프리팹 없음(Weapon·Monster 1001·1004) 오류 로그가 난다. 이 테스트와 무관.
+            // SetUp 에서 켜면 테스트 본문에서 다시 꺼지므로 로드하는 이 자리에서 켠다
+            LogAssert.ignoreFailingMessages = true;
+            return new MonsterSpawner(DataManager.WaveSpawners.Get(spawnerId), this, this);
+        }
 
         [Test]
         public void StartDelay0_SpawnsOnFirstTick_ThenEveryInterval()

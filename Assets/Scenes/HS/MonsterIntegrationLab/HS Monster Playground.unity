@@ -358,6 +358,68 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!1 &782320106
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 782320109}
+  - component: {fileID: 782320108}
+  - component: {fileID: 782320110}
+  m_Layer: 0
+  m_Name: MonsterPool
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &782320108
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 782320106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c0eb543c12dca24f8062d3a45cd490c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterPool
+--- !u!4 &782320109
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 782320106}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &782320110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 782320106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ad8f803dad39054f84fcbcba3bee096, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterPoolLab
+  monsterPool: {fileID: 782320108}
+  monsterIds: ea030000eb030000d1070000d2070000d3070000
+  spawnCount: 8
+  spawnRadius: 12
+  spawnSampleDistance: 3
 --- !u!1 &790174624
 GameObject:
   m_ObjectHideFlags: 0
@@ -582,6 +644,51 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1039042970}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1127682378
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1127682380}
+  - component: {fileID: 1127682379}
+  m_Layer: 0
+  m_Name: MonsterSpawnerLab
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1127682379
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1127682378}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dbcf320942f64b72860aded3b01dcfd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterSpawnerLab
+  spawnerIds: c9000000cd000000ce000000d4000000
+--- !u!4 &1127682380
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1127682378}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 20.73712, y: 13.99011, z: 30.7053}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1175457861
 GameObject:
   m_ObjectHideFlags: 0
@@ -1289,7 +1396,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1785309838}
-  - component: {fileID: 1785309839}
   m_Layer: 0
   m_Name: Tester
   m_TagString: Untagged
@@ -1313,27 +1419,6 @@ Transform:
   - {fileID: 1175457862}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1785309839
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1785309836}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2035083afe634b04f8e3737a2de3302a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterSpawnLab
-  monsterPrefabs:
-  - {fileID: 3281474137550595047, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
-  - {fileID: 1438301292820702486, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
-  - {fileID: 6221495752859311938, guid: b86b7ae0afd07dc4b93107c803e35712, type: 3}
-  - {fileID: 7794425194075702535, guid: 7df4d2beaf77cfd43940ad8332fc655c, type: 3}
-  - {fileID: 1716452437149150959, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
-  spawnCount: 4
-  spawnRadius: 12
-  spawnSampleDistance: 3
 --- !u!1001 &1875854999
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18565,6 +18650,8 @@ SceneRoots:
   - {fileID: 1645460288}
   - {fileID: 573109723}
   - {fileID: 1785309838}
+  - {fileID: 782320109}
+  - {fileID: 1127682380}
   - {fileID: 1875854999}
   - {fileID: 1186703177}
   - {fileID: 7639047734907975239}

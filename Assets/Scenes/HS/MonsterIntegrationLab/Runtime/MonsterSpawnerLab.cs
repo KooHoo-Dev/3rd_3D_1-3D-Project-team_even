@@ -23,7 +23,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
         [SerializeField] private int[] spawnerIds = { 201, 205, 206, 212 };
 
         private static readonly Key[] RunKeys =
-            { Key.Numpad1, Key.Numpad2, Key.Numpad3, Key.Numpad4, Key.Numpad5, Key.Numpad6, Key.Numpad7, Key.Numpad8 };
+            { Key.F2, Key.F3, Key.F4, Key.F5, };
 
         // ── 실행 중 ──
         private readonly List<MonsterSpawner> runningSpawners = new List<MonsterSpawner>();
