@@ -29,6 +29,7 @@ namespace HybridShooter.Player
         public void TakeDamage(in DamageInfo info)
         {
             if (DebugInvincible || isReviving) return; // 부활 연출 중 무적 (PlayerController.Revive)
+            if (IsKnockbackInvulnerable) return;       // 넉백 중·직후 무적 (PlayerController.Knockback)
             if (IsDead) return;                        // 이미 쓰러짐: 부활 대기 중 시체에 들어오는 피해는 무시
 
             // 부활 직후 보호 중이면 줄인 피해. 피격 연출(PlayerDamagedEvent)도 실제로 받은 양으로 보낸다
@@ -46,6 +47,7 @@ namespace HybridShooter.Player
         private void Die()
         {
             IsDead = true;
+            CancelKnockback();
             SetMoveInput(Vector3.zero, false); // 죽은 뒤 마지막 이동 입력으로 미끄러지지 않게
             Died?.Invoke();
             OnDeathForRevive();

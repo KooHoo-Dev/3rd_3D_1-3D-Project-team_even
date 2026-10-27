@@ -76,6 +76,7 @@ namespace HybridShooter.Player
             SetMoveInput(Vector3.zero, false);
             jumpRequestedTime = float.NegativeInfinity;
             isRolling = false;
+            CancelKnockback();
             if (gunSlot != null)
             {
                 gunSlot.TriggerUp();

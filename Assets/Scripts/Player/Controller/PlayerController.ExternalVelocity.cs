@@ -13,7 +13,7 @@ namespace HybridShooter.Player
     ///  - 누적 방지: 모터는 지난 프레임 rb 속도에서 출발하므로, 모터 전에 지난 프레임에 더한 몫(appliedExternal)을 뺀다
     ///    (빼지 않으면 가감속이 매 프레임 일부만 지우고 또 더해져 속도가 끝없이 커진다)
     ///  - 합계 상한 maxExternalSpeed. 벽을 파고들지 않게 SlideAlongWalls, 급경사 미끄럼에서는 오르막 성분을 지운다
-    ///  - 쓰러짐·부활 연출·외부 제어(벽넘기) 중에는 소스를 부르지 않는다 (붙은 상태는 유지). 처음부터 재시작·비활성화 때는 모두 뗀다
+    ///  - 쓰러짐·부활 연출·넉백·외부 제어(벽넘기) 중에는 소스를 부르지 않는다 (붙은 상태는 유지). 처음부터 재시작·비활성화 때는 모두 뗀다
     ///  - 소스가 예외를 던지면 로그를 남기고 그 소스만 뗀다 (플레이어 물리는 계속)
     /// </summary>
     public partial class PlayerController
@@ -77,7 +77,7 @@ namespace HybridShooter.Player
         /// <summary>FixedUpdate, 모터 뒤: 이번 프레임 외부 속도를 더한다</summary>
         private void ApplyExternal(float dt)
         {
-            Vector3 external = SumExternal(dt, IsDead == false && isReviving == false);
+            Vector3 external = SumExternal(dt, IsDead == false && isReviving == false && isKnockedBack == false);
             if (external.sqrMagnitude < 0.000001f) return;
 
             if (isSliding)

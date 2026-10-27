@@ -19,10 +19,11 @@ namespace HybridShooter.Monster.Behaviour.Tests
     {
         private const float TickSeconds = 0.02f;
 
-        // 예고 0.2s, 회복 0, 쿨다운 3s, 사거리 15m, 폭 1m(접촉 반경 0.5m), 피해 25 × 1회, 벽 기절 2s
+        // 예고 0.2s, 회복 0, 쿨다운 3s, 사거리 15m, 폭 1m(접촉 반경 0.5m), 피해 25 × 1회, 넉백 5m, 벽 기절 2s
         private static readonly AttackSpec HeadRam = new AttackSpec(
             AttackShape.Line, damage: 25, hitCount: 1, cooldown: 3f,
-            telegraphTime: 0.2f, recoveryTime: 0f, range: 15f, width: 1f, wallHitStunTime: 2f, sourceDefId: 200101);
+            telegraphTime: 0.2f, recoveryTime: 0f, range: 15f, width: 1f, knockbackDistance: 5f,
+            wallHitStunTime: 2f, sourceDefId: 200101);
 
         private GameObject groundObject;
         private GameObject wallObject;
@@ -115,6 +116,27 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [UnityTest]
+        public IEnumerator ChargeHitKnocksTargetBackAlongCharge()
+        {
+            yield return RunWholeCycle();
+
+            Assert.AreEqual(1, target.Knockbacks.Count, "넉백도 주기당 1회");
+            Assert.AreEqual(5f, target.Knockbacks[0].Distance);
+            Assert.That(Vector3.Angle(Vector3.forward, target.Knockbacks[0].Direction), Is.LessThan(10f), "돌진 방향(+Z)으로 밀린다");
+        }
+
+        [UnityTest]
+        public IEnumerator KilledTargetIsNotKnockedBack()
+        {
+            target.DiesOnHit = true;
+
+            yield return RunWholeCycle();
+
+            Assert.AreEqual(1, target.Received.Count);
+            Assert.AreEqual(0, target.Knockbacks.Count, "이번 피해로 죽었으면 밀지 않는다");
+        }
+
+        [UnityTest]
         public IEnumerator MissedChargeBrakesWithoutDamage()
         {
             attack.Begin(target, now);
@@ -125,6 +147,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
             Assert.AreEqual(AttackResult.Completed, attack.LastResult);
             Assert.AreEqual(0, target.Received.Count);
+            Assert.AreEqual(0, target.Knockbacks.Count);
             Assert.AreEqual(0f, attack.BodyMoveSpeed);
         }
 

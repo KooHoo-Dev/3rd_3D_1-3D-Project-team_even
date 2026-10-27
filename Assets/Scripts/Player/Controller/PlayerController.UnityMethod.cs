@@ -98,7 +98,8 @@ namespace HybridShooter.Player
             UpdateGround(dt);
 
             RemoveAppliedExternal(); // 모터는 지난 프레임 rb 속도에서 출발한다 → 외부 속도 몫을 먼저 뺀다
-            if (isSliding) UpdateSlide(dt);
+            if (isKnockedBack) UpdateKnockback(dt);
+            else if (isSliding) UpdateSlide(dt);
             else if (isRolling) UpdateRoll(dt);
             else UpdateWalk(dt);
             ApplyExternal(dt);

@@ -10,7 +10,7 @@ namespace HybridShooter.Player.Tester
     /// <summary>
     /// 테스트용 디버그 모드. 플레이어 프리팹에 달려 있고, 인스펙터에서 켜고 끈다 (Play 중에도 바로 반영).
     ///  - 무적 / 무한 스태미나 / 무한 탄약 / 목숨 무한 / 최종 사망 막기
-    ///  - Play 중 인스펙터 버튼(또는 컴포넌트 ⋮ 메뉴): 부활(연출)·즉시 부활, 체력·스태미나·탄약 채우기, 자해, 목숨 API
+    ///  - Play 중 인스펙터 버튼(또는 컴포넌트 ⋮ 메뉴): 부활(연출)·즉시 부활, 체력·스태미나·탄약 채우기, 자해, 넉백, 목숨 API
     /// 제거할 때는 이 파일과 프리팹의 컴포넌트만 지우면 된다
     /// </summary>
     [DisallowMultipleComponent]
@@ -30,6 +30,8 @@ namespace HybridShooter.Player.Tester
 
         [Header("버튼")]
         [SerializeField, Min(1)] private int selfDamageAmount = 20;
+        [Tooltip("[넉백] 버튼이 뒤로 밀어내는 거리(m). 돌진 HeadRam = 5")]
+        [SerializeField, Min(0.1f)] private float knockbackDistance = 5f;
         [Tooltip("[최대 목숨 설정] 버튼이 SetMaxLives 에 넘기는 값 (난이도 흉내)")]
         [SerializeField, Min(1)] private int maxLivesToSet = 5;
         [Tooltip("켜져 있는 디버그 기능을 화면 오른쪽 위에 표시 (켜 둔 걸 잊지 않게)")]
@@ -106,6 +108,13 @@ namespace HybridShooter.Player.Tester
                                              transform.position, -transform.forward));
         }
 
+        /// <summary>정면에서 돌진에 맞은 것처럼 뒤로 밀어낸다 (피해 없음)</summary>
+        [ContextMenu("넉백")]
+        public void KnockbackSelf()
+        {
+            if (player != null) player.ApplyKnockback(-transform.forward, knockbackDistance);
+        }
+
         [ContextMenu("목숨 +1 (AddLives)")]
         public void AddLife()
         {
@@ -157,6 +166,7 @@ namespace HybridShooter.Player.Tester
                         if (GUILayout.Button("부활")) mode.Revive();
                         if (GUILayout.Button("즉시 부활")) mode.ReviveImmediate();
                         if (GUILayout.Button($"자해 {mode.selfDamageAmount}")) mode.DamageSelf();
+                        if (GUILayout.Button($"넉백 {mode.knockbackDistance:0.#}m")) mode.KnockbackSelf();
                     }
                     using (new EditorGUILayout.HorizontalScope())
                     {
@@ -178,7 +188,8 @@ namespace HybridShooter.Player.Tester
                     string state = (p.IsReviving ? $"부활 중 {p.ReviveProgress:P0}   " : "") +
                                    (p.ReviveWindowRemaining > 0f ? $"최종 사망까지 {p.ReviveWindowRemaining:0.0}초   " : "") +
                                    (p.IsFinallyDead ? "최종 사망   " : "") +
-                                   (p.IsReviveBuffActive ? $"보호 {p.ReviveBuffRemainingTime:0.0}초" : "");
+                                   (p.IsReviveBuffActive ? $"보호 {p.ReviveBuffRemainingTime:0.0}초   " : "") +
+                                   (p.IsKnockedBack ? "넉백 중" : p.IsKnockbackInvulnerable ? "넉백 무적" : "");
                     if (state.Length > 0) EditorGUILayout.LabelField(state);
                 }
             }

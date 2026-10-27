@@ -209,7 +209,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="result">끝난 이유. LastResult 에 남는다 (WallHit 이면 AttackState 가 기절시킨다)</param>
         protected void EndEarly(AttackResult result) => Finish(result);
 
-        /// <summary>대상에게 Damage × HitCount 피해. 대상이 이미 죽었으면 주지 않는다</summary>
+        /// <summary>대상에게 Damage × HitCount 피해. 대상이 이미 죽었으면 주지 않는다. 살아 남으면 KnockbackDistance 만큼 밀어낸다</summary>
         /// <remarks>아직 전투시스템 관련 적용되지 않았음</remarks>
         /// <param name="target">피해를 받을 대상</param>
         /// <param name="from">공격 위치. 피해 방향(수평) 계산에 쓴다</param>
@@ -228,6 +228,10 @@ namespace HybridShooter.Monster.Behaviour
             // 전투시스템 없어서 직접 피해주기
             for (int i = 0; i < Spec.HitCount; i++)
                 damageable.TakeDamage(in info);
+
+            // 넉백은 피해를 다 준 뒤 (넉백 무적이 남은 타격을 막지 않게). 이번 피해로 죽었으면 밀지 않는다
+            if (Spec.KnockbackDistance > 0f && damageable.IsAlive && damageable is IKnockbackable knockbackable)
+                knockbackable.ApplyKnockback(direction, Spec.KnockbackDistance);
         }
 
         /// <summary>주기를 끝낸다 (완료·취소·조기 종료 공통). 다음 주기를 위해 판정 완료 표시를 되돌린다</summary>

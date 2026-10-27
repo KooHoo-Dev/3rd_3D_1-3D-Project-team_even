@@ -50,6 +50,17 @@ namespace HybridShooter.Core.Contracts
         void TakeDamage(in DamageInfo info);
     }
 
+    /// <summary>
+    /// 밀려날 수 있는 것 (플레이어). 피해와 따로 준다: 공격하는 쪽은 TakeDamage 뒤 대상이 살아 있으면 부른다.
+    /// 받는 쪽이 이미 밀려나는 중이거나 쓰러졌으면 무시할 수 있다
+    /// </summary>
+    public interface IKnockbackable
+    {
+        /// <param name="direction">밀려날 방향 (공격자 → 피격자). 높이는 무시한다</param>
+        /// <param name="distance">밀려날 수평 거리 (m)</param>
+        void ApplyKnockback(Vector3 direction, float distance);
+    }
+
     public static class DamageableExtensions
     {
         /// <summary>콜라이더가 자식(히트박스)에 있어도 찾도록 부모 방향으로 탐색</summary>
