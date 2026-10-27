@@ -1,7 +1,6 @@
 using System;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
-using HybridShooter.Core.Data.Defs;
 using HybridShooter.Monster.Movement;
 
 namespace HybridShooter.Monster.Behaviour
@@ -33,9 +32,7 @@ namespace HybridShooter.Monster.Behaviour
             {
                 case MonsterRole.Melee: return new StrikeAttack(spec, body, findDamageable);
                 case MonsterRole.Infiltrator: return new PounceAttack(spec, body, findDamageable, settings.Pounce);
-                case MonsterRole.ZonePressure:
-                    StatusEffectDef effect = DataManager.StatusEffects.Get(spec.EffectId);
-                    return new PoisonAreaAttack(spec, body, findDamageable, settings.PoisonArea, effect);
+                case MonsterRole.ZonePressure: return new PoisonAreaAttack(spec, body, findDamageable, settings.PoisonArea);
                 case MonsterRole.Rusher: return new ChargeAttack(spec, body, findDamageable, movement, settings.Charge);
                 case MonsterRole.Air: return new DiveAttack(spec, body, findDamageable, movement, settings.Dive, flyingExecutor);
                 default: throw new NotSupportedException($"{role} 역할의 공격은 아직 구현되지 않았다");

@@ -362,13 +362,15 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// 상태 머신이 Dead 에 들어갈 때 호출된다.
-        /// 대상을 놓고, 콜라이더를 끄고, MonsterDiedEvent 를 발행하고, 회수 시각을 정한다.
+        /// 대상을 놓고, 콜라이더를 끄고, 공중 몬스터면 낙하를 시작하고, MonsterDiedEvent 를 발행하고, 회수 시각을 정한다.
         /// </summary>
         /// <param name="grantReward">true = 처치 보상 지급. MonsterDiedEvent 로 그대로 전달한다</param>
         private void OnStateMachineDied(bool grantReward)
         {
             StateMachine.SetTarget(null);
             foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = false; // 시체는 피격 판정 없음
+            var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
+            if (flyingExecutor != null) flyingExecutor.StartFalling();
             EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(Def, transform.position, gameObject, grantReward));
             despawnTime = Time.time + despawnDelay;
         }

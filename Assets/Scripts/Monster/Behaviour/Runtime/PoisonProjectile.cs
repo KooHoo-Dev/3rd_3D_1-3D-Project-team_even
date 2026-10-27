@@ -1,6 +1,5 @@
 using System;
 using HybridShooter.Core.Contracts;
-using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using UnityEngine;
 
@@ -22,7 +21,6 @@ namespace HybridShooter.Monster.Behaviour
 
         // ── 착탄 때 장판에 넘길 값 ──
         private float zoneRadius;      // m
-        private StatusEffectDef effect;
         private IPlayerTarget target;
         private Func<IPlayerTarget, IDamageable> findDamageable;
         private int sourceDefId;
@@ -30,19 +28,18 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// 비행을 시작한다. PoisonAreaAttack.OnActive 가 풀에서 꺼낸 직후 1번 부른다.
         /// </summary>
-        /// <param name="settings">풀과 포물선 높이를 가진 몬스터 설정</param>
+        /// <param name="settings">풀, 포물선 높이, 장판 피해 값을 가진 몬스터 설정</param>
         /// <param name="start">발사점</param>
         /// <param name="end">착탄점 (Terrain 표면)</param>
         /// <param name="speed">수평 속도 (m/s). 0 초과</param>
         /// <param name="marker">착탄 때 반납할 예고 표식. null = 없음</param>
         /// <param name="target">장판이 피해를 줄 대상</param>
         /// <param name="zoneRadius">장판 반경 (m)</param>
-        /// <param name="effect">장판의 틱 피해·간격·지속</param>
         /// <param name="findDamageable">대상에서 IDamageable 을 찾는 방법</param>
         /// <param name="sourceDefId">MonsterAttackTable Id. 피해 정보에 남긴다</param>
         /// <exception cref="ArgumentOutOfRangeException">speed 가 0 이하일 때</exception>
         public void Launch(PoisonAreaSettings settings, Vector3 start, Vector3 end, float speed, Transform marker,
-                           IPlayerTarget target, float zoneRadius, StatusEffectDef effect,
+                           IPlayerTarget target, float zoneRadius,
                            Func<IPlayerTarget, IDamageable> findDamageable, int sourceDefId)
         {
             if (speed <= 0f) throw new ArgumentOutOfRangeException(nameof(speed), speed, "투사체 속도는 0 초과");
@@ -53,7 +50,6 @@ namespace HybridShooter.Monster.Behaviour
             this.marker = marker;
             this.target = target;
             this.zoneRadius = zoneRadius;
-            this.effect = effect;
             this.findDamageable = findDamageable;
             this.sourceDefId = sourceDefId;
 
@@ -106,7 +102,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             ReturnMarker();
             PoisonZone zone = settings.ZonePool.Get(end);
-            zone.Begin(settings, end, zoneRadius, effect, target, findDamageable, sourceDefId);
+            zone.Begin(settings, end, zoneRadius, target, findDamageable, sourceDefId);
             settings.ProjectilePool.Return(this);
         }
 

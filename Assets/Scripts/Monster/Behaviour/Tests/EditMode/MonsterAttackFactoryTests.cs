@@ -36,7 +36,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         public void ZonePressureGetsPoisonAreaAttack()
         {
             var mortar = new AttackSpec(AttackShape.Circle, 6, 1, 10f, 1.5f, 1f, 25f,
-                                        radius: 4f, projectileSpeed: 12f, effectId: 1);
+                                        radius: 4f, projectileSpeed: 12f);
             var settings = monsterObject.AddComponent<PoisonAreaSettings>();
             var attackSettings = new MonsterAttackSettings(settings, null, null, null);
             var attack = MonsterAttackFactory.CreateAttack(MonsterRole.ZonePressure, mortar, body, t => (IDamageable)t, attackSettings, null, null);
