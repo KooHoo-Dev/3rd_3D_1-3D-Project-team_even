@@ -23,7 +23,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         private MonsterStateMachine _stateMachine;
         private float now;
 
-        // 예고 0.4s, 회복 0.3s, 쿨다운 1.2s, 사거리 1.5m
+        // 예고 0.4s, 회복 0.3s, 쿨다운 1.2s(회복 끝부터), 사거리 1.5m. Active 0.5s 는 공격을 만들 때 넣는다
         private static readonly AttackSpec Bite = new AttackSpec(
             AttackShape.Melee, damage: 5, hitCount: 1, cooldown: 1.2f,
             telegraphTime: 0.4f, recoveryTime: 0.3f, range: 1.5f);
@@ -57,7 +57,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
         private void UseAttack(in AttackSpec spec)
         {
-            attack = new StrikeAttack(spec, body, t => (IDamageable)t);
+            attack = new StrikeAttack(spec, body, t => (IDamageable)t) { ActiveSeconds = 0.5f };
             beginCount = 0;
             attack.PhaseChanged += (_, phase) => { if (phase == SkillPhase.Windup) beginCount++; };
             _stateMachine = new MonsterStateMachine(movement, body, attack);
@@ -87,7 +87,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
         /// <summary>
         /// 진행 중인 공격을 끝까지 진행한다: 예고 → 공격 → 회복 → 종료.
-        /// Bite 기준 Active = 1.2 − 0.4 − 0.3 = 0.5s, 판정은 Active 시작 +0.25s. 경계값을 피해 간격을 잡는다.
+        /// Bite 기준 Active = ActiveSeconds 0.5s, 판정은 Active 시작 +0.25s. 경계값을 피해 간격을 잡는다.
         /// </summary>
         private void FinishRunningAttack()
         {
@@ -179,7 +179,10 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreEqual(AttackResult.Completed, attack.LastResult);
             Assert.AreSame(_stateMachine.Attack, _stateMachine.Current, "완료 틱에 상태를 바꾸지 않는다");
 
-            Step(); // 다음 틱: 사거리 안 + 쿨다운 끝 → 다시 Begin
+            Step(1.1f); // 회복 끝 +1.1s: 쿨다운(1.2s) 전
+            Assert.AreEqual(1, beginCount, "쿨다운은 회복 끝부터 센다");
+
+            Step(0.2f); // 회복 끝 +1.3s: 사거리 안 + 쿨다운 끝 → 다시 Begin
             Assert.AreEqual(2, beginCount);
             Assert.AreEqual(0, stateChangedCount, "연속 공격 중 Attack ↔ Chase 왕복이 없다");
             Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
@@ -244,7 +247,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         {
             var wallSpec = new AttackSpec(AttackShape.Melee, damage: 5, hitCount: 1, cooldown: 1f,
                                           telegraphTime: 0f, recoveryTime: 0.3f, range: 1.5f, wallHitStunTime: 1f);
-            var wallAttack = new WallHitOnFirstActiveAttack(wallSpec, body);
+            var wallAttack = new WallHitOnFirstActiveAttack(wallSpec, body) { ActiveSeconds = 0.7f };
             wallAttack.HitTimeRatio = 0f; // 판정 대기 없이 Active 첫 판정 틱에 OnActive
             _stateMachine = new MonsterStateMachine(movement, body, wallAttack);
             _stateMachine.SetTarget(target);
@@ -316,7 +319,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
         private ConfigurableAfterAttack UseAfterAttack(AfterAttack after)
         {
-            var afterAttack = new ConfigurableAfterAttack(Bite, body) { AfterValue = after };
+            var afterAttack = new ConfigurableAfterAttack(Bite, body) { AfterValue = after, ActiveSeconds = 0.5f };
             _stateMachine = new MonsterStateMachine(movement, body, afterAttack);
             return afterAttack;
         }

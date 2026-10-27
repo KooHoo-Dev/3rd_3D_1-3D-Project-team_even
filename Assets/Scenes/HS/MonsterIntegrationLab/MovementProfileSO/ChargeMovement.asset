@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1b4de66026a4e0bad3b4bfb41f49f86, type: 3}
+  m_Name: ChargeMovement
+  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MovementProfile
+  policyKind: 0
+  usesEngageToken: 0
+  moveSpeed: 3.5
+  attackRange: 1.8
+  reactionDelayMin: 0.1
+  reactionDelayMax: 0.4
+  reactionChangeDistance: 0.5
+  orbitChance: 0.5
+  orbitAngularSpeedDeg: 25
+  minWaitSeconds: 1
+  keepDistanceMin: 12
+  keepDistanceMax: 18
+  flankRadius: 10
+  flankSpeedMultiplier: 1.6
+  flankSwitchDistance: 15
+  flankSwitchBand: 2

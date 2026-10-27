@@ -418,7 +418,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f483ab3958142c0883214bbb5a4f607, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
-  profile: {fileID: 11400000, guid: 6694443e72347cc4494537f917871d33, type: 2}
+  profile: {fileID: 11400000, guid: c619edd1badc47247a173191b35665e2, type: 2}
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
@@ -457,6 +457,7 @@ MonoBehaviour:
   idleSpeedThreshold: 0.1
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
+  activeSeconds: 0.5
   hitTimeRatio: 0
   windupTurnSpeed: 360
 --- !u!114 &3967654826282314174

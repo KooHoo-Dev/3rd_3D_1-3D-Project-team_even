@@ -1,6 +1,5 @@
 using System;
 using HybridShooter.Core.Contracts;
-using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using UnityEngine;
 
@@ -16,7 +15,6 @@ namespace HybridShooter.Monster.Behaviour
         private PoisonAreaSettings settings;
         private Vector3 center;
         private float radius;            // m
-        private StatusEffectDef effect;
         private IPlayerTarget target;
         private Func<IPlayerTarget, IDamageable> findDamageable;
         private int sourceDefId;
@@ -26,20 +24,18 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// 장판을 깐다. PoisonProjectile 이 착탄 때 풀에서 꺼낸 직후 1번 부른다. XZ 크기를 지름(2·radius)으로 맞춘다.
         /// </summary>
-        /// <param name="settings">풀과 피해 높이 허용값을 가진 몬스터 설정</param>
+        /// <param name="settings">풀, 틱 피해·간격·지속, 피해 높이 허용값을 가진 몬스터 설정</param>
         /// <param name="center">장판 중심 (Terrain 표면)</param>
         /// <param name="radius">반경 (m)</param>
-        /// <param name="effect">틱 피해(Value)·간격(TickInterval)·지속(Duration)</param>
         /// <param name="target">피해를 줄 대상</param>
         /// <param name="findDamageable">대상에서 IDamageable 을 찾는 방법</param>
         /// <param name="sourceDefId">MonsterAttackTable Id. 피해 정보에 남긴다</param>
-        public void Begin(PoisonAreaSettings settings, Vector3 center, float radius, StatusEffectDef effect,
+        public void Begin(PoisonAreaSettings settings, Vector3 center, float radius,
                           IPlayerTarget target, Func<IPlayerTarget, IDamageable> findDamageable, int sourceDefId)
         {
             this.settings = settings;
             this.center = center;
             this.radius = radius;
-            this.effect = effect;
             this.target = target;
             this.findDamageable = findDamageable;
             this.sourceDefId = sourceDefId;
@@ -48,7 +44,7 @@ namespace HybridShooter.Monster.Behaviour
             transform.position = center;
             transform.localScale = new Vector3(diameter, transform.localScale.y, diameter);
             nextTickTime = Time.time;
-            endTime = Time.time + effect.Duration;
+            endTime = Time.time + settings.ZoneDuration;
         }
 
         /// <summary>
@@ -84,7 +80,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>틱 1회: 대상이 장판 안이면 피해를 주고, 다음 틱 시각을 정한다</summary>
         private void TickDamage()
         {
-            nextTickTime += effect.TickInterval;
+            nextTickTime += settings.TickInterval;
             Vector3 playerPosition = target.PlayerTrackingInfo.Position;
             float groundHeight = TerrainGround.HeightAt(playerPosition);
             if (IsInsideZone(center, radius, playerPosition, groundHeight, settings.ZoneHeightTolerance) == false) return;
@@ -92,7 +88,7 @@ namespace HybridShooter.Monster.Behaviour
             DealDamage(playerPosition);
         }
 
-        /// <summary>대상에게 틱 피해(effect.Value) 1회. 대상이 이 진영의 피해를 받지 않으면(사망 등) 주지 않는다</summary>
+        /// <summary>대상에게 틱 피해(settings.TickDamage) 1회. 대상이 이 진영의 피해를 받지 않으면(사망 등) 주지 않는다</summary>
         /// <param name="playerPosition">피해 지점</param>
         /// <exception cref="InvalidOperationException">대상에서 IDamageable 을 찾지 못했을 때</exception>
         private void DealDamage(Vector3 playerPosition)
@@ -101,7 +97,7 @@ namespace HybridShooter.Monster.Behaviour
             if (damageable == null) throw new InvalidOperationException("독장판 대상에서 IDamageable 을 찾지 못했다");
             if (damageable.CanBeHitBy(Faction.Monster) == false) return;
 
-            var info = new DamageInfo(Mathf.RoundToInt(effect.Value), DamageKind.MonsterAttack, Faction.Monster, null,
+            var info = new DamageInfo(settings.TickDamage, DamageKind.MonsterAttack, Faction.Monster, null,
                                       playerPosition, Vector3.zero, sourceDefId);
             damageable.TakeDamage(in info);
         }
