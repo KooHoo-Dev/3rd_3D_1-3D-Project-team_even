@@ -227,4 +227,14 @@ Assets/Scripts/Core/Settings/
 ### 단계 현황
 - [x] 1. 프리팹 확정 (위 매핑 변경)
 - [x] 2. `GameSettings` + 옵션 팝업 — `Tools > MainMenu > Build Options Popup` → `Assets/Prefabs/UI/OptionsPopup.prefab`, `Create Test Scene` → `Test_MainMenu` (임시 OPTIONS 버튼)
-- [ ] 3~7
+- [x] 3. 디오라마 — `Tools > MainMenu > Rebuild Diorama` (Test_MainMenu 의 Environment·Diorama·CM_Menu 만 다시 만듦). 씬에서 조정한 환경 값을 빌더에 반영
+- [ ] 4~7
+
+### 3단계 디오라마 구성
+- **디스플레이 프리팹** `Assets/Prefabs/MainMenu/Display/*_Display.prefab`: 게임 프리팹(`Resources/Prefabs/Monsters`, 보스, `MS/Prefabs/Player`)을 풀어서 Transform·렌더러·Animator·파티클만 남긴다 (게임 스크립트·물리·이미터 제거, RequireComponent 순서대로). 게임 프리팹이 없는 부포모프·덴솝테르는 에셋 팩 프리팹 사용 → `TestMonster` 자리 표시는 필요 없음
+- **애니메이션**: 게임 컨트롤러는 파라미터로 움직이므로, 몬스터는 에셋 팩 컨트롤러로 바꾸고 `DisplayActor` 가 상태 이름을 직접 재생 (Idle 랜덤 시작 위치·속도 0.9~1.1, 비행형 호버링, `PlayThreat` 위협·포효). 플레이어는 `Player_AC` 그대로 (Locomotion 정지 = 소총 대기, `Aim` 파라미터로 조준 — 5단계)
+- **무리**: 고정 시드로 35마리가 플레이어를 부채꼴 고리(정면 기준 -60°~+70°)로 포위. 작은 것이 안쪽, 크기 순으로 바깥 — 무스코모프 지상 9(거리 7~12)·부포모프 9(9~14) → 파르다트록스 4(15~20) → 레탈로브라크 3(19~25) → 자이언트 슬러그 3(24~31), 공중은 무스코모프 4(안쪽, 높이 3~5.5)·덴솝테르 3(바깥, 4.5~8). 원경 50m 에 클리페오사우루스. 바위는 고리 바깥(양옆·원경)
+- **환경**: 인게임 맵(건물 단지)은 쓰지 않고, 인게임 씬(`Monster Player Integration`)을 기준으로 만든다. 땅 = 300m 바닥에 인게임 지형 레이어 텍스처(`Creepy_Cat .../Textures/Sand_01.png`, 30m 타일, `Assets/Materials/MainMenu/MainMenuGround.mat`, 콜라이더 없음) + 원경 안개 속 바위 3개(150m 이상, 씬에서 조정한 값). 하늘·조명 = 기본 스카이박스, 스카이박스 주변광, 흰색 Directional 1.2(인게임과 같은 방향, 그림자 Soft). 연출로 더한 것: 같은 방향 보조광 1.0, 몬스터 뒤 약한 역광 0.8, 원경 안개(지수² 0.022, 스카이박스 지평선과 비슷한 회청색 → 땅 끝이 하늘로 녹아들고 50m 보스는 실루엣). 볼륨(`Assets/Settings/MainMenuVolumeProfile`)은 인게임과 같은 Neutral 톤매핑에 Bloom 0.4·Vignette 0.28
+- **카메라**: Main Camera 에 CinemachineBrain, `CM_Menu`(우측 어깨 오버숄더, FOV 45) + Noise(Handheld_normal_mild 약하게) + `MenuCameraSway`(12초 좌우 흔들림)
+- 구도 수치는 `MainMenuDioramaBuilder` 상단 상수 (CameraPosition·CameraTarget·Crowd 표)
+- 메뉴 씬에는 GameSoundRouter 가 없으므로 디오라마에 사운드 이미터가 붙지 않는다

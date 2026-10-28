@@ -2,6 +2,8 @@ using System.IO;
 using HybridShooter.Audio;
 using HybridShooter.Audio.Editor;
 using HybridShooter.Core.Data;
+using HybridShooter.UI.MainMenu;
+using HybridShooter.UI.MainMenu.Editor;
 using TMPro;
 using UnityEditor;
 using UnityEditor.Events;
@@ -69,8 +71,9 @@ namespace HybridShooter.UI.Options.Editor
         }
 
         /// <summary>
-        /// 메인 메뉴 작업 씬 (개인 작업 씬 규칙: 완성 전에는 Test_MainMenu). 지금은 옵션 팝업 확인용:
+        /// 메인 메뉴 작업 씬 (개인 작업 씬 규칙: 완성 전에는 Test_MainMenu):
         /// 카메라 + EventSystem(InputSystemUIInputModule) + SoundService(믹서, Router 없음) + 캔버스(1920×1080) + 임시 OPTIONS 버튼 + 옵션 팝업
+        /// + 대치 장면 (MainMenuDioramaBuilder)
         /// </summary>
         [MenuItem("Tools/MainMenu/Create Test Scene (Test_MainMenu)")]
         public static void CreateTestScene()
@@ -107,9 +110,12 @@ namespace HybridShooter.UI.Options.Editor
             optionsButton.name = "Btn_Options (임시)";
             Place(optionsButton, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(120f, 0f), new Vector2(487f, 107f), new Vector2(0f, 0.5f));
             SetButtonText(optionsButton, "OPTIONS", titleFont, 40f);
+            optionsButton.AddComponent<MainMenuButtonFx>(); // 호버·클릭 소리
 
             var popup = (GameObject)PrefabUtility.InstantiatePrefab(popupAsset, canvas);
             UnityEventTools.AddPersistentListener(optionsButton.GetComponent<Button>().onClick, popup.GetComponent<OptionsPopup>().Open);
+
+            MainMenuDioramaBuilder.BuildInScene(camera);
 
             EnsureFolder(Path.GetDirectoryName(TestScenePath));
             EditorSceneManager.SaveScene(scene, TestScenePath);
