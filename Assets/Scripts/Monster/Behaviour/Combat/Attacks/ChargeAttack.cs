@@ -187,7 +187,7 @@ namespace HybridShooter.Monster.Behaviour
             EndEarly(AttackResult.WallHit);
         }
 
-        /// <summary>이번 틱 이동 구간이 플레이어에 닿았으면 피해를 준다. 주기당 1회. TickCharging·TickBraking 이 부른다</summary>
+        /// <summary>이번 틱 이동 구간이 플레이어에 닿았으면 피해를 주고 충돌을 알린다. 주기당 1회. TickCharging·TickBraking 이 부른다</summary>
         /// <param name="from">이동 전 위치 (월드)</param>
         /// <param name="to">이동 후 위치 (월드)</param>
         /// <param name="targetPosition">플레이어 위치 (월드)</param>
@@ -198,6 +198,7 @@ namespace HybridShooter.Monster.Behaviour
 
             Hit(Target, from);
             hasHit = true;
+            NotifyBodyContacted(targetPosition);
         }
 
         /// <summary>이번 틱 정면 이동량 (수평). 속도 = currentSpeed</summary>

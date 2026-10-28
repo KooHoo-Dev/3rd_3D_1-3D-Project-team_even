@@ -51,7 +51,7 @@ namespace HybridShooter.Core.Data.Defs
         public StatusEffectDef Effect { get; internal set; }
         /// <summary>공격 소리 (키가 비었으면 null). 예고 시작에 재생해 "곧 공격한다"는 신호로 쓴다</summary>
         public SoundDef Sfx { get; internal set; }
-        /// <summary>충돌·착지·착탄 소리 (돌진 벽 충돌, 도약 착지, 독 포격 착탄). 키가 비었으면 null</summary>
+        /// <summary>충돌·착지·착탄 소리 (돌진 벽·플레이어 충돌, 도약 착지, 독 포격 착탄). 키가 비었으면 null</summary>
         public SoundDef ImpactSfx { get; internal set; }
         internal string SfxKey { get; }
         internal string ImpactSfxKey { get; }

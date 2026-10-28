@@ -16,6 +16,7 @@ namespace HybridShooter.Audio
     ///   예고     BossAttack.PhaseChanged(Windup) → WindupKey (회피 신호. 바로 취소된 공격은 알림이 오지 않는다)
     ///   루프     Active 동안 ActiveLoopKey (흡입), Recover·Idle(완료·취소) 에서 정지
     ///   타격     BossAttack.Impacted → ImpactKey (짓밟기 착지 지점)
+    ///   걸음     BossMovement.IsMoving 동안 walkLoopKey 루프 (패턴 중 멈추면 정지)
     ///   사망     BossController.Died → 루프 전부 정지 + deathKey
     /// 마그마 착탄음은 투사체 자기 효과라 MagmaProjectile 이 직접 낸다. 보스 BGM·경고·처치 연출음은 GameSoundRouter 담당.
     /// 키는 보스가 1종이라 테이블 대신 여기 둔다 (보스가 늘면 BossTable 로 옮긴다).
@@ -40,19 +41,34 @@ namespace HybridShooter.Audio
 
         [SerializeField] private AttackSound[] attacks = Array.Empty<AttackSound>();
         [SerializeField] private string deathKey = "mon_clypeosaurus_hurt";
+        [Tooltip("이동 중 걸음 루프 (SoundTable.Key, 비우면 없음)")]
+        [SerializeField] private string walkLoopKey = "mon_clypeosaurus_walk_loop";
         [Tooltip("예고음·사망음 위치 (머리 등). 비우면 이 오브젝트")]
         [SerializeField] private Transform voicePoint;
 
         private BossController boss;
+        private BossMovement movement;
         private SoundHandle[] loops = Array.Empty<SoundHandle>();
+        private SoundHandle walkLoop;
+        private bool dead;
 
         private Transform Point => voicePoint != null ? voicePoint : transform;
 
         private void Awake()
         {
             boss = GetComponent<BossController>();
+            movement = GetComponent<BossMovement>();
             loops = new SoundHandle[attacks.Length];
             WarnMissingKeys();
+        }
+
+        /// <summary>이동 여부에 맞춰 걸음 루프를 켜고 끈다</summary>
+        private void Update()
+        {
+            bool moving = dead == false && movement != null && movement.IsMoving;
+            if (moving == walkLoop.IsValid) return;
+            if (moving) StartWalkLoop();
+            else StopWalkLoop();
         }
 
         /// <summary>패턴·보스 알림 구독 (OnDisable 과 짝)</summary>
@@ -65,6 +81,7 @@ namespace HybridShooter.Audio
                 a.Attack.Impacted += OnImpacted;
             }
             boss.Died += OnDied;
+            dead = false;
         }
 
         /// <summary>구독 해제 + 루프 정지</summary>
@@ -106,6 +123,7 @@ namespace HybridShooter.Audio
 
         private void OnDied()
         {
+            dead = true;
             StopAllLoops();
             Play(deathKey, Point.position);
         }
@@ -135,6 +153,19 @@ namespace HybridShooter.Audio
         private void StopAllLoops()
         {
             for (int i = 0; i < loops.Length; i++) StopLoop(i);
+            StopWalkLoop();
+        }
+
+        private void StartWalkLoop()
+        {
+            if (string.IsNullOrEmpty(walkLoopKey) || ServiceLocator.TryGet<ISoundService>(out var service) == false) return;
+            walkLoop = service.PlayLoop(walkLoopKey, transform);
+        }
+
+        private void StopWalkLoop()
+        {
+            if (walkLoop.IsValid && ServiceLocator.TryGet<ISoundService>(out var service)) service.StopLoop(walkLoop);
+            walkLoop = default;
         }
 
         private static void Play(string key, Vector3 position)
@@ -146,6 +177,7 @@ namespace HybridShooter.Audio
         private void WarnMissingKeys()
         {
             Check(deathKey, "deathKey");
+            Check(walkLoopKey, "walkLoopKey");
             foreach (var a in attacks)
             {
                 string label = a.Attack != null ? a.Attack.GetType().Name : "(패턴 없음)";
@@ -194,6 +226,7 @@ namespace HybridShooter.Audio
                 attacks[i] = entry;
             }
             deathKey = "mon_clypeosaurus_hurt";
+            walkLoopKey = "mon_clypeosaurus_walk_loop";
         }
 #endif
     }
