@@ -57,7 +57,7 @@
 | 키 | 파일 | 내용 |
 |---|---|---|
 | `ui_hit_marker` | `Audio/UI/HitMarker.wav` | 0.09초 금속성 틱 (3kHz 중심) |
-| `ui_kill_confirm` | `Audio/UI/KillConfirm.wav` | 0.45초 상승 2음 차임(C6→G6) + 저음 쿵 |
+| ~~`ui_kill_confirm`~~ | ~~`Audio/UI/KillConfirm.wav`~~ | **삭제 (팀 결정 2026-10-28)** — 처치는 몬스터 사망음 + UI 표시만, 처치·재화 획득 효과음 없음 |
 | `sfx_boss_warning` | `Audio/Sfx/BossWarning.wav` | 3.2초 저음 브람 + 하강 경보 3회 + 땅울림 |
 | `mon_clypeosaurus_suction_loop` (**신규 키**) | `Audio/Monster/Clypeosaurus/Clypeosaurus_SuctionLoop.wav` | 4초 바람 흡입 루프 (이음매 크로스페이드) |
 | `sfx_hit_flesh` | `Audio/Sfx/HitFlesh_01~03.wav` (**Path 를 3변형으로 변경**) | 0.16초 '퍽' — 저음 쿵 + 젖은 잡음 + 짧은 틱, 변형마다 높이 ±9% |
@@ -83,7 +83,7 @@
 | 흡입 예고 | `SuctionAttack` Windup | `mon_clypeosaurus_shout` (Shout_2 변형) | 있음 |
 | 흡입 중 | `SuctionAttack` Active ~ 끝 | `mon_clypeosaurus_suction_loop` (임시 합성음) | 전용 요청 (선택) |
 | 사망 | `BossController.Died` | `mon_clypeosaurus_hurt` 대여 | 요청 |
-| 피격 피드백 | `DamageDealtEvent` (S5) | 히트마커·타격음·처치 확인음 (Router 기존 경로) | 3-1 |
+| 피격 피드백 | `DamageDealtEvent` (S5) | 히트마커·타격음 (Router 기존 경로). 처치한 발은 히트마커 없이 사망음만 | 3-1 |
 | 등장·전격·안테나·발소리 | 보스 코드 없음 | `mon_clypeosaurus_attack2` 등 대기 | — |
 
 ### 3-3. 그 외
@@ -111,7 +111,7 @@
 | `GameOverEvent` → 게임오버음 | (없음) | **유지 + 위험 보고** | 코어 소유 사실. **발행자 없음** (RoundDirector 미구현) |
 | `MonsterSpawnedEvent` → 이미터 자동 부착 | 코어 | **유지** | R1-a 결정. 결과를 돌려주지 않는 관찰 |
 | `MonsterDiedEvent` → 이미터 `Silence()` + 사망음 | KillRewardCollector | **변경 (S1)** | 몬스터 자기 몸 소리 = 지역 이벤트. Router 가 `Instance` 안 컴포넌트를 찾아 조정하는 구조 제거 |
-| `DamageDealtEvent` → 타격음·히트마커·처치 확인음 | UI(데미지 숫자) | **유지** | |
+| `DamageDealtEvent` → 타격음·히트마커 (처치한 발은 히트마커 없음) | UI(데미지 숫자) | **유지** | |
 | `PlayerDamagedEvent` → 피격 목소리·기침 | DamageVignetteHud, PlayerAnimationDriver | **구독자 이동 (S6)** | 치명타 때 피격+사망 목소리 겹침. 플레이어 목소리를 한 컴포넌트에서 처리해야 막을 수 있다 |
 | `PlayerHpChangedEvent`·`PlayerDiedEvent` → 저체력 경고 | PlayerHud 등 | **유지** | |
 | `BossWarningEvent` → 경고음 + 덕킹 | (예정) | **유지** | 페이로드 안 읽음 |
@@ -269,3 +269,36 @@ TSV 열, `MonsterDto/Def`, `LinkSounds` 1줄, 헤더 주석.
 4. 연결: `MonsterSoundEmitter` 사망, `BossSoundEmitter` 신규 + Router `.Boss` 정리, S7 프리팹 부착
 5. 데이터: S9
 6. 테스트 씬(S8) → 문서(S11)
+
+---
+
+## 7. 진행 상황 (2026-10-28) — Q1~Q9 권장안대로 구현
+
+| 항목 | 내용 | 파일 |
+|---|---|---|
+| S10 | 로켓·유탄 `ExplosionSettings.sfxKey` 코드 기본값 제거, 발사 시 항상 `WeaponTable.ExplodeSfxKey` 로 덮어씀 (빈칸 = 소리 없음). MS 프리팹 저장값은 그대로 (테이블이 덮음) | `RocketLauncher.cs`, `GrenadeLauncher.cs` |
+| S6 | 플레이어 피격 목소리·기침을 Router → `PlayerSoundEmitter`. 그 피해로 쓰러졌으면 생략 | `PlayerSoundEmitter.cs`, `GameSoundRouter*.cs` |
+| S1 | `IMonsterSoundSource.Died` 추가, `MonsterController` 가 `MonsterDiedEvent` 직전에 발행. `MonsterSoundEmitter` 가 정지 + 사망음. Router 의 `MonsterDiedEvent` 구독 삭제 | `MonsterContracts.cs`, `MonsterController.cs`, `MonsterSoundEmitter.cs` |
+| S2 | `BossAttack.PhaseChanged`·`Impacted` (Windup·Active 는 준비 처리 뒤 그 단계일 때만 알림), `StompAttack` 착지 `RaiseImpacted(lockedCenter)`, `MagmaProjectile.explodeSfxKey`(기본 `mon_clypeosaurus_magma_impact`, 충돌 폭발 때만) | `BossAttack.cs`, `StompAttack.cs`, `MagmaProjectile.cs` |
+| S2 | `BossSoundEmitter` 신규 — 패턴별 예고·Active 루프·타격, 사망음. 시작 시 SoundTable 에 없는 키 경고. `FillDefaults`(Reset) 로 클리페오사우루스 기본 키 + 흡입 루프 위치(inhaleCenter) | `Audio/BossSoundEmitter.cs` |
+| S5 | `BossController.TakeDamage` 가 `DamageDealtEvent` 발행 (처치면 IsKill) | `BossController.cs` |
+| S3 | `BossSkillPhaseChangedEvent`·`BossDamageStageChangedEvent` 삭제. Router `.Boss` 는 경고·등장 BGM·처치 연출만, 이벤트의 보스 정보를 읽지 않음 | `GameEvents.cs`, `GameSoundRouter.Boss.cs` |
+| S7 | `Tools > Audio > Add Boss Sound Emitter` — 보스 프리팹에 이미터 부착 + 기본 키 | `Audio/Editor/BossSoundEmitterMenu.cs` |
+| S8 | `SoundTester`: 보스 1~6·S 삭제, B·V 는 보스 정보 null, Z 보스 처치 추가, 더미 사망음은 테스터가 직접. 테스트 씬 메뉴: 몬스터 경로 `Resources/Prefabs/Monsters/` 로 수정, 보스 + `BossDamageTester` 배치, 바닥 Ground 레이어 | `SoundTester.cs`, `SoundTestSceneMenu.cs` |
+| S9 | `MonsterTable.HurtSfxKey` 열·`MonsterDto/Def.HurtSfx(Key)`·`LinkSounds` 1줄 삭제 | `MonsterTable.tsv`, `MonsterDto.cs`, `MonsterDef.cs`, `DataManager.cs` |
+| S11 | `02-SystemInterfaces.md`·`02-API-사용법.md`·`03-BacklogMapping.md`·`Tables/README.md` 갱신 | Docs |
+
+- ✅ Unity 컴파일 오류 없음
+- ⏳ 남은 것: `Add Boss Sound Emitter` 메뉴 실행(보스 프리팹 저장) → `Create Sound Test Scene` 다시 만들기 → 플레이 확인
+- 보스 BGM 전환·처치 연출음은 보스 정보 개선([BossInfoRefactor.md](BossInfoRefactor.md)) 후 실게임 연결
+
+### 7-1. 추가 변경 (2026-10-28, 팀 피드백)
+
+| 항목 | 내용 | 파일 |
+|---|---|---|
+| 처치 확인음 삭제 | 처치는 몬스터 사망음 + UI 표시만. `ui_kill_confirm` 키·파일 삭제, 처치한 발은 히트마커도 생략 | `GameSoundRouter*.cs`, `SoundTable.tsv` |
+| 샷건 발사음 | `sfx_shotgun_fire` → `ShotGun_FireReal_01·02` (저격 `sfx_sniper_fire` 도 같은 클립을 대여 중 → 전용 저격음 요청) | `SoundTable.tsv` |
+| 몬스터 근접 울음 | "공격 외에는 소리가 없어 주변 몬스터를 알기 어렵다" 피드백. 울음은 원래 상태와 무관하게 4~10초 간격이지만, 같은 키 쿨다운·동시 2개 제한 때문에 가까운 몬스터가 오래 조용할 수 있었다 → 플레이어 15m 안이면 1.5~3.5초 간격, 들어오는 순간 0.1~0.6초 안에 한 번, 공격 예고 후 1.5초는 울음 생략. 거리·간격은 `GameSoundRouter`(씬 오브젝트) Inspector 한 곳에서 조정, 이미터에는 부착 시 전달 | `MonsterSoundEmitter.cs`, `GameSoundRouter*.cs` |
+| 기습형 신호 (파르다트록스) | 근접 울음이 시야 밖 기습 의도와 충돌 → `MonsterTable.HiddenSfxKey` 신설 (2002 = `mon_pardathrox_vanish`). 키가 있는 몬스터는 15m 안에서 울지 않고, 15m 안·플레이어 카메라 수평 시야 밖일 때 1번 재생 (최소 5초 간격, 근처를 벗어나거나 공격 예고 뒤 다시 가능). Vanish 는 3.1초라 0.6초 도약 예고에 넣지 않고 접근 단계 신호로 사용, 도약 예고음은 그대로 | `MonsterTable.tsv`, `MonsterDto/Def.cs`, `DataManager.cs`, `MonsterSoundEmitter.cs` |
+
+- ~~파르다트록스도 근처에서 울게 된다~~ → 기습형 신호(HiddenSfxKey)로 해결
