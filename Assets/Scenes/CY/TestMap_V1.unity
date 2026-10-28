@@ -1361,7 +1361,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7219419144724798672, guid: 4ea94935c308106458064ec04a545802, type: 3}
   m_PrefabInstance: {fileID: 744447750}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1838208405}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 031fca22247b2b44b82b1743d95ab170, type: 3}
@@ -5549,13 +5549,57 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 307408719324333453, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: airSpreadPenalty
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3596471693194627413, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: airSpreadPenalty
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3596471693194627413, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: moveSpreadPenalty
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5362423634708691726, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: airSpreadPenalty
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5362423634708691726, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: moveSpreadPenalty
+      value: 0.2
+      objectReference: {fileID: 0}
     - target: {fileID: 5753637828753184512, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 6857540539006955366, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: airSpreadPenalty
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6857540539006955366, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: moveSpreadPenalty
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 6864668485321027824, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: airSpreadPenalty
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6864668485321027824, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: moveSpreadPenalty
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7219419144724798672, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: groundMask.m_Bits
       value: 4095
+      objectReference: {fileID: 0}
+    - target: {fileID: 8282842261137820795, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: airSpreadPenalty
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8282842261137820795, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: moveSpreadPenalty
+      value: 0.24
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.x
@@ -5597,10 +5641,28 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8672625532493296987, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: airSpreadPenalty
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8672625532493296987, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: moveSpreadPenalty
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8944483826908563616, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: moveSpreadPenalty
+      value: 0.2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5753637828753184512, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1838208406}
+    - targetCorrespondingSourceObject: {fileID: 5753637828753184512, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1838208423}
   m_SourcePrefab: {fileID: 100100000, guid: 4ea94935c308106458064ec04a545802, type: 3}
 --- !u!1001 &748039302
 PrefabInstance:
@@ -7774,6 +7836,101 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 479046, guid: e7898a8813c934b24b616bee52cf3b85, type: 3}
   m_PrefabInstance: {fileID: 1164906009}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1177735517
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1177735520}
+  - component: {fileID: 1177735519}
+  - component: {fileID: 1177735518}
+  m_Layer: 0
+  m_Name: SoundService
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1177735518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1177735517}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dfe8fb3f8a637e94fbf82df2f73353e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.GameSoundRouter
+  crowdBgmKey: bgm_crowd
+  bossBgmKey: bgm_boss
+  bossWarningKey: sfx_boss_warning
+  playerHitKey: sfx_player_hit
+  playerStatusHitKey: sfx_player_cough
+  hitImpactKey: sfx_hit_flesh
+  hitMarkerKey: ui_hit_marker
+  killConfirmKey: ui_kill_confirm
+  gameOverKey: ui_game_over
+  stageClearKey: ui_stage_clear
+  upgradeSelectKey: ui_upgrade_select
+  healthWarningKey: ui_health_warning
+  useAnnouncer: 1
+  announceFightKey: ann_fight
+  announceVictoryKey: ann_victory
+  announceGameOverKey: ann_game_over
+  announcerDelay: 0.8
+  healthWarningInterval: 2
+  bossDuckLevel: 0.3
+  bossDuckTime: 3
+--- !u!114 &1177735519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1177735517}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a05c20358bebe940a2539c5f1df36d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.SoundService
+  voiceCount: 40
+  loopRefreshInterval: 0.25
+  loopFadeTime: 0.2
+  minDistance: 2
+  unlimitedDistance: 300
+  bgmFadeTime: 1.5
+  duckFadeTime: 0.3
+  mixer: {fileID: 24100000, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  snapshotFadeTime: 0.5
+  bgmGroup: {fileID: 1916248860737149651, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  sfxGroup: {fileID: -7809499384278224037, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  monsterGroup: {fileID: -2541985567382436315, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  uiGroup: {fileID: -261122123259414772, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  masterVolume: 1
+  bgmVolume: 1
+  sfxVolume: 1
+  monsterVolume: 1
+  uiVolume: 1
+--- !u!4 &1177735520
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1177735517}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1187523603
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13309,6 +13466,48 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 410562, guid: c0410a5e63a5548efbc0baf505873990, type: 3}
   m_PrefabInstance: {fileID: 1837211105}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1838208405 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5753637828753184512, guid: 4ea94935c308106458064ec04a545802, type: 3}
+  m_PrefabInstance: {fileID: 744447750}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1838208406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1838208405}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5dded5d167bf4df6a3f4f2843af0395, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.PlayerSoundEmitter
+  footstepKey: sfx_player_footstep
+  jumpKey: sfx_player_jump
+  landKey: sfx_player_land
+  deathKey: sfx_player_death
+  breathLoopKey: sfx_player_breath_loop
+  throwKey: sfx_grenade_throw
+  walkStride: 1.8
+  sprintStride: 2.4
+  minMoveSpeed: 0.5
+  minAirTime: 0.25
+  switchMuteAfterSpawn: 0.5
+  breathStartRatio: 0.25
+  breathStopRatio: 0.6
+--- !u!114 &1838208423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1838208405}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d7a54c9f911d4eee8df73029ae50a18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.Tester.SoundTestPlayerTarget
 --- !u!1001 &1850551154
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15857,3 +16056,4 @@ SceneRoots:
   - {fileID: 435885838}
   - {fileID: 67786932}
   - {fileID: 744447750}
+  - {fileID: 1177735520}

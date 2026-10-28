@@ -1,6 +1,5 @@
 using HybridShooter.Core.Data.Dtos;
 using HybridShooter.Core.Data.Loading;
-using UnityEngine;
 
 namespace HybridShooter.Core.Data.Defs
 {
@@ -22,7 +21,6 @@ namespace HybridShooter.Core.Data.Defs
         public float Range { get; }
         /// <summary>탄 퍼짐 원뿔 반각(도)</summary>
         public float SpreadAngle { get; }
-        public GameObject Prefab { get; }
         /// <summary>Link 단계에서 채워짐 (키가 비었으면 null)</summary>
         public SoundDef FireSfx { get; internal set; }
         /// <summary>장전 시작</summary>
@@ -57,7 +55,6 @@ namespace HybridShooter.Core.Data.Defs
             ReloadTime = d.ReloadTime;
             Range = d.Range;
             SpreadAngle = d.SpreadAngle;
-            Prefab = ParseUtil.Asset<GameObject>(d.PrefabKey, r, Table, Id, nameof(d.PrefabKey));
             FireSfxKey = d.FireSfxKey;
             ReloadSfxKey = d.ReloadSfxKey;
             ReloadInsertSfxKey = d.ReloadInsertSfxKey;
