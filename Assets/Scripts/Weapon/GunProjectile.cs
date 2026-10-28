@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Events;
 using HybridShooter.Core.Services;
 using UnityEngine;
 
@@ -121,6 +122,16 @@ namespace HybridShooter.Weapon
         private float traveled;
         private bool resting;
         private ProjectileTrail trail;
+
+        private void OnEnable() => EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
+
+        private void OnDisable() => EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
+
+        private void OnRoundCleanup(RoundCleanupEvent e)
+        {
+            enabled = false;
+            Despawn();
+        }
 
         /// <summary>visualPrefab 이 없으면 작은 구를 만든다</summary>
         public static GunProjectile Spawn(GameObject visualPrefab, Vector3 position, Vector3 velocity, in Settings settings, in ProjectileContext context)

@@ -915,6 +915,7 @@ MonoBehaviour:
   idleSpeedThreshold: 0.1
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
+  activeSeconds: 0.5
   hitTimeRatio: 0.5
   windupTurnSpeed: 360
 --- !u!114 &-7821899813460665779
@@ -934,6 +935,9 @@ MonoBehaviour:
   markerPrefab: {fileID: 7115643987484245890, guid: df5cb4955e2091249908f1830b38d070, type: 3}
   launchHeight: 1
   arcHeight: 4
+  tickDamage: 6
+  tickInterval: 1
+  zoneDuration: 5
   zoneHeightTolerance: 0.5
 --- !u!1 &3710361424080600933
 GameObject:
@@ -1718,10 +1722,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 1.1398419
-  m_Height: 3.9335546
+  m_Radius: 1.54
+  m_Height: 10.05
   m_Direction: 1
-  m_Center: {x: 0, y: 0.5029559, z: -0.1701082}
+  m_Center: {x: 0, y: -0.12, z: -0.1701082}
 --- !u!1 &6269572043631333172
 GameObject:
   m_ObjectHideFlags: 0

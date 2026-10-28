@@ -35,6 +35,18 @@ namespace HybridShooter.Player
         private float explodeTime;
         private bool launched;
 
+        private void OnEnable() => EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
+
+        private void OnDisable() => EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
+
+        private void OnRoundCleanup(RoundCleanupEvent e)
+        {
+            if (launched == false) return;
+            launched = false;
+            gameObject.SetActive(false);
+            Destroy(gameObject);
+        }
+
         private void Awake()
         {
             body = GetComponent<Rigidbody>();

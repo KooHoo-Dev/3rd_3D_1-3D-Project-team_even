@@ -28,6 +28,7 @@ namespace HybridShooter.Player
 
         public void TakeDamage(in DamageInfo info)
         {
+            if (flowInputBlocked) return;
             if (DebugInvincible || isReviving) return; // 부활 연출 중 무적 (PlayerController.Revive)
             if (IsDead) return;                        // 이미 쓰러짐: 부활 대기 중 시체에 들어오는 피해는 무시
 

@@ -126,6 +126,7 @@ namespace HybridShooter.Weapon
         private float lastShotTime = float.NegativeInfinity;
         private bool aimZoomApplied;
         private bool subscribed;
+        private bool resetOnRoundStart;
 
         protected static readonly RaycastHit[] SharedHits = new RaycastHit[32];
         /// <summary>다음 SpawnTracer 의 총알이 도착할 때 생성할 탄착 자리 (SpawnImpact 가 쌓는다)</summary>
@@ -206,6 +207,8 @@ namespace HybridShooter.Weapon
             if (subscribed == false)
             {
                 EventBus<UpgradePurchasedEvent>.Subscribe(OnUpgradePurchased);
+                EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
+                EventBus<RoundStartedEvent>.Subscribe(OnRoundStarted);
                 subscribed = true;
             }
             OnInitialized();
@@ -262,6 +265,15 @@ namespace HybridShooter.Weapon
             if (IsTriggerHeld == false) return;
             IsTriggerHeld = false;
             OnTriggerUp();
+        }
+
+        /// <summary>라운드 전환 시 방아쇠·조준·장전·점사 예약을 취소한다.</summary>
+        public void CancelActions()
+        {
+            TriggerUp();
+            AimUp();
+            CancelReload();
+            OnUnequipped();
         }
 
         public void AimDown()
@@ -598,9 +610,32 @@ namespace HybridShooter.Weapon
         private void OnDestroy()
         {
             if (subscribed) EventBus<UpgradePurchasedEvent>.Unsubscribe(OnUpgradePurchased);
+            if (subscribed) EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
+            if (subscribed) EventBus<RoundStartedEvent>.Unsubscribe(OnRoundStarted);
         }
 
         private void OnUpgradePurchased(UpgradePurchasedEvent evt) => RefreshStats();
+
+        private void OnRoundCleanup(RoundCleanupEvent e)
+        {
+            CancelActions();
+            if (e.FullReset) resetOnRoundStart = true;
+        }
+
+        private void OnRoundStarted(RoundStartedEvent e)
+        {
+            // FullReset의 모든 구독자가 강화를 초기화한 뒤 능력치를 다시 계산한다.
+            RefreshStats();
+            if (resetOnRoundStart == false) return;
+            resetOnRoundStart = false;
+            nextFireTime = Time.time;
+            readyTime = Time.time;
+            lastShotTime = float.NegativeInfinity;
+            bloom = 0f;
+            recoilToRecover = 0f;
+            RefillAmmo();
+            OnInitialized();
+        }
 
         private void PublishAmmo()
         {
