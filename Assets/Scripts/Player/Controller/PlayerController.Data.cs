@@ -209,6 +209,7 @@ namespace HybridShooter.Player
         private bool isGrounded;
         private bool isSliding;                // 급경사에 닿아 미끄러지는 중 (지상도 공중도 아님)
         private float snapDownSpeed;           // 지면 스냅: 이번 물리 프레임에 땅으로 끌어내리는 속도
+        private Vector3 motorTargetVelocity;   // 이번 물리 프레임 모터가 가려는 수평 속도 (외부 속도 소스에 넘긴다)
         private const float MaxSnapDownSpeed = 20f;
         private const float GroundProbeDepth = 3f;  // 발밑 땅 거리를 이 깊이까지 잰다
         private float groundDistance = float.PositiveInfinity; // 발 → 발밑 땅 거리
