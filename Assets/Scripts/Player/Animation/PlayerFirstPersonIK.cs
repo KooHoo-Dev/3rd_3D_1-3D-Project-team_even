@@ -12,6 +12,9 @@ namespace HybridShooter.Player
     ///  - 조준: 조준기가 눈 바로 앞 화면 정중앙 (adsDistance 앞). 그 사이는 드라이버의 조준 정도(Aim)로 보간
     ///    어깨 견착 총(로켓·그레네이드 런처)은 조준기가 어깨 위 옆자리(shoulderSight), 저격총은 조준이 끝나면 스코프 화면(PlayerAimView)이 덮는다
     ///  - 총 방향 = 눈 정면. 벽이 총 길이보다 가까우면 총을 몸 쪽으로 당기고 총구를 내린다
+    ///  - 도달 당김: 오른손 목표가 지금(FBBIK 전) 어깨에서 팔 길이 × maxReachRatio 보다 멀면 총을 시선 축을 따라 그만큼 몸 쪽으로 당긴다.
+    ///    눈은 몸 뼈와 따로 고정이라 위를 볼수록 총 자리가 팔 길이 밖으로 나가고, 그러면 FBBIK 가 어깨·목까지 앞으로 끌어낸다.
+    ///    시선 축을 따라 당기므로 조준 중 조준기는 화면 중앙에 남는다 (1인칭 조준 자동 측정 결과)
     ///  - 사격 반동(PlayerGunRecoil)은 이 총 자리에 더한다 (조준 중에는 줄여서)
     ///  - 오른손 = 총과 손의 지금 관계 그대로 (총은 오른손 아래 WeaponSocket 에 붙어 있다), 왼손 = 총의 LeftHandGrip
     ///  - 팔꿈치: 손 효과기 회전을 쓰면 FBBIK 는 팔꿈치 방향을 손 회전에서 정한다 → 아래를 보면 손과 함께 돌아 팔이 안쪽으로 꺾인다.
@@ -57,6 +60,11 @@ namespace HybridShooter.Player
         [SerializeField] private float wallPitch = 40f;
         [SerializeField] private float wallSmoothTime = 0.08f;
 
+        [Header("팔 도달")]
+        [Tooltip("오른손 목표가 FBBIK 전 어깨에서 팔 길이 × 이 값보다 멀면 총을 시선 축을 따라 몸 쪽으로 당긴다. 0 = 끔")]
+        [SerializeField, Range(0f, 1f)] private float maxReachRatio = 0.95f;
+
+        private const float MinReachSightDistance = 0.05f; // 도달 당김으로 당겨도 조준기는 눈에서 이만큼 앞에
         private readonly RaycastHit[] hits = new RaycastHit[8];
         private float wallPull;
         private float wallPullVelocity;
@@ -77,6 +85,12 @@ namespace HybridShooter.Player
         /// <summary>디버그: FBBIK 가 지금까지 풀린 횟수 (늘지 않으면 FBBIK 가 돌지 않는 것)</summary>
         public int FbbikSolveCount { get; private set; }
         public FullBodyBipedIK FullBodyIK => fbbik;
+        /// <summary>디버그: 조준기가 와야 할 월드 위치 (마지막으로 정한 값, 반동·벽 당김·도달 당김 포함)</summary>
+        public Vector3 SightTarget { get; private set; }
+        /// <summary>도달 당김: 손이 닿게 시선 축을 따라 당긴 거리(m)</summary>
+        public float ReachPull { get; private set; }
+        /// <summary>디버그(1인칭 조준 측정): null 이 아니면 maxReachRatio 대신 이 값 (0 = 도달 당김 끔)</summary>
+        public float? DebugMaxReachRatio { get; set; }
 
         private void Awake()
         {
@@ -124,6 +138,7 @@ namespace HybridShooter.Player
                 SetWeights(left, 0f);
                 SetElbowWeights(0f, 0f);
                 wallPull = 0f;
+                ReachPull = 0f;
                 return;
             }
 
@@ -150,8 +165,11 @@ namespace HybridShooter.Player
             sightLocal.z -= wallPull;
 
             Quaternion gunRotation = eye.rotation * Quaternion.Euler(maxWallPull > 0f ? wallPitch * wallPull / maxWallPull : 0f, 0f, 0f);
+            ReachPull = ReachPullFor(eye, sightLocal, gunRotation, sightInGun, toGun * (hand.position - g.position));
+            sightLocal.z -= ReachPull;
             Vector3 gunPosition = eye.position + eye.rotation * sightLocal - gunRotation * sightInGun;
             if (recoil != null) recoil.ApplyFirstPerson(ref gunPosition, ref gunRotation, gun, driver.AimWeight);
+            SightTarget = gunPosition + gunRotation * sightInGun;
 
             // 총이 그 자리에 오려면 손이 어디 있어야 하는지 (총과 손의 관계 그대로)
             right.position = gunPosition + gunRotation * (toGun * (hand.position - g.position));
@@ -172,6 +190,28 @@ namespace HybridShooter.Player
 
             UpdateElbowGoals();
             SetElbowWeights(elbowWeight * Weight, elbowWeight * leftWeight);
+        }
+
+        /// <summary>
+        /// 도달 당김: 오른손 목표가 지금(FBBIK 전) 오른 어깨에서 팔 길이 × maxReachRatio 안에 들어오도록 조준기 자리를 시선 정면 축을 따라 당길 거리(m).
+        /// 시선 축을 따라 당기므로 조준 중 조준기는 화면 중앙에 남는다. 축만으로 못 들어오면 가장 가까워지는 만큼 (조준기는 눈에서 MinReachSightDistance 앞까지)
+        /// </summary>
+        private float ReachPullFor(Pose eye, Vector3 sightLocal, Quaternion gunRotation, Vector3 sightInGun, Vector3 handInGun)
+        {
+            float ratio = DebugMaxReachRatio ?? maxReachRatio;
+            if (ratio <= 0f) return 0f;
+            RootMotion.BipedReferences refs = fbbik.references;
+            if (refs.rightUpperArm == null || refs.rightForearm == null || refs.rightHand == null) return 0f;
+            float radius = ratio * (Vector3.Distance(refs.rightUpperArm.position, refs.rightForearm.position)
+                                                     + Vector3.Distance(refs.rightForearm.position, refs.rightHand.position));
+            Vector3 handTarget = eye.position + eye.rotation * sightLocal + gunRotation * (handInGun - sightInGun);
+            Vector3 d = handTarget - refs.rightUpperArm.position;
+            if (d.sqrMagnitude <= radius * radius) return 0f;
+            // |d - forward·p| = radius 의 작은 해
+            float df = Vector3.Dot(d, eye.rotation * Vector3.forward);
+            float disc = df * df - d.sqrMagnitude + radius * radius;
+            float pull = disc >= 0f ? df - Mathf.Sqrt(disc) : df;
+            return Mathf.Clamp(pull, 0f, Mathf.Max(0f, sightLocal.z - MinReachSightDistance));
         }
 
         /// <summary>팔꿈치 bend goal: 어깨에서 몸 기준(시선 yaw 만) elbowDirection 쪽. 왼팔은 좌우 반전</summary>

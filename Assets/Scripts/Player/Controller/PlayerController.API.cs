@@ -67,7 +67,7 @@ namespace HybridShooter.Player
         /// <summary>디버그: 목 때문에 1인칭 눈을 앞으로 민 거리(m)</summary>
         public float NeckPush => neckPush;
 
-        /// <summary>IK 가 모두 끝난 목 뼈 월드 위치 (PlayerFirstPersonNeck 이 매 프레임). 다음 프레임 1인칭 눈 위치(목 보호)에 쓴다</summary>
+        /// <summary>목 뼈 월드 위치 (PlayerFirstPersonNeck 이 매 프레임, 기본은 FBBIK 직전). 다음 프레임 1인칭 눈 위치(목 보호)에 쓴다</summary>
         public void ReportNeckPosition(Vector3 worldPosition)
         {
             if (rigReady == false) return;

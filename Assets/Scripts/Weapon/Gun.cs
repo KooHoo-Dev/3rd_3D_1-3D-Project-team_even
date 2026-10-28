@@ -548,15 +548,26 @@ namespace HybridShooter.Weapon
             pendingImpacts.Clear();
         }
 
-        /// <summary>투사체 생성 위치. 총구가 벽 너머에 있으면 벽 앞에서 생성 (벽 뚫기 방지)</summary>
-        protected Vector3 ProjectileSpawnPoint()
+        /// <summary>
+        /// 투사체 생성 위치. 총구가 벽 너머에 있거나 벽에 붙어 있으면 벽 앞에서 생성 (벽 뚫기 방지).
+        /// 투사체 반경만큼 굵게 검사해 생성 직후 벽과 겹치지 않게 한다
+        /// </summary>
+        protected Vector3 ProjectileSpawnPoint(float projectileRadius)
         {
+            const float margin = 0.02f;
             Vector3 from = Owner.AimRay.origin;
             Vector3 to = Muzzle.position;
             Vector3 delta = to - from;
-            if (Raycast(new Ray(from, delta), delta.magnitude, out var hit))
-                return hit.point - delta.normalized * 0.1f;
-            return to;
+            float length = delta.magnitude;
+            if (length < 0.0001f) return to;
+            Vector3 direction = delta / length;
+            float radius = projectileRadius + margin;
+
+            int count = Physics.SphereCastNonAlloc(from, radius, direction, SharedHits, length, hitMask, QueryTriggerInteraction.Ignore);
+            float best = float.MaxValue;
+            for (int i = 0; i < count; i++)
+                if (IsOwnCollider(SharedHits[i].collider) == false && SharedHits[i].distance < best) best = SharedHits[i].distance;
+            return best < float.MaxValue ? from + direction * best : to;
         }
 
         /// <summary>투사체가 같이 들고 다닐 "누가 쐈나" 정보</summary>
