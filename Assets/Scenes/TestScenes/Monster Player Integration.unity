@@ -366,6 +366,100 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!1 &871242192
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 871242195}
+  - component: {fileID: 871242194}
+  - component: {fileID: 871242193}
+  m_Layer: 0
+  m_Name: SoundService
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &871242193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 871242192}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dfe8fb3f8a637e94fbf82df2f73353e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.GameSoundRouter
+  crowdBgmKey: bgm_crowd
+  bossBgmKey: bgm_boss
+  bossWarningKey: sfx_boss_warning
+  hitImpactKey: sfx_hit_flesh
+  hitMarkerKey: ui_hit_marker
+  gameOverKey: ui_game_over
+  stageClearKey: ui_stage_clear
+  upgradeSelectKey: ui_upgrade_select
+  healthWarningKey: ui_health_warning
+  useAnnouncer: 1
+  announceFightKey: ann_fight
+  announceVictoryKey: ann_victory
+  announceGameOverKey: ann_game_over
+  announcerDelay: 0.8
+  healthWarningInterval: 2
+  monsterNearDistance: 15
+  monsterNearIdleInterval: {x: 1.5, y: 3.5}
+  bossDuckLevel: 0.3
+  bossDuckTime: 3
+--- !u!114 &871242194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 871242192}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a05c20358bebe940a2539c5f1df36d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.SoundService
+  voiceCount: 40
+  loopRefreshInterval: 0.25
+  loopFadeTime: 0.2
+  minDistance: 2
+  unlimitedDistance: 300
+  bgmFadeTime: 1.5
+  duckFadeTime: 0.3
+  mixer: {fileID: 24100000, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  snapshotFadeTime: 0.5
+  bgmGroup: {fileID: 0}
+  sfxGroup: {fileID: 0}
+  monsterGroup: {fileID: 0}
+  uiGroup: {fileID: 0}
+  masterVolume: 1
+  bgmVolume: 1
+  sfxVolume: 1
+  monsterVolume: 1
+  uiVolume: 1
+--- !u!4 &871242195
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 871242192}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1645460287
 GameObject:
   m_ObjectHideFlags: 0
@@ -682,8 +776,43 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5753637828753184512, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2015054560}
   m_SourcePrefab: {fileID: 100100000, guid: 4ea94935c308106458064ec04a545802, type: 3}
+--- !u!1 &2015054559 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5753637828753184512, guid: 4ea94935c308106458064ec04a545802, type: 3}
+  m_PrefabInstance: {fileID: 2015054558}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2015054560
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2015054559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5dded5d167bf4df6a3f4f2843af0395, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.PlayerSoundEmitter
+  footstepKey: sfx_player_footstep
+  jumpKey: sfx_player_jump
+  landKey: sfx_player_land
+  hitKey: sfx_player_hit
+  statusHitKey: sfx_player_cough
+  deathKey: sfx_player_death
+  breathLoopKey: sfx_player_breath_loop
+  throwKey: sfx_grenade_throw
+  walkStride: 1.8
+  sprintStride: 2.4
+  minMoveSpeed: 0.5
+  minAirTime: 0.25
+  switchMuteAfterSpawn: 0.5
+  breathStartRatio: 0.25
+  breathStopRatio: 0.6
 --- !u!1 &2044657854
 GameObject:
   m_ObjectHideFlags: 0
@@ -17735,3 +17864,4 @@ SceneRoots:
   - {fileID: 311750448}
   - {fileID: 387818551}
   - {fileID: 1696451600}
+  - {fileID: 871242195}
