@@ -9,6 +9,7 @@
         public float StompTelegraphTime;
         public float StompRadius;
         public float StompRecoveryTime;
+        public float StompStartMaxDistance;
         // public float StompCooldown;
 
         // 마그마 포격
@@ -41,5 +42,6 @@
         public float SuctionFarExtraSpeed;
         public float SuctionNearExtraSpeed;
         public float SuctionNearDwellTime;
+        public float SuctionStartMinDistance;
     }
 }

@@ -55,7 +55,9 @@ namespace HybridShooter.Boss
 
             if (TargetRoot == null) return false;
 
-            return TargetDamageable.CanBeHitBy(Boss.Faction);
+            if (TargetDamageable.CanBeHitBy(Boss.Faction) == false) return false;
+
+            return MeetsStartCondition();
         }
         public bool TryStart()
         {
@@ -125,6 +127,8 @@ namespace HybridShooter.Boss
             }
         }
         
+        protected virtual bool MeetsStartCondition() => true;
+
         protected virtual void OnWindup() { }
 
         protected abstract void OnActiveStarted();

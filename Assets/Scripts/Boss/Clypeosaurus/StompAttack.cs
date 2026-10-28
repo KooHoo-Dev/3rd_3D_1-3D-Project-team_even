@@ -36,6 +36,15 @@ namespace HybridShooter.Boss.Clypeosaurus
             data = def;
         }
         
+        protected override bool MeetsStartCondition()
+        {
+            Vector3 offset = TargetRoot.position - transform.position;
+            offset.y = 0f;
+
+            float maxDistance = data.StompStartMaxDistance;
+            return offset.sqrMagnitude <= maxDistance * maxDistance;
+        }
+
         protected override void OnWindup()
         {
             // 준비 시작 시 공격 중심을 고정한다.

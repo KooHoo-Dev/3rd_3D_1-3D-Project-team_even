@@ -1860,6 +1860,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossPatternRunner
   attacks:
+  - {fileID: 534779049517218803}
+  - {fileID: 2158953421807436580}
   - {fileID: 7764257687145243604}
 --- !u!114 &534779049517218803
 MonoBehaviour:

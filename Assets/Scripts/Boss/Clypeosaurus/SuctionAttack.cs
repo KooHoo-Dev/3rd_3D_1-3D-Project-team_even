@@ -53,6 +53,15 @@ namespace HybridShooter.Boss.Clypeosaurus
             };
         }
         
+        protected override bool MeetsStartCondition()
+        {
+            Vector3 offset = TargetRoot.position - transform.position;
+            offset.y = 0f;
+
+            float minDistance = data.SuctionStartMinDistance;
+            return offset.sqrMagnitude >= minDistance * minDistance;
+        }
+
         protected override void OnWindup()
         {
             view.PlayState(WindupState);

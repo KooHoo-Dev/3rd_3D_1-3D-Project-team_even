@@ -14,6 +14,7 @@ namespace HybridShooter.Core.Data.Defs
         public float StompTelegraphTime { get; }
         public float StompRadius { get; }
         public float StompRecoveryTime { get; }
+        public float StompStartMaxDistance { get; }
         // public float StompCooldown { get; }
 
         // 마그마 포격
@@ -46,6 +47,7 @@ namespace HybridShooter.Core.Data.Defs
         public float SuctionFarExtraSpeed { get; }
         public float SuctionNearExtraSpeed { get; }
         public float SuctionNearDwellTime { get; }
+        public float SuctionStartMinDistance { get; }
 
         public ClypeosaurusDef(ClypeosaurusDto dto, DataLoadReport report)
         {
@@ -55,6 +57,7 @@ namespace HybridShooter.Core.Data.Defs
             StompTelegraphTime = dto.StompTelegraphTime;
             StompRadius = dto.StompRadius;
             StompRecoveryTime = dto.StompRecoveryTime;
+            StompStartMaxDistance = dto.StompStartMaxDistance;
             // StompCooldown = dto.StompCooldown;
 
             BarrageDamage = dto.BarrageDamage;
@@ -83,6 +86,7 @@ namespace HybridShooter.Core.Data.Defs
             SuctionFarExtraSpeed = dto.SuctionFarExtraSpeed;
             SuctionNearExtraSpeed = dto.SuctionNearExtraSpeed;
             SuctionNearDwellTime = dto.SuctionNearDwellTime;
+            SuctionStartMinDistance = dto.SuctionStartMinDistance;
 
             report.Check(BossId > 0, Table, BossId, "BossId는 1 이상이어야 합니다.");
             
@@ -91,6 +95,7 @@ namespace HybridShooter.Core.Data.Defs
             report.Check(StompTelegraphTime >= 0f, Table, "Stomp", "TelegraphTime은 0 이상이어야 합니다.");
             report.Check(StompRadius > 0f, Table, "Stomp", "Radius는 0보다 커야 합니다.");
             report.Check(StompRecoveryTime >= 0f, Table, "Stomp", "RecoveryTime은 0 이상이어야 합니다.");
+            report.Check(StompStartMaxDistance >= 0f, Table, "Stomp", "StompStartMaxDistance는 0 이상이어야 합니다.");
             // report.Check(StompCooldown >= 0f, Table, "Stomp", "Cooldown은 0 이상이어야 합니다.");
 
             // 마그마 포격 검증
@@ -121,6 +126,7 @@ namespace HybridShooter.Core.Data.Defs
             report.Check(SuctionFarExtraSpeed > SuctionNearExtraSpeed, Table, "Suction", "FarExtraSpeed는 NearExtraSpeed보다 커야 합니다.");
             report.Check(SuctionNearExtraSpeed >= 0f, Table, "Suction", "NearExtraSpeed는 0 이상이어야 합니다.");
             report.Check(SuctionNearDwellTime > 0f && SuctionNearDwellTime <= SuctionMaxDuration, Table, "Suction", "NearDwellTime은 0보다 크고 MaxDuration 이하여야 합니다.");
+            report.Check(SuctionStartMinDistance >= 0f, Table, "Suction", "SuctionStartMinDistance는 0 이상이어야 합니다.");
         }
     }
 }
