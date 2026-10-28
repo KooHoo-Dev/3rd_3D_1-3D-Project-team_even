@@ -5,5 +5,6 @@
         public int Id;
         public int MaxHp;
         public float MoveSpeed;
+        public float PatternCooldown;
     }
 }

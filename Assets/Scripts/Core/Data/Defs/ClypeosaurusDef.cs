@@ -14,7 +14,8 @@ namespace HybridShooter.Core.Data.Defs
         public float StompTelegraphTime { get; }
         public float StompRadius { get; }
         public float StompRecoveryTime { get; }
-        public float StompCooldown { get; }
+        public float StompStartMaxDistance { get; }
+        // public float StompCooldown { get; }
 
         // 마그마 포격
         public int BarrageDamage { get; }
@@ -22,7 +23,9 @@ namespace HybridShooter.Core.Data.Defs
         public float BarrageTelegraphTime { get; }
         public float BarrageInterval { get; }
         public float BarrageRecoveryTime { get; }
-        public float BarrageCooldown { get; }
+        // public float BarrageCooldown { get; }
+        public float BarrageSpreadRadius { get; }
+        public float BarrageFlightTime { get; }
 
         // 안테나 전격
         public int ElectricDamage { get; }
@@ -30,11 +33,21 @@ namespace HybridShooter.Core.Data.Defs
         public float ElectricWidth { get; }
         public float ElectricChargeTime { get; }
         public float ElectricRecoveryTime { get; }
-        public float ElectricCooldown { get; }
+        // public float ElectricCooldown { get; }
 
         // 본체 HP에 따른 안테나 개방 기준
         public float FourOpenHpRatio { get; }
         public float SixOpenHpRatio { get; }
+        
+        // 공기 흡입
+        public float SuctionTelegraphTime { get; }
+        public float SuctionMaxDuration { get; }
+        public float SuctionRecoveryTime { get; }
+        public float SuctionNearRadius { get; }
+        public float SuctionFarExtraSpeed { get; }
+        public float SuctionNearExtraSpeed { get; }
+        public float SuctionNearDwellTime { get; }
+        public float SuctionStartMinDistance { get; }
 
         public ClypeosaurusDef(ClypeosaurusDto dto, DataLoadReport report)
         {
@@ -44,24 +57,36 @@ namespace HybridShooter.Core.Data.Defs
             StompTelegraphTime = dto.StompTelegraphTime;
             StompRadius = dto.StompRadius;
             StompRecoveryTime = dto.StompRecoveryTime;
-            StompCooldown = dto.StompCooldown;
+            StompStartMaxDistance = dto.StompStartMaxDistance;
+            // StompCooldown = dto.StompCooldown;
 
             BarrageDamage = dto.BarrageDamage;
             BarrageRadius = dto.BarrageRadius;
             BarrageTelegraphTime = dto.BarrageTelegraphTime;
             BarrageInterval = dto.BarrageInterval;
             BarrageRecoveryTime = dto.BarrageRecoveryTime;
-            BarrageCooldown = dto.BarrageCooldown;
+            // BarrageCooldown = dto.BarrageCooldown;
+            BarrageSpreadRadius = dto.BarrageSpreadRadius;
+            BarrageFlightTime = dto.BarrageFlightTime;
 
             ElectricDamage = dto.ElectricDamage;
             ElectricRange = dto.ElectricRange;
             ElectricWidth = dto.ElectricWidth;
             ElectricChargeTime = dto.ElectricChargeTime;
             ElectricRecoveryTime = dto.ElectricRecoveryTime;
-            ElectricCooldown = dto.ElectricCooldown;
+            // ElectricCooldown = dto.ElectricCooldown;
 
             FourOpenHpRatio = dto.FourOpenHpRatio;
             SixOpenHpRatio = dto.SixOpenHpRatio;
+            
+            SuctionTelegraphTime = dto.SuctionTelegraphTime;
+            SuctionMaxDuration = dto.SuctionMaxDuration;
+            SuctionRecoveryTime = dto.SuctionRecoveryTime;
+            SuctionNearRadius = dto.SuctionNearRadius;
+            SuctionFarExtraSpeed = dto.SuctionFarExtraSpeed;
+            SuctionNearExtraSpeed = dto.SuctionNearExtraSpeed;
+            SuctionNearDwellTime = dto.SuctionNearDwellTime;
+            SuctionStartMinDistance = dto.SuctionStartMinDistance;
 
             report.Check(BossId > 0, Table, BossId, "BossId는 1 이상이어야 합니다.");
             
@@ -70,7 +95,8 @@ namespace HybridShooter.Core.Data.Defs
             report.Check(StompTelegraphTime >= 0f, Table, "Stomp", "TelegraphTime은 0 이상이어야 합니다.");
             report.Check(StompRadius > 0f, Table, "Stomp", "Radius는 0보다 커야 합니다.");
             report.Check(StompRecoveryTime >= 0f, Table, "Stomp", "RecoveryTime은 0 이상이어야 합니다.");
-            report.Check(StompCooldown >= 0f, Table, "Stomp", "Cooldown은 0 이상이어야 합니다.");
+            report.Check(StompStartMaxDistance >= 0f, Table, "Stomp", "StompStartMaxDistance는 0 이상이어야 합니다.");
+            // report.Check(StompCooldown >= 0f, Table, "Stomp", "Cooldown은 0 이상이어야 합니다.");
 
             // 마그마 포격 검증
             report.Check(BarrageDamage >= 0, Table, "Barrage", "Damage는 0 이상이어야 합니다.");
@@ -78,19 +104,29 @@ namespace HybridShooter.Core.Data.Defs
             report.Check(BarrageTelegraphTime >= 0f, Table, "Barrage", "TelegraphTime은 0 이상이어야 합니다.");
             report.Check(BarrageInterval > 0f, Table, "Barrage", "Interval은 0보다 커야 합니다.");
             report.Check(BarrageRecoveryTime >= 0f, Table, "Barrage", "RecoveryTime은 0 이상이어야 합니다.");
-            report.Check(BarrageCooldown >= 0f, Table, "Barrage", "Cooldown은 0 이상이어야 합니다.");
-
+            // report.Check(BarrageCooldown >= 0f, Table, "Barrage", "Cooldown은 0 이상이어야 합니다.");
+            report.Check(BarrageSpreadRadius > 0f, Table, "Barrage", "BarrageSpreadRadius는 0보다 커야 합니다.");
+            report.Check(BarrageFlightTime > 0f, Table, "Barrage", "BarrageFlightTime은 0보다 커야 합니다.");
             // 안테나 전격 검증
             report.Check(ElectricDamage >= 0, Table, "Electric", "Damage는 0 이상이어야 합니다.");
             report.Check(ElectricRange > 0f, Table, "Electric", "Range는 0보다 커야 합니다.");
             report.Check(ElectricWidth > 0f, Table, "Electric", "Width는 0보다 커야 합니다.");
             report.Check(ElectricChargeTime >= 0f, Table, "Electric", "ChargeTime은 0 이상이어야 합니다.");
             report.Check(ElectricRecoveryTime >= 0f, Table, "Electric", "RecoveryTime은 0 이상이어야 합니다.");
-            report.Check(ElectricCooldown >= 0f, Table, "Electric", "Cooldown은 0 이상이어야 합니다.");
+            // report.Check(ElectricCooldown >= 0f, Table, "Electric", "Cooldown은 0 이상이어야 합니다.");
 
             // 안테나 개방 기준 검증
-            report.Check(SixOpenHpRatio > 0f && SixOpenHpRatio < FourOpenHpRatio && FourOpenHpRatio < 1f, Table,
-                "Antenna", "체력 기준은 0 < SixOpenHpRatio < FourOpenHpRatio < 1이어야 합니다.");
+            report.Check(SixOpenHpRatio > 0f && SixOpenHpRatio < FourOpenHpRatio && FourOpenHpRatio < 1f, Table, "Antenna", "체력 기준은 0 < SixOpenHpRatio < FourOpenHpRatio < 1이어야 합니다.");
+            
+            // 공기 흡입 검증
+            report.Check(SuctionTelegraphTime >= 0f, Table, "Suction", "TelegraphTime은 0 이상이어야 합니다.");
+            report.Check(SuctionMaxDuration > 0f, Table, "Suction", "MaxDuration은 0보다 커야 합니다.");
+            report.Check(SuctionRecoveryTime >= 0f, Table, "Suction", "RecoveryTime은 0 이상이어야 합니다.");
+            report.Check(SuctionNearRadius > 0f, Table, "Suction", "NearRadius는 0보다 커야 합니다.");
+            report.Check(SuctionFarExtraSpeed > SuctionNearExtraSpeed, Table, "Suction", "FarExtraSpeed는 NearExtraSpeed보다 커야 합니다.");
+            report.Check(SuctionNearExtraSpeed >= 0f, Table, "Suction", "NearExtraSpeed는 0 이상이어야 합니다.");
+            report.Check(SuctionNearDwellTime > 0f && SuctionNearDwellTime <= SuctionMaxDuration, Table, "Suction", "NearDwellTime은 0보다 크고 MaxDuration 이하여야 합니다.");
+            report.Check(SuctionStartMinDistance >= 0f, Table, "Suction", "SuctionStartMinDistance는 0 이상이어야 합니다.");
         }
     }
 }

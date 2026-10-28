@@ -54,6 +54,20 @@ namespace HybridShooter.Core.Contracts
         bool AddLives(int amount);
     }
 
+    /// <summary>
+    /// 플레이어에게 외부 속도를 더하는 슬롯 (보스 흡입 등). ServiceLocator 에 등록된다. (ServiceLocator.Get&lt;IPlayerExternalVelocity&gt;())
+    ///  - 소스(IPlayerVelocitySource)를 붙이면 플레이어가 매 물리 프레임 그 소스를 불러 속도를 더한다. 여러 개면 모두 합친다
+    ///  - 보스 흡입은 미리 만든 InhaleSource.Start(...) 를 쓰면 붙이기·끝내기·종료 이유까지 처리된다
+    ///  - 플레이어가 쓰러짐·부활 연출·벽넘기 중에는 적용하지 않고(붙은 상태 유지), 처음부터 재시작하면 모두 뗀다
+    /// </summary>
+    public interface IPlayerExternalVelocity
+    {
+        /// <summary>소스를 붙인다. null 이거나 이미 붙어 있으면 false</summary>
+        bool AddVelocitySource(IPlayerVelocitySource source);
+        /// <summary>소스를 뗀다 (OnRemovedByPlayer 는 불리지 않음). 붙어 있지 않으면 아무 일 없음</summary>
+        void RemoveVelocitySource(IPlayerVelocitySource source);
+    }
+
     /// <summary>회복 팩 → 플레이어 (BL-006, BL-019). 가득 차서 못 먹으면 false</summary>
     public interface IHealable
     {

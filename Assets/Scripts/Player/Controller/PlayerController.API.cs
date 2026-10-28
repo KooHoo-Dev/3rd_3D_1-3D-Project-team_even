@@ -31,7 +31,9 @@ namespace HybridShooter.Player
         public float GroundDistance => groundDistance;
         /// <summary>구르기 직후 짧은 시간 또는 부활 연출 중. (TakeDamage 는 지금 부활·디버그 무적만 막는다. 구르기 무적 적용은 Docs 계획 참고)</summary>
         public bool IsInvulnerable => isReviving || (isRolling && Time.time - rollStartTime < rollInvulnerableTime);
-        public bool IsSprinting => sprintRequested && CanSprint && isGrounded && isRolling == false && HorizontalSpeed > 0.1f;
+        /// <summary>입력도 있어야 한다 (가만히 끌려가는 중에 Shift 만 눌러도 전력질주로 보이지 않게)</summary>
+        public bool IsSprinting => sprintRequested && CanSprint && isGrounded && isRolling == false
+                                   && moveDirection.sqrMagnitude > 0.0001f && HorizontalSpeed > 0.1f;
         /// <summary>구르는 중이 아니고, 지상이고, 쿨다운이 끝났고, 스태미나가 rollStaminaCost 이상</summary>
         public bool CanRoll => isRolling == false && isGrounded && Time.time >= rollReadyTime && HasRollStamina;
         public Vector3 Velocity => rb.linearVelocity;
@@ -177,6 +179,7 @@ namespace HybridShooter.Player
         {
             rb.position = position;
             rb.linearVelocity = Vector3.zero;
+            appliedExternal = Vector3.zero; // 속도를 0 으로 만들었으니 다음 프레임에 뺄 몫도 없다
             isRolling = false;
         }
 
@@ -191,6 +194,7 @@ namespace HybridShooter.Player
             isRolling = false;
             moveDirection = Vector3.zero;
             rb.linearVelocity = Vector3.zero;
+            appliedExternal = Vector3.zero; // 외부 속도는 외부 제어 동안 멈춘다 (소스는 유지)
             savedInterpolation = rb.interpolation;
             // kinematic + 직접 위치 지정 시 보간이 켜져 있으면 한 프레임 늦게 따라와 떨린다
             rb.interpolation = RigidbodyInterpolation.None;
@@ -223,6 +227,7 @@ namespace HybridShooter.Player
             rb.isKinematic = false;
             rb.interpolation = savedInterpolation;
             rb.linearVelocity = Vector3.zero;
+            appliedExternal = Vector3.zero;
             jumpRequestedTime = float.NegativeInfinity;
         }
     }
