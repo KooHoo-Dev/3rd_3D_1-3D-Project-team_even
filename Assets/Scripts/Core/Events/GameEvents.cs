@@ -205,26 +205,12 @@ namespace HybridShooter.Core.Events
     }
 
     // ── 보스 (E5) ──  [보스] → 코어, UI·사운드, 플레이어(카메라 흔들림 등)
+    // 패턴 단계·타격 같은 보스 몸 연출은 전역 이벤트가 아니라 보스 오브젝트의 지역 이벤트(BossAttack.PhaseChanged·Impacted, BossController.Died)로 받는다
     public readonly struct BossAppearedEvent
     {
         public readonly MonsterDef Boss;
         public readonly GameObject Instance;
         public BossAppearedEvent(MonsterDef boss, GameObject instance) { Boss = boss; Instance = instance; }
-    }
-
-    /// <summary>공격 단계 변화. 예고 표시·포효·공격음·회복 상태 표현에 사용 (BL-024~028)</summary>
-    public readonly struct BossSkillPhaseChangedEvent
-    {
-        public readonly MonsterAttackDef Attack;
-        public readonly SkillPhase Phase;
-        public BossSkillPhaseChangedEvent(MonsterAttackDef attack, SkillPhase phase) { Attack = attack; Phase = phase; }
-    }
-
-    /// <summary>보스 페이즈 변화 (BossPhaseDef.Phase 기준, 0 = 멀쩡) (BL-028)</summary>
-    public readonly struct BossDamageStageChangedEvent
-    {
-        public readonly int Stage;
-        public BossDamageStageChangedEvent(int stage) { Stage = stage; }
     }
 
     public readonly struct BossDefeatedEvent

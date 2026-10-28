@@ -473,9 +473,9 @@ public class KillCounter : MonoBehaviour
 | 이벤트 | 담긴 정보 | 주 구독자 |
 |---|---|---|
 | `BossAppearedEvent` | `Boss`, `Instance` | 코어 (BossBattle 로 전환), UI·사운드 |
-| `BossSkillPhaseChangedEvent` | `Skill`, `Phase` (Windup/Active/Recover/Idle) | UI·사운드 (예고 표시·포효) |
-| `BossDamageStageChangedEvent` | `Stage` (0 = 멀쩡) | 보스 외형 변화, UI |
 | `BossDefeatedEvent` | `Boss`, `Position` | 코어, 보상 |
+
+> 보스 패턴 단계·타격은 전역 이벤트가 아니다. 같은 보스 오브젝트에서 `BossAttack.PhaseChanged(attack, phase)`·`Impacted(attack, point)`, `BossController.Died` 를 구독한다 (예: `BossSoundEmitter`).
 
 #### 🎁 보급 · 💰 보상 · 🖥 UI
 

@@ -77,6 +77,7 @@ namespace HybridShooter.Boss.Clypeosaurus
                 || Boss.IsAlive == false || TargetRoot == null) return;
 
             hitApplied = true;
+            RaiseImpacted(lockedCenter);
             ApplyHit();
         }
 

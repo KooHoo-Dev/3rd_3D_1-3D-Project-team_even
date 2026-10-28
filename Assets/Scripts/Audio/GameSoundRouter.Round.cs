@@ -15,7 +15,6 @@ namespace HybridShooter.Audio
 
         private void OnRoundStarted(RoundStartedEvent e)
         {
-            ClearBoss();
             StopHealthWarning();
             service.PlayBgm(crowdBgmKey);
             Announce(announceFightKey, 0f);

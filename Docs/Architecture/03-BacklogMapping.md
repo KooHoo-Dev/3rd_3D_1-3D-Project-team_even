@@ -48,9 +48,9 @@ stateDiagram-v2
 | 021 | 보스 등장 예고 | E5 | 코어 + 몬스터 | RoundDef.BossSpawnTimeMin/Max | — | BossWarning | — |
 | 022 | 3인칭 자동 전환 | E1 | 플레이어 | Config.CameraTransitionTime | — | CameraModeChanged | GameStateChanged(BossIntro) |
 | 023 | 등장 공격·잡몹 정리 | E5 | 몬스터 | MonsterDef.EntranceSkill | — | BossAppeared, MonsterWipeRequested | CameraModeChanged |
-| 024~026 | 강타·돌진·포격 | E5 | 몬스터 | MonsterSkillDef (Windup/Recover/Param) | IDamageable | BossSkillPhaseChanged | — |
-| 027 | 패턴 전환·반복 | E5 | 몬스터 | MonsterDef.PickPattern | — | BossSkillPhaseChanged | — |
-| 028 | 보스 상태 표현 | E5 | 몬스터 + UI·사운드 | Config.BossDamageStageRatios | — | BossDamageStageChanged | BossSkillPhaseChanged |
+| 024~026 | 강타·돌진·포격 | E5 | 몬스터 | MonsterSkillDef (Windup/Recover/Param) | IDamageable | BossAttack.PhaseChanged (지역) | — |
+| 027 | 패턴 전환·반복 | E5 | 몬스터 | MonsterDef.PickPattern | — | BossAttack.PhaseChanged (지역) | — |
+| 028 | 보스 상태 표현 | E5 | 몬스터 + UI·사운드 | Config.BossDamageStageRatios | — | (안테나 개방 미구현) | BossAttack.PhaseChanged (지역) |
 | 029 | 처치 재화 자동 획득 | E8 | 보급·보상 | MonsterDef.Reward, RoundDef.BossReward | ICurrencyWallet | CurrencyChanged | MonsterDied, BossDefeated |
 | 030 | 강화 선택·구매 | E8 | 보급·보상 + UI | UpgradeTrackDef | IUpgradeState, ICurrencyWallet | UpgradePurchased, RewardSelectionFinished | GameStateChanged(Reward) |
 | 031 | 강화 실제 적용 | E2 | 플레이어 | UpgradeTrackDef | IUpgradeState | AmmoChanged, GrenadeCountChanged | UpgradePurchased |

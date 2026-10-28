@@ -14,7 +14,15 @@ namespace HybridShooter.Boss
         
         public SkillPhase Phase { get; private set; } = SkillPhase.Idle;
         public bool IsRunning => Phase != SkillPhase.Idle;
-        
+
+        /// <summary>
+        /// 단계 변화 알림 (같은 보스의 BossSoundEmitter 등이 구독). Windup·Active 는 OnWindup·OnActiveStarted 가 끝난 뒤
+        /// 아직 그 단계일 때만 알린다 → 준비 중 바로 취소된 공격(포격 낙하 지점 실패 등)의 예고는 알리지 않는다
+        /// </summary>
+        public event Action<BossAttack, SkillPhase> PhaseChanged;
+        /// <summary>공격이 땅·대상에 닿은 순간과 지점 (지금은 짓밟기 착지)</summary>
+        public event Action<BossAttack, Vector3> Impacted;
+
         private bool initialized;
         private float windupTime;
         private float recoveryTime;
@@ -69,7 +77,8 @@ namespace HybridShooter.Boss
             phaseEndTime = Time.time + windupTime;
 
             OnWindup();
-            
+            if (Phase == SkillPhase.Windup) NotifyPhase();
+
             return IsRunning;
         }
         
@@ -87,8 +96,9 @@ namespace HybridShooter.Boss
                 case SkillPhase.Windup:
                     if (Time.time < phaseEndTime) return;
                     Phase = SkillPhase.Active;
-                    
+
                     OnActiveStarted();
+                    if (Phase == SkillPhase.Active) NotifyPhase();
                     break;
                 
                 case SkillPhase.Active:
@@ -100,6 +110,7 @@ namespace HybridShooter.Boss
                     
                     Phase = SkillPhase.Idle;
                     Boss.EndAttack(this, completed: true);
+                    NotifyPhase();
                     break;
             }
         }
@@ -110,6 +121,7 @@ namespace HybridShooter.Boss
 
             Phase = SkillPhase.Recover;
             phaseEndTime = Time.time + recoveryTime;
+            NotifyPhase();
         }
         
         public void Cancel()
@@ -124,9 +136,15 @@ namespace HybridShooter.Boss
             finally
             {
                 Boss.EndAttack(this);
+                NotifyPhase();
             }
         }
-        
+
+        /// <summary>하위 패턴이 타격 순간에 호출 (애니메이션 이벤트 등)</summary>
+        protected void RaiseImpacted(Vector3 point) => Impacted?.Invoke(this, point);
+
+        private void NotifyPhase() => PhaseChanged?.Invoke(this, Phase);
+
         protected virtual bool MeetsStartCondition() => true;
 
         protected virtual void OnWindup() { }

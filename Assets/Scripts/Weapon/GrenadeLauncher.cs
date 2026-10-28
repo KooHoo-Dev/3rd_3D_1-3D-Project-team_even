@@ -27,10 +27,10 @@ namespace HybridShooter.Weapon
         [SerializeField] private float armDistance = 4f;
         [Tooltip("무장 전 직격 피해 (Damage 대비 비율)")]
         [SerializeField, Range(0f, 1f)] private float impactDamageRatio = 0.3f;
-        [Tooltip("폭발 설정. damage 는 WeaponTable.Damage 로 덮어쓴다")]
+        [Tooltip("폭발 설정. damage 는 WeaponTable.Damage, sfxKey 는 WeaponTable.ExplodeSfxKey 로 덮어쓴다")]
         [SerializeField] private ExplosionSettings explosion = new ExplosionSettings
         {
-            radius = 3f, minDamageRatio = 0.25f, force = 8f, sfxKey = "sfx_grenade_explode",
+            radius = 3f, minDamageRatio = 0.25f, force = 8f,
         };
 
         public GrenadeLauncher()
@@ -72,7 +72,7 @@ namespace HybridShooter.Weapon
                 Trail = grenadeTrail,
             };
             settings.Explosion.damage = Stats.damage;
-            if (Def?.ExplodeSfx != null) settings.Explosion.sfxKey = Def.ExplodeSfx.Key; // WeaponTable.ExplodeSfxKey 우선, 없으면 프리팹 값
+            settings.Explosion.sfxKey = Def?.ExplodeSfx?.Key; // 기준은 WeaponTable.ExplodeSfxKey 하나 (빈칸 = 소리 없음)
             GunProjectile.Spawn(grenadePrefab, spawn, direction * launchSpeed, settings, CreateProjectileContext());
         }
     }

@@ -7,15 +7,16 @@ namespace HybridShooter.Audio
     /// 게임 이벤트(EventBus) → 소리. 다른 파트 코드를 고치지 않고 소리를 붙이는 곳.
     /// 이 파일은 필드·구독만, 이벤트 처리는 영역별 partial 파일에 있다.
     ///   .Round   게임 상태(강화 화면 스냅샷)·라운드 시작·게임오버
-    ///   .Combat  몬스터 생성·사망, 총기 피격·처치, 플레이어 피격
-    ///   .Boss    보스 경고·등장·공격·페이즈·처치
+    ///   .Combat  몬스터 이미터 자동 부착, 총기 피격·처치 피드백
+    ///   .Boss    보스 경고·등장(BGM)·처치(BGM 정지·클리어·아나운서)
     ///   .Items   보급 획득, 강화 구매
     ///   .Ui      저체력 경고 반복, 아나운서
     ///
     /// 소리 하나에 재생 경로는 하나만 둔다. 아래 소리는 발행하는 쪽이 이미 직접 재생하므로 여기서 다루지 않는다.
-    ///   WeaponFiredEvent·Reload·빈 탄창 (Gun), 폭발 (GunProjectile), SupplyDroppedEvent (SupplyDropper)
-    /// 플레이어 몸 소리(발소리·점프·착지·사망·숨·투척)는 PlayerSoundEmitter 담당.
-    /// 일반 몬스터의 공격·울음·루프는 MonsterSoundEmitter 담당.
+    ///   WeaponFiredEvent·Reload·빈 탄창 (Gun), 폭발 (GunProjectile), SupplyDroppedEvent (SupplyDropper), 마그마 착탄 (MagmaProjectile)
+    /// 객체 자기 몸 소리는 그 객체의 지역 이벤트를 받는 이미터 담당 (전역 이벤트로 받지 않는다):
+    ///   플레이어(발소리·점프·착지·피격·사망·숨·투척) PlayerSoundEmitter / 일반 몬스터(울음·루프·공격·기절·사망) MonsterSoundEmitter
+    ///   보스(패턴 예고·흡입 루프·타격·사망) BossSoundEmitter
     /// </summary>
     [RequireComponent(typeof(SoundService))]
     public sealed partial class GameSoundRouter : MonoBehaviour
@@ -24,15 +25,10 @@ namespace HybridShooter.Audio
         [SerializeField] private string crowdBgmKey = "bgm_crowd";
         [SerializeField] private string bossBgmKey = "bgm_boss";
         [SerializeField] private string bossWarningKey = "sfx_boss_warning";
-        [SerializeField] private string playerHitKey = "sfx_player_hit";
-        [Tooltip("지속 피해(DamageKind.Status, 독장판 틱) 때 피격음 대신")]
-        [SerializeField] private string playerStatusHitKey = "sfx_player_cough";
         [Tooltip("총알이 몬스터에 맞은 위치에서 나는 타격음 (3D)")]
         [SerializeField] private string hitImpactKey = "sfx_hit_flesh";
-        [Tooltip("명중 피드백 (2D)")]
+        [Tooltip("명중 피드백 (2D). 처치한 발에는 내지 않는다 (처치는 몬스터 사망음 + UI 표시)")]
         [SerializeField] private string hitMarkerKey = "ui_hit_marker";
-        [Tooltip("처치 피드백 (2D). 처치 시에는 히트마커 대신 재생")]
-        [SerializeField] private string killConfirmKey = "ui_kill_confirm";
         [SerializeField] private string gameOverKey = "ui_game_over";
         [SerializeField] private string stageClearKey = "ui_stage_clear";
         [SerializeField] private string upgradeSelectKey = "ui_upgrade_select";
@@ -49,6 +45,12 @@ namespace HybridShooter.Audio
         [Header("저체력 경고")]
         [Tooltip("체력 비율이 ConfigTable.LowHpRatio 이하인 동안 이 간격(초)으로 경고음 반복")]
         [SerializeField] private float healthWarningInterval = 2f;
+
+        [Header("몬스터 근접 울음 (공격 전에도 주변 몬스터를 소리로 알 수 있게)")]
+        [Tooltip("플레이어와 이 거리(m) 안의 몬스터는 울음을 자주 내고, 들어오는 순간 곧 한 번 운다. 0 = 끔")]
+        [SerializeField] private float monsterNearDistance = 15f;
+        [Tooltip("근접 몬스터의 울음 간격(초) 최소 ~ 최대 (평소 간격은 MonsterSoundEmitter 의 4~10초)")]
+        [SerializeField] private Vector2 monsterNearIdleInterval = new Vector2(1.5f, 3.5f);
 
         [Header("덕킹 (보스 경고·등장 포효 동안 몬스터 소리 줄이기)")]
         [Range(0f, 1f)][SerializeField] private float bossDuckLevel = 0.3f;
@@ -77,15 +79,11 @@ namespace HybridShooter.Audio
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
             EventBus<GameOverEvent>.Subscribe(OnGameOver);
             EventBus<MonsterSpawnedEvent>.Subscribe(OnMonsterSpawned);
-            EventBus<MonsterDiedEvent>.Subscribe(OnMonsterDied);
             EventBus<DamageDealtEvent>.Subscribe(OnDamageDealt);
-            EventBus<PlayerDamagedEvent>.Subscribe(OnPlayerDamaged);
             EventBus<PlayerHpChangedEvent>.Subscribe(OnPlayerHpChanged);
             EventBus<PlayerDiedEvent>.Subscribe(OnPlayerDied);
             EventBus<BossWarningEvent>.Subscribe(OnBossWarning);
             EventBus<BossAppearedEvent>.Subscribe(OnBossAppeared);
-            EventBus<BossSkillPhaseChangedEvent>.Subscribe(OnBossSkillPhaseChanged);
-            EventBus<BossDamageStageChangedEvent>.Subscribe(OnBossDamageStageChanged);
             EventBus<BossDefeatedEvent>.Subscribe(OnBossDefeated);
             EventBus<UpgradePurchasedEvent>.Subscribe(OnUpgradePurchased);
             EventBus<SupplyCollectedEvent>.Subscribe(OnSupplyCollected);
@@ -99,15 +97,11 @@ namespace HybridShooter.Audio
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
             EventBus<GameOverEvent>.Unsubscribe(OnGameOver);
             EventBus<MonsterSpawnedEvent>.Unsubscribe(OnMonsterSpawned);
-            EventBus<MonsterDiedEvent>.Unsubscribe(OnMonsterDied);
             EventBus<DamageDealtEvent>.Unsubscribe(OnDamageDealt);
-            EventBus<PlayerDamagedEvent>.Unsubscribe(OnPlayerDamaged);
             EventBus<PlayerHpChangedEvent>.Unsubscribe(OnPlayerHpChanged);
             EventBus<PlayerDiedEvent>.Unsubscribe(OnPlayerDied);
             EventBus<BossWarningEvent>.Unsubscribe(OnBossWarning);
             EventBus<BossAppearedEvent>.Unsubscribe(OnBossAppeared);
-            EventBus<BossSkillPhaseChangedEvent>.Unsubscribe(OnBossSkillPhaseChanged);
-            EventBus<BossDamageStageChangedEvent>.Unsubscribe(OnBossDamageStageChanged);
             EventBus<BossDefeatedEvent>.Unsubscribe(OnBossDefeated);
             EventBus<UpgradePurchasedEvent>.Unsubscribe(OnUpgradePurchased);
             EventBus<SupplyCollectedEvent>.Unsubscribe(OnSupplyCollected);

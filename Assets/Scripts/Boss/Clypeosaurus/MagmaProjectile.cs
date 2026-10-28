@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data.Defs;
+using HybridShooter.Core.Services;
 using UnityEngine;
 
 namespace HybridShooter.Boss.Clypeosaurus
@@ -12,7 +13,9 @@ namespace HybridShooter.Boss.Clypeosaurus
         [SerializeField] private LayerMask damageMask;
         [SerializeField] private LayerMask coverMask;
         [SerializeField, Min(0.1f)] private float maxLifetime = 10f;
-        
+        [Tooltip("착탄 폭발음 (SoundTable.Key). 비우면 소리 없음. 취소·수명 초과로 사라질 때는 나지 않는다")]
+        [SerializeField] private string explodeSfxKey = "mon_clypeosaurus_magma_impact";
+
         private Rigidbody body;
         private SphereCollider sphere;
         private BossController owner;
@@ -77,6 +80,8 @@ namespace HybridShooter.Boss.Clypeosaurus
 
             try
             {
+                if (string.IsNullOrEmpty(explodeSfxKey) == false && ServiceLocator.TryGet<ISoundService>(out var sound))
+                    sound.PlaySfx(explodeSfxKey, center);
                 ApplyExplosion(center);
             }
             finally
