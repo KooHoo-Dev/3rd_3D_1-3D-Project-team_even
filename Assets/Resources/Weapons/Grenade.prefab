@@ -186,7 +186,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 382210057bf0f6e458c77eb2c8cf14fd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.Grenade
-  minDamageRatio: 0.25
-  force: 10
+  minDamageRatio: 0.6
+  force: 2
   explosionEffectPrefab: {fileID: 9013632277072667206, guid: 3396a0908f2a90b41938df348ea83166, type: 3}
-  spin: 10
+  spin: 2
