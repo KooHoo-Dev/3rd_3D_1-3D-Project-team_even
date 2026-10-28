@@ -1,151 +1,439 @@
 fileFormatVersion: 2
 guid: e590213b63d8b3f4287f600cab318a1c
+AssetOrigin:
+  serializedVersion: 1
+  productId: 165213
+  packageName: MONSTER FULL PACK VOL 1
+  packageVersion: 1.31
+  assetPath: Assets/Monsters Full Pack Vol 1/Monsters Pack Vol 3/Clypeosaurus/FBX
+    Files/Clypeosaurus@SpittersAttack.FBX
+  uploadId: 944504
 ModelImporter:
-  serializedVersion: 23
-  fileIDToRecycleName:
-    100000: //RootNode
-    100002: Clypeosaurus_Antenna_1
-    100004: Clypeosaurus_Antenna_2
-    100006: Clypeosaurus_Antenna_3
-    100008: Clypeosaurus_Antenna_4
-    100010: Clypeosaurus_Antenna_5
-    100012: Clypeosaurus_Antenna_6
-    100014: Clypeosaurus_Antenna_7
-    100016: Clypeosaurus_Antenna_8
-    100018: Clypeosaurus_Body
-    100020: Clypeosaurus_EyelidLeft_A_Lower
-    100022: Clypeosaurus_EyelidLeft_A_Upper
-    100024: Clypeosaurus_EyelidLeft_B_Lower
-    100026: Clypeosaurus_EyelidLeft_B_Upper
-    100028: Clypeosaurus_EyelidRight_A_Lower
-    100030: Clypeosaurus_EyelidRight_A_Upper
-    100032: Clypeosaurus_EyelidRight_B_Lower
-    100034: Clypeosaurus_EyelidRight_B_Upper
-    100036: Clypeosaurus_Head
-    100038: Clypeosaurus_JawLeft
-    100040: Clypeosaurus_JawRight
-    100042: Clypeosaurus_LegLeft_A_1
-    100044: Clypeosaurus_LegLeft_A_2
-    100046: Clypeosaurus_LegLeft_A_3
-    100048: Clypeosaurus_LegLeft_B_1
-    100050: Clypeosaurus_LegLeft_B_2
-    100052: Clypeosaurus_LegLeft_B_3
-    100054: Clypeosaurus_LegLeft_C_1
-    100056: Clypeosaurus_LegLeft_C_2
-    100058: Clypeosaurus_LegLeft_C_3
-    100060: Clypeosaurus_LegRight_A_1
-    100062: Clypeosaurus_LegRight_A_2
-    100064: Clypeosaurus_LegRight_A_3
-    100066: Clypeosaurus_LegRight_B_1
-    100068: Clypeosaurus_LegRight_B_2
-    100070: Clypeosaurus_LegRight_B_3
-    100072: Clypeosaurus_LegRight_C_1
-    100074: Clypeosaurus_LegRight_C_2
-    100076: Clypeosaurus_LegRight_C_3
-    100078: Clypeosaurus_Neck_1
-    100080: Clypeosaurus_Neck_2
-    100082: Clypeosaurus_SpitterLeft_A_1
-    100084: Clypeosaurus_SpitterLeft_A_2
-    100086: Clypeosaurus_SpitterLeft_A_3
-    100088: Clypeosaurus_SpitterLeft_B_1
-    100090: Clypeosaurus_SpitterLeft_B_2
-    100092: Clypeosaurus_SpitterLeft_B_3
-    100094: Clypeosaurus_SpitterLeft_C_1
-    100096: Clypeosaurus_SpitterLeft_C_2
-    100098: Clypeosaurus_SpitterLeft_C_3
-    100100: Clypeosaurus_SpitterRight_A_1
-    100102: Clypeosaurus_SpitterRight_A_2
-    100104: Clypeosaurus_SpitterRight_A_3
-    100106: Clypeosaurus_SpitterRight_B_1
-    100108: Clypeosaurus_SpitterRight_B_2
-    100110: Clypeosaurus_SpitterRight_B_3
-    100112: Clypeosaurus_SpitterRight_C_1
-    100114: Clypeosaurus_SpitterRight_C_2
-    100116: Clypeosaurus_SpitterRight_C_3
-    100118: Clypeosaurus_Tail_1
-    100120: Clypeosaurus_Tail_2
-    100122: Clypeosaurus_Tail_3
-    100124: Clypeosaurus_Tail_4
-    100126: Clypeosaurus_Tail_5
-    100128: Clypeosaurus_Tongue_1
-    100130: Clypeosaurus_Tongue_2
-    100132: Clypeosaurus_Tongue_3
-    100134: Clypeosaurus_Tongue_4
-    100136: root
-    400000: //RootNode
-    400002: Clypeosaurus_Antenna_1
-    400004: Clypeosaurus_Antenna_2
-    400006: Clypeosaurus_Antenna_3
-    400008: Clypeosaurus_Antenna_4
-    400010: Clypeosaurus_Antenna_5
-    400012: Clypeosaurus_Antenna_6
-    400014: Clypeosaurus_Antenna_7
-    400016: Clypeosaurus_Antenna_8
-    400018: Clypeosaurus_Body
-    400020: Clypeosaurus_EyelidLeft_A_Lower
-    400022: Clypeosaurus_EyelidLeft_A_Upper
-    400024: Clypeosaurus_EyelidLeft_B_Lower
-    400026: Clypeosaurus_EyelidLeft_B_Upper
-    400028: Clypeosaurus_EyelidRight_A_Lower
-    400030: Clypeosaurus_EyelidRight_A_Upper
-    400032: Clypeosaurus_EyelidRight_B_Lower
-    400034: Clypeosaurus_EyelidRight_B_Upper
-    400036: Clypeosaurus_Head
-    400038: Clypeosaurus_JawLeft
-    400040: Clypeosaurus_JawRight
-    400042: Clypeosaurus_LegLeft_A_1
-    400044: Clypeosaurus_LegLeft_A_2
-    400046: Clypeosaurus_LegLeft_A_3
-    400048: Clypeosaurus_LegLeft_B_1
-    400050: Clypeosaurus_LegLeft_B_2
-    400052: Clypeosaurus_LegLeft_B_3
-    400054: Clypeosaurus_LegLeft_C_1
-    400056: Clypeosaurus_LegLeft_C_2
-    400058: Clypeosaurus_LegLeft_C_3
-    400060: Clypeosaurus_LegRight_A_1
-    400062: Clypeosaurus_LegRight_A_2
-    400064: Clypeosaurus_LegRight_A_3
-    400066: Clypeosaurus_LegRight_B_1
-    400068: Clypeosaurus_LegRight_B_2
-    400070: Clypeosaurus_LegRight_B_3
-    400072: Clypeosaurus_LegRight_C_1
-    400074: Clypeosaurus_LegRight_C_2
-    400076: Clypeosaurus_LegRight_C_3
-    400078: Clypeosaurus_Neck_1
-    400080: Clypeosaurus_Neck_2
-    400082: Clypeosaurus_SpitterLeft_A_1
-    400084: Clypeosaurus_SpitterLeft_A_2
-    400086: Clypeosaurus_SpitterLeft_A_3
-    400088: Clypeosaurus_SpitterLeft_B_1
-    400090: Clypeosaurus_SpitterLeft_B_2
-    400092: Clypeosaurus_SpitterLeft_B_3
-    400094: Clypeosaurus_SpitterLeft_C_1
-    400096: Clypeosaurus_SpitterLeft_C_2
-    400098: Clypeosaurus_SpitterLeft_C_3
-    400100: Clypeosaurus_SpitterRight_A_1
-    400102: Clypeosaurus_SpitterRight_A_2
-    400104: Clypeosaurus_SpitterRight_A_3
-    400106: Clypeosaurus_SpitterRight_B_1
-    400108: Clypeosaurus_SpitterRight_B_2
-    400110: Clypeosaurus_SpitterRight_B_3
-    400112: Clypeosaurus_SpitterRight_C_1
-    400114: Clypeosaurus_SpitterRight_C_2
-    400116: Clypeosaurus_SpitterRight_C_3
-    400118: Clypeosaurus_Tail_1
-    400120: Clypeosaurus_Tail_2
-    400122: Clypeosaurus_Tail_3
-    400124: Clypeosaurus_Tail_4
-    400126: Clypeosaurus_Tail_5
-    400128: Clypeosaurus_Tongue_1
-    400130: Clypeosaurus_Tongue_2
-    400132: Clypeosaurus_Tongue_3
-    400134: Clypeosaurus_Tongue_4
-    400136: root
-    7400000: SpittersAttack
-    9500000: //RootNode
+  serializedVersion: 24200
+  internalIDToNameTable:
+  - first:
+      1: 100000
+    second: //RootNode
+  - first:
+      1: 100002
+    second: Clypeosaurus_Antenna_1
+  - first:
+      1: 100004
+    second: Clypeosaurus_Antenna_2
+  - first:
+      1: 100006
+    second: Clypeosaurus_Antenna_3
+  - first:
+      1: 100008
+    second: Clypeosaurus_Antenna_4
+  - first:
+      1: 100010
+    second: Clypeosaurus_Antenna_5
+  - first:
+      1: 100012
+    second: Clypeosaurus_Antenna_6
+  - first:
+      1: 100014
+    second: Clypeosaurus_Antenna_7
+  - first:
+      1: 100016
+    second: Clypeosaurus_Antenna_8
+  - first:
+      1: 100018
+    second: Clypeosaurus_Body
+  - first:
+      1: 100020
+    second: Clypeosaurus_EyelidLeft_A_Lower
+  - first:
+      1: 100022
+    second: Clypeosaurus_EyelidLeft_A_Upper
+  - first:
+      1: 100024
+    second: Clypeosaurus_EyelidLeft_B_Lower
+  - first:
+      1: 100026
+    second: Clypeosaurus_EyelidLeft_B_Upper
+  - first:
+      1: 100028
+    second: Clypeosaurus_EyelidRight_A_Lower
+  - first:
+      1: 100030
+    second: Clypeosaurus_EyelidRight_A_Upper
+  - first:
+      1: 100032
+    second: Clypeosaurus_EyelidRight_B_Lower
+  - first:
+      1: 100034
+    second: Clypeosaurus_EyelidRight_B_Upper
+  - first:
+      1: 100036
+    second: Clypeosaurus_Head
+  - first:
+      1: 100038
+    second: Clypeosaurus_JawLeft
+  - first:
+      1: 100040
+    second: Clypeosaurus_JawRight
+  - first:
+      1: 100042
+    second: Clypeosaurus_LegLeft_A_1
+  - first:
+      1: 100044
+    second: Clypeosaurus_LegLeft_A_2
+  - first:
+      1: 100046
+    second: Clypeosaurus_LegLeft_A_3
+  - first:
+      1: 100048
+    second: Clypeosaurus_LegLeft_B_1
+  - first:
+      1: 100050
+    second: Clypeosaurus_LegLeft_B_2
+  - first:
+      1: 100052
+    second: Clypeosaurus_LegLeft_B_3
+  - first:
+      1: 100054
+    second: Clypeosaurus_LegLeft_C_1
+  - first:
+      1: 100056
+    second: Clypeosaurus_LegLeft_C_2
+  - first:
+      1: 100058
+    second: Clypeosaurus_LegLeft_C_3
+  - first:
+      1: 100060
+    second: Clypeosaurus_LegRight_A_1
+  - first:
+      1: 100062
+    second: Clypeosaurus_LegRight_A_2
+  - first:
+      1: 100064
+    second: Clypeosaurus_LegRight_A_3
+  - first:
+      1: 100066
+    second: Clypeosaurus_LegRight_B_1
+  - first:
+      1: 100068
+    second: Clypeosaurus_LegRight_B_2
+  - first:
+      1: 100070
+    second: Clypeosaurus_LegRight_B_3
+  - first:
+      1: 100072
+    second: Clypeosaurus_LegRight_C_1
+  - first:
+      1: 100074
+    second: Clypeosaurus_LegRight_C_2
+  - first:
+      1: 100076
+    second: Clypeosaurus_LegRight_C_3
+  - first:
+      1: 100078
+    second: Clypeosaurus_Neck_1
+  - first:
+      1: 100080
+    second: Clypeosaurus_Neck_2
+  - first:
+      1: 100082
+    second: Clypeosaurus_SpitterLeft_A_1
+  - first:
+      1: 100084
+    second: Clypeosaurus_SpitterLeft_A_2
+  - first:
+      1: 100086
+    second: Clypeosaurus_SpitterLeft_A_3
+  - first:
+      1: 100088
+    second: Clypeosaurus_SpitterLeft_B_1
+  - first:
+      1: 100090
+    second: Clypeosaurus_SpitterLeft_B_2
+  - first:
+      1: 100092
+    second: Clypeosaurus_SpitterLeft_B_3
+  - first:
+      1: 100094
+    second: Clypeosaurus_SpitterLeft_C_1
+  - first:
+      1: 100096
+    second: Clypeosaurus_SpitterLeft_C_2
+  - first:
+      1: 100098
+    second: Clypeosaurus_SpitterLeft_C_3
+  - first:
+      1: 100100
+    second: Clypeosaurus_SpitterRight_A_1
+  - first:
+      1: 100102
+    second: Clypeosaurus_SpitterRight_A_2
+  - first:
+      1: 100104
+    second: Clypeosaurus_SpitterRight_A_3
+  - first:
+      1: 100106
+    second: Clypeosaurus_SpitterRight_B_1
+  - first:
+      1: 100108
+    second: Clypeosaurus_SpitterRight_B_2
+  - first:
+      1: 100110
+    second: Clypeosaurus_SpitterRight_B_3
+  - first:
+      1: 100112
+    second: Clypeosaurus_SpitterRight_C_1
+  - first:
+      1: 100114
+    second: Clypeosaurus_SpitterRight_C_2
+  - first:
+      1: 100116
+    second: Clypeosaurus_SpitterRight_C_3
+  - first:
+      1: 100118
+    second: Clypeosaurus_Tail_1
+  - first:
+      1: 100120
+    second: Clypeosaurus_Tail_2
+  - first:
+      1: 100122
+    second: Clypeosaurus_Tail_3
+  - first:
+      1: 100124
+    second: Clypeosaurus_Tail_4
+  - first:
+      1: 100126
+    second: Clypeosaurus_Tail_5
+  - first:
+      1: 100128
+    second: Clypeosaurus_Tongue_1
+  - first:
+      1: 100130
+    second: Clypeosaurus_Tongue_2
+  - first:
+      1: 100132
+    second: Clypeosaurus_Tongue_3
+  - first:
+      1: 100134
+    second: Clypeosaurus_Tongue_4
+  - first:
+      1: 100136
+    second: root
+  - first:
+      4: 400000
+    second: //RootNode
+  - first:
+      4: 400002
+    second: Clypeosaurus_Antenna_1
+  - first:
+      4: 400004
+    second: Clypeosaurus_Antenna_2
+  - first:
+      4: 400006
+    second: Clypeosaurus_Antenna_3
+  - first:
+      4: 400008
+    second: Clypeosaurus_Antenna_4
+  - first:
+      4: 400010
+    second: Clypeosaurus_Antenna_5
+  - first:
+      4: 400012
+    second: Clypeosaurus_Antenna_6
+  - first:
+      4: 400014
+    second: Clypeosaurus_Antenna_7
+  - first:
+      4: 400016
+    second: Clypeosaurus_Antenna_8
+  - first:
+      4: 400018
+    second: Clypeosaurus_Body
+  - first:
+      4: 400020
+    second: Clypeosaurus_EyelidLeft_A_Lower
+  - first:
+      4: 400022
+    second: Clypeosaurus_EyelidLeft_A_Upper
+  - first:
+      4: 400024
+    second: Clypeosaurus_EyelidLeft_B_Lower
+  - first:
+      4: 400026
+    second: Clypeosaurus_EyelidLeft_B_Upper
+  - first:
+      4: 400028
+    second: Clypeosaurus_EyelidRight_A_Lower
+  - first:
+      4: 400030
+    second: Clypeosaurus_EyelidRight_A_Upper
+  - first:
+      4: 400032
+    second: Clypeosaurus_EyelidRight_B_Lower
+  - first:
+      4: 400034
+    second: Clypeosaurus_EyelidRight_B_Upper
+  - first:
+      4: 400036
+    second: Clypeosaurus_Head
+  - first:
+      4: 400038
+    second: Clypeosaurus_JawLeft
+  - first:
+      4: 400040
+    second: Clypeosaurus_JawRight
+  - first:
+      4: 400042
+    second: Clypeosaurus_LegLeft_A_1
+  - first:
+      4: 400044
+    second: Clypeosaurus_LegLeft_A_2
+  - first:
+      4: 400046
+    second: Clypeosaurus_LegLeft_A_3
+  - first:
+      4: 400048
+    second: Clypeosaurus_LegLeft_B_1
+  - first:
+      4: 400050
+    second: Clypeosaurus_LegLeft_B_2
+  - first:
+      4: 400052
+    second: Clypeosaurus_LegLeft_B_3
+  - first:
+      4: 400054
+    second: Clypeosaurus_LegLeft_C_1
+  - first:
+      4: 400056
+    second: Clypeosaurus_LegLeft_C_2
+  - first:
+      4: 400058
+    second: Clypeosaurus_LegLeft_C_3
+  - first:
+      4: 400060
+    second: Clypeosaurus_LegRight_A_1
+  - first:
+      4: 400062
+    second: Clypeosaurus_LegRight_A_2
+  - first:
+      4: 400064
+    second: Clypeosaurus_LegRight_A_3
+  - first:
+      4: 400066
+    second: Clypeosaurus_LegRight_B_1
+  - first:
+      4: 400068
+    second: Clypeosaurus_LegRight_B_2
+  - first:
+      4: 400070
+    second: Clypeosaurus_LegRight_B_3
+  - first:
+      4: 400072
+    second: Clypeosaurus_LegRight_C_1
+  - first:
+      4: 400074
+    second: Clypeosaurus_LegRight_C_2
+  - first:
+      4: 400076
+    second: Clypeosaurus_LegRight_C_3
+  - first:
+      4: 400078
+    second: Clypeosaurus_Neck_1
+  - first:
+      4: 400080
+    second: Clypeosaurus_Neck_2
+  - first:
+      4: 400082
+    second: Clypeosaurus_SpitterLeft_A_1
+  - first:
+      4: 400084
+    second: Clypeosaurus_SpitterLeft_A_2
+  - first:
+      4: 400086
+    second: Clypeosaurus_SpitterLeft_A_3
+  - first:
+      4: 400088
+    second: Clypeosaurus_SpitterLeft_B_1
+  - first:
+      4: 400090
+    second: Clypeosaurus_SpitterLeft_B_2
+  - first:
+      4: 400092
+    second: Clypeosaurus_SpitterLeft_B_3
+  - first:
+      4: 400094
+    second: Clypeosaurus_SpitterLeft_C_1
+  - first:
+      4: 400096
+    second: Clypeosaurus_SpitterLeft_C_2
+  - first:
+      4: 400098
+    second: Clypeosaurus_SpitterLeft_C_3
+  - first:
+      4: 400100
+    second: Clypeosaurus_SpitterRight_A_1
+  - first:
+      4: 400102
+    second: Clypeosaurus_SpitterRight_A_2
+  - first:
+      4: 400104
+    second: Clypeosaurus_SpitterRight_A_3
+  - first:
+      4: 400106
+    second: Clypeosaurus_SpitterRight_B_1
+  - first:
+      4: 400108
+    second: Clypeosaurus_SpitterRight_B_2
+  - first:
+      4: 400110
+    second: Clypeosaurus_SpitterRight_B_3
+  - first:
+      4: 400112
+    second: Clypeosaurus_SpitterRight_C_1
+  - first:
+      4: 400114
+    second: Clypeosaurus_SpitterRight_C_2
+  - first:
+      4: 400116
+    second: Clypeosaurus_SpitterRight_C_3
+  - first:
+      4: 400118
+    second: Clypeosaurus_Tail_1
+  - first:
+      4: 400120
+    second: Clypeosaurus_Tail_2
+  - first:
+      4: 400122
+    second: Clypeosaurus_Tail_3
+  - first:
+      4: 400124
+    second: Clypeosaurus_Tail_4
+  - first:
+      4: 400126
+    second: Clypeosaurus_Tail_5
+  - first:
+      4: 400128
+    second: Clypeosaurus_Tongue_1
+  - first:
+      4: 400130
+    second: Clypeosaurus_Tongue_2
+  - first:
+      4: 400132
+    second: Clypeosaurus_Tongue_3
+  - first:
+      4: 400134
+    second: Clypeosaurus_Tongue_4
+  - first:
+      4: 400136
+    second: root
+  - first:
+      74: 7400000
+    second: SpittersAttack
+  - first:
+      95: 9500000
+    second: //RootNode
   externalObjects: {}
   materials:
-    importMaterials: 0
+    materialImportMode: 0
     materialName: 0
     materialSearch: 1
     materialLocation: 0
@@ -154,9 +442,8 @@ ModelImporter:
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -174,6 +461,7 @@ ModelImporter:
     - serializedVersion: 16
       name: SpittersAttack
       takeName: Take 001
+      internalID: 0
       firstFrame: 0
       lastFrame: 85
       wrapMode: 0
@@ -194,7 +482,14 @@ ModelImporter:
       mirror: 0
       bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
       curves: []
-      events: []
+      events:
+      - time: 0.5171103
+        functionName: OnBarrageFire
+        data: 
+        objectReferenceParameter: {instanceID: 0}
+        floatParameter: 0
+        intParameter: 0
+        messageOptions: 0
       transformMask: []
       maskType: 3
       maskSource: {instanceID: 0}
@@ -206,25 +501,39 @@ ModelImporter:
     meshCompression: 0
     addColliders: 0
     useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
     importLights: 1
+    nodeNameCollisionStrategy: 0
+    fileIdsGeneration: 1
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
-    optimizeMeshForGPU: 1
     keepQuads: 0
     weldVertices: 1
+    bakeAxisConversion: 0
     preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
     secondaryUVAreaDistortion: 15.000001
     secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 0
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
-    previousCalculatedGlobalScale: 0.01
-    hasPreviousCalculatedGlobalScale: 1
+    strictVertexDataChecks: 0
   tangentSpace:
     normalSmoothAngle: 60
     normalImportMode: 0
@@ -233,10 +542,10 @@ ModelImporter:
     legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
+  referencedClips: []
   importAnimation: 1
-  copyAvatar: 1
   humanDescription:
-    serializedVersion: 2
+    serializedVersion: 3
     human: []
     skeleton: []
     armTwist: 0.5
@@ -246,23 +555,20 @@ ModelImporter:
     armStretch: 0.05
     legStretch: 0.05
     feetSpacing: 0
+    globalScale: 1
     rootMotionBoneName: root
     hasTranslationDoF: 0
     hasExtraRoot: 0
     skeletonHasParents: 1
-  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 81a604334ada91c4c8e6d128f29d1c66,
-    type: 3}
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 81a604334ada91c4c8e6d128f29d1c66, type: 3}
+  autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
+  avatarSetup: 2
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 0
+  importBlendShapeDeformPercent: 0
+  remapMaterialsIfMaterialImportModeIsNone: 1
   additionalBone: 0
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 165213
-  packageName: MONSTER FULL PACK VOL 1
-  packageVersion: 1.31
-  assetPath: Assets/Monsters Full Pack Vol 1/Monsters Pack Vol 3/Clypeosaurus/FBX
-    Files/Clypeosaurus@SpittersAttack.FBX
-  uploadId: 944504
