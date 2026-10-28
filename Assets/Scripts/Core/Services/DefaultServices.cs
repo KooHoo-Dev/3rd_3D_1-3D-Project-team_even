@@ -35,6 +35,7 @@ namespace HybridShooter.Core.Services
         public void StopLoop(SoundHandle handle) { }
         public void PlayBgm(string key) { }
         public void StopBgm() { }
+        public float MasterVolume { get => 1f; set { } }
         public float GetVolume(SoundCategory category) => 1f;
         public void SetVolume(SoundCategory category, float volume) { }
         public void Duck(SoundCategory category, float level, float holdTime) { }

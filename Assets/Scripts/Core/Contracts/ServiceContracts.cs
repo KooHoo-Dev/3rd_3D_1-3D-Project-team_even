@@ -52,6 +52,8 @@ namespace HybridShooter.Core.Contracts
         void PlayBgm(string key);
         void StopBgm();
 
+        /// <summary>전체 볼륨 0~1 (옵션 화면). 카테고리 볼륨에 곱해진다</summary>
+        float MasterVolume { get; set; }
         /// <summary>옵션 볼륨 0~1 (옵션 화면)</summary>
         float GetVolume(SoundCategory category);
         void SetVolume(SoundCategory category, float volume);

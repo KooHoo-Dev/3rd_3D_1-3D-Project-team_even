@@ -195,3 +195,36 @@ Assets/Scripts/Core/Settings/
 - 게임 타이틀 문구 (로고 텍스트)
 
 ---
+
+## 구현 진행 (2026-10-28)
+
+### 확정 사항
+| 항목 | 결정 |
+|---|---|
+| 씬 생성 | 에디터 빌더 스크립트 (`Tools > MainMenu > ...`). 다시 실행하면 새로 만든다 |
+| 씬 위치 | 작업 중 `Assets/Scenes/GU/Test_MainMenu.unity` → 완료 후 `Assets/Scenes/BuildScenes/Boot`·`MainMenu` |
+| 로고 문구 | `TEAM EVEN` |
+| 진행 | 단계별 확인 후 커밋 |
+
+### 매핑 변경 (데모 프리팹 확인 결과)
+| 용도 | 위 매핑 | 변경 | 이유 |
+|---|---|---|---|
+| 옵션 탭 | `Toggle_PageTag` | `Btn_SettingsMenuCyan/Yellow` 스프라이트로 만든 Toggle | PageTag 는 40px 점(페이지 표시)이라 글자를 넣을 수 없음 |
+| 옵션 팝업 | `Popup_Settings.prefab` 복제 | `Popup_Settings.png` (9-slice) 배경 + 팩 컨트롤 중첩 프리팹 | 프리팹은 데모 내용(Music·Vibration·Language)이 고정 배치 |
+| 메뉴 버튼 3개 | StartMenu / SettingMenu / MainMenu 섞어 사용 | 셋 다 `Btn_MainMenuCyan` (선택·GAME START 는 `Btn_MainMenuYellow`) — 4단계에서 확정 | StartMenu(524×264)는 카드형 큰 상자, SettingMenu 는 탭 모양. MainMenu(609×134)가 좌측 세로 목록용 |
+| 한글 폰트 | 팩 폰트에 Fallback | 본문은 `NotoSansKR-Regular SDF` 직접 사용, 영문 제목만 `Aldrich` | 팩 폰트 에셋을 고치지 않기 위해. 현재 `Assets/StudySample/` 안에 있어 정식 폴더로 옮길 필요 (TODO) |
+
+### 문서와 실제 코드가 다른 점
+- **키 안내**: 플레이어는 `InputSystem_Actions` 가 아니라 `PlayerController.InputPlayerSettings` 의 키를 직접 읽는다 → `KeyGuideList` 도 그 기본값을 읽어 표시 (InputActions 의 Player 맵은 템플릿 그대로라 실제 키와 다름)
+- **감도**: 플레이어는 `PlayerDef.LookSensitivity` 가 아니라 `PlayerController.mouseSensitivity`(0.12) × `aimSensitivity` 를 쓰고, 1인칭/3인칭 구분이 없다. `invertY` 는 Inspector 값. → `GameSettings` 에 1인칭·3인칭 배율과 Y 반전만 저장하고, 연결은 Player 담당과 협의 (TODO, `GameSettings.cs` 주석)
+- **마스터 볼륨**: `ISoundService` 에 `MasterVolume` 이 없어 계약에 추가 (`SoundService` 는 원래 공개 속성이 있어 그대로, `NullSoundService` 만 1줄)
+
+### 사운드 보완 (사운드 리팩토링 v3.1 재점검)
+1. 옵션 볼륨 유지: `GameSettings` 가 `SceneManager.sceneLoaded` (OnEnable 뒤·Start 전)에서 새 씬 SoundService 에 저장값을 넣는다 → SoundService·씬 수정 없음
+2. Reward 스냅샷 잔류: `SoundService.Start` 에서 Default 스냅샷으로 즉시 전환
+3. 씬 전환 BGM 끊김: `SceneTransition.LoadAsync` — BGM 페이드아웃과 다음 씬 미리 로드를 함께 하고 둘 다 끝나면 활성화 (6·7단계에서 사용)
+
+### 단계 현황
+- [x] 1. 프리팹 확정 (위 매핑 변경)
+- [x] 2. `GameSettings` + 옵션 팝업 — `Tools > MainMenu > Build Options Popup` → `Assets/Prefabs/UI/OptionsPopup.prefab`, `Create Test Scene` → `Test_MainMenu` (임시 OPTIONS 버튼)
+- [ ] 3~7
