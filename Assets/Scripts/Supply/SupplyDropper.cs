@@ -210,14 +210,15 @@ namespace HybridShooter.Supply
         /// <summary>라운드 정리 시 자동 투하를 멈추고 남은 보급을 전부 제거</summary>
         private void OnRoundCleanup(RoundCleanupEvent e)
         {
-            nextAutoDropTime = float.PositiveInfinity;
+            StopAutoDropCycle();
             ClearAll();
         }
         
-        public void StartAutoDropCycle()
+        public void StartAutoDropCycle(float interval = -1f)
         {
             if (autoDrop) return;
 
+            if (interval > 0f) dropInterval = interval;
             autoDrop = true;
             nextAutoDropTime = Time.time;
         }

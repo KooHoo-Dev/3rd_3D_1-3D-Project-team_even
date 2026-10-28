@@ -524,8 +524,8 @@ MonoBehaviour:
   bloomPerShot: 0.12
   maxBloom: 2
   bloomRecovery: 8
-  moveSpreadPenalty: 0.5
-  airSpreadPenalty: 1.5
+  moveSpreadPenalty: 0.24
+  airSpreadPenalty: 1
   aimSpreadMultiplier: 0.7
   recoilPitch: 0.25
   recoilYaw: 0.35
@@ -535,6 +535,7 @@ MonoBehaviour:
   aimFovMultiplier: 0.85
   aimSensitivityMultiplier: 0.8
   aimMoveSpeedMultiplier: 0.9
+  reloadInsertAt: 0.55
   falloffStart: 10
   minDamageRatio: 0.5
 --- !u!1 &4330144450054066567
@@ -769,8 +770,8 @@ MonoBehaviour:
   bloomPerShot: 0
   maxBloom: 3
   bloomRecovery: 6
-  moveSpreadPenalty: 2
-  airSpreadPenalty: 3
+  moveSpreadPenalty: 0
+  airSpreadPenalty: 1
   aimSpreadMultiplier: 0.3
   recoilPitch: 2.5
   recoilYaw: 0.6
@@ -780,6 +781,7 @@ MonoBehaviour:
   aimFovMultiplier: 0.7
   aimSensitivityMultiplier: 0.8
   aimMoveSpeedMultiplier: 0.6
+  reloadInsertAt: 0.55
   rocketPrefab: {fileID: 8419116684924657853, guid: 16d0d10b388117341aa70cf76a6e4a77, type: 3}
   rocketTrail: {fileID: 3741179576499916000, guid: b7b92e5629480b9429a6fa5f084a3550, type: 3}
   rocketSpeed: 30
@@ -857,8 +859,8 @@ MonoBehaviour:
   bloomPerShot: 0.15
   maxBloom: 2.5
   bloomRecovery: 6
-  moveSpreadPenalty: 2
-  airSpreadPenalty: 4
+  moveSpreadPenalty: 0.3
+  airSpreadPenalty: 1
   aimSpreadMultiplier: 0.35
   recoilPitch: 0.5
   recoilYaw: 0.2
@@ -868,6 +870,7 @@ MonoBehaviour:
   aimFovMultiplier: 0.75
   aimSensitivityMultiplier: 0.8
   aimMoveSpeedMultiplier: 0.7
+  reloadInsertAt: 0.55
   sprayPattern:
   - {x: 0.5, y: 0}
   - {x: 0.6, y: 0.05}
@@ -1055,7 +1058,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   groundMask:
     serializedVersion: 2
-    m_Bits: 9
+    m_Bits: 4095
   groundCheckDistance: 0.15
   maxSlopeAngle: 50
   groundSnapDistance: 0.4
@@ -1535,8 +1538,8 @@ MonoBehaviour:
   bloomPerShot: 0.2
   maxBloom: 2.5
   bloomRecovery: 6
-  moveSpreadPenalty: 1.5
-  airSpreadPenalty: 3
+  moveSpreadPenalty: 0.4
+  airSpreadPenalty: 2
   aimSpreadMultiplier: 0.35
   recoilPitch: 0.55
   recoilYaw: 0.25
@@ -1546,6 +1549,7 @@ MonoBehaviour:
   aimFovMultiplier: 0.75
   aimSensitivityMultiplier: 0.8
   aimMoveSpeedMultiplier: 0.7
+  reloadInsertAt: 0.55
   availableModes: 020000000100000000000000
   burstCount: 3
   burstCooldown: 0.25
@@ -1678,8 +1682,8 @@ MonoBehaviour:
   bloomPerShot: 0
   maxBloom: 3
   bloomRecovery: 6
-  moveSpreadPenalty: 4
-  airSpreadPenalty: 8
+  moveSpreadPenalty: 0.2
+  airSpreadPenalty: 1
   aimSpreadMultiplier: 0
   recoilPitch: 3
   recoilYaw: 0.5
@@ -1689,6 +1693,7 @@ MonoBehaviour:
   aimFovMultiplier: 0.3
   aimSensitivityMultiplier: 0.35
   aimMoveSpeedMultiplier: 0.5
+  reloadInsertAt: 0.55
   scopeSettleTime: 0.3
   scopedMoveSpreadMultiplier: 0.5
   maxPenetration: 3
@@ -1789,7 +1794,7 @@ MonoBehaviour:
   bloomPerShot: 0
   maxBloom: 3
   bloomRecovery: 6
-  moveSpreadPenalty: 0.5
+  moveSpreadPenalty: 0.2
   airSpreadPenalty: 1
   aimSpreadMultiplier: 0.75
   recoilPitch: 4
@@ -1800,6 +1805,7 @@ MonoBehaviour:
   aimFovMultiplier: 0.9
   aimSensitivityMultiplier: 0.8
   aimMoveSpeedMultiplier: 0.85
+  reloadInsertAt: 0.55
   pelletCount: 8
   pelletJitter: 0.2
   falloffStart: 6
@@ -1870,7 +1876,7 @@ MonoBehaviour:
   maxBloom: 3
   bloomRecovery: 10
   moveSpreadPenalty: 1
-  airSpreadPenalty: 2
+  airSpreadPenalty: 1
   aimSpreadMultiplier: 0.5
   recoilPitch: 1.2
   recoilYaw: 0.3
@@ -1880,6 +1886,7 @@ MonoBehaviour:
   aimFovMultiplier: 0.85
   aimSensitivityMultiplier: 0.8
   aimMoveSpeedMultiplier: 0.9
+  reloadInsertAt: 0.55
   inputBufferTime: 0.12
 --- !u!1 &8481810115390927012
 GameObject:
@@ -1976,8 +1983,8 @@ MonoBehaviour:
   bloomPerShot: 0
   maxBloom: 3
   bloomRecovery: 6
-  moveSpreadPenalty: 1.5
-  airSpreadPenalty: 2
+  moveSpreadPenalty: 0.2
+  airSpreadPenalty: 0
   aimSpreadMultiplier: 0.5
   recoilPitch: 3
   recoilYaw: 0.4
@@ -1987,6 +1994,7 @@ MonoBehaviour:
   aimFovMultiplier: 0.8
   aimSensitivityMultiplier: 0.8
   aimMoveSpeedMultiplier: 0.7
+  reloadInsertAt: 0.55
   grenadePrefab: {fileID: 4580178011567319365, guid: b1b63967c17ec2744b06620f8ae2ef08, type: 3}
   grenadeTrail: {fileID: 2344922079739685002, guid: 81357c90b6518954685dc85da5403f6d, type: 3}
   launchSpeed: 28

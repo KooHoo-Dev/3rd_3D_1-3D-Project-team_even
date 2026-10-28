@@ -3,7 +3,6 @@ using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
-using HybridShooter.Core.GameFlow;
 using HybridShooter.Core.Services;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -18,18 +17,19 @@ namespace HybridShooter.Audio.Tester
     ///   E     : 선택 몬스터 더미 1마리 생성 (MonsterSpawnedEvent → MonsterSoundEmitter 연결, 울음·루프 확인). 주변을 돈다
     ///   M     : 선택 몬스터 더미 12마리 한 번에 생성 (Herd) → 루프는 가까운 MaxInstances 개만 들려야 함
     ///   A     : 더미 전부 공격음 (실게임은 IMonsterSoundSource 의 예고 시작). 더미가 없으면 선택 몬스터 공격음 1번
-    ///   D     : 더미 1마리 처치 (MonsterDiedEvent) → 사망음, 그 더미의 루프 정지
-    ///   C     : 군중 20마리 동시 사망 (이벤트만) → 사망음이 MaxInstances 개 이하로만 겹쳐야 함
+    ///   D     : 더미 1마리 처치 → 사망음, 그 더미의 루프 정지 (더미는 IMonsterSoundSource 가 없어 사망음을 여기서 직접 낸다)
+    ///   C     : 군중 20마리 동시 사망음 → 사망음이 MaxInstances 개 이하로만 겹쳐야 함
     ///   H     : 총기 명중 (DamageDealtEvent Bullet)         → 타격음(3D) + 히트마커
-    ///   K     : 총기 처치 (DamageDealtEvent IsKill)          → 타격음(3D) + 처치 확인음
+    ///   K     : 총기 처치 (DamageDealtEvent IsKill)          → 타격음(3D)만 (처치 UI 소리 없음, 사망음은 몬스터 이미터)
     ///   G     : 샷건 10발 동시 명중                           → Cooldown 으로 한 번만 나야 함
     ///   X     : 수류탄 범위 8마리 명중 (Explosion)            → 타격음 없음, 히트마커 1번
-    ///   P     : 플레이어 피격 (PlayerDamagedEvent)
+    ///   P     : 플레이어 피격 (PlayerDamagedEvent)            → PlayerSoundEmitter 가 있는 씬에서만 목소리
     ///   B     : 보스 경고 (BossWarningEvent)                  → 경고음 + 몬스터 소리 덕킹
     ///   V     : 보스 등장 (BossAppearedEvent)                 → 보스 BGM
-    ///   1~6   : 보스 공격 예고 (BossSkillPhaseChangedEvent Windup, 보스 공격 순서. 등장 공격이면 포효)
-    ///   S     : 보스 페이즈 전환 (BossDamageStageChangedEvent) → 보스 Hurt
+    ///   Z     : 보스 처치 (BossDefeatedEvent)                 → BGM 정지 + 스테이지 클리어 + 승리 아나운서
     ///   R     : 라운드 시작 (군중 BGM)   O : 게임 오버 (BGM 정지)   N : 라운드 정리 (효과음 정지, 더미 제거)
+    /// 보스 몸 소리(패턴 예고·흡입·착지·사망)는 실제 보스로 확인한다 (Tools > Audio > Create Sound Test Scene 의 보스).
+    /// 보스 이벤트에 담는 보스 정보는 사운드가 읽지 않으므로 null 로 보낸다.
     /// </summary>
     public sealed class SoundTester : MonoBehaviour
     {
@@ -43,8 +43,6 @@ namespace HybridShooter.Audio.Tester
         [SerializeField] private float dummyOrbitSpeed = 20f;
         [Tooltip("시작 시 선택할 몬스터 Id")]
         [SerializeField] private int startMonsterId = 1002;
-        [Tooltip("보스 Id")]
-        [SerializeField] private int bossMonsterId = 3001;
         [Tooltip("화면에 상태 표시")]
         [SerializeField] private bool showStatus = true;
 
@@ -58,7 +56,6 @@ namespace HybridShooter.Audio.Tester
 
         private readonly List<Dummy> dummies = new List<Dummy>();
         private int monsterIndex;
-        private int bossStage;
         private int testRound;
         private string lastAction = "-";
         private GUIStyle statusStyle;
@@ -94,15 +91,12 @@ namespace HybridShooter.Audio.Tester
             if (keyboard.gKey.wasPressedThisFrame) PublishHits(10, DamageKind.Bullet, false, "샷건 10발");
             if (keyboard.xKey.wasPressedThisFrame) PublishHits(8, DamageKind.Explosion, false, "수류탄 8마리");
             if (keyboard.pKey.wasPressedThisFrame) PublishPlayerHit();
-            if (keyboard.bKey.wasPressedThisFrame) PublishBossWarning();
-            if (keyboard.vKey.wasPressedThisFrame) PublishBossAppeared();
-            if (keyboard.sKey.wasPressedThisFrame) PublishBossStage();
+            if (keyboard.bKey.wasPressedThisFrame) Publish("보스 경고", () => EventBus<BossWarningEvent>.Publish(new BossWarningEvent(null)));
+            if (keyboard.vKey.wasPressedThisFrame) Publish("보스 등장", () => EventBus<BossAppearedEvent>.Publish(new BossAppearedEvent(null, null)));
+            if (keyboard.zKey.wasPressedThisFrame) Publish("보스 처치", () => EventBus<BossDefeatedEvent>.Publish(new BossDefeatedEvent(null, TestPoint())));
             if (keyboard.rKey.wasPressedThisFrame) Publish("라운드 시작", () => EventBus<RoundStartedEvent>.Publish(new RoundStartedEvent(++testRound, DataManager.GetRound(testRound))));
             if (keyboard.oKey.wasPressedThisFrame) Publish("게임 오버", () => EventBus<GameOverEvent>.Publish(new GameOverEvent(testRound)));
             if (keyboard.nKey.wasPressedThisFrame) Cleanup();
-
-            for (int i = 0; i < 6; i++)
-                if (keyboard[Key.Digit1 + i].wasPressedThisFrame) PublishBossSkill(i);
         }
 
         /// <summary>선택 몬스터·재생 자리·루프 수·키 안내 표시</summary>
@@ -120,7 +114,7 @@ namespace HybridShooter.Audio.Tester
                 $"{serviceText}  더미 {dummies.Count}\n" +
                 $"마지막: {lastAction}\n" +
                 "[ ] 선택  E 더미1  M 더미12  A 공격  D 처치  C 군중20사망  H 명중  K 처치  G 샷건  X 수류탄  P 플레이어피격\n" +
-                "B 보스경고  V 보스등장  1~6 보스공격  S 페이즈  R 라운드  O 게임오버  N 정리";
+                "B 보스경고  V 보스등장  Z 보스처치  R 라운드  O 게임오버  N 정리";
             GUI.Label(new Rect(20f, 20f, 1400f, 160f), text, statusStyle);
         }
 
@@ -196,12 +190,16 @@ namespace HybridShooter.Audio.Tester
             lastAction = $"더미 {dummies.Count}마리 공격음";
         }
 
-        /// <summary>가장 가까운 더미 처치. 실제 몬스터처럼 Silence → MonsterDiedEvent → 제거</summary>
+        /// <summary>
+        /// 가장 가까운 더미 처치. 실제 몬스터는 IMonsterSoundSource.Died 로 이미터가 정지·사망음을 내지만,
+        /// 더미는 출처가 없어 여기서 Silence + 사망음을 직접 낸다
+        /// </summary>
         private void KillDummy()
         {
             if (dummies.Count == 0)
             {
-                Publish("사망 (더미 없음)", () => EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(Selected, TestPoint(), null)));
+                Sound()?.PlaySfx(Selected?.DeathSfx, TestPoint());
+                lastAction = $"사망음 (더미 없음) {Selected?.DeathSfx?.Key ?? "없음"}";
                 return;
             }
             Vector3 c = Center;
@@ -209,17 +207,19 @@ namespace HybridShooter.Audio.Tester
             var d = dummies[0];
             dummies.RemoveAt(0);
             d.Go.GetComponent<MonsterSoundEmitter>().Silence();
+            Sound()?.PlaySfx(d.Def.DeathSfx, d.Go.transform.position);
             EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(d.Def, d.Go.transform.position, d.Go));
             Destroy(d.Go);
             lastAction = $"{d.Def.Name} 처치 (사망음 {d.Def.DeathSfx?.Key ?? "없음"})";
         }
 
+        /// <summary>같은 몬스터 사망음 count 번 동시 요청 → MaxInstances·Cooldown 확인</summary>
         private void KillCrowd(int count)
         {
             var def = Selected;
             for (int i = 0; i < count; i++)
-                EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(def, RandomPoint(), null));
-            lastAction = $"{def?.Name} {count}마리 동시 사망";
+                Sound()?.PlaySfx(def?.DeathSfx, RandomPoint());
+            lastAction = $"{def?.Name} {count}마리 동시 사망음";
         }
 
         private void PublishHits(int count, DamageKind kind, bool isKill, string label)
@@ -237,34 +237,6 @@ namespace HybridShooter.Audio.Tester
         {
             var info = new DamageInfo(5, DamageKind.MonsterAttack, Faction.Monster, gameObject, Center, Vector3.forward);
             Publish("플레이어 피격", () => EventBus<PlayerDamagedEvent>.Publish(new PlayerDamagedEvent(info)));
-        }
-
-        private void PublishBossWarning()
-        {
-            if (DataManager.Monsters.TryGet(bossMonsterId, out var boss) == false) return;
-            Publish("보스 경고", () => EventBus<BossWarningEvent>.Publish(new BossWarningEvent(boss)));
-        }
-
-        private void PublishBossAppeared()
-        {
-            if (DataManager.Monsters.TryGet(bossMonsterId, out var boss) == false) return;
-            bossStage = 0;
-            Publish("보스 등장", () => EventBus<BossAppearedEvent>.Publish(new BossAppearedEvent(boss, null)));
-        }
-
-        /// <summary>보스 공격 index 번째의 예고 단계 발행</summary>
-        private void PublishBossSkill(int index)
-        {
-            if (DataManager.Monsters.TryGet(bossMonsterId, out var boss) == false || index >= boss.Attacks.Count) return;
-            var attack = boss.Attacks[index];
-            Publish($"보스 {attack.Name} 예고 ({attack.Sfx?.Key ?? "소리 없음"})",
-                () => EventBus<BossSkillPhaseChangedEvent>.Publish(new BossSkillPhaseChangedEvent(attack, SkillPhase.Windup)));
-        }
-
-        private void PublishBossStage()
-        {
-            int stage = ++bossStage;
-            Publish($"보스 페이즈 {stage}", () => EventBus<BossDamageStageChangedEvent>.Publish(new BossDamageStageChangedEvent(stage)));
         }
 
         private void Cleanup()

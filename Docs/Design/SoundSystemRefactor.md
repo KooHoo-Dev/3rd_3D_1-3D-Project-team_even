@@ -517,7 +517,7 @@ public event Action Appeared;                                     // 등장 연�
 
 남은 에셋 요청: 도약 착지음, 돌진 벽 충돌 전용음, 무기 교체 전용음, 보급 획득 전용음, 보급 투하음(`Audio/Sfx/SupplyDrop` 클립 없음)
 
-**참고 — 사운드와 무관한 기존 데이터 오류 (팀 전달)**: DataManager 로드 시 `WeaponTable` 8행·`MonsterTable` 7행의 `PrefabKey`(`Weapons/Rifle`, `Prefabs/Monsters/...`)가 Resources 에 없어 오류 15건. 사운드 작업 전부터 있던 것 → 무기·몬스터 담당 확인 필요
+**참고 — 사운드와 무관한 기존 데이터 오류 (팀 전달)**: DataManager 로드 시 `WeaponTable` 8행·`MonsterTable` 7행의 `PrefabKey`(`Weapons/Rifle`, `Prefabs/Monsters/...`)가 Resources 에 없어 오류 15건. 사운드 작업 전부터 있던 것 → 무기·몬스터 담당 확인 필요 (이후 무기 쪽은 `WeaponTable.PrefabKey` 컬럼을 삭제해 해결)
 
 **참고 — 플레이어 타깃 미등록 (플레이어 담당 전달)**: `PlayerController` 는 `IPlayerTarget` 을 구현하지만 `ServiceLocator.Register<IPlayerTarget>` 를 하지 않는다 (등록은 HS·보급 테스트용 플레이어에만 있음). 실제 플레이어로는 몬스터가 대상을 찾지 못하고, 보급 낙하 위치도 플레이어 기준이 아니게 된다. 사운드 테스트 씬은 임시로 `SoundTestPlayerTarget`(Audio/Tester)이 대신 등록한다
 

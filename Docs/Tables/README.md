@@ -49,7 +49,7 @@
 | MagazineSize | int | 강화 전 탄창 |
 | ReloadTime | float | 강화 전 재장전(초) |
 | Range / SpreadAngle | float | 사거리(m) / 퍼짐 반각(도) |
-| PrefabKey, FireSfxKey, ReloadSfxKey, ReloadInsertSfxKey, ReloadEndSfxKey | string | 장전음: 시작 · 탄창·탄 넣기(기본 총 = 장전 55% 시점, 산탄총 = 한 발마다) · 완료(취소 시 없음) |
+| FireSfxKey, ReloadSfxKey, ReloadInsertSfxKey, ReloadEndSfxKey | string | 장전음: 시작 · 탄창·탄 넣기(기본 총 = 장전 55% 시점, 산탄총 = 한 발마다) · 완료(취소 시 없음) |
 
 ## GrenadeTable — BL-005
 | 컬럼 | 타입 | 설명 |
@@ -85,7 +85,8 @@
 | Reward | int | 처치 재화 (BL-029) |
 | PrefabKey | string | `Resources/` 기준 경로 |
 | IdleSfxKey / LoopSfxKey / DeathSfxKey | string | SoundTable 키 (빈칸 = 없음). 울음 / 이동·날갯짓 루프 / 사망 |
-| HurtSfxKey | string | 보스 페이즈 전환 때만 (일반 몬스터는 금방 죽어 총기 타격음으로 대체) |
+| StunSfxKey | string | 기절 시작 (돌진 벽 충돌). 보스 소리는 BossSoundEmitter (테이블 아님) |
+| HiddenSfxKey | string | 기습형 신호. 있으면 플레이어 근처에서 울지 않고, 근처·시야 밖일 때 공격 전 1번 재생 (파르다트록스 = `mon_pardathrox_vanish`) |
 
 ### MonsterAttackTable
 Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수 4).

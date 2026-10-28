@@ -1,6 +1,7 @@
 using System;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data.Defs;
+using HybridShooter.Core.Events;
 using UnityEngine;
 
 namespace HybridShooter.Boss
@@ -59,7 +60,9 @@ namespace HybridShooter.Boss
             }
             
             Damaged?.Invoke(info);
-            
+            // 일반 몬스터와 같은 피격 사실 → 히트마커·타격음·데미지 숫자
+            EventBus<DamageDealtEvent>.Publish(new DamageDealtEvent(gameObject, info, died));
+
             if (died) Died?.Invoke();
         }
         

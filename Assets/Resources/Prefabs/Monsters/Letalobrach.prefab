@@ -313,6 +313,7 @@ MonoBehaviour:
   chargeTurnSpeed: 10
   brakeDeceleration: 5
   maxChargeDistance: 60
+  chargeClipSpeed: 18
   prepTurnSpeed: 90
   prepMoveSpeed: 1.5
 --- !u!136 &517540784849940430
@@ -334,8 +335,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.74294317
-  m_Height: 3.5244312
+  m_Radius: 2.15
+  m_Height: 4.23
   m_Direction: 1
   m_Center: {x: 0.022333503, y: 2.4972677, z: 0.55911064}
 --- !u!1 &1905092912942143356

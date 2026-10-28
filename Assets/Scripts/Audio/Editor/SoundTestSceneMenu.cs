@@ -13,9 +13,11 @@ namespace HybridShooter.Audio.Editor
     ///   - 플레이어: MS 의 Player 프리팹을 원본으로 PlayerSoundEmitter 만 더한 Prefab Variant (+ 테스트용 IPlayerTarget 등록)
     ///   - 바닥: 평평한 Terrain (독장판·포격 목표가 Terrain 높이를 쓰므로 Plane 이 아니라 Terrain), 점프 상자, 돌진 충돌용 벽
     ///   - NavMesh: NavMeshSurface 로 구워 씬 폴더에 에셋으로 저장 (몬스터 이동용)
-    ///   - 몬스터: 돌진(레탈로브라크)·도약(파르다트록스)·독 포격(자이언트슬러그)·근접(무스코모르프) — HS 프리팹을 배치만 한다.
-    ///     프리팹에 Collider 가 없어 씬 인스턴스에만 임시 CapsuleCollider 를 붙인다 (프리팹 수정 없음)
+    ///   - 몬스터: 돌진(레탈로브라크)·도약(파르다트록스)·독 포격(자이언트슬러그)·근접(무스코모르프) — Resources 프리팹을 배치만 한다.
+    ///     프리팹에 Collider 가 없으면 씬 인스턴스에만 임시 CapsuleCollider 를 붙인다 (프리팹 수정 없음)
     ///   - 0 키 리스폰: SoundTestMonsterRespawner 가 처음 배치대로 몬스터를 다시 만든다
+    ///   - 보스(클리페오사우루스): 앞쪽 멀리 배치 + BossDamageTester(초기화·패턴 시작). 보스 프리팹에 BossSoundEmitter 가 없으면 붙인다.
+    ///     바닥은 Ground 레이어 (마그마 포격 착탄점이 Ground 만 찾는다)
     ///   - SoundService + GameMixer. 몬스터 이미터는 실행 시 GameSoundRouter 가 자동으로 붙인다
     /// 이미 있으면 다시 만들지 물어본다 (다시 만들면 씬을 새로 덮어쓴다)
     /// </summary>
@@ -26,9 +28,11 @@ namespace HybridShooter.Audio.Editor
         private const string VariantPath = VariantFolder + "/Player_Sound.prefab";
         private const string ScenePath = "Assets/Scenes/GU/SoundIntegrationTest.unity";
         private const string SceneDataFolder = "Assets/Scenes/GU/SoundIntegrationTest";
-        private const string MonsterPrefabFolder = "Assets/Scenes/HS/MonsterIntegrationLab/Prefabs/Monsters/";
+        private const string MonsterPrefabFolder = "Assets/Resources/Prefabs/Monsters/";
 
         private const float GroundSize = 120f; // m. 플레이어가 가운데
+        /// <summary>보스 위치. 흡입 시작 최소 거리(SuctionStartMinDistance)보다 멀게 → 흡입부터 확인하고, 다가오면 짓밟기</summary>
+        private static readonly Vector3 BossPosition = new Vector3(0f, 0f, 45f);
 
         /// <summary>몬스터 프리팹 이름과 배치 위치 (플레이어 = 원점, +Z 앞쪽)</summary>
         private static readonly (string Prefab, Vector3 Position)[] Monsters =
@@ -80,8 +84,26 @@ namespace HybridShooter.Audio.Editor
             var respawner = new GameObject("MonsterRespawner (0 키)").AddComponent<SoundTestMonsterRespawner>();
             respawner.Setup(entries.ToArray(), monsterRoot);
 
+            bool hasBoss = PlaceBoss(player);
+
             EditorSceneManager.SaveScene(scene, ScenePath);
-            Debug.Log($"[Audio] {ScenePath} 생성 (플레이어 = {VariantPath}, 몬스터 {monsterRoot.childCount}마리)");
+            Debug.Log($"[Audio] {ScenePath} 생성 (플레이어 = {VariantPath}, 몬스터 {monsterRoot.childCount}마리, 보스 {(hasBoss ? "있음" : "없음")})");
+        }
+
+        /// <summary>보스 배치 + BossDamageTester 로 초기화(플레이어 연결). 보스 프리팹에 이미터가 없으면 먼저 붙인다</summary>
+        private static bool PlaceBoss(GameObject player)
+        {
+            var prefab = BossSoundEmitterMenu.EnsureEmitter();
+            if (prefab == null) return false;
+
+            var boss = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            boss.transform.SetPositionAndRotation(BossPosition, Quaternion.LookRotation(-BossPosition.normalized));
+            var tester = boss.GetComponent<HybridShooter.Boss.BossDamageTester>();
+            if (tester == null) tester = boss.AddComponent<HybridShooter.Boss.BossDamageTester>(); // 씬 인스턴스에만 (프리팹은 그대로)
+            var so = new SerializedObject(tester);
+            so.FindProperty("playerSource").objectReferenceValue = player.GetComponent<HybridShooter.Player.PlayerController>();
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return true;
         }
 
         /// <summary>평평한 Terrain. TerrainData 는 씬 폴더에 에셋으로 저장</summary>
@@ -94,6 +116,8 @@ namespace HybridShooter.Audio.Editor
 
             var ground = Terrain.CreateTerrainGameObject(data);
             ground.name = "Ground (Terrain)";
+            int groundLayer = LayerMask.NameToLayer("Ground");
+            if (groundLayer >= 0) ground.layer = groundLayer; // 마그마 포격 착탄점 탐색(groundMask)이 Ground 레이어만 본다
             ground.transform.position = new Vector3(-GroundSize / 2f, 0f, -GroundSize / 2f);
             var terrainMaterial = GraphicsSettings.currentRenderPipeline != null ? GraphicsSettings.currentRenderPipeline.defaultTerrainMaterial : null;
             if (terrainMaterial != null) ground.GetComponent<Terrain>().materialTemplate = terrainMaterial;
