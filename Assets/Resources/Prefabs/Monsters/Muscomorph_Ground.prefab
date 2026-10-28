@@ -1974,7 +1974,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99256aef488ff7f42a2606f864e2feef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterController
-  monsterId: 1001
+  monsterId: 1002
   despawnDelay: 2
   moveClipSpeed: 3
   idleSpeedThreshold: 0.1

@@ -4,6 +4,7 @@ using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace HybridShooter.Core.Services
 {
@@ -58,11 +59,21 @@ namespace HybridShooter.Core.Services
     /// <summary>
     /// 전장 담당 구현 전까지 쓰는 기본 생성 위치: 플레이어 주변 원형 링.
     /// Config.SpawnRingRadius 거리에서 생성하므로 "시작 직후 플레이어 주변은 비우기"(BL-015)도 기본 충족.
+    /// 지상 패턴은 NavMesh 위로 옮기고, 옮긴 점이 Config.SpawnSafeRadius 안이면 false 를 돌려준다 (B3).
     /// </summary>
     public sealed class RingSpawnZoneProvider : ISpawnZoneProvider
     {
         private const float AirHeight = 8f;
+        private const float NavMeshSampleDistance = 5f;  // m, 링 위 점에서 NavMesh 를 찾는 반경
 
+        /// <summary>
+        /// MonsterSpawner 가 1마리 소환마다 부른다. 패턴별 링 위 점 → 지상이면 NavMesh 위로 → 안전 반경 검사 → Air 면 띄움.
+        /// </summary>
+        /// <param name="pattern">소환 방향 규칙</param>
+        /// <param name="groupSeed">Herd 방향을 정하는 값. 같은 값이면 같은 방향</param>
+        /// <param name="position">소환 위치</param>
+        /// <param name="rotation">플레이어를 바라보는 회전</param>
+        /// <returns>false = 이번 점이 안전 반경 안이라 소환 불가. 다시 부르면 다른 점을 뽑는다</returns>
         public bool TryGetSpawnPose(SpawnPattern pattern, int groupSeed, out Vector3 position, out Quaternion rotation)
         {
             GetPlayer(out var center, out var forward);
@@ -86,12 +97,43 @@ namespace HybridShooter.Core.Services
 
             float rad = angle * Mathf.Deg2Rad;
             position = center + new Vector3(Mathf.Sin(rad), 0f, Mathf.Cos(rad)) * radius;
+            if (pattern != SpawnPattern.Air) position = SnapToNavMesh(position);
+            if (IsInsideSafeRadius(position, center))
+            {
+                rotation = Quaternion.identity;
+                return false;
+            }
             if (pattern == SpawnPattern.Air) position.y += AirHeight;
 
             Vector3 look = center - position;
             look.y = 0f;
             rotation = look.sqrMagnitude > 0.001f ? Quaternion.LookRotation(look) : Quaternion.identity;
             return true;
+        }
+
+        /// <summary>
+        /// 지상 소환점을 가장 가까운 NavMesh 점으로 옮긴다. NavMeshAgent 가 NavMesh 밖에서 켜지면 움직이지 못하기 때문이다.
+        /// </summary>
+        /// <param name="point">링 위 소환점</param>
+        /// <returns>반경 NavMeshSampleDistance 안의 NavMesh 점. 못 찾으면 원래 점 (NavMesh 없는 테스트 씬)</returns>
+        private static Vector3 SnapToNavMesh(Vector3 point)
+        {
+            bool isOnNavMesh = NavMesh.SamplePosition(point, out NavMeshHit hit, NavMeshSampleDistance, NavMesh.AllAreas);
+            if (isOnNavMesh == false) return point;
+            return hit.position;
+        }
+
+        /// <summary>
+        /// BL-015: 소환점이 플레이어 주변 생성 금지 반경(Config.SpawnSafeRadius) 안인지 본다. 높이 차이는 무시한다.
+        /// </summary>
+        /// <param name="point">소환점</param>
+        /// <param name="playerPosition">플레이어 위치</param>
+        /// <returns>수평(XZ) 거리가 반경보다 작으면 true</returns>
+        private static bool IsInsideSafeRadius(Vector3 point, Vector3 playerPosition)
+        {
+            float safeRadius = DataManager.Config.GetFloat(GameConfig.SpawnSafeRadius, 15f);
+            float horizontalDistance = Vector2.Distance(new Vector2(point.x, point.z), new Vector2(playerPosition.x, playerPosition.z));
+            return horizontalDistance < safeRadius;
         }
 
         /// <summary>플레이어 기준 XZ 거리 SupplyDropMinDistance ~ SupplyDropMaxDistance 링 안. y 는 플레이어 높이 (지면 탐색은 보급 쪽에서)</summary>
