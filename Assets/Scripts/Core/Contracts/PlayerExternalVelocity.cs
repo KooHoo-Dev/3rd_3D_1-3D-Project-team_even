@@ -12,6 +12,11 @@ namespace HybridShooter.Core.Contracts
         public readonly Vector3 Position;
         /// <summary>이번 프레임 모터(걷기·달리기·구르기·미끄럼)가 정한 속도. 외부 속도는 빠져 있다</summary>
         public readonly Vector3 MotorVelocity;
+        /// <summary>
+        /// 이번 프레임 모터가 가려는 수평 속도(m/s). 입력 방향 × (걷기·달리기, 스태미나, 뒷걸음 감속, 속도 배율 모두 반영).
+        /// 구르기 중에는 구르기 속도, 급경사 미끄럼 중에는 좌우·내리막 조작 몫만. 플레이어가 "지금 실제로 낼 수 있는 저항"을 볼 때 쓴다
+        /// </summary>
+        public readonly Vector3 MotorTargetVelocity;
         /// <summary>이동 입력 방향 (월드 수평, 길이 0~1). 입력이 없으면 zero</summary>
         public readonly Vector3 MoveDirection;
         /// <summary>
@@ -23,10 +28,11 @@ namespace HybridShooter.Core.Contracts
         /// <summary>물리 프레임 시간 (Time.fixedDeltaTime)</summary>
         public readonly float DeltaTime;
 
-        public PlayerMotionContext(Vector3 position, Vector3 motorVelocity, Vector3 moveDirection, float runSpeed, bool isGrounded, float deltaTime)
+        public PlayerMotionContext(Vector3 position, Vector3 motorVelocity, Vector3 motorTargetVelocity, Vector3 moveDirection, float runSpeed, bool isGrounded, float deltaTime)
         {
             Position = position;
             MotorVelocity = motorVelocity;
+            MotorTargetVelocity = motorTargetVelocity;
             MoveDirection = moveDirection;
             RunSpeed = runSpeed;
             IsGrounded = isGrounded;

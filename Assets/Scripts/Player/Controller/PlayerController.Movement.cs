@@ -77,6 +77,7 @@ namespace HybridShooter.Player
             steer = Vector3.ProjectOnPlane(steer, groundNormal);
 
             Vector3 target = downhill * steepSlideMaxSpeed + steer;
+            motorTargetVelocity = new Vector3(steer.x, 0f, steer.z); // 미끄러져 내려가는 몫은 조작이 아니다
             Vector3 velocity = Vector3.ProjectOnPlane(rb.linearVelocity, groundNormal);
             rb.linearVelocity = Vector3.MoveTowards(velocity, target, steepSlideAcceleration * dt);
         }
@@ -86,6 +87,7 @@ namespace HybridShooter.Player
             float speed = walkSpeed * (IsSprintingInput ? sprintMultiplier : 1f) * ModifierProduct() * FacingSpeedFactor();
             speed = Mathf.Clamp(speed, 0, maxWalkSpeed);
             Vector3 target = moveDirection * speed;
+            motorTargetVelocity = target;
 
             Vector3 velocity = rb.linearVelocity;
             Vector3 horizontal = new Vector3(velocity.x, 0f, velocity.z);
@@ -161,11 +163,13 @@ namespace HybridShooter.Player
             if (t >= 1f)
             {
                 isRolling = false;
+                motorTargetVelocity = Vector3.zero; // 이번 프레임은 속도를 건드리지 않는다
                 RollEnded?.Invoke();
                 return;
             }
 
             Vector3 horizontal = rollDirection * (rollSpeed * Mathf.Max(0f, rollSpeedCurve.Evaluate(t)));
+            motorTargetVelocity = horizontal;
             horizontal = SlideAlongWalls(horizontal, dt);
             if (isGrounded)
             {

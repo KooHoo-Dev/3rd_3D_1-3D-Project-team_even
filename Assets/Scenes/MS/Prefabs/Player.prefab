@@ -1000,6 +1000,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 031fca22247b2b44b82b1743d95ab170, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerController
+  shakeScale: 1
+  maxShakeOffset: 0.15
+  maxShakeAngle: 1.5
+  maxShakeRoll: 0.8
+  firstPersonShakeScale: 0.5
+  shakeOnBossAppear: 1
+  bossAppearShake:
+    Intensity: 0.8
+    Duration: 1.6
+    Frequency: 4
+    FadeIn: 0.15
+    FadeOut: 0.8
+    Source: {x: 0, y: 0, z: 0}
+    Radius: 0
   walkSpeed: 3
   sprintMultiplier: 1.6
   maxWalkSpeed: 10
@@ -1121,6 +1135,7 @@ MonoBehaviour:
   staminaRegenPerSecond: 15
   staminaRegenDelay: 1
   sprintResumeRatio: 0.2
+  maxExternalSpeed: 20
 --- !u!114 &8891840968360981808
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2514,6 +2529,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 12
       objectReference: {fileID: 0}
+    - target: {fileID: 2832976180232891414, guid: 26675d109dc1740488f7765420f93631, type: 3}
+      propertyPath: m_UpdateWhenOffscreen
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2897854453978445475, guid: 26675d109dc1740488f7765420f93631, type: 3}
       propertyPath: m_Layer
       value: 12
@@ -2614,6 +2633,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 12
       objectReference: {fileID: 0}
+    - target: {fileID: 4170122513455827535, guid: 26675d109dc1740488f7765420f93631, type: 3}
+      propertyPath: m_UpdateWhenOffscreen
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4234966232782623797, guid: 26675d109dc1740488f7765420f93631, type: 3}
       propertyPath: m_Layer
       value: 12
@@ -2633,6 +2656,14 @@ PrefabInstance:
     - target: {fileID: 4434122680409088332, guid: 26675d109dc1740488f7765420f93631, type: 3}
       propertyPath: m_Layer
       value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 4510380421577457924, guid: 26675d109dc1740488f7765420f93631, type: 3}
+      propertyPath: m_UpdateWhenOffscreen
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4604063228983517405, guid: 26675d109dc1740488f7765420f93631, type: 3}
+      propertyPath: m_UpdateWhenOffscreen
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4643156448674520700, guid: 26675d109dc1740488f7765420f93631, type: 3}
       propertyPath: m_Layer

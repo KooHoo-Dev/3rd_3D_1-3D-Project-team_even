@@ -32,7 +32,7 @@ namespace HybridShooter.Core.Contracts
         public float StopRadius;
         [Tooltip("근처 범위 밖: 플레이어 달리기보다 이만큼(m/s) 빠르게 당긴다")]
         public float FarExtraSpeed;
-        [Tooltip("근처 범위 안: 플레이어 달리기보다 이만큼(m/s) 빠르게 당긴다")]
+        [Tooltip("근처 범위 안: 정반대로 버티면 이 속도(m/s)로 다가온다. 버티지 않으면 달리기 + 이 값")]
         public float NearExtraSpeed;
         [Tooltip("최대 지속 시간(초). 0 이하 = 시간 제한 없음")]
         public float MaxDuration;
@@ -56,8 +56,10 @@ namespace HybridShooter.Core.Contracts
 
     /// <summary>
     /// 보스 "공기 흡입" 기본 구현 (IPlayerVelocitySource).
-    ///  - 근처 범위 밖은 달리기 + FarExtraSpeed, 안은 달리기 + NearExtraSpeed 로 중심 쪽으로 당긴다
-    ///    → 반대로 달리면 ExtraSpeed 만큼씩만 다가가고, 가만히 있으면 달리기 + ExtraSpeed 로 끌려간다
+    ///  - 근처 범위 밖은 달리기 + FarExtraSpeed, 안은 (버티는 속도 + 버티지 않는 몫의 달리기) + NearExtraSpeed 로 중심 쪽으로 당긴다 (BaseSpeed)
+    ///    → 근처에서 정반대로 버티면 몸 방향·걷기/달리기와 상관없이 NearExtraSpeed 만큼씩만 다가가고,
+    ///      옆으로 돌거나 가만히 있으면 달리기 + NearExtraSpeed 로 끌려간다
+    ///    → 범위 밖은 RunSpeed 기준이라 뒷걸음·걷기로는 FarExtraSpeed 보다 빨리 끌려온다 (원거리는 강하게)
     ///  - MaxDuration 경과 또는 근처 범위 안 연속 NearDwellTime 체류 시 저절로 끝나고, 이유를 EndReason 에 남긴다
     ///  - 체류 시간은 실제로 당기는 동안만 센다 (플레이어 쓰러짐 중에는 멈춤). 지속 시간은 실제 시간
     /// 사용: var inhale = InhaleSource.Start(settings, 입Transform); … if (inhale.IsRunning == false) { inhale.EndReason 으로 분기 }
@@ -137,12 +139,33 @@ namespace HybridShooter.Core.Contracts
             float reach = distance - settings.StopRadius;
             if (reach <= 0f || distance < 0.0001f) return Vector3.zero;
 
-            float extra = near ? settings.NearExtraSpeed : settings.FarExtraSpeed;
+            Vector3 direction = toCenter / distance;
             float fadeIn = settings.FadeIn > 0f ? Mathf.Clamp01(Elapsed / settings.FadeIn) : 1f;
-            float speed = Mathf.Max(0f, context.RunSpeed + extra) * fadeIn;
+            float speed = Mathf.Max(0f, BaseSpeed(context, direction, near) + (near ? settings.NearExtraSpeed : settings.FarExtraSpeed)) * fadeIn;
             // 이번 프레임에 StopRadius 를 넘어가지 않을 만큼만 (중심에서 떨리지 않게)
             speed = Mathf.Min(speed, reach / Mathf.Max(context.DeltaTime, 0.0001f));
-            return toCenter / distance * speed;
+            return direction * speed;
+        }
+
+        /// <summary>
+        /// ExtraSpeed 를 더할 기준 속도.
+        ///  - 근처 범위 안: 버티는 속도 + 버티지 않는 비율 × RunSpeed
+        ///    · 버티는 속도 = 모터 목표 속도의 반대 방향 성분 (뒷걸음 감속·스태미나·걷기 반영). RunSpeed 를 넘지 않는다 (구르기는 빠져나갈 수 있게)
+        ///    · 버티지 않는 비율 = 1 − (이동 방향이 정반대를 향한 정도). 정반대 0, 옆 1, 가만히·다가감 1
+        ///    → 정반대로 버티면 몸 방향·걷기/달리기와 상관없이 NearExtraSpeed 만큼씩만 다가가고,
+        ///      옆으로 돌면 거의 RunSpeed + NearExtraSpeed 로 끌려온다 (옆걸음으로 흡입을 피하지 못하게)
+        ///  - 근처 범위 밖: RunSpeed
+        /// </summary>
+        private static float BaseSpeed(in PlayerMotionContext context, Vector3 direction, bool near)
+        {
+            if (near == false) return context.RunSpeed;
+            Vector3 target = context.MotorTargetVelocity;
+            float targetSpeed = target.magnitude;
+            float resist = -Vector3.Dot(target, direction);
+            if (resist <= 0.01f || targetSpeed < 0.01f) return context.RunSpeed;
+
+            float awayRatio = Mathf.Clamp01(resist / targetSpeed);
+            return Mathf.Min(resist, context.RunSpeed) + (1f - awayRatio) * context.RunSpeed;
         }
 
         void IPlayerVelocitySource.OnRemovedByPlayer() => End(InhaleEndReason.PlayerReset);
