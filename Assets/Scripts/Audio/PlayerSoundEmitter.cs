@@ -14,11 +14,12 @@ namespace HybridShooter.Audio
     ///   발소리   이동 거리 누적, 보폭(걷기/달리기)마다 1회 — 애니메이션과 무관하게 1인칭에서도 일정
     ///   점프     PlayerController.Jumped
     ///   착지     PlayerController.Landed (minAirTime 보다 짧게 뜬 경우·스폰 직후는 무시)
+    ///   피격     PlayerDamagedEvent — 지속 피해(DamageKind.Status, 독장판 틱)는 기침, 그 외는 피격 목소리. 그 피해로 쓰러졌으면 생략 (사망 목소리와 겹치지 않게)
     ///   사망     PlayerController.Died
     ///   숨소리   PlayerStaminaChangedEvent — breathStartRatio 이하에서 루프 시작, breathStopRatio 이상에서 정지
     ///   투척     PlayerItems.ThrowStarted
     ///   무기 교체 GunSlot.GunChanged → WeaponTable.SwitchSfxKey (시작 장착은 제외)
-    /// 바닥 재질은 흙 하나만 (금속 발소리는 맵 확정 후 추가). 플레이어 피격음은 GameSoundRouter 담당.
+    /// 바닥 재질은 흙 하나만 (금속 발소리는 맵 확정 후 추가).
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
     public sealed class PlayerSoundEmitter : MonoBehaviour
@@ -27,6 +28,9 @@ namespace HybridShooter.Audio
         [SerializeField] private string footstepKey = "sfx_player_footstep";
         [SerializeField] private string jumpKey = "sfx_player_jump";
         [SerializeField] private string landKey = "sfx_player_land";
+        [SerializeField] private string hitKey = "sfx_player_hit";
+        [Tooltip("지속 피해(DamageKind.Status, 독장판 틱) 때 피격음 대신")]
+        [SerializeField] private string statusHitKey = "sfx_player_cough";
         [SerializeField] private string deathKey = "sfx_player_death";
         [SerializeField] private string breathLoopKey = "sfx_player_breath_loop";
         [SerializeField] private string throwKey = "sfx_grenade_throw";
@@ -78,6 +82,7 @@ namespace HybridShooter.Audio
             if (gunSlot != null) gunSlot.GunChanged += OnGunChanged;
             enableTime = Time.time;
             EventBus<PlayerStaminaChangedEvent>.Subscribe(OnStaminaChanged);
+            EventBus<PlayerDamagedEvent>.Subscribe(OnDamaged);
         }
 
         /// <summary>구독 해제 + 숨소리 정지</summary>
@@ -89,6 +94,7 @@ namespace HybridShooter.Audio
             if (items != null) items.ThrowStarted -= OnThrowStarted;
             if (gunSlot != null) gunSlot.GunChanged -= OnGunChanged;
             EventBus<PlayerStaminaChangedEvent>.Unsubscribe(OnStaminaChanged);
+            EventBus<PlayerDamagedEvent>.Unsubscribe(OnDamaged);
             StopBreath();
         }
 
@@ -121,6 +127,13 @@ namespace HybridShooter.Audio
             if (Time.time - lastGroundedTime < minAirTime) return;
             strideDistance = 0f; // 착지음이 첫 발소리를 대신함
             Play(landKey);
+        }
+
+        /// <summary>쓰러뜨린 피해면 생략 — 같은 프레임의 Died 가 사망 목소리를 낸다</summary>
+        private void OnDamaged(PlayerDamagedEvent e)
+        {
+            if (player.IsAlive == false) return;
+            Play(e.Info.Kind == DamageKind.Status ? statusHitKey : hitKey);
         }
 
         private void OnDied()

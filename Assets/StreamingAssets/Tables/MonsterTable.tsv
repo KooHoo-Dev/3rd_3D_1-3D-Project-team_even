@@ -1,12 +1,12 @@
-Id	Key	Name	GradeId	Role	MaxHp	MoveSpeed	RunSpeed	DetectRange	BodyScale	Height	FlyHeight	MeshVariant	Reward	PrefabKey	IdleSfxKey	LoopSfxKey	HurtSfxKey	DeathSfxKey	StunSfxKey
-# Role: Melee/Air/Rusher/Infiltrator/ZonePressure/Boss (Boss 는 GradeId 3 과 일치)  ·  DetectRange -1 = 전장 전체  ·  FlyHeight 0 = 지상, Air 역할은 0 초과  ·  SfxKey: SoundTable.Key, 빈칸 = 없음 (HurtSfxKey 는 보스 페이즈 전환 때만)  ·  StunSfxKey: 기절 시작(돌진 벽 충돌)에 재생
+Id	Key	Name	GradeId	Role	MaxHp	MoveSpeed	RunSpeed	DetectRange	BodyScale	Height	FlyHeight	MeshVariant	Reward	PrefabKey	IdleSfxKey	LoopSfxKey	DeathSfxKey	StunSfxKey	HiddenSfxKey
+# Role: Melee/Air/Rusher/Infiltrator/ZonePressure/Boss (Boss 는 GradeId 3 과 일치)  ·  DetectRange -1 = 전장 전체  ·  FlyHeight 0 = 지상, Air 역할은 0 초과  ·  SfxKey: SoundTable.Key, 빈칸 = 없음  ·  StunSfxKey: 기절 시작(돌진 벽 충돌)에 재생  ·  HiddenSfxKey: 기습형 — 있으면 플레이어 근처에서 울지 않고, 근처·시야 밖일 때 공격 전 1번 재생
 # MeshVariant: Default/WingsOff/WingsOn  ·  방어도 없음: 피해 = 무기 Damage × 부위 DamageMultiplier  ·  Id 대역: 일반체 1001~, 중간체 2001~, 보스 3001
-1001	bufomorph	부포모프	1	Melee	20	3.5	4.5	25	0.8	0.9	0	Default	1	Prefabs/Monsters/Bufomorph	mon_bufomorph_idle			mon_bufomorph_death	
-1002	muscomorph_ground	무스코모프 · 육상	1	Melee	20	3	5	25	0.8	0.8	0	WingsOff	1	Prefabs/Monsters/Muscomorph_Ground	mon_muscomorph_idle	mon_muscomorph_walk_loop		mon_muscomorph_death	
-1003	muscomorph_air	무스코모프 · 공중	1	Air	15	4.5	6.5	30	0.8	0.8	3	WingsOn	1	Prefabs/Monsters/Muscomorph_Air	mon_muscomorph_fly_idle	mon_muscomorph_wing_loop		mon_muscomorph_death	
-1004	densoptere	덴솝테르	1	Air	10	5.5	7	30	0.8	0.6	3.5	Default	1	Prefabs/Monsters/Densoptere	mon_densoptere_idle	mon_densoptere_fly_loop		mon_densoptere_death	
-2001	letalobrach	레탈로브라크	2	Rusher	80	3	7.5	30	1.6	2	0	Default	8	Prefabs/Monsters/Letalobrach	mon_letalobrach_idle			mon_letalobrach_death	mon_letalobrach_groggy
-2002	pardathrox	파르다트록스	2	Infiltrator	70	4.5	8.5	60	1.4	2.2	0	Default	8	Prefabs/Monsters/Pardathrox	mon_pardathrox_idle			mon_pardathrox_death	
-2003	giant_slug	자이언트 슬러그	2	ZonePressure	75	1.5	2	45	1.2	1.4	0	Default	8	Prefabs/Monsters/GiantSlug	mon_giant_slug_idle	mon_giant_slug_move_loop		mon_giant_slug_death	
+1001	bufomorph	부포모프	1	Melee	20	3.5	4.5	25	0.8	0.9	0	Default	1	Prefabs/Monsters/Bufomorph	mon_bufomorph_idle		mon_bufomorph_death		
+1002	muscomorph_ground	무스코모프 · 육상	1	Melee	20	3	5	25	0.8	0.8	0	WingsOff	1	Prefabs/Monsters/Muscomorph_Ground	mon_muscomorph_idle	mon_muscomorph_walk_loop	mon_muscomorph_death		
+1003	muscomorph_air	무스코모프 · 공중	1	Air	15	4.5	6.5	30	0.8	0.8	3	WingsOn	1	Prefabs/Monsters/Muscomorph_Air	mon_muscomorph_fly_idle	mon_muscomorph_wing_loop	mon_muscomorph_death		
+1004	densoptere	덴솝테르	1	Air	10	5.5	7	30	0.8	0.6	3.5	Default	1	Prefabs/Monsters/Densoptere	mon_densoptere_idle	mon_densoptere_fly_loop	mon_densoptere_death		
+2001	letalobrach	레탈로브라크	2	Rusher	80	3	7.5	30	1.6	2	0	Default	8	Prefabs/Monsters/Letalobrach	mon_letalobrach_idle		mon_letalobrach_death	mon_letalobrach_groggy	
+2002	pardathrox	파르다트록스	2	Infiltrator	70	4.5	8.5	60	1.4	2.2	0	Default	8	Prefabs/Monsters/Pardathrox	mon_pardathrox_idle		mon_pardathrox_death		mon_pardathrox_vanish
+2003	giant_slug	자이언트 슬러그	2	ZonePressure	75	1.5	2	45	1.2	1.4	0	Default	8	Prefabs/Monsters/GiantSlug	mon_giant_slug_idle	mon_giant_slug_move_loop	mon_giant_slug_death		
 # [구형 보스 데이터 보관] BossTable/ClypeosaurusTable로 분리. 팀원 확인을 위해 원본을 주석으로 유지한다.
-# 3001	clypeosaurus	클리페오사우루스	3	Boss	3000	2	3	-1	3	8	0	Default	150	Prefabs/Monsters/Clypeosaurus			mon_clypeosaurus_hurt	
+# 3001	clypeosaurus	클리페오사우루스	3	Boss	3000	2	3	-1	3	8	0	Default	150	Prefabs/Monsters/Clypeosaurus			

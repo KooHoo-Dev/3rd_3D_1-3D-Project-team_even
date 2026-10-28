@@ -43,16 +43,16 @@ namespace HybridShooter.Core.Data.Defs
         public SoundDef IdleSfx { get; internal set; }
         /// <summary>살아 있는 동안 계속 나는 소리 (이동·날갯짓)</summary>
         public SoundDef LoopSfx { get; internal set; }
-        /// <summary>보스 페이즈 전환 때만 사용 (일반 몬스터는 금방 죽어 피격음 대신 총기 타격음으로 대체)</summary>
-        public SoundDef HurtSfx { get; internal set; }
         public SoundDef DeathSfx { get; internal set; }
         /// <summary>기절 시작 (돌진 벽 충돌). 키가 비었으면 null</summary>
         public SoundDef StunSfx { get; internal set; }
+        /// <summary>기습형 신호 (플레이어 근처·시야 밖일 때 공격 전 1번). 있으면 근처에서 울음을 내지 않는다. 키가 비었으면 null</summary>
+        public SoundDef HiddenSfx { get; internal set; }
         internal string IdleSfxKey { get; }
         internal string LoopSfxKey { get; }
-        internal string HurtSfxKey { get; }
         internal string DeathSfxKey { get; }
         internal string StunSfxKey { get; }
+        internal string HiddenSfxKey { get; }
 
         /// <summary>GradeId 에서 계산 (1 → Weak, 2 → Mid, 3 → Boss)</summary>
         public MonsterGrade Grade { get; internal set; }
@@ -86,9 +86,9 @@ namespace HybridShooter.Core.Data.Defs
             Prefab = ParseUtil.Asset<GameObject>(d.PrefabKey, r, Table, Id, nameof(d.PrefabKey));
             IdleSfxKey = d.IdleSfxKey;
             LoopSfxKey = d.LoopSfxKey;
-            HurtSfxKey = d.HurtSfxKey;
             DeathSfxKey = d.DeathSfxKey;
             StunSfxKey = d.StunSfxKey;
+            HiddenSfxKey = d.HiddenSfxKey;
 
             r.Check(Enum.IsDefined(typeof(MonsterGrade), Grade), Table, Id, "GradeId 는 1(Weak)~3(Boss) 중 하나");
             r.Check(string.IsNullOrEmpty(Key) == false, Table, Id, "Key 가 비었습니다");

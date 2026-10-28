@@ -1698,6 +1698,7 @@ GameObject:
   - component: {fileID: 534779049517218803}
   - component: {fileID: 2158953421807436580}
   - component: {fileID: 7764257687145243604}
+  - component: {fileID: 6979829063793508743}
   m_Layer: 0
   m_Name: Clypeosaurus
   m_TagString: Untagged
@@ -1916,6 +1917,36 @@ MonoBehaviour:
   inhaleCenter: {fileID: 2970032289995159653}
   stopRadius: 2.5
   fadeIn: 0.3
+--- !u!114 &6979829063793508743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ba5f46a979b5a54ba60865fb98198bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.BossSoundEmitter
+  attacks:
+  - Attack: {fileID: 534779049517218803}
+    WindupKey: mon_clypeosaurus_attack
+    ActiveLoopKey: 
+    LoopPoint: {fileID: 0}
+    ImpactKey: mon_clypeosaurus_stomp_impact
+  - Attack: {fileID: 2158953421807436580}
+    WindupKey: mon_clypeosaurus_skill_attack
+    ActiveLoopKey: 
+    LoopPoint: {fileID: 0}
+    ImpactKey: 
+  - Attack: {fileID: 7764257687145243604}
+    WindupKey: mon_clypeosaurus_shout
+    ActiveLoopKey: mon_clypeosaurus_suction_loop
+    LoopPoint: {fileID: 2970032289995159653}
+    ImpactKey: 
+  deathKey: mon_clypeosaurus_hurt
+  voicePoint: {fileID: 0}
 --- !u!1 &5523472075301917568
 GameObject:
   m_ObjectHideFlags: 0

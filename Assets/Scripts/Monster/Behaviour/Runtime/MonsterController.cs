@@ -66,6 +66,7 @@ namespace HybridShooter.Monster.Behaviour
         public event Action<MonsterAttackDef, SkillPhase> AttackPhaseChanged;
         public event Action<float> Stunned;
         public event Action<MonsterAttackDef, Vector3> AttackLanded;
+        public event Action Died;
 
         // ── 체력 ──
         public int MaxHp { get; private set; }
@@ -392,6 +393,7 @@ namespace HybridShooter.Monster.Behaviour
             foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = false; // 시체는 피격 판정 없음
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
             if (flyingExecutor != null) flyingExecutor.StartFalling();
+            Died?.Invoke();
             EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(Def, transform.position, gameObject, grantReward));
             despawnTime = Time.time + despawnDelay;
         }
