@@ -15,7 +15,6 @@ namespace HybridShooter.Core.Data.Dtos
         public float ReloadTime;
         public float Range;
         public float SpreadAngle;
-        public string PrefabKey = "";
         public string FireSfxKey = "";  // SoundTable.Key
         public string ReloadSfxKey = "";  // SoundTable.Key (장전 시작)
         public string ReloadInsertSfxKey = "";  // SoundTable.Key (탄창·탄 넣기)
