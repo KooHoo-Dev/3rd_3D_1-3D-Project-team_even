@@ -11,7 +11,7 @@ sfx_assault_rifle_fire	Sfx	Audio/Weapon/AssaultRifle/AssaultRifle_Fire_01;Audio/
 sfx_pistol_fire	Sfx	Audio/Weapon/Pistol/Pistol_Fire_01;Audio/Weapon/Pistol/Pistol_Fire_02;Audio/Weapon/Pistol/Pistol_Fire_03;Audio/Weapon/Pistol/Pistol_Fire_04;Audio/Weapon/Pistol/Pistol_Fire_05;Audio/Weapon/Pistol/Pistol_Fire_06;Audio/Weapon/Pistol/Pistol_Fire_07;Audio/Weapon/Pistol/Pistol_Fire_08	0.8	false	true	4	0.03	0.04	80	60
 # SMG: 전용 클립 없음 → 권총 클립 대여
 sfx_smg_fire	Sfx	Audio/Weapon/Pistol/Pistol_Fire_01;Audio/Weapon/Pistol/Pistol_Fire_02;Audio/Weapon/Pistol/Pistol_Fire_03;Audio/Weapon/Pistol/Pistol_Fire_04;Audio/Weapon/Pistol/Pistol_Fire_05;Audio/Weapon/Pistol/Pistol_Fire_06;Audio/Weapon/Pistol/Pistol_Fire_07;Audio/Weapon/Pistol/Pistol_Fire_08	0.7	false	true	6	0.03	0.08	80	50
-sfx_shotgun_fire	Sfx	Audio/Weapon/ShotGun/ShotGun_Fire_01;Audio/Weapon/ShotGun/ShotGun_Fire_02	0.9	false	true	2	0.05	0.03	85	80
+sfx_shotgun_fire	Sfx	Audio/Weapon/ShotGun/ShotGun_FireReal_01;Audio/Weapon/ShotGun/ShotGun_FireReal_02	0.9	false	true	2	0.05	0.03	85	80
 # 저격소총: 전용 클립 없음 → 실사 샷건 발사음(ShotGun_FireReal, 긴 잔향) 대여
 sfx_sniper_fire	Sfx	Audio/Weapon/ShotGun/ShotGun_FireReal_01;Audio/Weapon/ShotGun/ShotGun_FireReal_02	1.0	false	true	2	0.1	0.02	90	150
 sfx_rocket_fire	Sfx	Audio/Weapon/RocketLauncher/RocketLauncher_Fire_01;Audio/Weapon/RocketLauncher/RocketLauncher_Fire_02	0.9	false	true	2	0.1	0.03	85	120
@@ -61,7 +61,6 @@ ui_health_warning	Ui	Audio/UI/UI_HealthWarning	0.7	false	false	1	1	0	85	0
 ui_game_over	Ui	Audio/UI/UI_GameOver	0.9	false	false	1	1	0	100	0
 ui_stage_clear	Ui	Audio/UI/UI_StageClear	0.9	false	false	1	1	0	100	0
 ui_hit_marker	Ui	Audio/UI/HitMarker	0.5	false	false	2	0.05	0.05	60	0
-ui_kill_confirm	Ui	Audio/UI/KillConfirm	0.6	false	false	2	0.06	0.05	65	0
 # ── 아나운서 ──
 ann_fight	Ui	Audio/Announce/Announce_Fight	1.0	false	false	1	0.5	0	95	0
 ann_count_1	Ui	Audio/Announce/Announce_Count1	1.0	false	false	1	0	0	95	0

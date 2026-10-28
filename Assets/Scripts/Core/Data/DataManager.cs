@@ -199,9 +199,9 @@ namespace HybridShooter.Core.Data
             {
                 m.IdleSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.IdleSfx), m.IdleSfxKey);
                 m.LoopSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.LoopSfx), m.LoopSfxKey);
-                m.HurtSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.HurtSfx), m.HurtSfxKey);
                 m.DeathSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.DeathSfx), m.DeathSfxKey);
                 m.StunSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.StunSfx), m.StunSfxKey);
+                m.HiddenSfx = FindSound(r, MonsterDef.Table, m.Id, nameof(m.HiddenSfx), m.HiddenSfxKey);
                 if (m.LoopSfx != null && m.LoopSfx.Loop == false)
                     r.Warn(MonsterDef.Table, m.Id, $"LoopSfx '{m.LoopSfxKey}' 의 Loop 가 false 입니다");
             }
