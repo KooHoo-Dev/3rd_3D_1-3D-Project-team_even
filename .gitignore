@@ -145,3 +145,6 @@ ProfilerCaptures
 
 # --- macOS Finder 파일 ---
 .DS_Store
+
+# --- 웨이브 시각화 프로젝트 ---
+tools/wave-timeline-editor
