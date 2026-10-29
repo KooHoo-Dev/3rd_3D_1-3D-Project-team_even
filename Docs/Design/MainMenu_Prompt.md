@@ -226,9 +226,10 @@ Assets/Scripts/Core/Settings/
 
 ### 단계 현황
 - [x] 1. 프리팹 확정 (위 매핑 변경)
-- [x] 2. `GameSettings` + 옵션 팝업 — `Tools > MainMenu > Build Options Popup` → `Assets/Prefabs/UI/OptionsPopup.prefab`, `Create Test Scene` → `Test_MainMenu` (임시 OPTIONS 버튼)
+- [x] 2. `GameSettings` + 옵션 팝업 — `Tools > MainMenu > Build Options Popup` → `Assets/Prefabs/UI/OptionsPopup.prefab`, `Create Test Scene` → `Test_MainMenu`
 - [x] 3. 디오라마 — `Tools > MainMenu > Rebuild Diorama` (Test_MainMenu 의 Environment·Diorama·CM_Menu 만 다시 만듦). 씬에서 조정한 환경 값을 빌더에 반영
-- [ ] 4~7
+- [x] 4. 메뉴 UI + PRESS ANY KEY + 키보드/패드 내비게이션 — `Tools > MainMenu > Rebuild Menu UI` (Test_MainMenu 의 Canvas 만 다시 만듦, 임시 OPTIONS 버튼 제거)
+- [ ] 5~7
 
 ### 3단계 디오라마 구성
 - **디스플레이 프리팹** `Assets/Prefabs/MainMenu/Display/*_Display.prefab`: 게임 프리팹(`Resources/Prefabs/Monsters`, 보스, `MS/Prefabs/Player`)을 풀어서 Transform·렌더러·Animator·파티클만 남긴다 (게임 스크립트·물리·이미터 제거, RequireComponent 순서대로). 게임 프리팹이 없는 부포모프·덴솝테르는 에셋 팩 프리팹 사용 → `TestMonster` 자리 표시는 필요 없음
@@ -238,3 +239,13 @@ Assets/Scripts/Core/Settings/
 - **카메라**: Main Camera 에 CinemachineBrain, `CM_Menu`(우측 어깨 오버숄더, FOV 45) + Noise(Handheld_normal_mild 약하게) + `MenuCameraSway`(12초 좌우 흔들림)
 - 구도 수치는 `MainMenuDioramaBuilder` 상단 상수 (CameraPosition·CameraTarget·Crowd 표)
 - 메뉴 씬에는 GameSoundRouter 가 없으므로 디오라마에 사운드 이미터가 붙지 않는다
+
+### 4단계 메뉴 UI 구성
+- **흐름** `MainMenuController`: PressAnyKey → Menu → (Options) → StartingGame. 게임에서 돌아올 때 `MainMenuController.SkipPressAnyKey = true` 면 바로 메뉴
+- **PRESS ANY KEY**: 좌상단 로고(`TEAM EVEN`, Aldrich, 항상 표시) + 하단 중앙 "PRESS ANY KEY" 깜빡임(알파 0.3↔1, 1.2s). `InputSystem.onAnyButtonPress` 한 번 → 메뉴 슬라이드인(왼쪽 700px 밖에서 0.4s, 버튼 0.06s 순차) + 카메라가 플레이어 쪽으로 0.6m (`MenuCameraSway.SetBase`, 흔들림은 계속). 버튼은 다 들어온 뒤에 눌린다 (PRESS ANY KEY 를 누른 클릭·Enter 가 버튼까지 누르지 않게)
+- **레이아웃** (1920×1080, Match 0.5): 버튼 487×107(원본 80%), 좌측 여백 120, 간격 24. 뒤에 왼쪽→오른쪽 투명해지는 검은 패널(폭 900, 알파 0.75, 텍스처 없이 `HorizontalFade` 정점 알파). 좌하단 `v{Application.version}`, 우하단 `[Enter] 선택    [Esc] 뒤로`. 수치는 `MainMenuUIBuilder` 상단 상수
+- **버튼 색**: GAME START = `Btn_MainMenuYellow`, OPTIONS·QUIT = `Btn_MainMenuCyan` 에 선택(호버·Pressed) 스프라이트만 `Btn_MainMenuYellow_p` 로 → 기본 Cyan, 선택 Yellow. 팩의 `TMTextColorControl` 은 마우스에만 반응해 끄고 `MainMenuButtonFx` 가 선택 시 글자색·크기(1.04)를 보간
+- **내비게이션**: 첫 선택 GAME START, 위아래 Explicit(끝에서 처음으로 돈다). 마우스 호버 = 선택. 빈 곳 클릭으로 선택이 비면 마지막 버튼을 다시 선택. 옵션을 닫으면 OPTIONS 선택
+- **임시 동작 (6단계에서 교체)**: GAME START → 연출 없이 `SceneTransition.LoadAsync(gameSceneName)`, QUIT → 확인 없이 종료, 메인에서 Esc → 아무 것도 안 함 (종료 팝업 자리)
+- 디오라마를 다시 만들면(`Rebuild Diorama`) 새 CM_Menu 를 메뉴 컨트롤러에 다시 연결한다
+- 기존 코드 수정: `OptionsPopup.CancelPressed` 공개(메인 메뉴 Esc 판정 공유), `OptionsPopupBuilder` 공용 도우미 internal

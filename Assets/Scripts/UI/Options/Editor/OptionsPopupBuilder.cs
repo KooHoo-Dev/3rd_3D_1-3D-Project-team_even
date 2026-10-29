@@ -2,11 +2,9 @@ using System.IO;
 using HybridShooter.Audio;
 using HybridShooter.Audio.Editor;
 using HybridShooter.Core.Data;
-using HybridShooter.UI.MainMenu;
 using HybridShooter.UI.MainMenu.Editor;
 using TMPro;
 using UnityEditor;
-using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -26,8 +24,8 @@ namespace HybridShooter.UI.Options.Editor
     public static class OptionsPopupBuilder
     {
         private const string Pack = "Assets/ExternalAssets/SCI-FI UI Pack Pro/";
-        private const string Prefabs = Pack + "SCI-FI UI Pack_V2 Pro(Cyan)/Prefabs/";
-        private const string Textures = Pack + "SCI-FI UI Pack_V2 Pro(Cyan)/Textures/DemoScene_Cyan/";
+        internal const string Prefabs = Pack + "SCI-FI UI Pack_V2 Pro(Cyan)/Prefabs/";
+        internal const string Textures = Pack + "SCI-FI UI Pack_V2 Pro(Cyan)/Textures/DemoScene_Cyan/";
         private const string TitleFontPath = Pack + "Common/Fonts/Aldrich-Regular SDF.asset";
         // TODO: StudySample 은 공부용 폴더 → 정식 폰트 폴더로 옮기면 경로만 바꾼다
         private const string KoreanFontPath = "Assets/StudySample/99. External Assets/Font/Noto_Sans_KR/static/NotoSansKR-Regular SDF.asset";
@@ -35,8 +33,8 @@ namespace HybridShooter.UI.Options.Editor
         public const string PopupPath = "Assets/Prefabs/UI/OptionsPopup.prefab";
         public const string TestScenePath = "Assets/Scenes/GU/Test_MainMenu.unity";
 
-        private static readonly Color Cyan = new Color(0.2f, 0.9f, 1f);
-        private static readonly Color TextColor = new Color(0.85f, 0.95f, 1f);
+        internal static readonly Color Cyan = new Color(0.2f, 0.9f, 1f);
+        internal static readonly Color TextColor = new Color(0.85f, 0.95f, 1f);
 
         private static readonly Vector2 WindowSize = new Vector2(1300f, 860f);
         private const float RowHeight = 60f;
@@ -46,7 +44,9 @@ namespace HybridShooter.UI.Options.Editor
         private const float SliderWidth = 560f;
 
         private static TMP_FontAsset titleFont;
+        internal static TMP_FontAsset TitleFont => titleFont;
         private static TMP_FontAsset bodyFont;
+        internal static TMP_FontAsset BodyFont => bodyFont;
 
         // ───────────────────────── 메뉴 ─────────────────────────
 
@@ -72,8 +72,8 @@ namespace HybridShooter.UI.Options.Editor
 
         /// <summary>
         /// 메인 메뉴 작업 씬 (개인 작업 씬 규칙: 완성 전에는 Test_MainMenu):
-        /// 카메라 + EventSystem(InputSystemUIInputModule) + SoundService(믹서, Router 없음) + 캔버스(1920×1080) + 임시 OPTIONS 버튼 + 옵션 팝업
-        /// + 대치 장면 (MainMenuDioramaBuilder)
+        /// 카메라 + EventSystem(InputSystemUIInputModule) + SoundService(믹서, Router 없음)
+        /// + 대치 장면 (MainMenuDioramaBuilder) + 메뉴 UI·옵션 팝업 (MainMenuUIBuilder)
         /// </summary>
         [MenuItem("Tools/MainMenu/Create Test Scene (Test_MainMenu)")]
         public static void CreateTestScene()
@@ -103,19 +103,8 @@ namespace HybridShooter.UI.Options.Editor
             var sound = new GameObject("SoundService", typeof(SoundService));
             SoundServiceMenu.AssignMixer(sound.GetComponent<SoundService>());
 
-            var canvas = CreateCanvas("Canvas");
-
-            // TODO(4단계): 메뉴 UI 가 생기면 이 임시 버튼은 지운다
-            var optionsButton = Instantiate(Prefabs + "Prefabs_Button/Btn_MainMenuCyan.prefab", canvas);
-            optionsButton.name = "Btn_Options (임시)";
-            Place(optionsButton, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(120f, 0f), new Vector2(487f, 107f), new Vector2(0f, 0.5f));
-            SetButtonText(optionsButton, "OPTIONS", titleFont, 40f);
-            optionsButton.AddComponent<MainMenuButtonFx>(); // 호버·클릭 소리
-
-            var popup = (GameObject)PrefabUtility.InstantiatePrefab(popupAsset, canvas);
-            UnityEventTools.AddPersistentListener(optionsButton.GetComponent<Button>().onClick, popup.GetComponent<OptionsPopup>().Open);
-
             MainMenuDioramaBuilder.BuildInScene(camera);
+            MainMenuUIBuilder.BuildInScene(popupAsset); // 디오라마 카메라(CM_Menu)를 연결하므로 디오라마 다음
 
             EnsureFolder(Path.GetDirectoryName(TestScenePath));
             EditorSceneManager.SaveScene(scene, TestScenePath);
@@ -377,7 +366,7 @@ namespace HybridShooter.UI.Options.Editor
 
         // ───────────────────────── 공통 ─────────────────────────
 
-        private static bool LoadFonts()
+        internal static bool LoadFonts()
         {
             titleFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(TitleFontPath);
             bodyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(KoreanFontPath);
@@ -386,7 +375,7 @@ namespace HybridShooter.UI.Options.Editor
             return false;
         }
 
-        private static RectTransform CreateCanvas(string name)
+        internal static RectTransform CreateCanvas(string name)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             go.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
@@ -399,28 +388,28 @@ namespace HybridShooter.UI.Options.Editor
         }
 
         /// <summary>팩 프리팹을 연결된 채로(중첩 프리팹) 넣는다</summary>
-        private static GameObject Instantiate(string path, Transform parent)
+        internal static GameObject Instantiate(string path, Transform parent)
         {
             var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (asset == null) throw new FileNotFoundException("[OptionsPopupBuilder] 프리팹이 없습니다", path);
             return (GameObject)PrefabUtility.InstantiatePrefab(asset, parent);
         }
 
-        private static Sprite LoadSprite(string relativePath)
+        internal static Sprite LoadSprite(string relativePath)
         {
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(Textures + relativePath);
             if (sprite == null) Debug.LogWarning($"[OptionsPopupBuilder] 스프라이트가 없습니다: {relativePath}");
             return sprite;
         }
 
-        private static RectTransform NewRect(string name, Transform parent)
+        internal static RectTransform NewRect(string name, Transform parent)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
             return (RectTransform)go.transform;
         }
 
-        private static TextMeshProUGUI CreateText(Transform parent, string name, string value, TMP_FontAsset font, float size, Color color, TextAlignmentOptions align)
+        internal static TextMeshProUGUI CreateText(Transform parent, string name, string value, TMP_FontAsset font, float size, Color color, TextAlignmentOptions align)
         {
             var rect = NewRect(name, parent);
             var text = rect.gameObject.AddComponent<TextMeshProUGUI>();
@@ -434,7 +423,7 @@ namespace HybridShooter.UI.Options.Editor
             return text;
         }
 
-        private static void SetButtonText(GameObject button, string label, TMP_FontAsset font, float size)
+        internal static void SetButtonText(GameObject button, string label, TMP_FontAsset font, float size)
         {
             var text = button.GetComponentInChildren<TMP_Text>(true);
             if (text == null) return;
@@ -444,7 +433,7 @@ namespace HybridShooter.UI.Options.Editor
             text.fontSize = size;
         }
 
-        private static void Stretch(RectTransform rect)
+        internal static void Stretch(RectTransform rect)
         {
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
@@ -452,7 +441,7 @@ namespace HybridShooter.UI.Options.Editor
             rect.offsetMin = rect.offsetMax = Vector2.zero;
         }
 
-        private static void Place(GameObject go, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size, Vector2? pivot = null)
+        internal static void Place(GameObject go, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size, Vector2? pivot = null)
         {
             var rect = (RectTransform)go.transform;
             rect.anchorMin = anchorMin;
@@ -463,7 +452,7 @@ namespace HybridShooter.UI.Options.Editor
             rect.localScale = Vector3.one;
         }
 
-        private static void Set(SerializedObject so, string property, Object value)
+        internal static void Set(SerializedObject so, string property, Object value)
         {
             var p = so.FindProperty(property);
             if (p == null) Debug.LogError($"[OptionsPopupBuilder] {so.targetObject.GetType().Name}.{property} 가 없습니다");
@@ -477,7 +466,7 @@ namespace HybridShooter.UI.Options.Editor
             for (int i = 0; i < values.Length; i++) p.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         }
 
-        private static void EnsureFolder(string path)
+        internal static void EnsureFolder(string path)
         {
             path = path.Replace('\\', '/');
             if (AssetDatabase.IsValidFolder(path)) return;

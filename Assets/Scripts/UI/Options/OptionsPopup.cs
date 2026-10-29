@@ -153,8 +153,8 @@ namespace HybridShooter.UI.Options
 
         private static bool IsExpanded(TMP_Dropdown dropdown) => dropdown != null && dropdown.IsExpanded;
 
-        /// <summary>EventSystem 의 UI Cancel 액션 (키보드 Esc·패드 B). 모듈이 없으면 Esc 키</summary>
-        private static bool CancelPressed()
+        /// <summary>EventSystem 의 UI Cancel 액션 (키보드 Esc·패드 B). 모듈이 없으면 Esc 키. 메인 메뉴도 같은 판정을 쓴다</summary>
+        public static bool CancelPressed()
         {
             if (EventSystem.current != null && EventSystem.current.currentInputModule is InputSystemUIInputModule module
                 && module.cancel != null && module.cancel.action != null)

@@ -196,6 +196,7 @@ namespace HybridShooter.UI.MainMenu.Editor
             PlaceActors(diorama.transform, prefabs);
 
             SetupCamera(mainCamera, diorama.transform);
+            MainMenuUIBuilder.LinkCamera(Object.FindAnyObjectByType<MenuCameraSway>()); // CM_Menu 를 새로 만들었으므로
         }
 
         /// <summary>
