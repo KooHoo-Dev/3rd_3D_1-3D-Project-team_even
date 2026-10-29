@@ -47,6 +47,14 @@ namespace HybridShooter.Boss
             
             var attackData = DataManager.Clypeosaurus;
 
+            var entrance = GetComponent<EntranceAttack>();
+            entrance.Initialize(attackData, target);
+            
+            if (entrance.TryStart() == false)
+            {
+                Debug.LogError("[Boss] 등장 공격 시작 실패. 초기화·NavMesh를 확인해주세요.", this);
+            }
+            
             var stomp = GetComponent<StompAttack>();
             stomp.Initialize(attackData, target);
 
