@@ -1,6 +1,5 @@
 using System;
 using HybridShooter.Core.Contracts;
-using HybridShooter.Core.Data;
 
 namespace HybridShooter.Monster.Behaviour
 {
@@ -11,7 +10,7 @@ namespace HybridShooter.Monster.Behaviour
     /// </summary>
     public sealed class StrikeAttack : MonsterAttack
     {
-        private readonly IHitArea area; // Melee 가 아닌 모양의 판정 범위. Melee 는 판정 때 HitRangeRatio 로 새로 만든다
+        private readonly IHitArea area; // 생성 때 1번 만든 판정 범위. Melee 면 판정 전에 반경을 HitRangeRatio 로 맞춘다
 
         /// <summary>
         /// MonsterAttackFactory 가 Melee 역할에 만든다. spec 의 Shape 로 판정 범위를 1번 만들어 둔다.
@@ -30,17 +29,19 @@ namespace HybridShooter.Monster.Behaviour
         /// <returns>항상 true (동작 완료)</returns>
         protected override bool OnActive(float now, float deltaTime)
         {
-            if (HitAreaForThisHit().Contains(Body.Position, Body.Forward, Target.PlayerTrackingInfo.Position))
+            ApplyHitRangeRatio();
+            if (area.Contains(Body.Position, Body.Forward, Target.PlayerTrackingInfo.Position))
                 Hit(Target, Body.Position);
             return true;
         }
 
-        /// <summary>이번 판정에 쓸 범위. OnActive 가 판정 순간에 부른다</summary>
-        /// <returns>Melee = 반경 Spec.Range × HitRangeRatio 범위, 그 밖의 모양 = 생성 때 만든 범위</returns>
-        private IHitArea HitAreaForThisHit()
+        /// <summary>
+        /// Melee 범위의 반경을 진입 거리(Spec.Range) × HitRangeRatio 로 맞춘다. OnActive 가 판정 직전에 부른다.
+        /// HitRangeRatio 는 생성 뒤 MonsterController 가 넣고 인스펙터에서 바뀔 수 있어 판정 때마다 맞춘다. 다른 모양은 그대로 둔다.
+        /// </summary>
+        private void ApplyHitRangeRatio()
         {
-            if (Spec.Shape == AttackShape.Melee) return new MeleeArea(Spec.Range * HitRangeRatio);
-            return area;
+            if (area is MeleeArea meleeArea) meleeArea.Range = Spec.Range * HitRangeRatio;
         }
     }
 }
