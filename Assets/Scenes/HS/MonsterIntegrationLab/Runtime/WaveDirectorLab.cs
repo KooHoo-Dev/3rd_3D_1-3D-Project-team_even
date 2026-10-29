@@ -1,11 +1,12 @@
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
+using HybridShooter.Monster.Behaviour;
 using UnityEngine;
 
 namespace Scenes.HS.MonsterIntegrationLab.Runtime
 {
     /// <summary>
-    /// 테스트 전용. 라운드 매니저가 이벤트를 내기 전에, 라운드 시작·정리·보스전 전이 이벤트를 손으로 발행해 MonsterWaveDirector 의 라운드 진행을 본다.
+    /// 테스트 전용. 시퀀서 대신 웨이브 시작·중단을 직접 호출한다. 알림 이벤트는 다른 파트의 테스트용이다.
     /// Inspector 메뉴(ContextMenu)만 쓴다. F 키는 쓰지 않는다 (다른 Lab 과 겹침).
     /// </summary>
     /// <remarks>
@@ -14,11 +15,19 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
     /// </remarks>
     public sealed class WaveDirectorLab : MonoBehaviour
     {
-        /// <summary>RoundStartedEvent(1) 을 발행한다. MonsterWaveDirector 가 라운드 1 을 0초부터 시작한다</summary>
+        [SerializeField] private MonsterWaveDirector director;
+
+        private void Awake()
+        {
+            if (director == null) director = FindAnyObjectByType<MonsterWaveDirector>();
+        }
+
+        /// <summary>MonsterWaveDirector의 1라운드를 직접 시작하고, 다른 파트에 시작을 알린다.</summary>
         [ContextMenu("라운드 1 시작")]
         public void StartRound1()
         {
             EventBus<RoundStartedEvent>.Publish(new RoundStartedEvent(1, null));
+            if (director != null) director.StartRound(1);
             Debug.Log("[WaveDirectorLab] 라운드 1 시작 발행", this);
         }
 
@@ -30,10 +39,11 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
             Debug.Log("[WaveDirectorLab] 라운드 정리 발행", this);
         }
 
-        /// <summary>CrowdBattle → BossIntro 상태 변화를 발행한다. 남은 군중 소환이 멈추고 몬스터는 남는다</summary>
+        /// <summary>시퀀서 대신 StopRound를 직접 호출하고 보스전 전이를 알린다.</summary>
         [ContextMenu("보스전 전이")]
         public void EnterBossIntro()
         {
+            if (director != null) director.StopRound();
             EventBus<GameStateChangedEvent>.Publish(new GameStateChangedEvent(GameState.CrowdBattle, GameState.BossIntro));
             Debug.Log("[WaveDirectorLab] 보스전 전이 발행", this);
         }

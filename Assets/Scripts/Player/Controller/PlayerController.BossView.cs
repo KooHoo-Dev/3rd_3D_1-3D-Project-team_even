@@ -54,6 +54,7 @@ namespace HybridShooter.Player
 
         private void OnGameStateChanged(GameStateChangedEvent e)
         {
+            SetFlowInputBlocked(e.Current == GameState.Ready || e.Current == GameState.Reward || e.Current == GameState.GameOver || e.Current == GameState.Paused);
             if (e.Current == GameState.BossIntro) EnterBossView();
             else if (e.Current == GameState.Ready || e.Current == GameState.CrowdBattle) ExitBossView();
         }
