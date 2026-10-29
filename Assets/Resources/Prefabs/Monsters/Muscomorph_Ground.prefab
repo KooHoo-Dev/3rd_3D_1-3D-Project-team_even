@@ -1980,6 +1980,7 @@ MonoBehaviour:
   idleSpeedThreshold: 0.1
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
+  activeSeconds: 0.5
   hitTimeRatio: 0.5
   windupTurnSpeed: 360
 --- !u!114 &3673681119355232943
@@ -2015,10 +2016,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.2503649
-  m_Height: 0.65484333
+  m_Radius: 0.62
+  m_Height: 1.6548433
   m_Direction: 1
-  m_Center: {x: 0.010138631, y: 0.53683877, z: 0}
+  m_Center: {x: 0.010138631, y: 0.74, z: 0}
 --- !u!1 &7960356510021968820
 GameObject:
   m_ObjectHideFlags: 0

@@ -351,6 +351,8 @@ namespace HybridShooter.Player
         /// <summary>처음부터 재시작이면 개수 초기화. 다음 라운드 진행이면 유지 (BL-032, BL-033)</summary>
         private void OnRoundCleanup(RoundCleanupEvent evt)
         {
+            throwing = false;
+            StopHeal();
             if (evt.FullReset == false) return;
             ResetCounts();
             RefreshStats();
