@@ -77,7 +77,7 @@
 | GradeId | int | MonsterGradeTable |
 | Role | enum | `Melee` / `Air` / `Rusher` / `Infiltrator` / `ZonePressure` / `Boss` (Boss 는 Grade Boss 와 함께) |
 | MaxHp | int | |
-| MoveSpeed / RunSpeed | float | 이동 / 질주 (m/s), RunSpeed >= MoveSpeed |
+| MoveSpeed | float | 이동 속도 (m/s) |
 | DetectRange | float | 탐지 거리(m), -1 = 전장 전체 |
 | BodyScale / Height | float | 프리팹 스케일 / 신장(m) |
 | FlyHeight | float | 비행 고도(m). Air 역할만 0 초과 (`IsFlying` = Role Air) |
