@@ -1909,6 +1909,7 @@ MonoBehaviour:
   hover: 0
   hoverAmplitude: 0.3
   hoverPeriod: 3
+  emissionBoost: 2.5
   threatSoundKey: mon_giant_slug_idle
 --- !u!1 &6902163884310504097
 GameObject:

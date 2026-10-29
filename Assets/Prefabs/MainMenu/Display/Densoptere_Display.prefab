@@ -1583,6 +1583,7 @@ MonoBehaviour:
   hover: 1
   hoverAmplitude: 0.3
   hoverPeriod: 3
+  emissionBoost: 2.5
   threatSoundKey: mon_densoptere_idle
 --- !u!1 &7695799694132883307
 GameObject:

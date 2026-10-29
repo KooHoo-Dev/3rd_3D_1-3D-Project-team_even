@@ -19,7 +19,7 @@ namespace HybridShooter.UI.MainMenu.Editor
     ///     게임 프리팹이 없는 종류(부포모프·덴솝테르)는 에셋 팩 프리팹을 그대로 쓴다
     ///  2) 씬: Environment(인게임 맵 대신 같은 땅 텍스처의 바닥·바위 + 인게임과 같은 하늘·조명 + 원경 안개·포스트프로세싱
     ///     + 바닥 안개·불씨 파티클·원경 섬광 + 호버 연출용 볼륨) + Diorama(플레이어·몬스터 무리·원경 보스 + MenuBackdropDirector) + CM_Menu 카메라
-    /// 배치는 고정 시드라 다시 만들어도 같다. 구도·수치는 아래 상수에서 조정
+    /// 몬스터 배치는 씬에서 직접 옮긴 결과를 Placements 표로 고정해 두었다 (다시 만들어도 같다). 구도·수치는 아래 상수에서 조정
     /// </summary>
     public static class MainMenuDioramaBuilder
     {
@@ -40,13 +40,13 @@ namespace HybridShooter.UI.MainMenu.Editor
         private const string NoisePath = "Packages/com.unity.cinemachine/Presets/Noise/Handheld_normal_mild.asset";
         private const string MonsterPack = "Assets/ExternalAssets/Monsters Full Pack Vol 1/";
         private const string GamePrefabs = "Assets/Resources/Prefabs/Monsters/";
-        private const int Seed = 1028;
 
         // 디오라마 기준(플레이어 발밑) 좌표. +Z = 몬스터 쪽
         private static readonly Vector3 CameraPosition = new Vector3(0.75f, 1.7f, -2.4f);
         private static readonly Vector3 CameraTarget = new Vector3(2.5f, 1.4f, 16f);
         private const float CameraFov = 45f;
         private static readonly Vector3 BossPosition = new Vector3(6f, 0f, 50f);
+        private const float BossYaw = -169.45f;
 
         /// <summary>원경 섬광 위치 후보 (몬스터 무리 너머 양옆·정면, 안개 속)</summary>
         private static readonly Vector3[] FlashPoints =
@@ -145,22 +145,37 @@ namespace HybridShooter.UI.MainMenu.Editor
         };
 
         /// <summary>
-        /// 무리 구성: 종류, 마리 수, 플레이어로부터 거리(고리), 비행 높이(0 = 지상), 차지하는 반지름(m).
-        /// 플레이어를 부채꼴 고리로 포위하고, 작은 것(무스코모프·부포모프)이 안쪽, 크기 순으로 바깥 고리 (원경에 보스)
+        /// 몬스터 배치: 종류, 위치(플레이어 발밑 기준, 비행형은 y = 높이), 방향(Y 회전, 도).
+        /// 2026-10-29 씬(Test_MainMenu)에서 직접 옮긴 배치 — 작은 무스코모프가 바로 앞, 큰 것일수록 뒤.
+        /// 씬에서 다시 옮기면 이 표를 그 값으로 바꾼다 (부포모프는 지금 배치에 없음, 표에 넣으면 바로 쓸 수 있다)
         /// </summary>
-        private static readonly (ActorSpec Spec, int Count, Vector2 Distance, Vector2 Height, float Radius)[] Crowd =
+        private static readonly (ActorSpec Spec, Vector3 Position, float Yaw)[] Placements =
         {
-            (MuscomorphGround, 9, new Vector2(7f, 12f), Vector2.zero, 1.0f),
-            (Bufomorph, 9, new Vector2(9f, 14f), Vector2.zero, 0.9f),
-            (Pardathrox, 4, new Vector2(15f, 20f), Vector2.zero, 1.8f),
-            (Letalobrach, 3, new Vector2(19f, 25f), Vector2.zero, 2.2f),
-            (GiantSlug, 3, new Vector2(24f, 31f), Vector2.zero, 2.5f),
-            (MuscomorphAir, 4, new Vector2(8f, 14f), new Vector2(3f, 5.5f), 1.2f),
-            (Densoptere, 3, new Vector2(15f, 26f), new Vector2(4.5f, 8f), 1.4f),
+            (MuscomorphGround, new Vector3(5.47f, 0f, 4.67f), -125.04f),
+            (MuscomorphGround, new Vector3(-5.51f, 0f, 4.97f), 133.52f),
+            (MuscomorphGround, new Vector3(0.83f, 0f, 7.82f), 177.88f),
+            (MuscomorphGround, new Vector3(7.98f, 0f, 3.38f), -102.71f),
+            (MuscomorphGround, new Vector3(6.11f, 0f, 6.95f), -142.81f),
+            (MuscomorphGround, new Vector3(3.82f, 0f, 8.66f), -144.42f),
+            (MuscomorphGround, new Vector3(-2.57f, 0f, 9.93f), 154.48f),
+            (MuscomorphGround, new Vector3(-0.28f, 0f, 10.59f), -174.99f),
+            (MuscomorphGround, new Vector3(2.97f, 0f, 11.43f), -168.08f),
+            (Pardathrox, new Vector3(15.76f, 0f, 7.5f), -109.9f),
+            (Pardathrox, new Vector3(6.99f, 0f, 17.74f), -168.7f),
+            (Pardathrox, new Vector3(-2f, 0f, 19.4f), -177.15f),
+            (Pardathrox, new Vector3(-12.21f, 0f, 15.72f), 152.79f),
+            (Letalobrach, new Vector3(14.19f, 0f, 15.03f), -148.18f),
+            (Letalobrach, new Vector3(-6.48f, 0f, 23.1f), 163.12f),
+            (Letalobrach, new Vector3(22.67f, 0f, 9.14f), -109.56f),
+            (GiantSlug, new Vector3(-14.8f, 0f, 27.9f), 153.7f),
+            (MuscomorphAir, new Vector3(-4.42f, 4.54f, 7.62f), 158.84f),
+            (MuscomorphAir, new Vector3(9.78f, 3.83f, 5.13f), -108.12f),
+            (MuscomorphAir, new Vector3(-11.48f, 4.22f, 6.74f), 126.7f),
+            (MuscomorphAir, new Vector3(-1.22f, 4.18f, 13.81f), -174.09f),
+            (Densoptere, new Vector3(-4.59f, 6.67f, 16.23f), 172.6f),
+            (Densoptere, new Vector3(-15.66f, 7.55f, 14.31f), 120.61f),
+            (Densoptere, new Vector3(11.9f, 5.01f, 26f), 174.78f),
         };
-
-        /// <summary>포위 부채꼴 각도(도, 0 = 정면 +Z, + = 오른쪽). 화면 양 끝까지 차도록 시야보다 조금 넓게</summary>
-        private static readonly Vector2 ArcAngles = new Vector2(-60f, 70f);
 
         // ───────────────────────── 메뉴 ─────────────────────────
 
@@ -558,61 +573,18 @@ namespace HybridShooter.UI.MainMenu.Editor
             return director;
         }
 
-        /// <summary>플레이어(기준점) + 고정 시드로 흩뿌린 몬스터 무리 + 원경 보스</summary>
+        /// <summary>플레이어(기준점) + 몬스터 무리(Placements) + 원경 보스</summary>
         private static void PlaceActors(Transform diorama, Dictionary<ActorSpec, GameObject> prefabs)
         {
             Spawn(prefabs[Player], diorama, Vector3.zero, Quaternion.identity);
 
-            var rng = new System.Random(Seed);
-            var placed = new List<(Vector3 Position, float Radius)> { (Vector3.zero, 5f) }; // 플레이어 주변은 비워 둔다
             var crowd = new GameObject("Crowd").transform;
             crowd.SetParent(diorama, false);
+            foreach (var (spec, position, yaw) in Placements)
+                Spawn(prefabs[spec], crowd, position, Quaternion.Euler(0f, yaw, 0f));
 
-            foreach (var group in Crowd)
-            {
-                for (int i = 0; i < group.Count; i++)
-                {
-                    if (TryPick(rng, group.Distance, group.Radius, placed, out var p) == false) continue;
-                    placed.Add((p, group.Radius));
-                    float height = group.Height == Vector2.zero ? 0f : Lerp(rng, group.Height);
-                    Spawn(prefabs[group.Spec], crowd, p + Vector3.up * height, FacePlayer(p, rng));
-                }
-            }
-
-            Spawn(prefabs[Boss], diorama, BossPosition, FacePlayer(BossPosition, rng));
+            Spawn(prefabs[Boss], diorama, BossPosition, Quaternion.Euler(0f, BossYaw, 0f));
         }
-
-        /// <summary>플레이어 둘레 부채꼴(ArcAngles) 고리(distance) 안에서 다른 개체와 겹치지 않는 자리</summary>
-        private static bool TryPick(System.Random rng, Vector2 distance, float radius, List<(Vector3 Position, float Radius)> placed, out Vector3 position)
-        {
-            for (int attempt = 0; attempt < 40; attempt++)
-            {
-                float angle = Lerp(rng, ArcAngles) * Mathf.Deg2Rad;
-                float r = Lerp(rng, distance);
-                position = new Vector3(Mathf.Sin(angle) * r, 0f, Mathf.Cos(angle) * r);
-
-                bool free = true;
-                foreach (var other in placed)
-                {
-                    var d = position - other.Position;
-                    d.y = 0f;
-                    if (d.magnitude < radius + other.Radius) { free = false; break; }
-                }
-                if (free) return true;
-            }
-            position = default;
-            return false;
-        }
-
-        private static Quaternion FacePlayer(Vector3 position, System.Random rng)
-        {
-            var toPlayer = -position;
-            toPlayer.y = 0f;
-            float jitter = Lerp(rng, new Vector2(-12f, 12f));
-            return Quaternion.LookRotation(toPlayer.sqrMagnitude > 0.01f ? toPlayer : Vector3.back) * Quaternion.Euler(0f, jitter, 0f);
-        }
-
-        private static float Lerp(System.Random rng, Vector2 range) => Mathf.Lerp(range.x, range.y, (float)rng.NextDouble());
 
         /// <summary>바닥(y = 0) 위에, 비행형은 local.y 높이에 놓는다</summary>
         private static void Spawn(GameObject prefab, Transform parent, Vector3 local, Quaternion rotation)
@@ -656,9 +628,10 @@ namespace HybridShooter.UI.MainMenu.Editor
         {
             EnsureFolder(DisplayFolder);
             var result = new Dictionary<ActorSpec, GameObject>();
-            var specs = new List<ActorSpec> { Player, Boss };
-            foreach (var group in Crowd)
-                if (specs.Contains(group.Spec) == false) specs.Add(group.Spec);
+            // 부포모프는 지금 배치에 없지만 Placements 에 넣으면 바로 쓸 수 있게 함께 만든다
+            var specs = new List<ActorSpec> { Player, Boss, Bufomorph };
+            foreach (var placement in Placements)
+                if (specs.Contains(placement.Spec) == false) specs.Add(placement.Spec);
 
             foreach (var spec in specs) result[spec] = BuildDisplayPrefab(spec);
             return result;

@@ -1008,6 +1008,7 @@ MonoBehaviour:
   hover: 0
   hoverAmplitude: 0.3
   hoverPeriod: 3
+  emissionBoost: 2.5
   threatSoundKey: mon_pardathrox_idle
 --- !u!1 &4287257498315696856
 GameObject:

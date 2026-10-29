@@ -1921,6 +1921,7 @@ MonoBehaviour:
   hover: 1
   hoverAmplitude: 0.3
   hoverPeriod: 3
+  emissionBoost: 2.5
   threatSoundKey: mon_muscomorph_fly_idle
 --- !u!1 &6297811944842524065
 GameObject:

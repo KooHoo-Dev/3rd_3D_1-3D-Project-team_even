@@ -3429,6 +3429,7 @@ MonoBehaviour:
   hover: 0
   hoverAmplitude: 0.3
   hoverPeriod: 3
+  emissionBoost: 2.5
   threatSoundKey: mon_clypeosaurus_shout
 --- !u!1 &9092124615118426994
 GameObject:

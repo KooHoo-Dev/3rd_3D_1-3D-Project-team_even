@@ -555,6 +555,7 @@ MonoBehaviour:
   hover: 0
   hoverAmplitude: 0.3
   hoverPeriod: 3
+  emissionBoost: 2.5
   threatSoundKey: mon_letalobrach_idle
 --- !u!1 &4005362763634428128
 GameObject:

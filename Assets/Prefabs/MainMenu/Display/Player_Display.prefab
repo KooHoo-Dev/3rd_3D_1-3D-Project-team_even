@@ -8502,6 +8502,7 @@ MonoBehaviour:
   hover: 0
   hoverAmplitude: 0.3
   hoverPeriod: 3
+  emissionBoost: 1
   threatSoundKey: 
 --- !u!1 &5955487372831300530
 GameObject:
