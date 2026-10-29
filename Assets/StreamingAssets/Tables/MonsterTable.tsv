@@ -1,5 +1,5 @@
 Id	Key	Name	GradeId	Role	MaxHp	MoveSpeed	RunSpeed	DetectRange	BodyScale	Height	FlyHeight	MeshVariant	Reward	PrefabKey	IdleSfxKey	LoopSfxKey	DeathSfxKey	StunSfxKey	HiddenSfxKey
-# Role: Melee/Air/Rusher/Infiltrator/ZonePressure/Boss (Boss 는 GradeId 3 과 일치)  ·  DetectRange -1 = 전장 전체  ·  FlyHeight 0 = 지상, Air 역할은 0 초과  ·  SfxKey: SoundTable.Key, 빈칸 = 없음  ·  StunSfxKey: 기절 시작(돌진 벽 충돌)에 재생  ·  HiddenSfxKey: 기습형 — 있으면 플레이어 근처에서 울지 않고, 근처·시야 밖일 때 공격 전 1번 재생
+# Role: Melee/Air/Rusher/Infiltrator/ZonePressure/Boss/SelfDestruct (Boss 는 GradeId 3 과 일치)  ·  DetectRange -1 = 전장 전체  ·  FlyHeight 0 = 지상, Air 역할은 0 초과  ·  SfxKey: SoundTable.Key, 빈칸 = 없음  ·  StunSfxKey: 기절 시작(돌진 벽 충돌)에 재생  ·  HiddenSfxKey: 기습형 — 있으면 플레이어 근처에서 울지 않고, 근처·시야 밖일 때 공격 전 1번 재생
 # MeshVariant: Default/WingsOff/WingsOn  ·  방어도 없음: 피해 = 무기 Damage × 부위 DamageMultiplier  ·  Id 대역: 일반체 1001~, 중간체 2001~, 보스 3001
 1001	bufomorph	부포모프	1	Melee	20	3.5	4.5	25	0.8	0.9	0	Default	1	Prefabs/Monsters/Bufomorph	mon_bufomorph_idle		mon_bufomorph_death		
 1002	muscomorph_ground	무스코모프 · 육상	1	Melee	20	3	5	25	0.8	0.8	0	WingsOff	1	Prefabs/Monsters/Muscomorph_Ground	mon_muscomorph_idle	mon_muscomorph_walk_loop	mon_muscomorph_death		
@@ -18,3 +18,5 @@ Id	Key	Name	GradeId	Role	MaxHp	MoveSpeed	RunSpeed	DetectRange	BodyScale	Height	F
 2101	letalobrach_elite	레탈로브라크 · 강화	2	Rusher	144	3.45	8.625	30	1.6	2	0	Default	20	Prefabs/Monsters/Letalobrach_Elite	mon_letalobrach_idle		mon_letalobrach_death	mon_letalobrach_groggy	
 2102	pardathrox_elite	파르다트록스 · 강화	2	Infiltrator	126	5.175	9.775	60	1.4	2.2	0	Default	20	Prefabs/Monsters/Pardathrox_Elite	mon_pardathrox_idle		mon_pardathrox_death		mon_pardathrox_vanish
 2103	giant_slug_elite	자이언트 슬러그 · 강화	2	ZonePressure	135	1.725	2.3	45	1.2	1.4	0	Default	20	Prefabs/Monsters/GiantSlug_Elite	mon_giant_slug_idle	mon_giant_slug_move_loop	mon_giant_slug_death		
+# 부포모프 자폭형: 접근 → 예고 → 자기 중심 폭발 → 보상 없이 사망
+1005	bufomorph_suicide	부포모프 · 자폭	1	SelfDestruct	18	4.2	6	25	0.8	0.9	0	Default	2	Prefabs/Monsters/Bufomorph_Suicide	mon_bufomorph_idle		mon_bufomorph_death		

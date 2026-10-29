@@ -33,6 +33,17 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [Test]
+        public void SelfDestructGetsCenteredExplosion()
+        {
+            var blast = new AttackSpec(AttackShape.Circle, 25, 1, 2f, 1.2f, 0f, 2.2f, radius: 3.5f);
+            var attack = MonsterAttackFactory.CreateAttack(MonsterRole.SelfDestruct, blast, body,
+                                                          t => (IDamageable)t, default, null, null);
+            Assert.IsInstanceOf<SelfDestructAttack>(attack);
+            Assert.AreEqual(2.2f, attack.Range);
+            Assert.AreEqual(AfterAttack.Die, attack.After);
+        }
+
+        [Test]
         public void ZonePressureGetsPoisonAreaAttack()
         {
             var mortar = new AttackSpec(AttackShape.Circle, 6, 1, 10f, 1.5f, 1f, 25f,

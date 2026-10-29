@@ -394,6 +394,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="grantReward">true = 처치 보상 지급. MonsterDiedEvent 로 그대로 전달한다</param>
         private void OnStateMachineDied(bool grantReward)
         {
+            CurrentHp = 0; // 자폭처럼 체력 피해 없이 Dead 로 들어오는 경우에도 IsAlive 를 일치시킨다.
             StateMachine.SetTarget(null);
             foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = false; // 시체는 피격 판정 없음
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null

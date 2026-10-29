@@ -8,7 +8,7 @@ namespace HybridShooter.Core.Data
     public enum MonsterGrade { Weak, Mid, Boss }
 
     /// <summary>몬스터 AI 역할. Boss 는 Grade 가 Boss 인 몬스터에만 쓴다</summary>
-    public enum MonsterRole { Melee, Air, Rusher, Infiltrator, ZonePressure, Boss }
+    public enum MonsterRole { Melee, Air, Rusher, Infiltrator, ZonePressure, Boss, SelfDestruct }
 
     /// <summary>같은 프리팹의 메시 변종 (무스코모프 날개 ON/OFF)</summary>
     public enum MeshVariant { Default, WingsOff, WingsOn }

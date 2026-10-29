@@ -77,7 +77,7 @@
 |---|---|---|
 | Key / Name | string | 식별 키 / 한글명 |
 | GradeId | int | MonsterGradeTable |
-| Role | enum | `Melee` / `Air` / `Rusher` / `Infiltrator` / `ZonePressure` / `Boss` (Boss 는 Grade Boss 와 함께) |
+| Role | enum | `Melee` / `Air` / `Rusher` / `Infiltrator` / `ZonePressure` / `Boss` / `SelfDestruct` (Boss 는 Grade Boss 와 함께). SelfDestruct는 접근 후 예고·폭발하고 보상 없이 사망하며, 먼저 처치하면 정상 보상을 지급한다. 공격 Range는 접근 거리, Radius는 자기 중심 폭발 반경 |
 | MaxHp | int | |
 | MoveSpeed / RunSpeed | float | 이동 / 질주 (m/s), RunSpeed >= MoveSpeed |
 | DetectRange | float | 탐지 거리(m), -1 = 전장 전체 |
