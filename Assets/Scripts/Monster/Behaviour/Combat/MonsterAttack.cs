@@ -60,8 +60,8 @@ namespace HybridShooter.Monster.Behaviour
         public float WallHitStunTime => Spec.WallHitStunTime;
 
         // ── 공격 뒤 행동 (공통 상태가 읽는 값. 하위 클래스가 바꾼다) ──
-        // 정상 완료 뒤 갈 곳. 기본 = Attack 에 머문다
-        public virtual AfterAttack After => AfterAttack.StayInAttack;
+        // 정상 완료 뒤 갈 곳. 기본 = 쿨다운 동안 Chase 로 슬롯까지 이동
+        public virtual AfterAttack After => AfterAttack.ChaseUntilReady;
 
         // Idle 휴식 중 준비 동작이 끝났으면 true. 준비 동작이 없는 공격은 항상 true
         public virtual bool IsPrepared => true;
