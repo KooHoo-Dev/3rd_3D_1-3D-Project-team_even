@@ -437,8 +437,8 @@ MonoBehaviour:
   repathDistance: 0.5
   minRepathInterval: 0.25
   sampleRadius: 4
-  engagedPriority: 30
-  defaultPriority: 60
+  engagedPriority: 40
+  defaultPriority: 50
 --- !u!114 &-716610186761490424
 MonoBehaviour:
   m_ObjectHideFlags: 0

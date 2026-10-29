@@ -127,11 +127,14 @@ namespace HybridShooter.Monster.Behaviour
         private void AssembleStateMachine()
         {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
-            var body = new MonsterBody(transform, GetComponent<NavMeshMoveExecutor>());
+            var navMeshExecutor = GetComponent<NavMeshMoveExecutor>();
+            var chargeSettings = GetComponent<ChargeSettings>();
+            var body = new MonsterBody(transform, navMeshExecutor);
             var attackSettings = new MonsterAttackSettings(GetComponent<PoisonAreaSettings>(),
                                                           GetComponent<PounceSettings>(),
-                                                          GetComponent<ChargeSettings>(),
+                                                          chargeSettings,
                                                           GetComponent<DiveSettings>());
+            if (chargeSettings != null) navMeshExecutor.FixAvoidancePriority(chargeSettings.AvoidancePriority); // 돌진형은 슬롯 규칙 대신 고정 우선순위
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
             var attacks = new List<MonsterAttack>();
             foreach (MonsterAttackDef attackDef in BasicAttackDefs(Def))
