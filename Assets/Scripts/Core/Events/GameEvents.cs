@@ -123,10 +123,20 @@ namespace HybridShooter.Core.Events
     }
 
     // ── 무기 (E2) ──  [무기] → UI(HUD)·사운드
+    /// <summary>
+    /// 지금 든 총의 탄약. 탄창 안 탄약(Magazine / MagazineSize)과 예비 탄창 개수(SpareMagazines / MaxMagazines)는 별개.
+    /// InfiniteMagazines 면 예비 탄창이 줄지 않는다 (권총 등)
+    /// </summary>
     public readonly struct AmmoChangedEvent
     {
         public readonly int Magazine, MagazineSize;
-        public AmmoChangedEvent(int magazine, int magazineSize) { Magazine = magazine; MagazineSize = magazineSize; }
+        public readonly int SpareMagazines, MaxMagazines;
+        public readonly bool InfiniteMagazines;
+        public AmmoChangedEvent(int magazine, int magazineSize, int spareMagazines, int maxMagazines, bool infiniteMagazines)
+        {
+            Magazine = magazine; MagazineSize = magazineSize;
+            SpareMagazines = spareMagazines; MaxMagazines = maxMagazines; InfiniteMagazines = infiniteMagazines;
+        }
     }
 
     public readonly struct WeaponFiredEvent
@@ -143,7 +153,11 @@ namespace HybridShooter.Core.Events
         public ReloadStartedEvent(float duration) { Duration = duration; }
     }
 
+    /// <summary>재장전 종료. 완료(탄창 충전)와 취소(구르기·피격 등, 탄·예비 탄창 변화 없음) 공통</summary>
     public readonly struct ReloadFinishedEvent { }
+
+    /// <summary>예비 탄창이 없어 재장전할 수 없을 때 (UI 경고용)</summary>
+    public readonly struct ReloadDeniedEvent { }
 
     /// <summary>[플레이어] → UI. 회복 팩 보유 개수 변화 (BL-019)</summary>
     public readonly struct HealPackCountChangedEvent

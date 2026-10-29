@@ -97,7 +97,7 @@ flowchart TB
 | `PlayerFinalDeathEvent` (최종 사망) | 플레이어 | **코어(게임오버)**, UI |
 | `PlayerLivesChangedEvent(Current, Max)` | 플레이어 | UI (목숨 표시) |
 | `CameraModeChangedEvent(Mode, IsComplete)` | 플레이어 | 보스(전환 완료 후 등장 공격), UI |
-| `AmmoChangedEvent`, `WeaponFiredEvent`, `ReloadStarted/FinishedEvent` | 무기 | UI(HUD) (발사·재장전 소리는 Gun 이 직접 재생) |
+| `AmmoChangedEvent`, `WeaponFiredEvent`, `ReloadStarted/Finished/DeniedEvent` | 무기 | UI(HUD) (발사·재장전 소리는 Gun 이 직접 재생) |
 | `GrenadeCountChangedEvent`, `GrenadeExplodedEvent` | 무기 | UI, 몬스터(돌진형 유인 아이디어) |
 | `HealPackCountChangedEvent` | 플레이어 | UI |
 | `DamageDealtEvent` | 피해를 준 쪽 — **아직 발행처 없음** (발행 위치는 몬스터 담당과 합의 필요) | UI(히트마커), 몬스터 피격 연출, 사운드(타격음·히트마커 — 처치한 발은 히트마커 없음) |

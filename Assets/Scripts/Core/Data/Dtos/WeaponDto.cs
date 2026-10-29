@@ -12,6 +12,8 @@ namespace HybridShooter.Core.Data.Dtos
         public int Damage;
         public float FireRate;  // RPM
         public int MagazineSize;
+        public int StartMagazines;  // 시작 예비 탄창 개수
+        public int MaxMagazines;  // 최대 예비 탄창 개수 (탄창 단위)
         public float ReloadTime;
         public float Range;
         public float SpreadAngle;

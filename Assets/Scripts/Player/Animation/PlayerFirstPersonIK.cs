@@ -22,6 +22,9 @@ namespace HybridShooter.Player
     ///    (가중치 = elbowWeight × 손 IK 가중치 → 3인칭·반동·재장전·던지기에는 영향 없음)
     ///  - 총별 값은 WeaponGripTable(fpHipSight, adsDistance), 없으면 여기 기본값. IK Pose Lab 에서 1인칭으로 보며 고친다
     ///  - 가중치 = 1인칭 정도(시점 전환 중 부드럽게) × 상체 자세 레이어 × 팔 동작 없음 (재장전·꺼내기는 애니메이션 그대로)
+    ///  - 몸 내리기: 점프 동작은 골반을 위로 올리는데(클립 Root Y 가 포즈에 들어감) 눈은 루트 기준 고정이라 목·어깨가 카메라를 가린다.
+    ///    그래서 손 목표를 정하기 전에(FBBIK 전) 목이 눈보다 minNeckBelowEye 만큼 아래 오도록 골반째 몸 전체를 내린다 (× 1인칭 정도, 3인칭은 그대로).
+    ///    총이 없어도 한다. 측정: Tools/HybridShooter/First Person Aim Test/Run Jump
     /// 실행 순서: AimIK(9997, 척추가 시선을 따라감) → 이 스크립트(9998, 손 목표) → FullBodyBipedIK(9999)
     /// </summary>
     [DisallowMultipleComponent]
@@ -64,12 +67,19 @@ namespace HybridShooter.Player
         [Tooltip("오른손 목표가 FBBIK 전 어깨에서 팔 길이 × 이 값보다 멀면 총을 시선 축을 따라 몸 쪽으로 당긴다. 0 = 끔")]
         [SerializeField, Range(0f, 1f)] private float maxReachRatio = 0.95f;
 
+        [Header("몸 내리기 (점프 등)")]
+        [Tooltip("목 뼈가 1인칭 눈보다 최소 이만큼(m) 아래 있게 한다. 모자라면 FBBIK 전에 몸 전체를 그만큼 내린다 (× 1인칭 정도). 0 = 끔.\n" +
+                 "서 있을 때 눈-목 높이 차(점프 측정 summary 의 지상 값)보다 작게 둔다")]
+        [SerializeField] private float minNeckBelowEye = 0.1f;
+
         private const float MinReachSightDistance = 0.05f; // 도달 당김으로 당겨도 조준기는 눈에서 이만큼 앞에
         private readonly RaycastHit[] hits = new RaycastHit[8];
         private float wallPull;
         private float wallPullVelocity;
         private Transform rightElbowGoal;
         private Transform leftElbowGoal;
+        private Transform hips;
+        private Transform neck;
 
         /// <summary>지금 1인칭 손 IK 가중치</summary>
         public float Weight { get; private set; }
@@ -91,6 +101,14 @@ namespace HybridShooter.Player
         public float ReachPull { get; private set; }
         /// <summary>디버그(1인칭 조준 측정): null 이 아니면 maxReachRatio 대신 이 값 (0 = 도달 당김 끔)</summary>
         public float? DebugMaxReachRatio { get; set; }
+        /// <summary>몸 내리기: 이번 프레임 몸을 내린 거리(m)</summary>
+        public float BodyDrop { get; private set; }
+        /// <summary>몸 내리기 전 눈 - 목 높이 차(m). 애니메이션·AimIK 까지의 자세</summary>
+        public float NeckBelowEyeBeforeDrop { get; private set; }
+        /// <summary>디버그(점프 측정): null 이 아니면 minNeckBelowEye 대신 이 값 (0 = 몸 내리기 끔)</summary>
+        public float? DebugMinNeckBelowEye { get; set; }
+        /// <summary>지금 쓰는 몸 내리기 기준(m)</summary>
+        public float MinNeckBelowEye => DebugMinNeckBelowEye ?? minNeckBelowEye;
 
         private void Awake()
         {
@@ -99,6 +117,13 @@ namespace HybridShooter.Player
             if (bodyIK == null) bodyIK = GetComponent<PlayerBodyIK>();
             if (fbbik == null) fbbik = GetComponentInChildren<FullBodyBipedIK>();
             if (recoil == null) recoil = GetComponent<PlayerGunRecoil>();
+            Animator animator = driver != null && driver.Animator != null ? driver.Animator : GetComponentInChildren<Animator>();
+            if (animator != null && animator.isHuman)
+            {
+                hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+                neck = animator.GetBoneTransform(HumanBodyBones.Neck);
+                if (neck == null) neck = animator.GetBoneTransform(HumanBodyBones.Head);
+            }
             // bend goal 은 씬에 두지 않고 실행할 때 만든다 (빌더를 다시 돌려도 남지 않게)
             rightElbowGoal = new GameObject("FP_RightElbowGoal").transform;
             rightElbowGoal.SetParent(transform, false);
@@ -126,6 +151,7 @@ namespace HybridShooter.Player
         private void LateUpdate()
         {
             if (fbbik == null || player == null || driver == null || bodyIK == null) return;
+            LowerBodyBelowEye(); // 도달 당김이 내린 뒤의 어깨를 보도록 먼저
             IKEffector right = fbbik.solver.rightHandEffector;
             IKEffector left = fbbik.solver.leftHandEffector;
 
@@ -190,6 +216,21 @@ namespace HybridShooter.Player
 
             UpdateElbowGoals();
             SetElbowWeights(elbowWeight * Weight, elbowWeight * leftWeight);
+        }
+
+        /// <summary>
+        /// 몸 내리기: 목이 눈보다 minNeckBelowEye 만큼 아래 오도록 골반(모든 몸 뼈의 부모)을 내린다.
+        /// FBBIK 는 이 자세를 읽어서 풀고, 다음 프레임 애니메이터가 골반을 다시 쓰므로 쌓이지 않는다
+        /// </summary>
+        private void LowerBodyBelowEye()
+        {
+            BodyDrop = 0f;
+            if (hips == null || neck == null) return;
+            NeckBelowEyeBeforeDrop = player.FirstPersonEyePose.position.y - neck.position.y;
+            float min = MinNeckBelowEye;
+            if (min <= 0f) return;
+            BodyDrop = Mathf.Max(0f, min - NeckBelowEyeBeforeDrop) * player.FirstPersonBlend;
+            if (BodyDrop > 0f) hips.position += Vector3.down * BodyDrop;
         }
 
         /// <summary>
