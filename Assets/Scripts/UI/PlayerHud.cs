@@ -14,7 +14,8 @@ namespace HybridShooter.UI
     ///  - 왼쪽 아래: 체력 바·숫자 (PlayerHpChangedEvent). 저체력이면 빨갛게 깜빡임
     ///  - 체력 아래: 수류탄·회복 팩 개수/최대 (GrenadeCountChangedEvent, HealPackCountChangedEvent). 1개 이상일 때만
     ///  - 가운데 아래: 스태미나 (PlayerStaminaChangedEvent). 움직이는 동안, 또는 가득 찰 때까지만. 가득 차면 서서히 사라짐
-    ///  - 오른쪽 아래: 무기 이름·사격 모드, 탄약/탄창 (AmmoChangedEvent), 탄창 눈금 바. 재장전 중엔 바가 차오른다 (ReloadStarted/FinishedEvent)
+    ///  - 오른쪽 아래: 무기 이름·사격 모드, 탄창 안 탄약/탄창 크기 (AmmoChangedEvent), 예비 탄창 칸·개수/최대 (별도 줄), 탄창 눈금 바.
+    ///    재장전 중엔 바가 차오르고, 취소되면 바로 원래대로 (ReloadStarted/FinishedEvent). 예비 탄창 없이 R → 예비 탄창 줄이 빨갛게 깜빡임 (ReloadDeniedEvent)
     /// 스코프 화면에서는 탄약만 남기고, 사망 때는 목숨만 남기고, 강화 선택·게임 오버·일시정지 때는 모두 숨긴다.
     /// 그림은 SCI-FI UI Pack (컴포넌트를 붙일 때 자동 연결), 수류탄 아이콘은 실행 중에 그린다
     /// </summary>
@@ -60,6 +61,8 @@ namespace HybridShooter.UI
         [SerializeField] private float blinkRate = 2.5f;
         [Tooltip("목숨이 줄어든 뒤 깜빡이는 시간(초)")]
         [SerializeField] private float livesFlashTime = 1.2f;
+        [Tooltip("예비 탄창 없이 재장전을 누른 뒤 예비 탄창 줄이 깜빡이는 시간(초)")]
+        [SerializeField] private float reloadDeniedFlashTime = 0.6f;
 
         [Header("스태미나")]
         [Tooltip("멈춰 있고 가득 찼을 때 사라지는 시간(초)")]
@@ -71,9 +74,16 @@ namespace HybridShooter.UI
         private TextMeshProUGUI hpText, ammoText, infoText, statusText, grenadeText, healText, livesText;
         private Image livesIcon;
         private GameObject grenadeSlot, healSlot;
+        private TextMeshProUGUI spareText;
+        private Image[] sparePips;
 
         private int hp = 1, maxHp = 1;
         private int ammo, magazine;
+        private int spare, maxSpare;
+        private bool infiniteSpare;
+        private int shownSpare = -1, shownMaxSpare = -1;
+        private bool shownInfiniteSpare;
+        private float reloadDeniedUntil;
         private float stamina = 1f, maxStamina = 1f;
         private bool reloading;
         private float reloadStart, reloadDuration;
@@ -126,6 +136,7 @@ namespace HybridShooter.UI
             EventBus<AmmoChangedEvent>.Subscribe(OnAmmoChanged);
             EventBus<ReloadStartedEvent>.Subscribe(OnReloadStarted);
             EventBus<ReloadFinishedEvent>.Subscribe(OnReloadFinished);
+            EventBus<ReloadDeniedEvent>.Subscribe(OnReloadDenied);
             EventBus<GrenadeCountChangedEvent>.Subscribe(OnGrenadeCountChanged);
             EventBus<HealPackCountChangedEvent>.Subscribe(OnHealPackCountChanged);
             EventBus<PlayerLivesChangedEvent>.Subscribe(OnLivesChanged);
@@ -141,6 +152,7 @@ namespace HybridShooter.UI
             EventBus<AmmoChangedEvent>.Unsubscribe(OnAmmoChanged);
             EventBus<ReloadStartedEvent>.Unsubscribe(OnReloadStarted);
             EventBus<ReloadFinishedEvent>.Unsubscribe(OnReloadFinished);
+            EventBus<ReloadDeniedEvent>.Unsubscribe(OnReloadDenied);
             EventBus<GrenadeCountChangedEvent>.Unsubscribe(OnGrenadeCountChanged);
             EventBus<HealPackCountChangedEvent>.Unsubscribe(OnHealPackCountChanged);
             EventBus<PlayerLivesChangedEvent>.Unsubscribe(OnLivesChanged);
@@ -186,6 +198,7 @@ namespace HybridShooter.UI
             UpdateHealth(blink);
             UpdateStamina(scoped);
             UpdateAmmo(blink);
+            UpdateSpare();
             UpdateInfo();
         }
         #endregion
@@ -259,13 +272,21 @@ namespace HybridShooter.UI
             }
 
             float ratio = magazine > 0 ? (float)ammo / magazine : 0f;
+            bool hasSpare = infiniteSpare || spare > 0;
             ammoBar.fillAmount = ratio;
             if (ammo <= 0 && magazine > 0)
             {
                 Color color = WithAlpha(Red, blink);
                 ammoBar.color = color;
                 ammoText.color = color;
-                SetStatus("RELOAD", color);
+                SetStatus(hasSpare ? "RELOAD" : "NO AMMO", color);
+            }
+            else if (hasSpare == false)
+            {
+                // 지금 탄창이 마지막 (예비 탄창 없음)
+                ammoBar.color = Amber;
+                ammoText.color = ratio <= lowAmmoRatio ? Amber : TextColor;
+                SetStatus("LAST MAG", Amber);
             }
             else if (ratio <= lowAmmoRatio)
             {
@@ -279,6 +300,38 @@ namespace HybridShooter.UI
                 ammoText.color = TextColor;
                 SetStatus(null, TextColor);
             }
+        }
+
+        /// <summary>
+        /// 예비 탄창 줄 (탄창 안 탄약과 별개): 최대 개수만큼 칸 + "개수/최대". 칸이 너무 많으면 숫자만, 무한이면 INF.
+        /// 0 개면 빨강, 1 개면 주황. 예비 탄창 없이 재장전을 누르면 잠깐 빨갛게 깜빡인다
+        /// </summary>
+        private void UpdateSpare()
+        {
+            if (shownSpare != spare || shownMaxSpare != maxSpare || shownInfiniteSpare != infiniteSpare)
+            {
+                shownSpare = spare;
+                shownMaxSpare = maxSpare;
+                shownInfiniteSpare = infiniteSpare;
+                if (infiniteSpare) spareText.SetText("MAG <size=80%>INF</size>");
+                else spareText.SetText("MAG {0}<size=70%><color=#9FE8F5>/{1}</color></size>", spare, maxSpare);
+
+                bool pips = infiniteSpare == false && maxSpare <= sparePips.Length;
+                for (int i = 0; i < sparePips.Length; i++)
+                    sparePips[i].gameObject.SetActive(pips && i < maxSpare);
+            }
+
+            Color full = AimReticleHud.Cyan;
+            Color text = TextColor;
+            if (infiniteSpare == false && spare <= 0) full = text = Red;
+            else if (infiniteSpare == false && spare == 1) full = text = Amber;
+            if (Time.time < reloadDeniedUntil)
+                full = text = Mathf.Repeat(Time.time * 6f, 1f) < 0.5f ? Color.white : Red;
+
+            spareText.color = text;
+            Color empty = WithAlpha(TextColor, 0.18f);
+            for (int i = 0; i < sparePips.Length; i++)
+                if (sparePips[i].gameObject.activeSelf) sparePips[i].color = i < spare ? full : empty;
         }
 
         /// <summary>무기 이름 · 사격 모드. 라이플은 B 로 모드가 바뀌므로 매 프레임 비교한다</summary>
@@ -331,7 +384,16 @@ namespace HybridShooter.UI
 
         private void OnStaminaChanged(PlayerStaminaChangedEvent e) { stamina = e.Current; maxStamina = e.Max; }
 
-        private void OnAmmoChanged(AmmoChangedEvent e) { ammo = e.Magazine; magazine = e.MagazineSize; }
+        private void OnAmmoChanged(AmmoChangedEvent e)
+        {
+            ammo = e.Magazine;
+            magazine = e.MagazineSize;
+            spare = e.SpareMagazines;
+            maxSpare = e.MaxMagazines;
+            infiniteSpare = e.InfiniteMagazines;
+        }
+
+        private void OnReloadDenied(ReloadDeniedEvent e) => reloadDeniedUntil = Time.time + reloadDeniedFlashTime;
 
         private void OnReloadStarted(ReloadStartedEvent e)
         {
@@ -364,9 +426,13 @@ namespace HybridShooter.UI
         {
             shownGun = gun;
             reloading = gun != null && gun.IsReloading;
+            reloadDeniedUntil = 0f;
             if (gun == null) return;
             ammo = gun.Ammo;
             magazine = gun.MagazineSize;
+            spare = gun.SpareMagazines;
+            maxSpare = gun.MaxMagazines;
+            infiniteSpare = gun.InfiniteMagazines;
         }
 
         private void OnGameStateChanged(GameStateChangedEvent e)
@@ -427,17 +493,37 @@ namespace HybridShooter.UI
             staminaBar = Bar(staminaGroup.transform, "Stamina", staminaBack, staminaFill, Vector2.zero, new Vector2(280f, 10f));
             staminaGroup.alpha = 0f;
 
-            // 오른쪽 아래: 무기
-            var weapon = Group(root, "Weapon", new Vector2(1f, 0f), new Vector2(-416f, 40f), new Vector2(360f, 150f)).transform;
-            infoText = Label(weapon, "Info", labelFont, 22f, TextAlignmentOptions.BottomRight, new Vector2(0f, 112f), new Vector2(360f, 30f));
+            // 오른쪽 아래: 무기 (위에서부터 이름·모드 / 탄창 안 탄약 / 예비 탄창 / 탄창 바)
+            var weapon = Group(root, "Weapon", new Vector2(1f, 0f), new Vector2(-416f, 40f), new Vector2(360f, 188f)).transform;
+            infoText = Label(weapon, "Info", labelFont, 22f, TextAlignmentOptions.BottomRight, new Vector2(0f, 150f), new Vector2(360f, 30f));
             infoText.color = WithAlpha(TextColor, 0.75f);
             infoText.characterSpacing = 4f;
-            ammoText = Label(weapon, "Ammo", numberFont, 64f, TextAlignmentOptions.BottomRight, new Vector2(0f, 28f), new Vector2(360f, 80f));
-            statusText = Label(weapon, "Status", labelFont, 22f, TextAlignmentOptions.BottomLeft, new Vector2(0f, 36f), new Vector2(180f, 30f));
+            ammoText = Label(weapon, "Ammo", numberFont, 64f, TextAlignmentOptions.BottomRight, new Vector2(0f, 66f), new Vector2(360f, 80f));
+            statusText = Label(weapon, "Status", labelFont, 22f, TextAlignmentOptions.BottomLeft, new Vector2(0f, 74f), new Vector2(180f, 30f));
             statusText.characterSpacing = 4f;
             statusText.gameObject.SetActive(false);
+
+            // 예비 탄창: 칸(오른쪽 정렬) + 개수/최대
+            var pips = Rect(weapon, "SparePips", Vector2.zero, Vector2.zero, new Vector2(0f, 28f), new Vector2(228f, 32f));
+            var pipRow = pips.gameObject.AddComponent<HorizontalLayoutGroup>();
+            pipRow.spacing = 5f;
+            pipRow.childAlignment = TextAnchor.MiddleRight;
+            pipRow.childControlWidth = pipRow.childControlHeight = false;
+            pipRow.childForceExpandWidth = pipRow.childForceExpandHeight = false;
+            Sprite pipSprite = MagazineSprite();
+            sparePips = new Image[MaxSparePips];
+            for (int i = 0; i < MaxSparePips; i++)
+            {
+                sparePips[i] = NewImage(Rect(pips, "Pip" + i, Vector2.zero, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(12f, 24f)), pipSprite);
+                sparePips[i].gameObject.SetActive(false);
+            }
+            spareText = Label(weapon, "Spare", numberFont, 26f, TextAlignmentOptions.MidlineRight, new Vector2(236f, 28f), new Vector2(124f, 32f));
+
             ammoBar = Bar(weapon, "Magazine", ammoBack, ammoFill, new Vector2(20f, 0f), new Vector2(340f, 20f));
         }
+
+        /// <summary>예비 탄창 칸 최대 수. 최대 예비 탄창이 이보다 많으면 칸 없이 숫자만</summary>
+        private const int MaxSparePips = 10;
 
         /// <summary>anchor 기준 왼쪽 아래 모서리를 position 에 두는 묶음</summary>
         private static CanvasGroup Group(Transform parent, string name, Vector2 anchor, Vector2 position, Vector2 size)
@@ -560,6 +646,28 @@ namespace HybridShooter.UI
             texture.SetPixels32(pixels);
             texture.Apply(false, true);
             return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+        }
+
+        /// <summary>예비 탄창 칸 (16×32px, 흰색): 살짝 앞으로 휜 탄창 몸통 + 위쪽 급탄구. 색은 Image.color 로</summary>
+        private static Sprite MagazineSprite()
+        {
+            const int width = 16, height = 32;
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "HudMagazine", wrapMode = TextureWrapMode.Clamp };
+            var pixels = new Color32[width * height];
+            for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                Vector2 p = new Vector2(x + 0.5f, y + 0.5f);
+                float bend = (1f - p.y / height) * 2.5f; // 아래로 갈수록 앞(오른쪽)으로
+                float body = Box(p, new Vector2(7.5f + bend, 13f), new Vector2(4.5f, 12f)) - 1f;
+                float lips = Box(p, new Vector2(8f, 28.5f), new Vector2(3.5f, 2.5f));
+                float d = Mathf.Min(body, lips);
+                byte a = (byte)(Mathf.Clamp01(0.5f - d) * 255f);
+                pixels[y * width + x] = new Color32(255, 255, 255, a);
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return Sprite.Create(texture, new Rect(0f, 0f, width, height), new Vector2(0.5f, 0.5f), 100f);
         }
 
         /// <summary>중심 center, 반너비 half 인 사각형까지의 거리 (안쪽 음수)</summary>

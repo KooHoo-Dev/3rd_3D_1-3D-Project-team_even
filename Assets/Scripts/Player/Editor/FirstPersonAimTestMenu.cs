@@ -13,6 +13,7 @@ namespace HybridShooter.Player.EditorTools
     ///  - Run Quick / Run Full: PlayerTest 씬을 Play 해서 Player 에 FirstPersonAimScenarioRunner 를 붙인다.
     ///    끝나면 Play 를 멈춘다 (이미 Play 중이었으면 지금 씬의 Player 로 재고 Play 는 그대로 둔다)
     ///  - 결과: <프로젝트>/Logs/FirstPersonAim/<시각>/summary.md · samples.csv
+    ///  - Run Jump: 같은 방식으로 FirstPersonJumpScenarioRunner (1인칭 점프 가림). 결과: <프로젝트>/Logs/FirstPersonJump/<시각>
     /// </summary>
     [InitializeOnLoad]
     internal static class FirstPersonAimTestMenu
@@ -21,17 +22,19 @@ namespace HybridShooter.Player.EditorTools
         private const string FolderKey = "HybridShooter.FirstPersonAim.Folder";
         private const string QuickKey = "HybridShooter.FirstPersonAim.Quick";
         private const string AutoExitKey = "HybridShooter.FirstPersonAim.AutoExit";
+        private const string JumpKey = "HybridShooter.FirstPersonAim.Jump";
 
         private static string ResultsRoot => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Logs", "FirstPersonAim"));
+        private static string JumpResultsRoot => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Logs", "FirstPersonJump"));
 
         static FirstPersonAimTestMenu()
         {
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
         }
 
-        private static string NewResultFolder()
+        private static string NewResultFolder(bool jump = false)
         {
-            string folder = Path.Combine(ResultsRoot, DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+            string folder = Path.Combine(jump ? JumpResultsRoot : ResultsRoot, DateTime.Now.ToString("yyyyMMdd_HHmmss"));
             Directory.CreateDirectory(folder);
             return folder;
         }
@@ -42,6 +45,9 @@ namespace HybridShooter.Player.EditorTools
         [MenuItem("Tools/HybridShooter/First Person Aim Test/Run Full (모든 총, 총마다 약 3분)", false, 111)]
         private static void RunFull() => Run(false);
 
+        [MenuItem("Tools/HybridShooter/First Person Aim Test/Run Jump (1인칭 점프 가림, 약 40초)", false, 112)]
+        private static void RunJump() => Run(true, jump: true);
+
         [MenuItem("Tools/HybridShooter/First Person Aim Test/Open Results Folder", false, 130)]
         private static void OpenResults()
         {
@@ -49,11 +55,18 @@ namespace HybridShooter.Player.EditorTools
             EditorUtility.RevealInFinder(ResultsRoot);
         }
 
-        private static void Run(bool quick)
+        [MenuItem("Tools/HybridShooter/First Person Aim Test/Open Jump Results Folder", false, 131)]
+        private static void OpenJumpResults()
+        {
+            Directory.CreateDirectory(JumpResultsRoot);
+            EditorUtility.RevealInFinder(JumpResultsRoot);
+        }
+
+        private static void Run(bool quick, bool jump = false)
         {
             if (EditorApplication.isPlaying)
             {
-                Attach(NewResultFolder(), quick, autoExit: false);
+                Attach(NewResultFolder(jump), quick, jump, autoExit: false);
                 return;
             }
 
@@ -62,8 +75,9 @@ namespace HybridShooter.Player.EditorTools
                 if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo() == false) return;
                 EditorSceneManager.OpenScene(ScenePath);
             }
-            SessionState.SetString(FolderKey, NewResultFolder());
+            SessionState.SetString(FolderKey, NewResultFolder(jump));
             SessionState.SetBool(QuickKey, quick);
+            SessionState.SetBool(JumpKey, jump);
             EditorApplication.EnterPlaymode();
         }
 
@@ -73,10 +87,10 @@ namespace HybridShooter.Player.EditorTools
             string folder = SessionState.GetString(FolderKey, "");
             if (string.IsNullOrEmpty(folder)) return;
             SessionState.EraseString(FolderKey);
-            Attach(folder, SessionState.GetBool(QuickKey, true), autoExit: true);
+            Attach(folder, SessionState.GetBool(QuickKey, true), SessionState.GetBool(JumpKey, false), autoExit: true);
         }
 
-        private static void Attach(string folder, bool quick, bool autoExit)
+        private static void Attach(string folder, bool quick, bool jump, bool autoExit)
         {
             var player = Object.FindFirstObjectByType<PlayerController>();
             if (player == null)
@@ -85,13 +99,20 @@ namespace HybridShooter.Player.EditorTools
                 if (autoExit) EditorApplication.ExitPlaymode();
                 return;
             }
-            if (player.GetComponent<FirstPersonAimScenarioRunner>() != null)
+            if (player.GetComponent<FirstPersonAimScenarioRunner>() != null || player.GetComponent<FirstPersonJumpScenarioRunner>() != null)
             {
                 Debug.LogWarning("[FirstPersonAim] 이미 측정 중입니다");
                 return;
             }
 
             SessionState.SetBool(AutoExitKey, autoExit);
+            if (jump)
+            {
+                FirstPersonJumpScenarioRunner.Completed -= OnCompleted;
+                FirstPersonJumpScenarioRunner.Completed += OnCompleted;
+                player.gameObject.AddComponent<FirstPersonJumpScenarioRunner>().outputFolder = folder;
+                return;
+            }
             FirstPersonAimScenarioRunner.Completed -= OnCompleted;
             FirstPersonAimScenarioRunner.Completed += OnCompleted;
             var runner = player.gameObject.AddComponent<FirstPersonAimScenarioRunner>();
@@ -102,6 +123,7 @@ namespace HybridShooter.Player.EditorTools
         private static void OnCompleted(string folder)
         {
             FirstPersonAimScenarioRunner.Completed -= OnCompleted;
+            FirstPersonJumpScenarioRunner.Completed -= OnCompleted;
             Debug.Log($"[FirstPersonAim] 결과: {Path.Combine(folder, "summary.md")}");
             if (SessionState.GetBool(AutoExitKey, false)) EditorApplication.ExitPlaymode();
         }

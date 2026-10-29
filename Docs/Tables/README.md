@@ -46,10 +46,11 @@
 | FireMode | enum | `Single` / `Auto` |
 | Damage | int | 1발 피해 (일반 몬스터가 1~2발에 죽는 수준) |
 | FireRate | float | RPM. 코드에서는 `FireInterval` |
-| MagazineSize | int | 강화 전 탄창 |
+| MagazineSize | int | 강화 전 탄창 (탄창 하나에 든 탄약 수) |
+| StartMagazines / MaxMagazines | int | 시작 / 최대 예비 탄창 개수 (탄창 단위, MagazineSize 와 별개). 장전이 끝날 때 1개를 써서 탄창을 가득 채운다 (취소 시 소모 없음). 다 쓰면 재장전 불가. 보충은 `IPlayerAmmo.AddMagazines` |
 | ReloadTime | float | 강화 전 재장전(초) |
 | Range / SpreadAngle | float | 사거리(m) / 퍼짐 반각(도) |
-| FireSfxKey, ReloadSfxKey, ReloadInsertSfxKey, ReloadEndSfxKey | string | 장전음: 시작 · 탄창·탄 넣기(기본 총 = 장전 55% 시점, 산탄총 = 한 발마다) · 완료(취소 시 없음) |
+| FireSfxKey, ReloadSfxKey, ReloadInsertSfxKey, ReloadEndSfxKey | string | 장전음: 시작 · 탄창·탄 넣기(기본 총 = 장전 55% 시점, 산탄총 = 한 발 시간마다 소리만) · 완료(취소 시 없음) |
 
 ## GrenadeTable — BL-005
 | 컬럼 | 타입 | 설명 |

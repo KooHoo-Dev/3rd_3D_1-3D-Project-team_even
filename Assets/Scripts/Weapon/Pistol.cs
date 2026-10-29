@@ -7,6 +7,7 @@ namespace HybridShooter.Weapon
     ///  - 누를 때마다 한 발. 빨리 꺼낸다 → 주무기 탄이 떨어졌을 때 바꿔 들어 마무리하는 용도
     ///  - 연타하면 퍼짐이 빠르게 커지고, 잠깐 쉬면 금방 정확해진다 (리듬 있게 쏘면 정확)
     ///  - 입력 버퍼: 연사 간격보다 살짝 빨리 눌러도 기억했다가 쏜다 (클릭이 씹히는 느낌 방지)
+    ///  - 예비 탄창 무한 (모든 탄이 떨어져도 끝까지 싸울 수 있게)
     /// </summary>
     public class Pistol : Gun
     {
@@ -18,6 +19,7 @@ namespace HybridShooter.Weapon
 
         public Pistol()
         {
+            infiniteMagazines = true;
             equipTime = 0.2f;
             bloomPerShot = 0.6f;
             maxBloom = 3f;
