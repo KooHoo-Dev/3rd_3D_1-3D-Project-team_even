@@ -25,6 +25,8 @@ namespace HybridShooter.Core.Data.Defs
         public float Range { get; }
         /// <summary>탄 퍼짐 원뿔 반각(도)</summary>
         public float SpreadAngle { get; }
+        /// <summary>보급 1회에 채우는 예비 탄창 비율. MaxMagazines × 비율을 내림, 최소 1 (0 = 충전 안 함). 스플래시 무기는 작게</summary>
+        public float SupplyMagazineRatio { get; }
         /// <summary>Link 단계에서 채워짐 (키가 비었으면 null)</summary>
         public SoundDef FireSfx { get; internal set; }
         /// <summary>장전 시작</summary>
@@ -61,6 +63,7 @@ namespace HybridShooter.Core.Data.Defs
             ReloadTime = d.ReloadTime;
             Range = d.Range;
             SpreadAngle = d.SpreadAngle;
+            SupplyMagazineRatio = d.SupplyMagazineRatio;
             FireSfxKey = d.FireSfxKey;
             ReloadSfxKey = d.ReloadSfxKey;
             ReloadInsertSfxKey = d.ReloadInsertSfxKey;
@@ -75,6 +78,7 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(StartMagazines >= 0 && MaxMagazines >= StartMagazines, Table, Id, "StartMagazines 는 0 이상, MaxMagazines 는 StartMagazines 이상");
             r.Check(ReloadTime > 0f, Table, Id, "ReloadTime 은 0 초과");
             r.Check(Range > 0f, Table, Id, "Range 는 0 초과");
+            r.Check(SupplyMagazineRatio >= 0f && SupplyMagazineRatio <= 1f, Table, Id, "SupplyMagazineRatio 는 0 ~ 1");
         }
     }
 }

@@ -1783,6 +1783,7 @@ MonoBehaviour:
   idleSpeedThreshold: 0.1
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
+  activeSeconds: 0.5
   hitTimeRatio: 0
   windupTurnSpeed: 360
 --- !u!114 &4756636726016961627
@@ -1802,6 +1803,8 @@ MonoBehaviour:
   groundSampleRadius: 2
   radius: 0.5
   arrivalDistance: 0.5
+  fallGravity: 9.81
+  landingHeightOffset: 0
 --- !u!114 &3054492622161123645
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1839,8 +1842,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.26036838
-  m_Height: 0.60675836
+  m_Radius: 0.77
+  m_Height: 1.88
   m_Direction: 1
   m_Center: {x: 0.015360773, y: 0.58442056, z: 0.10752675}
 --- !u!1 &6357135313045127238

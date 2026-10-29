@@ -26,11 +26,12 @@ namespace HybridShooter.Core.Data.Defs
         public const string PlayerInvincibleTime = "PlayerInvincibleTime";
         public const string LowHpRatio = "LowHpRatio";                       // BL-007
         public const string MonsterLowHpRatio = "MonsterLowHpRatio";         // BL-017
-        public const string SupplyLifetime = "SupplyLifetime";               // BL-018
         public const string SupplyDropMinDistance = "SupplyDropMinDistance"; // BL-018 플레이어 기준 최소 낙하 거리(XZ)
         public const string SupplyDropMaxDistance = "SupplyDropMaxDistance"; // BL-018 플레이어 기준 최대 낙하 거리(XZ)
         public const string SupplyDropHeight = "SupplyDropHeight";           // BL-018 낙하 시작 높이(지면 기준)
         public const string SupplyLandingHeight = "SupplyLandingHeight";     // BL-018 감속 착지 시작 높이(지면 기준)
+        public const string SupplyMaxTerrainHeight = "SupplyMaxTerrainHeight"; // 이 Terrain 높이 이상이면 낙하 금지
+        public const string SupplyMaxActive = "SupplyMaxActive";               // 필드 동시 보급 최대 개수
         public const string CameraTransitionTime = "CameraTransitionTime";   // BL-022
 
         private readonly Dictionary<string, string> values = new Dictionary<string, string>();

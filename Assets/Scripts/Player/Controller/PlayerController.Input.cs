@@ -7,9 +7,12 @@ namespace HybridShooter.Player
     /// <summary>키보드·마우스 입력 → 이동·무기·아이템 요청</summary>
     public partial class PlayerController
     {
+        private bool flowInputBlocked;
+        public bool IsGameplayInputBlocked => flowInputBlocked;
+
         private void InputHandle()
         {
-
+            if (flowInputBlocked) return;
             // 마우스 → 시선 회전.
             UpdateLook();
             SyncRigRotationNow();
@@ -120,6 +123,20 @@ namespace HybridShooter.Player
         {
             Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = locked == false;
+        }
+
+        private void SetFlowInputBlocked(bool blocked)
+        {
+            flowInputBlocked = blocked;
+            if (blocked)
+            {
+                SetMoveInput(Vector3.zero, false);
+                if (gunSlot != null)
+                {
+                    if (gunSlot.CurrentGun != null) gunSlot.CurrentGun.CancelActions();
+                }
+            }
+            SetCursorLocked(blocked == false);
         }
     }
 }

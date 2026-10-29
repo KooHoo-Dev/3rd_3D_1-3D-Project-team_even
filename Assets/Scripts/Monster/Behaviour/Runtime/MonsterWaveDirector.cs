@@ -4,7 +4,6 @@ using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
-using HybridShooter.Core.GameFlow;
 using HybridShooter.Core.Services;
 using UnityEngine;
 
@@ -12,7 +11,7 @@ namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
     /// 라운드 군중전의 스테이지 진행 (씬에 1개). 라운드 경과 시간을 재고, 그 라운드 스테이지를 각 StartTime 에 시작한다.
-    /// 라운드 시작·정리·보스전 전이 이벤트를 받아 StartRound/StopRound 를 부르고, 실행 중 스테이지를 매 프레임 Tick 한다.
+    /// RoundSequencer가 StartRound/StopRound를 직접 호출하고, 실행 중 스테이지를 매 프레임 Tick한다.
     /// </summary>
     /// <remarks>
     /// 다음 스테이지가 시작돼도 이전 스테이지를 멈추지 않는다. 이전 스테이지는 스스로 Finished 를 낼 때까지 남은 소환을 이어 간다.
@@ -33,20 +32,16 @@ namespace HybridShooter.Monster.Behaviour
         private int nextStageIndex;       // 다음에 시작할 roundStages 인덱스. Count = 다 시작함
         private readonly List<MonsterWaveStage> runningStages = new List<MonsterWaveStage>();
 
-        /// <summary>라운드 시작·정리·게임 상태 이벤트를 구독한다</summary>
+        /// <summary>전체 라운드 정리를 중단 안전망으로 구독한다. 시작·보스 전이는 시퀀서가 직접 호출한다.</summary>
         private void OnEnable()
         {
-            EventBus<RoundStartedEvent>.Subscribe(OnRoundStarted);
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
-            EventBus<GameStateChangedEvent>.Subscribe(OnGameStateChanged);
         }
 
         /// <summary>구독을 해제하고 남은 소환을 취소한다. 다시 켜도 자동으로 이어 가지 않는다</summary>
         private void OnDisable()
         {
-            EventBus<RoundStartedEvent>.Unsubscribe(OnRoundStarted);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
-            EventBus<GameStateChangedEvent>.Unsubscribe(OnGameStateChanged);
             StopRound();
         }
 
@@ -56,31 +51,12 @@ namespace HybridShooter.Monster.Behaviour
                 monsterPool = FindAnyObjectByType<MonsterPool>();
         }
 
-        /// <summary>라운드 시작 이벤트로 그 라운드의 군중전 스테이지 진행을 시작한다</summary>
-        /// <param name="e">Round = 시작할 라운드 번호 (WaveStageDef.RoundNo 와 비교)</param>
-        private void OnRoundStarted(RoundStartedEvent e) => StartRound(e.Round);
-
         /// <summary>라운드 정리(다음 라운드·재시작) 때 남은 소환을 모두 취소한다. FullReset 은 구분하지 않는다</summary>
         private void OnRoundCleanup(RoundCleanupEvent e) => StopRound();
 
         /// <summary>
-        /// 군중전 → 보스전 전이(BossIntro 진입) 때 남은 군중 소환을 모두 취소한다. 다른 상태 변화는 무시한다.
-        /// </summary>
-        /// <param name="e">Current = 바뀐 뒤 상태</param>
-        /// <remarks>
-        /// "CrowdBattle 을 벗어나면" 으로 넓히지 않는다. Paused 만 해도 라운드가 끝나고, 돌아와도 다시 시작하지 않기 때문이다.
-        /// </remarks>
-        private void OnGameStateChanged(GameStateChangedEvent e)
-        {
-            if (e.Current != GameState.BossIntro) return;
-
-            StopRound();
-            Debug.Log("[MonsterWaveDirector] 보스전 전이로 군중 소환 중단", this);
-        }
-
-        /// <summary>
         /// 라운드의 군중전 스테이지 진행을 0초부터 새로 시작한다. 진행 중이던 라운드는 버린다.
-        /// StartTime 0 인 스테이지는 이 호출 안에서 바로 시작된다. 라운드 시작 이벤트 또는 라운드 매니저·Lab 이 부른다.
+        /// StartTime 0인 스테이지는 이 호출 안에서 바로 시작된다. RoundSequencer 또는 Lab이 직접 부른다.
         /// </summary>
         /// <param name="roundNumber">라운드 번호. 이 RoundNo 의 스테이지가 없으면 경고만 남기고 시작하지 않는다</param>
         public void StartRound(int roundNumber)

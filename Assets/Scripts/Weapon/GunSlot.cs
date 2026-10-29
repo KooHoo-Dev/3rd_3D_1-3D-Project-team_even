@@ -104,7 +104,7 @@ namespace HybridShooter.Weapon
         /// <summary>0 = 정지, 1 = 달리기 최고 속도</summary>
         public float MoveRatio => Mathf.Clamp01(player.HorizontalSpeed / Mathf.Max(0.01f, player.WalkSpeed * player.SprintMultiplier));
         /// <summary>구르는 중, 수류탄을 던지는 중이거나 죽었으면 쏠 수 없다</summary>
-        public bool CanUseWeapon => player.IsAlive && player.IsReviving == false && player.IsRolling == false && player.IsExternallyControlled == false && player.IsThrowingGrenade == false;
+        public bool CanUseWeapon => player.IsAlive && player.IsReviving == false && player.IsRolling == false && player.IsExternallyControlled == false && player.IsThrowingGrenade == false && player.IsGameplayInputBlocked == false;
 
         /// <summary>
         /// 조준선 = 지금 카메라의 정면. 3인칭에서는 출발점을 플레이어 옆까지 앞당겨
@@ -179,6 +179,15 @@ namespace HybridShooter.Weapon
             foreach (var gun in slots)
                 if (gun != null && gun.AddMagazines(amount)) any = true;
             return any;
+        }
+
+        /// <summary>보급 1회분: 슬롯의 모든 총에 무기별 비율만큼 예비 탄창 보충 (예비로 꺼 둔 총 제외). 반환: 늘어난 예비 탄창 합</summary>
+        public int AddSupplyMagazines()
+        {
+            int added = 0;
+            foreach (var gun in slots)
+                if (gun != null) added += gun.AddSupplyMagazines();
+            return added;
         }
 
         /// <summary>지금 든 총의 재장전을 취소 (탄·예비 탄창 그대로)</summary>

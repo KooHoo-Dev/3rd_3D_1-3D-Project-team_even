@@ -24,5 +24,6 @@ namespace HybridShooter.Core.Data.Dtos
         public string SwitchSfxKey = "";  // SoundTable.Key (무기 교체)
         public string DryFireSfxKey = "";  // SoundTable.Key (빈 탄창으로 쏠 때)
         public string ExplodeSfxKey = "";  // SoundTable.Key (투사체 폭발. 비우면 프리팹 값)
+        public float SupplyMagazineRatio;  // 보급 1회 예비 탄창 충전 비율 (MaxMagazines × 비율, 내림·최소 1)
     }
 }
