@@ -5,7 +5,8 @@ namespace HybridShooter.UI.MainMenu
     /// <summary>
     /// 메뉴 카메라(CinemachineCamera)의 느린 좌우 흔들림. 기준 위치·회전 둘레로 오른쪽 이동 + 약간의 좌우 회전.
     /// 숨쉬기 수준의 떨림은 같은 오브젝트의 CinemachineBasicMultiChannelPerlin(Noise) 이 맡는다.
-    /// 호버·게임 시작 연출이 카메라를 옮길 때는 SetBase 로 기준만 바꾼다 (흔들림은 계속 얹힘)
+    /// 메뉴 진입처럼 기준 자체를 옮길 때는 SetBase, 호버 연출처럼 잠깐 비켜 서는 이동은 Offset (카메라 기준 로컬) — 둘이 서로 덮어쓰지 않는다.
+    /// 흔들림은 어느 쪽이든 계속 얹힌다
     /// </summary>
     public sealed class MenuCameraSway : MonoBehaviour
     {
@@ -21,6 +22,8 @@ namespace HybridShooter.UI.MainMenu
 
         public Vector3 BasePosition => basePosition;
         public Quaternion BaseRotation => baseRotation;
+        /// <summary>기준 위치에 더하는 이동 (기준 회전 기준 로컬, m). MenuBackdropDirector 의 호버 연출이 쓴다</summary>
+        public Vector3 Offset { get; set; }
 
         private void Awake()
         {
@@ -38,7 +41,7 @@ namespace HybridShooter.UI.MainMenu
         {
             float s = period > 0f ? Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f / period) : 0f;
             transform.SetPositionAndRotation(
-                basePosition + baseRotation * Vector3.right * (s * distance),
+                basePosition + baseRotation * (Offset + Vector3.right * (s * distance)),
                 baseRotation * Quaternion.Euler(0f, s * yaw, 0f));
         }
     }

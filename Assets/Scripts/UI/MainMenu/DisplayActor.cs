@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Services;
 using UnityEngine;
@@ -10,6 +11,7 @@ namespace HybridShooter.UI.MainMenu
     ///  - 비행형은 놓인 높이에서 위아래로 천천히 호버링
     ///  - PlayThreat(): 위협·포효 상태를 한 번 재생하고 끝나면 Idle 로 돌아간다 (QUIT 호버 연출)
     ///  - SetFloat(): Animator 파라미터 보간 (플레이어 Aim 포즈 등)
+    ///  - 발광: Emission 이 켜진 머티리얼(눈·발광부)을 emissionBoost 배로 (MaterialPropertyBlock 이라 공유 머티리얼은 그대로). EmissionBoost 로 연출 중 바꿀 수 있다
     /// *_Display 프리팹은 Tools > MainMenu > Rebuild Diorama 가 게임 프리팹에서 게임 스크립트·물리를 걷어내고 만든다
     /// </summary>
     [DisallowMultipleComponent]
@@ -33,6 +35,10 @@ namespace HybridShooter.UI.MainMenu
         [Tooltip("한 번 오르내리는 시간(초)")]
         [SerializeField] private float hoverPeriod = 3f;
 
+        [Header("발광")]
+        [Tooltip("Emission 이 켜진 머티리얼의 발광 배율 (1 = 원래대로). 어두운 장면에서 눈이 빛나 보이게")]
+        [SerializeField] private float emissionBoost = 2.5f;
+
         [Header("소리")]
         [Tooltip("PlayThreat 때 이 위치에서 재생 (SoundTable 키, 비우면 없음)")]
         [SerializeField] private string threatSoundKey;
@@ -42,11 +48,19 @@ namespace HybridShooter.UI.MainMenu
         private bool threatening;
         private Vector3 basePosition;
         private float hoverPhase;
+        private float currentBoost = 1f;
+        /// <summary>발광 머티리얼 슬롯 (렌더러, 머티리얼 순번, 원래 Emission 색)</summary>
+        private readonly List<(Renderer Renderer, int Index, Color Color)> emissive = new List<(Renderer, int, Color)>();
+        private MaterialPropertyBlock block;
+        private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
         public bool HasThreat => threatHash != 0;
 
         private void Awake()
         {
+            CollectEmissive();
+            EmissionBoost = emissionBoost;
+
             if (animator == null) animator = GetComponentInChildren<Animator>();
             if (animator == null) return;
             animator.applyRootMotion = false; // 제자리 연출 (Root Motion 클립이 섞여도 밀려나지 않게)
@@ -94,6 +108,44 @@ namespace HybridShooter.UI.MainMenu
             if (string.IsNullOrEmpty(threatSoundKey) == false && ServiceLocator.TryGet<ISoundService>(out var sound))
                 sound.PlaySfx(threatSoundKey, transform.position);
             return true;
+        }
+
+        /// <summary>발광 배율 (1 = 원래 머티리얼). 발광 머티리얼이 없으면 아무 일도 없다</summary>
+        public float EmissionBoost
+        {
+            get => currentBoost;
+            set
+            {
+                currentBoost = value;
+                if (emissive.Count == 0) return;
+                block ??= new MaterialPropertyBlock();
+                foreach (var (renderer, index, color) in emissive)
+                {
+                    if (renderer == null) continue;
+                    renderer.GetPropertyBlock(block, index);
+                    block.SetColor(EmissionColorId, color * value);
+                    renderer.SetPropertyBlock(block, index);
+                }
+            }
+        }
+
+        /// <summary>디스플레이 기본 발광 배율 (Inspector 값)</summary>
+        public float DefaultEmissionBoost => emissionBoost;
+
+        private void CollectEmissive()
+        {
+            foreach (var renderer in GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer is ParticleSystemRenderer) continue;
+                var materials = renderer.sharedMaterials;
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    var material = materials[i];
+                    if (material == null || material.IsKeywordEnabled("_EMISSION") == false || material.HasProperty(EmissionColorId) == false) continue;
+                    var color = material.GetColor(EmissionColorId);
+                    if (color.maxColorComponent > 0f) emissive.Add((renderer, i, color));
+                }
+            }
         }
 
         /// <summary>Animator float 파라미터 (없으면 무시)</summary>

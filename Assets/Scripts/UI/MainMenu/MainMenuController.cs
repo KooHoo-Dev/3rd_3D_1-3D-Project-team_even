@@ -13,10 +13,11 @@ namespace HybridShooter.UI.MainMenu
     /// <summary>
     /// 메인 메뉴 흐름: PressAnyKey → Menu → (Options) → StartingGame.
     ///  - PressAnyKey: 로고 + 깜빡이는 "PRESS ANY KEY". 아무 키·마우스 버튼·패드 버튼 → 메뉴 슬라이드인 + 카메라가 플레이어 쪽으로 조금 다가감
-    ///  - Menu: 좌측 세로 버튼(첫 선택 GAME START). 선택이 비면(빈 곳 클릭 등) 마지막 버튼을 다시 선택해 키보드·패드로 계속 움직일 수 있게
+    ///  - Menu: 좌측 세로 버튼(첫 선택 GAME START). 선택이 비면(빈 곳 클릭 등) 마지막 버튼을 다시 선택해 키보드·패드로 계속 움직일 수 있게.
+    ///    선택된 버튼은 MenuBackdropDirector 로 넘겨 배경이 반응한다 (옵션 팝업이 열려 있는 동안은 OPTIONS 반응 유지)
     ///  - 게임에서 메뉴로 돌아올 때는 SkipPressAnyKey 를 켜 두면 바로 메뉴
     /// 레이아웃은 Tools > MainMenu > Rebuild Menu UI 가 만들고, 이 컴포넌트는 흐름만 맡는다.
-    /// TODO(5단계): 호버 연동 배경 연출, TODO(6단계): 1인칭 진입 연출·종료 확인 팝업
+    /// TODO(6단계): 1인칭 진입 연출·종료 확인 팝업
     /// </summary>
     public sealed class MainMenuController : MonoBehaviour
     {
@@ -47,6 +48,10 @@ namespace HybridShooter.UI.MainMenu
         [SerializeField] private float slideStagger = 0.06f;
         [Tooltip("왼쪽 화면 밖에서 들어오는 거리(px, 1920 기준)")]
         [SerializeField] private float slideDistance = 700f;
+
+        [Header("배경 연출")]
+        [Tooltip("호버 연동 연출. 비우면 배경이 반응하지 않는다")]
+        [SerializeField] private MenuBackdropDirector backdrop;
 
         [Header("카메라")]
         [Tooltip("비우면 카메라를 움직이지 않는다")]
@@ -116,6 +121,7 @@ namespace HybridShooter.UI.MainMenu
             var selected = EventSystem.current.currentSelectedGameObject;
             if (selected != null && selected.activeInHierarchy) lastSelected = selected;
             else if (lastSelected != null) EventSystem.current.SetSelectedGameObject(lastSelected);
+            if (backdrop != null) backdrop.SetHover(ToHover(lastSelected));
 
             // 옵션을 닫은 같은 Esc 는 무시
             if (OptionsPopup.CancelPressed() && (optionsPopup == null || optionsPopup.LastClosedFrame != Time.frameCount))
@@ -203,6 +209,15 @@ namespace HybridShooter.UI.MainMenu
         }
 
         // ───────────────────────── 공통 ─────────────────────────
+
+        private MenuHover ToHover(GameObject selected)
+        {
+            if (selected == null) return MenuHover.None;
+            if (selected == gameStartButton.gameObject) return MenuHover.GameStart;
+            if (selected == optionsButton.gameObject) return MenuHover.Options;
+            if (selected == quitButton.gameObject) return MenuHover.Quit;
+            return MenuHover.None;
+        }
 
         private RectTransform ButtonRect(int index) => (RectTransform)buttons[index].transform;
 

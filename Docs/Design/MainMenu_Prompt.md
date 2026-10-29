@@ -229,7 +229,8 @@ Assets/Scripts/Core/Settings/
 - [x] 2. `GameSettings` + 옵션 팝업 — `Tools > MainMenu > Build Options Popup` → `Assets/Prefabs/UI/OptionsPopup.prefab`, `Create Test Scene` → `Test_MainMenu`
 - [x] 3. 디오라마 — `Tools > MainMenu > Rebuild Diorama` (Test_MainMenu 의 Environment·Diorama·CM_Menu 만 다시 만듦). 씬에서 조정한 환경 값을 빌더에 반영
 - [x] 4. 메뉴 UI + PRESS ANY KEY + 키보드/패드 내비게이션 — `Tools > MainMenu > Rebuild Menu UI` (Test_MainMenu 의 Canvas 만 다시 만듦, 임시 OPTIONS 버튼 제거)
-- [ ] 5~7
+- [x] 5. 호버 연동 연출 + 환경 파티클 — `Rebuild Diorama` 가 함께 만든다 (Environment 의 Atmosphere·Hover Volume, Diorama 의 `MenuBackdropDirector`)
+- [ ] 6~7
 
 ### 3단계 디오라마 구성
 - **디스플레이 프리팹** `Assets/Prefabs/MainMenu/Display/*_Display.prefab`: 게임 프리팹(`Resources/Prefabs/Monsters`, 보스, `MS/Prefabs/Player`)을 풀어서 Transform·렌더러·Animator·파티클만 남긴다 (게임 스크립트·물리·이미터 제거, RequireComponent 순서대로). 게임 프리팹이 없는 부포모프·덴솝테르는 에셋 팩 프리팹 사용 → `TestMonster` 자리 표시는 필요 없음
@@ -249,3 +250,18 @@ Assets/Scripts/Core/Settings/
 - **임시 동작 (6단계에서 교체)**: GAME START → 연출 없이 `SceneTransition.LoadAsync(gameSceneName)`, QUIT → 확인 없이 종료, 메인에서 Esc → 아무 것도 안 함 (종료 팝업 자리)
 - 디오라마를 다시 만들면(`Rebuild Diorama`) 새 CM_Menu 를 메뉴 컨트롤러에 다시 연결한다
 - 기존 코드 수정: `OptionsPopup.CancelPressed` 공개(메인 메뉴 Esc 판정 공유), `OptionsPopupBuilder` 공용 도우미 internal
+
+### 5단계 호버 연출·분위기 구성
+- **흐름**: `MainMenuController` 가 선택된 버튼을 `MenuBackdropDirector.SetHover` 로 넘긴다 (옵션 팝업이 열린 동안은 OPTIONS 반응 유지). 호버가 바뀔 때마다 모든 값을 지금 값에서 새 목표로 0.6s 보간하고 이전 트윈은 Kill → 빠르게 옮겨 다녀도 튀지 않음
+- **GAME START**: 플레이어 `Aim` 0→1 (Player_AC 상체 조준 블렌드), FOV −4, 카메라 앞으로 0.25m
+- **OPTIONS**: 카메라 오른쪽으로 0.7m, `Hover Volume (Options)` 가중치 1 (채도 −45, 노출 −0.15)
+- **QUIT**: `Hover Volume (Quit)` 가중치 1 (붉은 비네트 0.45), 무리 중 4마리가 0.5s 안에 엇갈려 포효(애니+소리, 4초 쿨다운), 몬스터 발광 2.5→5배
+- **카메라 이동 분리**: `MenuCameraSway` 에 `Offset` 추가 — 메뉴 진입 이동은 `SetBase`, 호버는 `Offset` 이라 서로 덮어쓰지 않음
+- **몬스터 눈 발광**: 대부분의 몬스터 머티리얼은 Emission 맵(눈·발광부)이 이미 켜져 있어 `DisplayActor.emissionBoost`(기본 2.5, 플레이어는 1 — 소총만 발광)로 MaterialPropertyBlock 배율만 올린다. 부포모프·레탈로브라크는 Emission 이 꺼진 머티리얼이라 변화 없음
+- **분위기** (Environment/Atmosphere):
+  - GroundFog: 팩 `Smoke.png` 연기 덩어리(8~14m, 알파 0.18)가 바닥(z 7~37)에서 천천히 오른쪽으로 흐름 — `Assets/Materials/MainMenu/MainMenuFog.mat`
+  - Embers: `T_Glow` 가산 블렌드 불씨(HDR 주황 → Bloom)가 바람 따라 오른쪽 위로 — `MainMenuEmber.mat`
+  - DistantFlash: 무리 너머 안개 속 Point Light 가 4~10초마다 번쩍임 (35% 확률로 두 번 연속, 위치 4곳 중 무작위)
+- 파티클 재질은 셰이더 GUI 를 거치지 않으므로 블렌드 값·키워드를 빌더가 직접 맞춘다 (`CrashedShipSmoke.mat` 와 같은 투명 설정)
+- 볼륨 프로필: `Assets/Settings/MainMenuHoverOptionsProfile.asset`, `MainMenuHoverQuitProfile.asset` (Priority 1, 다시 만들 때마다 새로 씀)
+- 수치는 `MenuBackdropDirector`·`DistantFlash` Inspector, 파티클·섬광 위치는 `MainMenuDioramaBuilder` (`FlashPoints`, `CreateAtmosphere`)

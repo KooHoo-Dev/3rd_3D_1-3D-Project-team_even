@@ -17,13 +17,20 @@ namespace HybridShooter.UI.MainMenu.Editor
     ///  1) *_Display 프리팹 (Assets/Prefabs/MainMenu/Display/): 게임 프리팹을 풀어서 렌더러·Animator 만 남기고
     ///     (AI·입력·물리·전투·사운드 이미터 제거) 에셋 팩 Animator 컨트롤러 + DisplayActor 를 붙인다.
     ///     게임 프리팹이 없는 종류(부포모프·덴솝테르)는 에셋 팩 프리팹을 그대로 쓴다
-    ///  2) 씬: Environment(인게임 맵 대신 같은 땅 텍스처의 바닥·바위 + 인게임과 같은 하늘·조명 + 원경 안개·포스트프로세싱) + Diorama(플레이어·몬스터 무리·원경 보스) + CM_Menu 카메라
+    ///  2) 씬: Environment(인게임 맵 대신 같은 땅 텍스처의 바닥·바위 + 인게임과 같은 하늘·조명 + 원경 안개·포스트프로세싱
+    ///     + 바닥 안개·불씨 파티클·원경 섬광 + 호버 연출용 볼륨) + Diorama(플레이어·몬스터 무리·원경 보스 + MenuBackdropDirector) + CM_Menu 카메라
     /// 배치는 고정 시드라 다시 만들어도 같다. 구도·수치는 아래 상수에서 조정
     /// </summary>
     public static class MainMenuDioramaBuilder
     {
         private const string DisplayFolder = "Assets/Prefabs/MainMenu/Display";
         private const string VolumeProfilePath = "Assets/Settings/MainMenuVolumeProfile.asset";
+        private const string HoverOptionsProfilePath = "Assets/Settings/MainMenuHoverOptionsProfile.asset";
+        private const string HoverQuitProfilePath = "Assets/Settings/MainMenuHoverQuitProfile.asset";
+        private const string FogMaterialPath = "Assets/Materials/MainMenu/MainMenuFog.mat";
+        private const string EmberMaterialPath = "Assets/Materials/MainMenu/MainMenuEmber.mat";
+        private const string SmokeTexturePath = "Assets/ExternalAssets/Creepy_Cat/_3D Scifi Kit Vol 2/Textures/Smoke.png";
+        private const string GlowTexturePath = "Assets/Prefabs/Effects/Textures/T_Glow.png";
         private const string GroundMaterialPath = "Assets/Materials/MainMenu/MainMenuGround.mat";
         private const string RockPath = "Assets/ExternalAssets/Creepy_Cat/_3D Scifi Kit Vol 2/Prefabs/_Exteriors/Rock_02.prefab";
         private const float GroundSize = 300f;
@@ -40,6 +47,14 @@ namespace HybridShooter.UI.MainMenu.Editor
         private static readonly Vector3 CameraTarget = new Vector3(2.5f, 1.4f, 16f);
         private const float CameraFov = 45f;
         private static readonly Vector3 BossPosition = new Vector3(6f, 0f, 50f);
+
+        /// <summary>원경 섬광 위치 후보 (몬스터 무리 너머 양옆·정면, 안개 속)</summary>
+        private static readonly Vector3[] FlashPoints =
+        {
+            new Vector3(-35f, 6f, 70f), new Vector3(10f, 8f, 85f), new Vector3(45f, 6f, 65f), new Vector3(-10f, 5f, 95f),
+        };
+        private static readonly Color FlashColor = new Color(1f, 0.6f, 0.35f);
+        private static readonly Color EmberColor = new Color(2.4f, 0.9f, 0.3f); // HDR → Bloom
 
         /// <summary>바위 (위치, 크기, 회전). 원경 안개 속 실루엣 (2026-10-28 씬에서 조정한 값)</summary>
         private static readonly (Vector3 Position, float Scale, float Yaw)[] Rocks =
@@ -191,12 +206,15 @@ namespace HybridShooter.UI.MainMenu.Editor
             CreateGround(environment.transform);
             CreateLighting(environment.transform);
             CreateVolume(environment.transform);
+            var (optionsVolume, quitVolume) = CreateHoverVolumes(environment.transform);
+            CreateAtmosphere(environment.transform);
 
             var diorama = new GameObject("Diorama");
             PlaceActors(diorama.transform, prefabs);
 
-            SetupCamera(mainCamera, diorama.transform);
-            MainMenuUIBuilder.LinkCamera(Object.FindAnyObjectByType<MenuCameraSway>()); // CM_Menu 를 새로 만들었으므로
+            var menuCamera = SetupCamera(mainCamera, diorama.transform);
+            var director = CreateDirector(diorama.transform, menuCamera, optionsVolume, quitVolume);
+            MainMenuUIBuilder.LinkDiorama(menuCamera.GetComponent<MenuCameraSway>(), director); // CM_Menu·연출을 새로 만들었으므로
         }
 
         /// <summary>
@@ -325,6 +343,221 @@ namespace HybridShooter.UI.MainMenu.Editor
             return component;
         }
 
+        // ───────────────────────── 호버 연출·분위기 ─────────────────────────
+
+        /// <summary>
+        /// 호버 연출용 전역 볼륨 2개 (가중치 0 으로 두고 MenuBackdropDirector 가 올린다). 기본 볼륨보다 Priority 가 높아 겹치는 값(비네트)은 이쪽으로 섞인다.
+        ///  - Options: 채도 낮춤 + 약간 어둡게
+        ///  - Quit: 붉은 비네트
+        /// </summary>
+        private static (Volume Options, Volume Quit) CreateHoverVolumes(Transform parent)
+        {
+            var options = NewProfile(HoverOptionsProfilePath);
+            var color = AddOverride<ColorAdjustments>(options);
+            color.saturation.Override(-45f);
+            color.postExposure.Override(-0.15f);
+
+            var quit = NewProfile(HoverQuitProfilePath);
+            var vignette = AddOverride<Vignette>(quit);
+            vignette.color.Override(new Color(0.55f, 0f, 0f));
+            vignette.intensity.Override(0.45f);
+            vignette.smoothness.Override(0.5f);
+            AssetDatabase.SaveAssets();
+
+            return (HoverVolume(parent, "Hover Volume (Options)", options), HoverVolume(parent, "Hover Volume (Quit)", quit));
+        }
+
+        private static VolumeProfile NewProfile(string path)
+        {
+            AssetDatabase.DeleteAsset(path);
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            AssetDatabase.CreateAsset(profile, path);
+            return profile;
+        }
+
+        private static Volume HoverVolume(Transform parent, string name, VolumeProfile profile)
+        {
+            var go = new GameObject(name, typeof(Volume));
+            go.transform.SetParent(parent, false);
+            var volume = go.GetComponent<Volume>();
+            volume.isGlobal = true;
+            volume.priority = 1f;
+            volume.weight = 0f;
+            volume.sharedProfile = profile;
+            return volume;
+        }
+
+        /// <summary>바닥에 깔린 안개, 바람에 날리는 불씨, 원경 섬광</summary>
+        private static void CreateAtmosphere(Transform parent)
+        {
+            var root = new GameObject("Atmosphere").transform;
+            root.SetParent(parent, false);
+
+            // 바닥 안개: 크고 옅은 연기 덩어리가 천천히 옆으로 흐른다. 카메라 바로 앞은 비워 둔다 (z 7~37)
+            var fog = NewParticles(root, "GroundFog", new Vector3(0f, 0.8f, 22f), ParticleMaterial(FogMaterialPath, SmokeTexturePath, false));
+            var main = fog.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(14f, 20f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.1f, 0.3f);
+            main.startSize = new ParticleSystem.MinMaxCurve(8f, 14f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startColor = new Color(0.75f, 0.78f, 0.82f, 0.18f);
+            main.maxParticles = 120;
+            SetEmission(fog, 7f);
+            SetBox(fog, new Vector3(70f, 0.6f, 30f));
+            var fogVelocity = fog.velocityOverLifetime;
+            fogVelocity.enabled = true;
+            fogVelocity.space = ParticleSystemSimulationSpace.World;
+            fogVelocity.x = 0.25f;
+            fogVelocity.y = 0f;
+            fogVelocity.z = 0f;
+            var fogRotation = fog.rotationOverLifetime;
+            fogRotation.enabled = true;
+            fogRotation.z = new ParticleSystem.MinMaxCurve(-6f * Mathf.Deg2Rad, 6f * Mathf.Deg2Rad);
+            SetFadeInOut(fog, 0.2f, 0.7f);
+
+            // 불씨: 작고 밝은 점이 바람을 따라 오른쪽 위로 흩날린다 (HDR 색 → Bloom)
+            var embers = NewParticles(root, "Embers", new Vector3(0f, 2f, 12f), ParticleMaterial(EmberMaterialPath, GlowTexturePath, true));
+            main = embers.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(6f, 10f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.6f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.04f, 0.12f);
+            main.startColor = EmberColor;
+            main.maxParticles = 200;
+            SetEmission(embers, 18f);
+            SetBox(embers, new Vector3(40f, 4f, 30f));
+            var emberVelocity = embers.velocityOverLifetime;
+            emberVelocity.enabled = true;
+            emberVelocity.space = ParticleSystemSimulationSpace.World;
+            emberVelocity.x = 0.6f;
+            emberVelocity.y = 0.35f;
+            emberVelocity.z = 0f;
+            var noise = embers.noise;
+            noise.enabled = true;
+            noise.strength = 0.4f;
+            noise.frequency = 0.5f;
+            noise.scrollSpeed = 0.2f;
+            SetFadeInOut(embers, 0.1f, 0.8f);
+
+            // 원경 섬광: 무리 너머 안개 속 Point Light
+            var flash = new GameObject("DistantFlash", typeof(Light), typeof(DistantFlash));
+            flash.transform.SetParent(root, false);
+            flash.transform.localPosition = FlashPoints[0];
+            var light = flash.GetComponent<Light>();
+            light.type = LightType.Point;
+            light.range = 90f;
+            light.color = FlashColor;
+            light.intensity = 0f;
+            light.shadows = LightShadows.None;
+            var so = new SerializedObject(flash.GetComponent<DistantFlash>());
+            var points = so.FindProperty("points");
+            points.arraySize = FlashPoints.Length;
+            for (int i = 0; i < FlashPoints.Length; i++) points.GetArrayElementAtIndex(i).vector3Value = FlashPoints[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static ParticleSystem NewParticles(Transform parent, string name, Vector3 position, Material material)
+        {
+            var go = new GameObject(name, typeof(ParticleSystem));
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = position;
+            var particles = go.GetComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear); // 재생 중에는 main 값 일부를 못 바꾼다
+
+            var main = particles.main;
+            main.loop = true;
+            main.prewarm = true; // 메뉴가 열리자마자 이미 깔려 있게
+            main.playOnAwake = true;
+            main.useUnscaledTime = true;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.sortMode = ParticleSystemSortMode.Distance;
+            return particles;
+        }
+
+        private static void SetEmission(ParticleSystem particles, float rate)
+        {
+            var emission = particles.emission;
+            emission.enabled = true;
+            emission.rateOverTime = rate;
+        }
+
+        private static void SetBox(ParticleSystem particles, Vector3 size)
+        {
+            var shape = particles.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = size;
+        }
+
+        /// <summary>수명 동안 알파 0 → 1 (fadeIn) … 1 (fadeOut) → 0</summary>
+        private static void SetFadeInOut(ParticleSystem particles, float fadeIn, float fadeOut)
+        {
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, fadeIn), new GradientAlphaKey(1f, fadeOut), new GradientAlphaKey(0f, 1f) });
+            var color = particles.colorOverLifetime;
+            color.enabled = true;
+            color.color = gradient;
+        }
+
+        /// <summary>
+        /// URP Particles/Unlit 투명 재질 (없으면 만들고 값은 매번 다시 넣는다). 셰이더 GUI 를 거치지 않으므로 블렌드 값·키워드를 직접 맞춘다
+        /// (CrashedShipSmoke.mat 와 같은 설정, additive = 가산 블렌드)
+        /// </summary>
+        private static Material ParticleMaterial(string path, string texturePath, bool additive)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(shader);
+                EnsureFolder(Path.GetDirectoryName(path).Replace('\\', '/'));
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = shader;
+
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+            if (texture == null) Debug.LogWarning($"[MainMenuDioramaBuilder] 파티클 텍스처가 없습니다: {texturePath}");
+            material.SetTexture("_BaseMap", texture);
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_Surface", 1f);
+            material.SetFloat("_Blend", additive ? 2f : 0f);
+            material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend", (float)(additive ? BlendMode.One : BlendMode.OneMinusSrcAlpha));
+            material.SetFloat("_SrcBlendAlpha", (float)BlendMode.One);
+            material.SetFloat("_DstBlendAlpha", (float)(additive ? BlendMode.One : BlendMode.OneMinusSrcAlpha));
+            material.SetFloat("_ZWrite", 0f);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)RenderQueue.Transparent;
+            material.SetShaderPassEnabled("DepthOnly", false);
+            material.SetShaderPassEnabled("SHADOWCASTER", false);
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>Diorama 에 호버 연출을 붙이고 카메라·플레이어·무리·볼륨을 연결</summary>
+        private static MenuBackdropDirector CreateDirector(Transform diorama, CinemachineCamera menuCamera, Volume optionsVolume, Volume quitVolume)
+        {
+            var director = diorama.gameObject.AddComponent<MenuBackdropDirector>();
+            var player = diorama.Find(Player.Name + "_Display");
+            var so = new SerializedObject(director);
+            so.FindProperty("menuCamera").objectReferenceValue = menuCamera;
+            so.FindProperty("cameraSway").objectReferenceValue = menuCamera.GetComponent<MenuCameraSway>();
+            so.FindProperty("player").objectReferenceValue = player != null ? player.GetComponent<DisplayActor>() : null;
+            so.FindProperty("crowd").objectReferenceValue = diorama.Find("Crowd");
+            so.FindProperty("optionsVolume").objectReferenceValue = optionsVolume;
+            so.FindProperty("quitVolume").objectReferenceValue = quitVolume;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            if (player == null) Debug.LogWarning("[MainMenuDioramaBuilder] 플레이어를 찾지 못해 조준 연출이 빠집니다");
+            return director;
+        }
+
         /// <summary>플레이어(기준점) + 고정 시드로 흩뿌린 몬스터 무리 + 원경 보스</summary>
         private static void PlaceActors(Transform diorama, Dictionary<ActorSpec, GameObject> prefabs)
         {
@@ -389,7 +622,7 @@ namespace HybridShooter.UI.MainMenu.Editor
         }
 
         /// <summary>메인 카메라에 CinemachineBrain·포스트프로세싱, CM_Menu 에 오버숄더 구도·Noise·흔들림</summary>
-        private static void SetupCamera(Camera mainCamera, Transform diorama)
+        private static CinemachineCamera SetupCamera(Camera mainCamera, Transform diorama)
         {
             mainCamera.clearFlags = CameraClearFlags.Skybox; // 인게임과 같은 하늘
             mainCamera.fieldOfView = CameraFov;
@@ -414,6 +647,7 @@ namespace HybridShooter.UI.MainMenu.Editor
             noise.FrequencyGain = 0.35f;
 
             mainCamera.transform.SetPositionAndRotation(go.transform.position, go.transform.rotation);
+            return cm;
         }
 
         // ───────────────────────── 디스플레이 프리팹 ─────────────────────────
@@ -462,6 +696,8 @@ namespace HybridShooter.UI.MainMenu.Editor
                 so.FindProperty("threatState").stringValue = spec.Threat ?? "";
                 so.FindProperty("threatSoundKey").stringValue = spec.ThreatSound ?? "";
                 so.FindProperty("hover").boolValue = spec.Hover;
+                // 플레이어는 소총 발광부뿐이라 원래대로 (몬스터만 눈이 빛나게)
+                if (spec == Player) so.FindProperty("emissionBoost").floatValue = 1f;
                 so.ApplyModifiedPropertiesWithoutUndo();
 
                 string path = $"{DisplayFolder}/{go.name}.prefab";

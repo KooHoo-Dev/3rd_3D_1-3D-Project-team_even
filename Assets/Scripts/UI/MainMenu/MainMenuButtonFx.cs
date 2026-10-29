@@ -13,7 +13,7 @@ namespace HybridShooter.UI.MainMenu
     ///  - 선택: 커서음 + 글자색 바꿈 + 살짝 커짐 (배경 노란색은 Button 의 Sprite Swap 이 맡는다)
     ///  - 클릭·Submit: 선택음 (버튼이 여는 화면(옵션 팝업 등)은 자기 소리를 내지 않으므로 여는 소리는 여기서 낸다)
     /// 팩 버튼의 TMTextColorControl 은 마우스에만 반응해 키보드 선택과 어긋나므로 빌더가 끄고 이 컴포넌트가 대신한다.
-    /// TODO(5단계): 배경 반응 이벤트 발행
+    /// 배경 반응(MenuBackdropDirector)은 선택된 버튼을 보는 MainMenuController 가 넘긴다
     /// </summary>
     [RequireComponent(typeof(Button))]
     public sealed class MainMenuButtonFx : MonoBehaviour, IPointerEnterHandler, ISelectHandler, IDeselectHandler

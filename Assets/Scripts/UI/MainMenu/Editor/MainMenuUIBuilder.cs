@@ -106,16 +106,18 @@ namespace HybridShooter.UI.MainMenu.Editor
             Set(so, "optionsPopup", popup.GetComponent<OptionsPopup>());
             Set(so, "versionText", version);
             Set(so, "menuCamera", Object.FindAnyObjectByType<MenuCameraSway>());
+            Set(so, "backdrop", Object.FindAnyObjectByType<MenuBackdropDirector>());
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        /// <summary>디오라마를 다시 만들어 CM_Menu 가 바뀌었을 때 메뉴 컨트롤러에 다시 연결</summary>
-        public static void LinkCamera(MenuCameraSway menuCamera)
+        /// <summary>디오라마를 다시 만들어 CM_Menu·배경 연출이 바뀌었을 때 메뉴 컨트롤러에 다시 연결</summary>
+        public static void LinkDiorama(MenuCameraSway menuCamera, MenuBackdropDirector backdrop)
         {
             var controller = Object.FindAnyObjectByType<MainMenuController>();
             if (controller == null) return;
             var so = new SerializedObject(controller);
             Set(so, "menuCamera", menuCamera);
+            Set(so, "backdrop", backdrop);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
