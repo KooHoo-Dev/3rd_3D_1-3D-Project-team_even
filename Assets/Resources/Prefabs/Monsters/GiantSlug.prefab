@@ -915,6 +915,7 @@ MonoBehaviour:
   idleSpeedThreshold: 0.1
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
+  activeSeconds: 0.5
   hitTimeRatio: 0.5
   windupTurnSpeed: 360
 --- !u!114 &-7821899813460665779
@@ -932,8 +933,12 @@ MonoBehaviour:
   projectilePrefab: {fileID: 3101469685308094772, guid: 572cd9e95c0c7a546a2e0929bc069972, type: 3}
   zonePrefab: {fileID: 1256580010684116393, guid: 836104276258310458607bae1b897546, type: 3}
   markerPrefab: {fileID: 7115643987484245890, guid: df5cb4955e2091249908f1830b38d070, type: 3}
+  launchWidth: 1
   launchHeight: 1
   arcHeight: 4
+  tickDamage: 6
+  tickInterval: 1
+  zoneDuration: 5
   zoneHeightTolerance: 0.5
 --- !u!1 &3710361424080600933
 GameObject:
