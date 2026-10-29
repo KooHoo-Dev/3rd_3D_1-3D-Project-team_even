@@ -1688,8 +1688,8 @@ GameObject:
   m_Component:
   - component: {fileID: 5523472075302276702}
   - component: {fileID: 5523472075311308854}
-  - component: {fileID: 1757207513716776199}
   - component: {fileID: 1455781389567725617}
+  - component: {fileID: 4122876080719368405}
   - component: {fileID: 1387828447975887547}
   - component: {fileID: 6465869196583418968}
   - component: {fileID: 6183423561265755135}
@@ -1753,27 +1753,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!65 &1757207513716776199
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5523472075301917310}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 20, y: 20, z: 20}
-  m_Center: {x: 0, y: 10, z: 0}
 --- !u!195 &1455781389567725617
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1796,6 +1775,27 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!65 &4122876080719368405
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 15, y: 11.51, z: 15.71}
+  m_Center: {x: 0, y: 9.46, z: -1.4}
 --- !u!114 &1387828447975887547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1974,6 +1974,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5523472075302277088}
+  - component: {fileID: 3719594880551297770}
   m_Layer: 0
   m_Name: Clypeosaurus_LegLeft_C_2
   m_TagString: Untagged
@@ -1997,6 +1998,27 @@ Transform:
   - {fileID: 5523472075302277102}
   m_Father: {fileID: 5523472075302277090}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &3719594880551297770
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917568}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 6, y: 3, z: 3}
+  m_Center: {x: -1.95, y: -0.09, z: 0}
 --- !u!1 &5523472075301917570
 GameObject:
   m_ObjectHideFlags: 0
@@ -2069,6 +2091,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5523472075302277094}
+  - component: {fileID: 6960134797870289315}
   m_Layer: 0
   m_Name: Clypeosaurus_LegLeft_B_2
   m_TagString: Untagged
@@ -2092,6 +2115,27 @@ Transform:
   - {fileID: 5523472075302277092}
   m_Father: {fileID: 5523472075302277112}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &6960134797870289315
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917574}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 7, y: 3, z: 3}
+  m_Center: {x: -2.52, y: -0.42, z: 0}
 --- !u!1 &5523472075301917576
 GameObject:
   m_ObjectHideFlags: 0
@@ -2132,6 +2176,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5523472075302277098}
+  - component: {fileID: 8497308567509964027}
   m_Layer: 0
   m_Name: Clypeosaurus_LegRight_A_2
   m_TagString: Untagged
@@ -2155,6 +2200,27 @@ Transform:
   - {fileID: 5523472075302277096}
   m_Father: {fileID: 5523472075302277100}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &8497308567509964027
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917578}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 7, y: 3, z: 3}
+  m_Center: {x: -2.2, y: 0.54, z: 0}
 --- !u!1 &5523472075301917580
 GameObject:
   m_ObjectHideFlags: 0
@@ -2426,6 +2492,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5523472075302277116}
+  - component: {fileID: 4020349537913521221}
   m_Layer: 0
   m_Name: Clypeosaurus_LegLeft_A_2
   m_TagString: Untagged
@@ -2449,6 +2516,27 @@ Transform:
   - {fileID: 5523472075302277114}
   m_Father: {fileID: 5523472075302277118}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &4020349537913521221
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917596}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 7, y: 3, z: 3}
+  m_Center: {x: -2.59, y: -0.25, z: 0}
 --- !u!1 &5523472075301917598
 GameObject:
   m_ObjectHideFlags: 0
@@ -2807,6 +2895,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5523472075302277012}
+  - component: {fileID: 6586315409294949885}
   m_Layer: 0
   m_Name: Clypeosaurus_LegRight_B_2
   m_TagString: Untagged
@@ -2830,6 +2919,27 @@ Transform:
   - {fileID: 5523472075302277010}
   m_Father: {fileID: 5523472075302277014}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &6586315409294949885
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917620}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 7, y: 3, z: 3}
+  m_Center: {x: -2.78, y: 0.3, z: 0}
 --- !u!1 &5523472075301917622
 GameObject:
   m_ObjectHideFlags: 0
@@ -2903,6 +3013,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5523472075302277018}
+  - component: {fileID: 4389089271116370108}
   m_Layer: 0
   m_Name: Clypeosaurus_Neck_1
   m_TagString: Untagged
@@ -2926,6 +3037,27 @@ Transform:
   - {fileID: 5523472075302277016}
   m_Father: {fileID: 5523472075302277062}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &4389089271116370108
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917626}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 5, y: 5, z: 5}
+  m_Center: {x: -4.48, y: 0, z: 0}
 --- !u!1 &5523472075301917628
 GameObject:
   m_ObjectHideFlags: 0
@@ -2966,6 +3098,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5523472075302277022}
+  - component: {fileID: 6345629762260320250}
   m_Layer: 0
   m_Name: Clypeosaurus_LegRight_C_2
   m_TagString: Untagged
@@ -2989,6 +3122,27 @@ Transform:
   - {fileID: 5523472075302277020}
   m_Father: {fileID: 5523472075302277008}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &6345629762260320250
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917630}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 6, y: 3, z: 3}
+  m_Center: {x: -2.06, y: -0.15, z: 0}
 --- !u!1 &5523472075301917664
 GameObject:
   m_ObjectHideFlags: 0
