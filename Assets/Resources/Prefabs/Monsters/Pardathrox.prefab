@@ -506,10 +506,10 @@ MonoBehaviour:
   navMeshTolerance: 0.5
   groundMask:
     serializedVersion: 2
-    m_Bits: 969
+    m_Bits: 968
   obstacleMask:
     serializedVersion: 2
-    m_Bits: 969
+    m_Bits: 968
 --- !u!136 &1401033444075153407
 CapsuleCollider:
   m_ObjectHideFlags: 0

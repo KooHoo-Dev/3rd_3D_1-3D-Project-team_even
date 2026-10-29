@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3693138554123243401}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ R HorseLink
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -41,7 +41,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5591588639209097}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ R Foot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -72,7 +72,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6275028072837156511}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ R Forearm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -104,7 +104,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4647515226987302433}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_Tongue1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136,7 +136,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8716934045170630762}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ R Clavicle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -175,7 +175,7 @@ GameObject:
   - component: {fileID: 8182058156753446464}
   - component: {fileID: 4691132091533479145}
   - component: {fileID: 517540784849940430}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -242,7 +242,7 @@ NavMeshAgent:
   m_Height: 2
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
-  m_ObstacleAvoidanceType: 4
+  m_ObstacleAvoidanceType: 0
 --- !u!114 &7009483942553203710
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -348,7 +348,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1710638946430155219}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ L Hand
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -379,7 +379,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2882810396090059681}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ R Hand
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -410,7 +410,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 854855368075603187}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ L UpperArm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -442,7 +442,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2446741059257391323}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ Tail
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -474,7 +474,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1069010941463085640}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ Tail1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -506,7 +506,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3374246435313702556}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ L Forearm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -538,7 +538,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4514887436067921124}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ L Foot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -569,7 +569,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4194791675921537601}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ Tail2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -601,7 +601,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 461264230210944764}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -632,7 +632,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3665685478301398541}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ Tail3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -665,7 +665,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4878741594117024016}
   - component: {fileID: 5615500690725062124}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: SK_Letalobrach
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -787,7 +787,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7666862622253608656}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -819,7 +819,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4716855239108739071}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ Spine1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -853,7 +853,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4752601851299954989}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_Tongue2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -885,7 +885,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2470182728050623845}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ Spine
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -917,7 +917,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8020248333320999408}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_Tongue3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -948,7 +948,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 761027778978897864}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_Jaw
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -979,7 +979,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6534947921604733674}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1012,7 +1012,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2570018692392333871}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ L Clavicle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1044,7 +1044,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2735292125314853752}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ R Calf
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1076,7 +1076,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 436085819000787311}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ Tail4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1108,7 +1108,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7311943283456566148}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ Tail5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1139,7 +1139,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3364392601673860336}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ R Thigh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1171,7 +1171,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 671453987816746816}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ Neck
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1205,7 +1205,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7691976919896557561}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ L Thigh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1237,7 +1237,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6024151634428181303}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ R UpperArm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1269,7 +1269,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6388433081847340329}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ L Calf
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1301,7 +1301,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 946670427753615141}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ L HorseLink
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1333,7 +1333,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8292832448926155166}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Letalobrach_ Pelvis
   m_TagString: Untagged
   m_Icon: {fileID: 0}
