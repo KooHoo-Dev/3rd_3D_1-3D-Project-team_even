@@ -1695,6 +1695,7 @@ GameObject:
   - component: {fileID: 6183423561265755135}
   - component: {fileID: 6204140023404708941}
   - component: {fileID: 823172667169261941}
+  - component: {fileID: 7874530854670405339}
   - component: {fileID: 534779049517218803}
   - component: {fileID: 2158953421807436580}
   - component: {fileID: 7764257687145243604}
@@ -1864,6 +1865,22 @@ MonoBehaviour:
   - {fileID: 534779049517218803}
   - {fileID: 2158953421807436580}
   - {fileID: 7764257687145243604}
+--- !u!114 &7874530854670405339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79214baee515f3a449c71484c753b7d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.EntranceAttack
+  fallHeight: 30
+  fallDuration: 0.8
+  shadowPrefab: {fileID: 7329057322042179811, guid: 9234d485a63c9644595cbf8d4efdef78, type: 3}
+  shockwavePrefab: {fileID: 8892443149770637752, guid: 23c12557ae01ab44099ab5dda922d953, type: 3}
 --- !u!114 &534779049517218803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1946,6 +1963,7 @@ MonoBehaviour:
     LoopPoint: {fileID: 2970032289995159653}
     ImpactKey: 
   deathKey: mon_clypeosaurus_hurt
+  walkLoopKey: mon_clypeosaurus_walk_loop
   voicePoint: {fileID: 0}
 --- !u!1 &5523472075301917568
 GameObject:

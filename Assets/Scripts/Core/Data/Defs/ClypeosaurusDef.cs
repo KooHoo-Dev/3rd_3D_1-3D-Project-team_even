@@ -9,6 +9,12 @@ namespace HybridShooter.Core.Data.Defs
 
         public int BossId { get; }
         
+        // 등장 공격
+        public int EntranceDamage { get; }
+        public float EntranceRadius { get; }
+        public float EntranceTelegraphTime { get; }
+        public float EntranceRecoveryTime { get; }
+        
         // 짓밟기
         public int StompDamage { get; }
         public float StompTelegraphTime { get; }
@@ -53,6 +59,11 @@ namespace HybridShooter.Core.Data.Defs
         {
             BossId = dto.BossId;
             
+            EntranceDamage = dto.EntranceDamage;
+            EntranceRadius = dto.EntranceRadius;
+            EntranceTelegraphTime = dto.EntranceTelegraphTime;
+            EntranceRecoveryTime = dto.EntranceRecoveryTime;
+            
             StompDamage = dto.StompDamage;
             StompTelegraphTime = dto.StompTelegraphTime;
             StompRadius = dto.StompRadius;
@@ -89,6 +100,12 @@ namespace HybridShooter.Core.Data.Defs
             SuctionStartMinDistance = dto.SuctionStartMinDistance;
 
             report.Check(BossId > 0, Table, BossId, "BossId는 1 이상이어야 합니다.");
+            
+            // 등장 공격
+            report.Check(EntranceDamage >= 0, Table, "Entrance", "Damage는 0 이상이어야 합니다.");
+            report.Check(EntranceRadius > 0f, Table, "Entrance", "Radius는 0보다 커야 합니다.");
+            report.Check(EntranceTelegraphTime >= 0f, Table, "Entrance", "TelegraphTime은 0 이상이어야 합니다.");
+            report.Check(EntranceRecoveryTime >= 0f, Table, "Entrance", "RecoveryTime은 0 이상이어야 합니다.");
             
             // 짓밟기 검증
             report.Check(StompDamage >= 0, Table, "Stomp", "Damage는 0 이상이어야 합니다.");

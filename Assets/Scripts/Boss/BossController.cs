@@ -23,6 +23,7 @@ namespace HybridShooter.Boss
         public float HpRatio => health?.HpRatio ?? 0f;
         public bool IsAttacking => currentAttack != null;
         public bool CanStartAttack => isActiveAndEnabled && IsAlive && IsAttacking == false && Time.time >= nextAttackTime;
+        public bool IsInvulnerable { get; private set; }
         
         public event Action<DamageInfo> Damaged;
         public event Action Died;
@@ -30,6 +31,11 @@ namespace HybridShooter.Boss
         private void Awake()
         {
             movement = GetComponent<BossMovement>();
+        }
+        
+        public void SetInvulnerable(bool value)
+        {
+            IsInvulnerable = value;
         }
 
         public void Initialize(BossDef def, IPlayerTarget target)
@@ -42,6 +48,7 @@ namespace HybridShooter.Boss
             Def = def;
             health = new BossHealth(def.MaxHp);
             nextAttackTime = Time.time;
+            IsInvulnerable = false;
             
             movement.Initialize(def.MoveSpeed, target.Root);
         }
@@ -50,7 +57,8 @@ namespace HybridShooter.Boss
         {
             if (this.CanBeHitBy(info.AttackerFaction) == false) return;
             if (health.ApplyDamage(info.Amount) == false) return;
-
+            if (IsInvulnerable) return;
+            
             bool died = (health.IsAlive == false);
             
             if (died)
