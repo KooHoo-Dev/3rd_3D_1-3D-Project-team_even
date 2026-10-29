@@ -31,6 +31,6 @@ namespace HybridShooter.Core.Data.Dtos
         public bool ClearsMinions;
         public string AnimTrigger = "";
         public string SfxKey = "";  // SoundTable.Key (빈칸 = 없음). 예고(Telegraph) 시작에 재생
-        public string ImpactSfxKey = "";  // 돌진 벽 충돌·도약 착지·투사체 착탄 지점
+        public string ImpactSfxKey = "";  // 돌진 벽·플레이어 충돌·도약 착지·투사체 착탄 지점
     }
 }

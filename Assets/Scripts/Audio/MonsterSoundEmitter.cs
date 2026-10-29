@@ -21,6 +21,7 @@ namespace HybridShooter.Audio
     ///  - 공격 예고   : AttackPhaseChanged(Windup) → MonsterAttackDef.Sfx (돌진처럼 Attack 클립이 없는 공격도 동작)
     ///  - 기절       : Stunned → 울음·루프 일시 정지 + 공격 ImpactSfx(벽 충돌) + MonsterDef.StunSfx, 기절이 끝나면 다시 시작
     ///  - 도약 착지   : AttackLanded → MonsterAttackDef.ImpactSfx (착지 지점)
+    ///  - 돌진 명중   : AttackContacted → MonsterAttackDef.ImpactSfx (부딪힌 지점)
     ///  - 사망       : Died → 울음·루프 정지 + MonsterDef.DeathSfx (사망 연출 중에 울지 않게)
     ///  - PlaySfxKey : 상태 머신 밖 동작(은신 등)용 SoundTable 키 직접 재생 (애니메이션 이벤트에서도 호출 가능)
     /// </summary>
@@ -71,6 +72,7 @@ namespace HybridShooter.Audio
                 source.AttackPhaseChanged += OnAttackPhaseChanged;
                 source.Stunned += OnStunned;
                 source.AttackLanded += OnAttackLanded;
+                source.AttackContacted += OnAttackLanded; // 명중도 착지와 같이 그 지점에서 ImpactSfx
                 source.Died += OnDied;
                 if (source.Def != null) Def = source.Def;
             }
@@ -86,6 +88,7 @@ namespace HybridShooter.Audio
                 source.AttackPhaseChanged -= OnAttackPhaseChanged;
                 source.Stunned -= OnStunned;
                 source.AttackLanded -= OnAttackLanded;
+                source.AttackContacted -= OnAttackLanded;
                 source.Died -= OnDied;
             }
             StopLoop();
@@ -185,7 +188,7 @@ namespace HybridShooter.Audio
             Play(Def?.StunSfx, Point.position);
         }
 
-        /// <summary>도약 착지 지점에서 착지음</summary>
+        /// <summary>도약 착지·돌진 명중 지점에서 ImpactSfx</summary>
         private void OnAttackLanded(MonsterAttackDef attack, Vector3 position)
         {
             if (silenced) return;
