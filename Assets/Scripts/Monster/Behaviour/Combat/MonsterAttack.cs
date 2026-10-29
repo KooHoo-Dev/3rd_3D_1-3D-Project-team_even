@@ -97,6 +97,9 @@ namespace HybridShooter.Monster.Behaviour
         // 공격 몸이 대상에 부딪힘 (돌진 명중). 인자 = 부딪힌 지점. 소리·연출용
         public event Action<MonsterAttack, Vector3> BodyContacted;
 
+        // 판정 1프레임 알림 (IHitArea 를 쓰는 공격). 인자 = 범위, 기준 위치, 기준 정면, 대상이 범위 안이었는지. 범위 시각화용
+        public event Action<MonsterAttack, IHitArea, Vector3, Vector3, bool> MonsterHitEvent;
+
         // 진행 중인 공격의 대상. 진행 중이 아니면 null
         protected IPlayerTarget Target { get; private set; }
 
@@ -275,6 +278,14 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>몸이 대상에 부딪혔음을 알린다 (돌진 명중). 하위 클래스가 실제로 닿은 순간에 부른다</summary>
         /// <param name="point">부딪힌 지점</param>
         protected void NotifyBodyContacted(Vector3 point) => BodyContacted?.Invoke(this, point);
+
+        /// <summary>범위 판정을 한 순간을 알린다. IHitArea 로 판정하는 하위 클래스가 Contains 직후, 피해를 주기 전에 부른다</summary>
+        /// <param name="area">판정에 쓴 범위</param>
+        /// <param name="origin">판정 기준 위치 (월드, m)</param>
+        /// <param name="forward">판정 기준 정면</param>
+        /// <param name="didHit">대상이 범위 안이었으면 true</param>
+        protected void NotifyMonsterHit(IHitArea area, Vector3 origin, Vector3 forward, bool didHit)
+            => MonsterHitEvent?.Invoke(this, area, origin, forward, didHit);
 
         /// <summary>대상에게 Damage × HitCount 피해. 대상이 이미 죽었으면 주지 않는다</summary>
         /// <remarks>아직 전투시스템 관련 적용되지 않았음</remarks>

@@ -60,9 +60,11 @@ namespace HybridShooter.Monster.Behaviour
             }
             Land(ground);
             Vector3 player = Target.PlayerTrackingInfo.Position;
-            if (landingArea.Contains(ground, Body.Forward, player) &&
-                Mathf.Abs(player.y - ground.y) <= settings.HitHeightTolerance)
-                Hit(Target, ground);
+            bool isInLandingArea = landingArea.Contains(ground, Body.Forward, player);
+            bool isWithinHeight = Mathf.Abs(player.y - ground.y) <= settings.HitHeightTolerance;
+            bool isInArea = isInLandingArea && isWithinHeight;
+            NotifyMonsterHit(landingArea, ground, Body.Forward, isInArea);
+            if (isInArea) Hit(Target, ground);
             return true;
         }
 

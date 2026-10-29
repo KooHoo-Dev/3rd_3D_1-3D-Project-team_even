@@ -795,6 +795,7 @@ GameObject:
   - component: {fileID: 4651449909658561403}
   - component: {fileID: 1546374712027911385}
   - component: {fileID: -7821899813460665779}
+  - component: {fileID: 3472227660763807050}
   m_Layer: 15
   m_Name: GiantSlug
   m_TagString: Untagged
@@ -946,6 +947,22 @@ MonoBehaviour:
   tickInterval: 1
   zoneDuration: 5
   zoneHeightTolerance: 0.5
+--- !u!114 &3472227660763807050
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3281474137550595047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4607b74028a507a4ca90f96559fed09e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Monster.Tester.MonsterHitAreaVisualizer
+  hitFlashSeconds: 0.3
+  previewColor: {r: 0.2, g: 0.8, b: 1, a: 0.25}
+  hitColor: {r: 1, g: 0.15, b: 0.1, a: 0.6}
+  missColor: {r: 1, g: 0.9, b: 0.1, a: 0.5}
 --- !u!1 &3710361424080600933
 GameObject:
   m_ObjectHideFlags: 0
