@@ -75,6 +75,29 @@ namespace HybridShooter.Core.Contracts
     }
 
     /// <summary>
+    /// 플레이어 총의 예비 탄창 (보급·보상 등이 쓴다). ServiceLocator 에 등록된다 (ServiceLocator.Get&lt;IPlayerAmmo&gt;()).
+    /// 플레이어 루트에 붙어 있어 보급 상자처럼 콜라이더에서 GetComponentInParent&lt;IPlayerAmmo&gt;() 로도 찾을 수 있다.
+    ///  - 예비 탄창 = 탄창 단위 개수. 탄창 안 탄약(재장전 없이 쏠 수 있는 수)과 별개
+    ///  - 예비 탄창이 무한인 총(권총)은 보충을 받지 않는다
+    ///  - 변화는 AmmoChangedEvent 로 알린다 (지금 든 총만)
+    /// 예) 보급 상자: case SupplyType.Ammo: return other.GetComponentInParent&lt;IPlayerAmmo&gt;()?.AddMagazines(Def.Amount) ?? false;
+    /// </summary>
+    public interface IPlayerAmmo
+    {
+        /// <summary>지금 든 총의 예비 탄창 개수 (든 총이 없으면 0)</summary>
+        int SpareMagazines { get; }
+        /// <summary>지금 든 총의 예비 탄창 최대 개수 (든 총이 없으면 0)</summary>
+        int MaxMagazines { get; }
+
+        /// <summary>지금 든 총에 예비 탄창 amount 개 보충 (최대까지). 이미 최대·무한 탄창·총 없음이면 false</summary>
+        bool AddMagazines(int amount);
+        /// <summary>슬롯의 모든 총에 예비 탄창 amount 개씩 보충. 하나라도 보충됐으면 true</summary>
+        bool AddMagazinesToAll(int amount);
+        /// <summary>진행 중인 재장전을 취소한다 (넉백·기절 등을 주는 공격·연출). 탄·예비 탄창은 그대로</summary>
+        void InterruptReload();
+    }
+
+    /// <summary>
     /// 아이템 보급 → 플레이어 (BL-019). 수류탄·회복 팩 "보유 개수"를 늘린다. 최대치라 못 먹으면 false
     /// </summary>
     public interface IItemUser

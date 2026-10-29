@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Data;
+using HybridShooter.Core.Events;
+using HybridShooter.Core.Services;
 using HybridShooter.Player;
 using UnityEngine;
 
@@ -14,14 +17,28 @@ namespace HybridShooter.Weapon
     ///  - 0번 슬롯(주무기)만 게임 중 교체된다. 교체된 총은 파괴된다.
     ///  - PlayerController 의 입력을 지금 든 총(CurrentGun)으로 넘긴다. 실제 동작은 각 총이 덮어쓴 함수가 정한다.
     ///  - 총이 필요로 하는 조준선·반동·확대·이동 상태를 PlayerController 와 이어준다.
+    ///  - 예비 탄창 보충·장전 취소 창구 (IPlayerAmmo, ServiceLocator 등록). 피격(PlayerDamagedEvent)이 reloadInterruptOnHit 규칙에 맞으면 장전을 끊는다
     /// 실행 순서 20: PlayerController.Update(0, 시선 입력 → 리그 회전) 다음에 총을 Tick → 연사도 이번 프레임 시선으로 쏜다
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
     [DefaultExecutionOrder(20)]
-    public class GunSlot : MonoBehaviour
+    public class GunSlot : MonoBehaviour, IPlayerAmmo
     {
         public const int SlotCount = 4;
         public const int PrimarySlot = 0;
+
+        /// <summary>어떤 피격에 장전이 취소되는지</summary>
+        public enum ReloadInterruptRule
+        {
+            /// <summary>피격으로는 취소하지 않음</summary>
+            None,
+            /// <summary>넉백이 있는 몬스터 공격 (MonsterAttackTable.KnockbackDistance &gt; 0: 돌진·덮치기 등)</summary>
+            Knockback,
+            /// <summary>몬스터의 모든 직접 공격 (지속 피해·폭발 제외)</summary>
+            AnyMonsterAttack,
+            /// <summary>피해량이 reloadInterruptDamage 이상인 모든 피격</summary>
+            DamageAtLeast,
+        }
 
         [Tooltip("총이 붙는 곳 (오른손 WeaponSocket). 이 아래의 Gun 을 모두 찾는다")]
         [SerializeField] private Transform weaponSocket;
@@ -29,6 +46,12 @@ namespace HybridShooter.Weapon
         [SerializeField] private Gun[] startingGuns = new Gun[SlotCount];
         [Tooltip("시작 시 들고 있을 슬롯")]
         [SerializeField, Range(0, SlotCount - 1)] private int startSlot = 0;
+
+        [Header("장전 취소 (피격)")]
+        [Tooltip("이 규칙에 맞는 피격을 받으면 진행 중인 재장전이 취소된다 (탄·예비 탄창 그대로). 구르기·투척·사망은 규칙과 상관없이 항상 취소")]
+        [SerializeField] private ReloadInterruptRule reloadInterruptOnHit = ReloadInterruptRule.Knockback;
+        [Tooltip("DamageAtLeast 규칙의 기준 피해량")]
+        [SerializeField, Min(1)] private int reloadInterruptDamage = 20;
 
         private readonly Gun[] slots = new Gun[SlotCount];
         private readonly List<Gun> reserve = new List<Gun>();
@@ -42,6 +65,18 @@ namespace HybridShooter.Weapon
         {
             player = GetComponent<PlayerController>();
             if (weaponSocket == null) weaponSocket = transform;
+        }
+
+        private void OnEnable()
+        {
+            ServiceLocator.Register<IPlayerAmmo>(this);
+            EventBus<PlayerDamagedEvent>.Subscribe(OnDamaged);
+        }
+
+        private void OnDisable()
+        {
+            ServiceLocator.Unregister<IPlayerAmmo>(this);
+            EventBus<PlayerDamagedEvent>.Unsubscribe(OnDamaged);
         }
 
         private void Start() => LoadLoadout();
@@ -129,6 +164,25 @@ namespace HybridShooter.Weapon
         public void AimUp() { if (CurrentGun != null) CurrentGun.AimUp(); }
         public void Reload() { if (CurrentGun != null) CurrentGun.Reload(); }
         public void ToggleFireMode() { if (CurrentGun != null) CurrentGun.ToggleFireMode(); }
+
+        // ── 예비 탄창 (IPlayerAmmo) ──
+        public int SpareMagazines => CurrentGun != null ? CurrentGun.SpareMagazines : 0;
+        public int MaxMagazines => CurrentGun != null ? CurrentGun.MaxMagazines : 0;
+
+        /// <summary>지금 든 총에 예비 탄창 보충. 이미 최대·무한 탄창·총 없음이면 false</summary>
+        public bool AddMagazines(int amount) => CurrentGun != null && CurrentGun.AddMagazines(amount);
+
+        /// <summary>슬롯의 모든 총에 예비 탄창 보충. 하나라도 보충됐으면 true</summary>
+        public bool AddMagazinesToAll(int amount)
+        {
+            bool any = false;
+            foreach (var gun in slots)
+                if (gun != null && gun.AddMagazines(amount)) any = true;
+            return any;
+        }
+
+        /// <summary>지금 든 총의 재장전을 취소 (탄·예비 탄창 그대로)</summary>
+        public void InterruptReload() { if (CurrentGun != null) CurrentGun.CancelReload(); }
 
         /// <summary>슬롯 번호로 바꿔 들기. 비어 있거나 이미 든 슬롯이면 false</summary>
         public bool Select(int index)
@@ -235,6 +289,27 @@ namespace HybridShooter.Weapon
         #endregion
 
         #region 내부
+        private void OnDamaged(PlayerDamagedEvent evt)
+        {
+            if (CurrentGun != null && CurrentGun.IsReloading && InterruptsReload(evt.Info)) InterruptReload();
+        }
+
+        private bool InterruptsReload(in DamageInfo info)
+        {
+            bool monsterAttack = info.Kind == DamageKind.MonsterAttack || info.Kind == DamageKind.MonsterSkill;
+            switch (reloadInterruptOnHit)
+            {
+                case ReloadInterruptRule.Knockback:
+                    return monsterAttack && DataManager.MonsterAttacks.TryGet(info.SourceDefId, out var attack) && attack.KnockbackDistance > 0f;
+                case ReloadInterruptRule.AnyMonsterAttack:
+                    return monsterAttack;
+                case ReloadInterruptRule.DamageAtLeast:
+                    return info.Amount >= reloadInterruptDamage;
+                default:
+                    return false;
+            }
+        }
+
         /// <summary>소켓 아래 총 전부 초기화 → 시작 슬롯 배치 → 나머지는 예비로 꺼 둠</summary>
         private void LoadLoadout()
         {

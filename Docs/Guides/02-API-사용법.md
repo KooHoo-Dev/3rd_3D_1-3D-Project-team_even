@@ -450,10 +450,11 @@ public class KillCounter : MonoBehaviour
 
 | 이벤트 | 담긴 정보 | 주 구독자 |
 |---|---|---|
-| `AmmoChangedEvent` | `Magazine`, `MagazineSize` | UI |
+| `AmmoChangedEvent` | `Magazine`, `MagazineSize`, `SpareMagazines`, `MaxMagazines`, `InfiniteMagazines` | UI |
 | `WeaponFiredEvent` | `Weapon`, `Muzzle` | 사운드, 이펙트 |
 | `ReloadStartedEvent` | `Duration` (초) | UI (진행 표시) |
-| `ReloadFinishedEvent` | (없음) | UI |
+| `ReloadFinishedEvent` | (없음, 완료·취소 공통) | UI |
+| `ReloadDeniedEvent` | (없음, 예비 탄창이 없어 장전 불가) | UI |
 | `GrenadeCountChangedEvent` | `Current`, `Max` | UI |
 | `GrenadeExplodedEvent` | `Grenade`, `Position` | 몬스터(유인), UI·사운드 |
 | `DamageDealtEvent` | `Target`, `Info`, `IsKill` | UI (히트마커), 몬스터 피격 연출 |
@@ -522,11 +523,13 @@ public class RifleFire : MonoBehaviour
 {
     WeaponDef weapon;
     int magazine;
+    int spareMagazines;                              // 예비 탄창 (탄창 단위, 탄창 안 탄약과 별개)
 
     void Start()
     {
         weapon = DataManager.Player.Rifle;           // 📚 플레이어 정의에 연결된 무기
         magazine = weapon.MagazineSize;
+        spareMagazines = weapon.StartMagazines;
     }
 
     void Fire(Vector3 origin, Vector3 dir)
@@ -547,7 +550,7 @@ public class RifleFire : MonoBehaviour
 
         // 📢 알림: UI·사운드 등이 알아서 반응
         EventBus<WeaponFiredEvent>.Publish(new WeaponFiredEvent(weapon, origin));
-        EventBus<AmmoChangedEvent>.Publish(new AmmoChangedEvent(magazine, weapon.MagazineSize));
+        EventBus<AmmoChangedEvent>.Publish(new AmmoChangedEvent(magazine, weapon.MagazineSize, spareMagazines, weapon.MaxMagazines, false));
     }
 }
 ```

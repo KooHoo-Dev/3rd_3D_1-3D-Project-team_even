@@ -17,6 +17,10 @@ namespace HybridShooter.Core.Data.Defs
         /// <summary>발사 간격(초) = 60 / FireRate</summary>
         public float FireInterval { get; }
         public int MagazineSize { get; }
+        /// <summary>시작할 때 가진 예비 탄창 개수</summary>
+        public int StartMagazines { get; }
+        /// <summary>가질 수 있는 예비 탄창 최대 개수 (탄창 단위. 탄창 안 탄약 MagazineSize 와 별개)</summary>
+        public int MaxMagazines { get; }
         public float ReloadTime { get; }
         public float Range { get; }
         /// <summary>탄 퍼짐 원뿔 반각(도)</summary>
@@ -31,7 +35,7 @@ namespace HybridShooter.Core.Data.Defs
         public SoundDef ReloadEndSfx { get; internal set; }
         /// <summary>이 무기로 바꿔 들 때</summary>
         public SoundDef SwitchSfx { get; internal set; }
-        /// <summary>빈 탄창으로 쏠 때 (이어서 자동 장전)</summary>
+        /// <summary>빈 탄창으로 쏠 때 (예비 탄창이 있으면 이어서 자동 장전)</summary>
         public SoundDef DryFireSfx { get; internal set; }
         /// <summary>투사체 폭발 (로켓·유탄). null 이면 프리팹 ExplosionSettings.sfxKey</summary>
         public SoundDef ExplodeSfx { get; internal set; }
@@ -52,6 +56,8 @@ namespace HybridShooter.Core.Data.Defs
             FireRate = d.FireRate;
             FireInterval = d.FireRate > 0f ? 60f / d.FireRate : 0f;
             MagazineSize = d.MagazineSize;
+            StartMagazines = d.StartMagazines;
+            MaxMagazines = d.MaxMagazines;
             ReloadTime = d.ReloadTime;
             Range = d.Range;
             SpreadAngle = d.SpreadAngle;
@@ -66,6 +72,7 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(Damage >= 0, Table, Id, "Damage 는 0 이상");
             r.Check(FireRate > 0f, Table, Id, "FireRate(RPM) 는 0 초과");
             r.Check(MagazineSize > 0, Table, Id, "MagazineSize 는 1 이상");
+            r.Check(StartMagazines >= 0 && MaxMagazines >= StartMagazines, Table, Id, "StartMagazines 는 0 이상, MaxMagazines 는 StartMagazines 이상");
             r.Check(ReloadTime > 0f, Table, Id, "ReloadTime 은 0 초과");
             r.Check(Range > 0f, Table, Id, "Range 는 0 초과");
         }
