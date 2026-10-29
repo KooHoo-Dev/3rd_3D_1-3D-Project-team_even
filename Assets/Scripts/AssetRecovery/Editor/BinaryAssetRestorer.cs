@@ -104,7 +104,7 @@ namespace HybridShooter.AssetRecovery.Editor
 
         private static void Restore(bool interactive)
         {
-            var restored = new List<string>();
+            var restored = new Dictionary<string, string>(); // path → index sha
             var skipped = new List<string>();
             try
             {
@@ -122,14 +122,17 @@ namespace HybridShooter.AssetRecovery.Editor
                 try
                 {
                     AssetDatabase.StartAssetEditing();
-                    foreach (string path in restored)
+                    foreach (string path in restored.Keys)
                         AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
                 }
                 finally
                 {
                     AssetDatabase.StopAssetEditing();
                 }
-                Debug.Log($"[BinaryAssetRestorer] 줄바꿈 변환으로 깨진 바이너리 에셋 {restored.Count}개를 git 원본으로 복구했습니다.\n{string.Join("\n", restored)}");
+                Debug.Log($"[BinaryAssetRestorer] 줄바꿈 변환으로 깨진 바이너리 에셋 {restored.Count}개를 git 원본으로 복구했습니다.\n{string.Join("\n", restored.Keys)}");
+
+                RefreshGitIndex(restored);
+                ConsumeIndexChange(); // 방금 갱신한 index 때문에 다시 검사하지 않도록
             }
 
             if (skipped.Count > 0)
@@ -148,7 +151,7 @@ namespace HybridShooter.AssetRecovery.Editor
         /// 디스크에서 바이너리인 직렬화 에셋 중 git index 와 해시가 다른 파일을 찾아,
         /// CR 만 다른 경우(줄바꿈 변환 손상) git 원본으로 덮어쓴다.
         /// </summary>
-        private static void Scan(List<string> restored, List<string> skipped)
+        private static void Scan(Dictionary<string, string> restored, List<string> skipped)
         {
             string root = ProjectRoot;
             string listing = RunGit("ls-files -s -z -- Assets");
@@ -179,13 +182,47 @@ namespace HybridShooter.AssetRecovery.Editor
                     if (EqualsIgnoringCr(disk, original))
                     {
                         File.WriteAllBytes(fullPath, original);
-                        restored.Add(path);
+                        restored[path] = sha;
                     }
                     else
                     {
                         skipped.Add(path);
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// 복구한 파일의 git index 정보(크기·시각)를 갱신해 git status 에 수정됨으로 남지 않게 한다.
+        /// git 이 이 경로에 적용할 필터(.gitattributes)를 거친 해시가 index 와 같은 파일만 add 하므로 스테이징 내용은 바뀌지 않는다.
+        /// (옛 .gitattributes 가 남은 브랜치에서는 add 하면 CRLF→LF 로 깨진 내용이 스테이징되므로 건너뛴다)
+        /// </summary>
+        private static void RefreshGitIndex(Dictionary<string, string> restored)
+        {
+            try
+            {
+                var paths = new List<string>(restored.Keys);
+                string[] hashes = RunGit("hash-object --stdin-paths", Encoding.UTF8.GetBytes(string.Join("\n", paths) + "\n"))
+                    .Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+                var same = new List<string>();
+                var converted = new List<string>();
+                for (int i = 0; i < paths.Count; i++)
+                {
+                    if (i < hashes.Length && hashes[i].Trim() == restored[paths[i]]) same.Add(paths[i]);
+                    else converted.Add(paths[i]);
+                }
+
+                if (same.Count > 0)
+                    RunGit("--literal-pathspecs add --pathspec-from-file=- --pathspec-file-nul", Encoding.UTF8.GetBytes(string.Join("\0", same)));
+
+                if (converted.Count > 0)
+                    Debug.LogWarning($"[BinaryAssetRestorer] 이 브랜치의 .gitattributes 가 바이너리 에셋을 텍스트로 변환해 git status 에 수정됨으로 보이는 파일 {converted.Count}개입니다. " +
+                                     $"이 파일들은 커밋하지 마세요 (깨진 내용이 저장됩니다). .gitattributes 를 text=auto 로 고친 브랜치에서는 생기지 않습니다.\n{string.Join("\n", converted)}");
+            }
+            catch (Exception e) when (e is Win32Exception || e is InvalidOperationException || e is IOException)
+            {
+                Debug.LogWarning($"[BinaryAssetRestorer] 파일은 복구했지만 git index 갱신에 실패했습니다. git status 에 수정됨으로 보일 수 있습니다 (내용은 git 원본과 같음).\n{e.Message}");
             }
         }
 
@@ -235,18 +272,25 @@ namespace HybridShooter.AssetRecovery.Editor
             StandardOutputEncoding = new UTF8Encoding(false),
         };
 
-        private static string RunGit(string args)
+        private static string RunGit(string args, byte[] input = null)
         {
             ProcessStartInfo info = GitStartInfo(args);
             info.RedirectStandardError = true;
+            info.RedirectStandardInput = input != null;
             using (Process process = Process.Start(info))
             {
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
+                // 입력을 쓰는 동안 출력 파이프가 차서 멈추지 않도록 먼저 비동기로 읽기 시작
+                var output = process.StandardOutput.ReadToEndAsync();
+                var error = process.StandardError.ReadToEndAsync();
+                if (input != null)
+                {
+                    process.StandardInput.BaseStream.Write(input, 0, input.Length);
+                    process.StandardInput.Close();
+                }
                 process.WaitForExit();
                 if (process.ExitCode != 0)
-                    throw new InvalidOperationException($"git {args} (exit {process.ExitCode}): {error.Trim()}");
-                return output;
+                    throw new InvalidOperationException($"git {args} (exit {process.ExitCode}): {error.Result.Trim()}");
+                return output.Result;
             }
         }
 
