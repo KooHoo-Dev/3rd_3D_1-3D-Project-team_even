@@ -36,6 +36,12 @@ namespace HybridShooter.Boss.Clypeosaurus
 
         public float Radius => radius;
 
+        public void Initialize(float entranceRadius)
+        {
+            radius = entranceRadius;
+            ApplyRadius();
+        }
+        
         private void OnEnable()
         {
             elapsed = 0f;

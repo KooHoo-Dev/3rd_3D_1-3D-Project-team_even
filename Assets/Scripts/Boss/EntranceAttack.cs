@@ -11,13 +11,11 @@ namespace  HybridShooter.Boss.Clypeosaurus
     public class EntranceAttack : BossAttack
     {
         private const string IdleState = "Base Layer.IdleBreathe";
-        private const string LandState = "Base Layer.SmashAttack";
         private const string RoarState = "Base Layer.RoarAntennaElectricAttack";
         
         private enum EntranceStage
         {
             Falling,
-            Landing,
             Roaring
         }
         
@@ -117,14 +115,6 @@ namespace  HybridShooter.Boss.Clypeosaurus
                     TickFall();
                     break;
                 
-                case EntranceStage.Landing:
-                    if (view.IsStateFinished(LandState))
-                    {
-                        stage = EntranceStage.Roaring;
-                        view.PlayState(RoarState);
-                    }
-                    break;
-                
                 case EntranceStage.Roaring:
                     if (view.IsStateFinished(RoarState))
                     {
@@ -147,7 +137,7 @@ namespace  HybridShooter.Boss.Clypeosaurus
 
         private void Land()
         {
-            stage = EntranceStage.Landing;
+            stage = EntranceStage.Roaring;
 
             if (RestoreAgent() == false)
             {
@@ -159,12 +149,15 @@ namespace  HybridShooter.Boss.Clypeosaurus
 
             ClearShadow();
 
-            view.PlayState(LandState);
+            view.PlayState(RoarState);
             RaiseImpacted(landingPoint);
 
             if (shockwavePrefab != null)
             {
                 var effect = Instantiate(shockwavePrefab, landingPoint, Quaternion.identity);
+                var wave = effect.GetComponent<EntranceShockwave>();
+                wave.Initialize(data.EntranceRadius);
+
                 Destroy(effect, 3f);
             }
 
@@ -223,7 +216,6 @@ namespace  HybridShooter.Boss.Clypeosaurus
             RestoreAgent();
             
             if (Boss.IsAlive && gameObject.activeInHierarchy) view.PlayState(IdleState);
-
         }
     }
 
