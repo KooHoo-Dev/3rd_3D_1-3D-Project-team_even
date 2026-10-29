@@ -9,7 +9,7 @@
 stateDiagram-v2
     [*] --> Ready
     Ready --> CrowdBattle: RoundStartedEvent (GetRound(n))
-    CrowdBattle --> BossIntro: 경과 시간 ≥ RollBossSpawnTime (BL-021)<br/>BossWarningEvent, 군중 생성 중단
+    CrowdBattle --> BossIntro: 경과 시간 ≥ RollBossSpawnTime 또는 군중 전멸, 먼저 오는 쪽 (BL-021)<br/>BossWarningEvent, 군중 생성 중단
     BossIntro --> BossBattle: CameraModeChanged(3인칭, 완료) (BL-022)<br/>→ 등장 공격 + MonsterWipeRequested (BL-023)
     BossBattle --> Reward: BossDefeatedEvent (BL-020)
     Reward --> CrowdBattle: RewardSelectionFinished<br/>RoundCleanup(FullReset=false), 1인칭 복귀 (BL-032)

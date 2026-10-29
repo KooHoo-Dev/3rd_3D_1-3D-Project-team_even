@@ -8,7 +8,10 @@ using UnityEngine;
 
 namespace HybridShooter.Round
 {
-    /// <summary>군중전부터 보상 선택 완료까지 한 라운드의 순서를 실행한다.</summary>
+    /// <summary>
+    /// 군중전부터 보상 선택 완료까지 한 라운드의 순서를 실행한다.
+    /// 군중전 → 보스전은 군중 전멸(MonsterWaveDirector.HordeCleared)과 랜덤 시간 제한 중 먼저 오는 쪽에서 넘어간다.
+    /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(RoundBossEncounter))]
     public sealed class RoundSequencer : MonoBehaviour
@@ -24,6 +27,7 @@ namespace HybridShooter.Round
         private float bossSpawnTime;
         private bool isRoundRunning;
         private bool cameraReady;
+        private bool hordeCleared;
         private bool bossDefeated;
         private bool rewardFinished;
         private bool supplyStarted;
@@ -43,6 +47,7 @@ namespace HybridShooter.Round
         private void OnEnable()
         {
             bossEncounter.Defeated += OnBossDefeated;
+            monsterWaveDirector.HordeCleared += OnHordeCleared;
             EventBus<CameraModeChangedEvent>.Subscribe(OnCameraModeChanged);
             EventBus<RewardSelectionFinishedEvent>.Subscribe(OnRewardSelectionFinished);
         }
@@ -67,6 +72,7 @@ namespace HybridShooter.Round
             elapsedSeconds = 0f;
             bossSpawnTime = def.RollBossSpawnTime(UnityEngine.Random.value);
             cameraReady = false;
+            hordeCleared = false;
             bossDefeated = false;
             rewardFinished = false;
             supplyStarted = false;
@@ -82,6 +88,7 @@ namespace HybridShooter.Round
         {
             isRoundRunning = false;
             cameraReady = false;
+            hordeCleared = false;
             bossDefeated = false;
             rewardFinished = false;
             if (monsterWaveDirector != null) monsterWaveDirector.StopRound();
@@ -97,7 +104,8 @@ namespace HybridShooter.Round
             {
                 case GameState.CrowdBattle:
                     elapsedSeconds += Time.deltaTime;
-                    if (elapsedSeconds >= bossSpawnTime) BeginBossIntro();
+                    bool isTimeLimitReached = elapsedSeconds >= bossSpawnTime;
+                    if (isTimeLimitReached || hordeCleared) BeginBossIntro();
                     else UpdateSupplyStart();
                     break;
                 case GameState.BossIntro:
@@ -137,6 +145,12 @@ namespace HybridShooter.Round
             if (isRoundRunning && phase == GameState.BossIntro && e.Mode == CameraMode.ThirdPerson && e.IsComplete) cameraReady = true;
         }
 
+        /// <summary>군중 전멸 신호를 받아 둔다. 상태 전이는 Update 의 CrowdBattle 에서 한다</summary>
+        private void OnHordeCleared()
+        {
+            if (isRoundRunning && phase == GameState.CrowdBattle) hordeCleared = true;
+        }
+
         private void OnBossDefeated()
         {
             if (isRoundRunning && phase == GameState.BossBattle) bossDefeated = true;
@@ -162,6 +176,7 @@ namespace HybridShooter.Round
         private void OnDisable()
         {
             bossEncounter.Defeated -= OnBossDefeated;
+            if (monsterWaveDirector != null) monsterWaveDirector.HordeCleared -= OnHordeCleared;
             EventBus<CameraModeChangedEvent>.Unsubscribe(OnCameraModeChanged);
             EventBus<RewardSelectionFinishedEvent>.Unsubscribe(OnRewardSelectionFinished);
             StopRound();

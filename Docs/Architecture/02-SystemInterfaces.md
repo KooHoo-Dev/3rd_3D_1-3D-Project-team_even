@@ -149,7 +149,7 @@ sequenceDiagram
     participant B as Boss (몬스터)
     participant M as Monster들
 
-    GF->>GF: 경과 시간 ≥ round.RollBossSpawnTime
+    GF->>GF: 경과 시간 ≥ round.RollBossSpawnTime 또는 군중 전멸(HordeCleared) 중 먼저
     GF-->>CR: GameState=BossIntro → 생성 중단
     GF-->>B: BossWarningEvent (예고 신호)
     GF-->>P: GameState=BossIntro

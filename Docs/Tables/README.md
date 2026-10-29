@@ -134,7 +134,7 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 |---|---|---|
 | Round | int | 1부터. 마지막 행 이후 라운드는 마지막 행 재사용 |
 | BossId | int | MonsterTable.Id (Role=Boss) |
-| BossSpawnTimeMin / Max | float | 보스 등장 시각 범위(초). 이 사이 무작위, 남은 시간 표시 안 함 |
+| BossSpawnTimeMin / Max | float | 보스 등장 최대 시간 제한(초, 안전망). 이 사이 무작위, 남은 시간 표시 안 함. 그 전에 군중이 전멸하면 먼저 보스전으로 넘어감 |
 | SupplyStartTime / SupplyInterval | float | 첫 보급(초) / 이후 간격 |
 | BossReward | int | 보스 처치 추가 재화 |
 
