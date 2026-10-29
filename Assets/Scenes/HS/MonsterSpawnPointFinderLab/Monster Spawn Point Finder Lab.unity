@@ -150,6 +150,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Core::HybridShooter.Core.Battlefield.SpawnPointFinder
   terrain: {fileID: 7399151421108026591}
+  mapCenter: {fileID: 976110292}
+  mapRadius: 341.5
+  zoneRadius: 15
   maxHeightDifference: 0.5
   candidateSpacing: 1
   heightSampleSpacing: 0.5
@@ -182,8 +185,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: HybridShooter.Core::HybridShooter.Core.Battlefield.Tester.SpawnPointFinderTester
   finder: {fileID: 43846524}
   player: {fileID: 1685987972}
-  zoneCenter: {fileID: 49037644}
-  zoneRadius: 60
   monsterCollider: {fileID: 1167340949}
   autoFindInEditor: 1
   moveMonsterToResult: 1
@@ -765,6 +766,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 790174624}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &976110291
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 976110292}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &976110292
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 976110291}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 17.74166, y: 40, z: -44.97201}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1039042970
 GameObject:
   m_ObjectHideFlags: 0
@@ -936,15 +968,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5523472075302276702, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -239.3
+      value: 24.5
       objectReference: {fileID: 0}
     - target: {fileID: 5523472075302276702, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 16.004395
+      value: 13.990111
       objectReference: {fileID: 0}
     - target: {fileID: 5523472075302276702, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 66.3
+      value: 43.2
       objectReference: {fileID: 0}
     - target: {fileID: 5523472075302276702, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1599,7 +1631,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -190.3
+      value: 25.5
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1607,7 +1639,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 66.3
+      value: 43.2
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalRotation.w
@@ -18970,3 +19002,4 @@ SceneRoots:
   - {fileID: 559738288}
   - {fileID: 43846525}
   - {fileID: 1167340948}
+  - {fileID: 976110292}

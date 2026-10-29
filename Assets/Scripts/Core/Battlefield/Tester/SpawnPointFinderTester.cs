@@ -5,21 +5,19 @@ namespace HybridShooter.Core.Battlefield.Tester
     /// <summary>
     /// SpawnPointFinder 를 씬에서 눈으로 확인하는 테스트 컴포넌트. 에디터(플레이 안 해도 됨)에서 쓴다.
     ///  - Inspector 우클릭(⋮) → "스폰 위치 찾기": TryFindSpawnPoint 를 한 번 호출하고 결과를 콘솔에 출력
-    ///  - autoFindInEditor 를 켜면 플레이어·구역·몬스터를 옮길 때마다 다시 찾는다
-    ///  - Scene 뷰 기즈모: 노란 원 = 구역, 파란 선 = 플레이어 위치, 초록 상자 = 찾은 스폰 위치(몬스터 사각형), 빨간 원 = 실패
+    ///  - autoFindInEditor 를 켜면 플레이어·몬스터를 옮길 때마다 다시 찾는다
+    ///  - Scene 뷰 기즈모: 흰 원 = 맵 경계, 노란 원 = 구역(ZonePlacement 결과), 파란 선 = 플레이어 위치,
+    ///    초록 상자 = 찾은 스폰 위치(몬스터 사각형), 빨간 원 = 실패
+    ///  - 맵 중심·반지름·구역 반지름·허용치는 SpawnPointFinder Inspector 에서 조절한다
     /// </summary>
     [ExecuteAlways]
     public sealed class SpawnPointFinderTester : MonoBehaviour
     {
         [Header("테스트 대상")]
-        [Tooltip("검사할 SpawnPointFinder (Terrain·허용치는 이쪽 Inspector 에서 조절)")]
+        [Tooltip("검사할 SpawnPointFinder (Terrain·맵 경계·구역·허용치는 이쪽 Inspector 에서 조절)")]
         [SerializeField] private SpawnPointFinder finder;
         [Tooltip("플레이어 위치로 쓸 Transform")]
         [SerializeField] private Transform player;
-        [Tooltip("원형 구역 중심으로 쓸 Transform")]
-        [SerializeField] private Transform zoneCenter;
-        [Tooltip("원형 구역 반지름 (m)")]
-        [SerializeField] private float zoneRadius = 15f;
         [Tooltip("스폰할 몬스터의 Collider. 씬에 있는 활성 오브젝트여야 크기가 나온다")]
         [SerializeField] private Collider monsterCollider;
 
@@ -33,6 +31,7 @@ namespace HybridShooter.Core.Battlefield.Tester
         private bool hasResult;
         private bool lastFound;
         private Vector3 lastSpawnPoint;
+        private Vector3 lastZoneCenter;
 
         private void Update()
         {
@@ -48,9 +47,8 @@ namespace HybridShooter.Core.Battlefield.Tester
         {
             bool hasFinder = finder != null;
             bool hasPlayer = player != null;
-            bool hasZoneCenter = zoneCenter != null;
             bool hasMonsterCollider = monsterCollider != null;
-            return hasFinder && hasPlayer && hasZoneCenter && hasMonsterCollider;
+            return hasFinder && hasPlayer && hasMonsterCollider;
         }
 
         [ContextMenu("스폰 위치 찾기")]
@@ -63,7 +61,8 @@ namespace HybridShooter.Core.Battlefield.Tester
         /// <param name="writeLog">true 면 결과를 콘솔에 출력</param>
         private void FindOnce(bool writeLog)
         {
-            lastFound = finder.TryFindSpawnPoint(player.position, zoneCenter.position, zoneRadius, monsterCollider, out lastSpawnPoint);
+            lastFound = finder.TryFindSpawnPoint(player.position, monsterCollider, out lastSpawnPoint);
+            lastZoneCenter = ZonePlacement.FindClosestCenter(player.position, finder.MapCenter, finder.MapRadius, finder.ZoneRadius);
             hasResult = true;
 
             if (writeLog) WriteResultLog();
@@ -74,32 +73,37 @@ namespace HybridShooter.Core.Battlefield.Tester
         {
             if (lastFound == false)
             {
-                Debug.LogWarning($"[SpawnPointFinderTester] 적합한 스폰 위치 없음 (구역 반지름 {zoneRadius}m, 몬스터 크기 {monsterCollider.bounds.size})");
+                Debug.LogWarning($"[SpawnPointFinderTester] 적합한 스폰 위치 없음 (구역 중심 {lastZoneCenter}, 구역 반지름 {finder.ZoneRadius}m, 몬스터 크기 {monsterCollider.bounds.size})");
                 return;
             }
 
             Vector3 offset = lastSpawnPoint - player.position;
             offset.y = 0f;
-            Debug.Log($"[SpawnPointFinderTester] 스폰 위치 {lastSpawnPoint}, 플레이어와 XZ 거리 {offset.magnitude:0.0}m, 몬스터 크기 {monsterCollider.bounds.size}");
+            Debug.Log($"[SpawnPointFinderTester] 스폰 위치 {lastSpawnPoint}, 구역 중심 {lastZoneCenter}, 플레이어와 XZ 거리 {offset.magnitude:0.0}m, 몬스터 크기 {monsterCollider.bounds.size}");
         }
 
         private void OnDrawGizmos()
         {
-            if (zoneCenter != null) DrawZone();
-            if (player != null && zoneCenter != null) DrawPlayerLine();
-            if (hasResult && monsterCollider != null) DrawResult();
+            if (finder == null) return;
+            if (hasResult == false) return;
+
+            DrawMapAndZone();
+            if (player != null) DrawPlayerLine();
+            if (monsterCollider != null) DrawResult();
         }
 
-        private void DrawZone()
+        private void DrawMapAndZone()
         {
+            Gizmos.color = Color.white;
+            DrawCircle(finder.MapCenter, finder.MapRadius);
             Gizmos.color = Color.yellow;
-            DrawCircle(zoneCenter.position, zoneRadius);
+            DrawCircle(lastZoneCenter, finder.ZoneRadius);
         }
 
         private void DrawPlayerLine()
         {
             Gizmos.color = Color.cyan;
-            Gizmos.DrawLine(zoneCenter.position, player.position);
+            Gizmos.DrawLine(lastZoneCenter, player.position);
             Gizmos.DrawWireSphere(player.position, 0.5f);
         }
 
@@ -108,7 +112,7 @@ namespace HybridShooter.Core.Battlefield.Tester
             if (lastFound == false)
             {
                 Gizmos.color = Color.red;
-                DrawCircle(zoneCenter.position, zoneRadius * 0.9f);
+                DrawCircle(lastZoneCenter, finder.ZoneRadius * 0.9f);
                 return;
             }
 

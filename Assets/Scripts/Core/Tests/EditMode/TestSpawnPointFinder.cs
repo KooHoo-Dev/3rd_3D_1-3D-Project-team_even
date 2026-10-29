@@ -36,7 +36,7 @@ namespace HybridShooter.Core.Tests
         }
 
         // heightAtX: 월드 x(m) → 월드 높이(m). 지형은 원점 중심, y 위치 = terrainY
-        void CreateTerrain(System.Func<float, float> heightAtX, float terrainY = 0f)
+        void CreateTerrain(System.Func<float, float> heightAtX, float terrainY = 0f, float mapRadius = 10f)
         {
             var data = new TerrainData { heightmapResolution = Resolution };
             data.size = new Vector3(TerrainSize, TerrainHeight, TerrainSize);
@@ -56,6 +56,9 @@ namespace HybridShooter.Core.Tests
             finder = finderObject.AddComponent<SpawnPointFinder>();
             var serialized = new SerializedObject(finder);
             serialized.FindProperty("terrain").objectReferenceValue = terrainObject.GetComponent<Terrain>();
+            serialized.FindProperty("mapCenter").objectReferenceValue = finderObject.transform;   // 맵 중심 = 원점
+            serialized.FindProperty("mapRadius").floatValue = mapRadius;
+            serialized.FindProperty("zoneRadius").floatValue = 10f;   // 맵 반지름 10 이면 구역 = 맵 (중심 고정)
             serialized.FindProperty("maxHeightDifference").floatValue = 0.5f;
             serialized.FindProperty("candidateSpacing").floatValue = 1f;
             serialized.FindProperty("heightSampleSpacing").floatValue = 0.5f;
@@ -77,7 +80,7 @@ namespace HybridShooter.Core.Tests
             CreateTerrain(x => 0f);
             Vector3 player = new Vector3(-20f, 0f, 0f);
 
-            bool found = finder.TryFindSpawnPoint(player, Vector3.zero, 10f, monsterCollider, out Vector3 spawnPoint);
+            bool found = finder.TryFindSpawnPoint(player, monsterCollider, out Vector3 spawnPoint);
 
             Assert.IsTrue(found);
             // 2x2 사각형이 반지름 10 원 안에 드는 가장 먼 격자점: (8, ±3) → 거리 약 28.16
@@ -90,7 +93,7 @@ namespace HybridShooter.Core.Tests
         {
             CreateTerrain(x => (x + 32f) * 0.3f);   // 2m 사각형 고저차 0.6m > 0.5m
 
-            bool found = finder.TryFindSpawnPoint(new Vector3(-20f, 0f, 0f), Vector3.zero, 10f, monsterCollider, out Vector3 spawnPoint);
+            bool found = finder.TryFindSpawnPoint(new Vector3(-20f, 0f, 0f), monsterCollider, out Vector3 spawnPoint);
 
             Assert.IsFalse(found);
             Assert.AreEqual(Vector3.zero, spawnPoint);
@@ -102,7 +105,7 @@ namespace HybridShooter.Core.Tests
             CreateTerrain(x => x > 0f ? x * 0.5f : 0f);   // x > 0 쪽만 급경사
             Vector3 player = new Vector3(-20f, 0f, 0f);
 
-            bool found = finder.TryFindSpawnPoint(player, Vector3.zero, 10f, monsterCollider, out Vector3 spawnPoint);
+            bool found = finder.TryFindSpawnPoint(player, monsterCollider, out Vector3 spawnPoint);
 
             Assert.IsTrue(found);
             Assert.That(spawnPoint.x, Is.LessThanOrEqualTo(0f));
@@ -115,7 +118,7 @@ namespace HybridShooter.Core.Tests
         {
             CreateTerrain(x => 3f, terrainY: 5f);
 
-            bool found = finder.TryFindSpawnPoint(new Vector3(-20f, 0f, 0f), Vector3.zero, 10f, monsterCollider, out Vector3 spawnPoint);
+            bool found = finder.TryFindSpawnPoint(new Vector3(-20f, 0f, 0f), monsterCollider, out Vector3 spawnPoint);
 
             Assert.IsTrue(found);
             Assert.That(spawnPoint.y, Is.EqualTo(8f).Within(Tolerance));
@@ -128,9 +131,23 @@ namespace HybridShooter.Core.Tests
             monsterCollider.size = new Vector3(30f, 2f, 30f);
             Physics.SyncTransforms();
 
-            bool found = finder.TryFindSpawnPoint(Vector3.zero, Vector3.zero, 10f, monsterCollider, out _);
+            bool found = finder.TryFindSpawnPoint(Vector3.zero, monsterCollider, out _);
 
             Assert.IsFalse(found);
+        }
+
+        [Test]
+        public void ZoneFollowsPlayer_SpawnsInsideZoneNearPlayer()
+        {
+            CreateTerrain(x => 0f, mapRadius: 30f);
+            Vector3 player = new Vector3(-25f, 0f, 0f);   // 구역 중심 = (-20, 0, 0)
+
+            bool found = finder.TryFindSpawnPoint(player, monsterCollider, out Vector3 spawnPoint);
+
+            Assert.IsTrue(found);
+            Assert.That(FlatDistance(spawnPoint, new Vector3(-20f, 0f, 0f)) + Mathf.Sqrt(2f), Is.LessThanOrEqualTo(10f + Tolerance));
+            // 구역 안에서 플레이어 반대편 끝: x ≈ -12
+            Assert.That(spawnPoint.x, Is.GreaterThan(-13.5f));
         }
     }
 }

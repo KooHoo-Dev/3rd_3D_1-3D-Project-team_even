@@ -4,8 +4,9 @@ using UnityEngine;
 namespace HybridShooter.Core.Battlefield
 {
     /// <summary>
-    /// 원형 구역 안에서 몬스터를 스폰해도 되는 평탄한 위치를 찾는다.
-    /// 몬스터 Collider 크기의 사각형(XZ, 회전 무시) 안 지형 고저차가 허용치 이하인 곳 중 플레이어에서 가장 먼 곳을 고른다.
+    /// 플레이어 근처에 몬스터를 스폰해도 되는 평탄한 위치를 찾는다.
+    /// 먼저 ZonePlacement 로 맵 경계 안에서 플레이어에 가장 가까운 원형 구역을 정하고,
+    /// 그 구역 안에서 몬스터 Collider 크기의 사각형(XZ, 회전 무시) 안 지형 고저차가 허용치 이하인 곳 중 플레이어에서 가장 먼 곳을 고른다.
     /// 스폰 직후 경사 때문에 몬스터가 밀리거나 상태머신이 꼬이는 것을 막는 용도다. 몬스터 생성은 호출자가 한다.
     /// </summary>
     public class SpawnPointFinder : MonoBehaviour
@@ -13,6 +14,14 @@ namespace HybridShooter.Core.Battlefield
         [Header("지형")]
         [Tooltip("높이를 잴 지형")]
         [SerializeField] private Terrain terrain;
+
+        [Header("맵 경계·구역")]
+        [Tooltip("원형 맵 경계의 중심")]
+        [SerializeField] private Transform mapCenter;
+        [Tooltip("원형 맵 경계 반지름 (m)")]
+        [SerializeField] private float mapRadius = 50f;
+        [Tooltip("스폰 위치를 찾을 원형 구역 반지름 (m). 맵 반지름보다 크면 예외")]
+        [SerializeField] private float zoneRadius = 15f;
 
         [Header("판정 기준")]
         [Tooltip("몬스터 사각형 안 지형 높이의 (최대 - 최소) 허용치 (m)")]
@@ -22,18 +31,23 @@ namespace HybridShooter.Core.Battlefield
         [Tooltip("몬스터 사각형 안 높이 측정 격자 간격 (m)")]
         [SerializeField] private float heightSampleSpacing = 0.5f;
 
+        // ── 테스트 도구가 구역을 그릴 때 읽는 값 ──
+        public Vector3 MapCenter => mapCenter.position;
+        public float MapRadius => mapRadius;
+        public float ZoneRadius => zoneRadius;
+
         /// <summary>
-        /// 원형 구역 안에서 몬스터 사각형이 평탄하게 놓이는 위치 중 플레이어에서 가장 먼 위치를 찾는다.
+        /// 맵 경계 안에서 플레이어에 가장 가까운 구역을 정하고, 그 구역 안에서 몬스터 사각형이 평탄하게 놓이는 위치 중 플레이어에서 가장 먼 위치를 찾는다.
         /// 스폰 담당(호출자 미정)이 몬스터를 놓기 전에 부른다.
         /// </summary>
         /// <param name="playerPosition">플레이어 위치 (Y는 무시)</param>
-        /// <param name="zoneCenter">탐색할 원형 구역 중심 (Y는 무시)</param>
-        /// <param name="zoneRadius">원형 구역 반지름 (m). 몬스터 사각형 전체가 이 원 안에 들어가야 한다</param>
         /// <param name="monsterCollider">스폰할 몬스터의 Collider. 씬에 있는 활성 인스턴스여야 bounds 크기가 나온다</param>
         /// <param name="spawnPoint">찾은 위치. Y = 그 위치의 지형 높이. 못 찾으면 Vector3.zero</param>
         /// <returns>적합한 위치를 찾았으면 true</returns>
-        public bool TryFindSpawnPoint(Vector3 playerPosition, Vector3 zoneCenter, float zoneRadius, Collider monsterCollider, out Vector3 spawnPoint)
+        /// <exception cref="System.ArgumentException">zoneRadius 가 mapRadius 보다 클 때 (ZonePlacement 가 던짐)</exception>
+        public bool TryFindSpawnPoint(Vector3 playerPosition, Collider monsterCollider, out Vector3 spawnPoint)
         {
+            Vector3 zoneCenter = ZonePlacement.FindClosestCenter(playerPosition, mapCenter.position, mapRadius, zoneRadius);
             Vector2 footprintSize = new Vector2(monsterCollider.bounds.size.x, monsterCollider.bounds.size.z);
             Vector3 flatPlayerPosition = new Vector3(playerPosition.x, 0f, playerPosition.z);
 
