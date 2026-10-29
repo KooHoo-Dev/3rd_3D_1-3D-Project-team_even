@@ -12,3 +12,8 @@ Id	MonsterId	PartKey	Name	DamageMultiplier	Exposure	PartHp	LinkedAttackId	Transf
 # 9	3001	Spitter4	등 발사관 4	1	Always	120	300105	0
 # 10	3001	Spitter5	등 발사관 5	1	Always	120	300105	0
 # 11	3001	Spitter6	등 발사관 6	1	Always	120	300105	0
+# 강화 개체: 원형의 역할/등급 유지, 보상 2~3배
+101	1103	Wings	날개	1	Always	18	0	1102
+102	2101	Mouth	입 안	2	WhileAttacking	0	0	0
+103	2102	Spine	등뼈 가시	1.5	Always	0	0	0
+104	2103	Gland	등 분비샘	2	Always	0	0	0
