@@ -104,8 +104,11 @@ namespace HybridShooter.Weapon
             return ray.GetPoint(best);
         }
 
-        /// <summary>반동: up = 위로(도), right = 오른쪽(도)</summary>
-        public void AddRecoil(float up, float right) => player.AddLookOffset(-up, right);
+        /// <summary>반동: up = 위로(도), right = 오른쪽(도). 반환: 실제로 위로 돌아간 각도 (시선 한계에 막히면 덜 돈다)</summary>
+        public float AddRecoil(float up, float right) => -player.AddLookOffset(-up, right).x;
+
+        /// <summary>이번 프레임 플레이어가 마우스로 시선을 내린 각도(도). 올렸으면 음수</summary>
+        public float LookInputPitchDown => player.LookInputPitchDelta;
 
         public void SetAimZoom(float fovMultiplier, float sensitivityMultiplier, float moveSpeedMultiplier)
         {

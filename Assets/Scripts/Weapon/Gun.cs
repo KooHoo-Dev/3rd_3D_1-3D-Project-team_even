@@ -97,6 +97,8 @@ namespace HybridShooter.Weapon
         [SerializeField] protected float recoilYaw = 0.2f;
         [Tooltip("조준 중 반동 배율")]
         [SerializeField, Range(0f, 1f)] protected float aimRecoilMultiplier = 0.7f;
+        [Tooltip("한 발의 반동이 올라가는 시간(초). 이 시간 동안 약 95% 가 부드럽게 올라간다. 0 = 바로")]
+        [SerializeField, Min(0f)] protected float recoilKickTime = 0.06f;
         [Tooltip("사격을 멈추면 위로 튄 반동 중 이 비율만큼 저절로 내려온다")]
         [SerializeField, Range(0f, 1f)] protected float recoilRecoverRatio = 0.6f;
         [Tooltip("반동이 내려오는 속도(도/초)")]
@@ -123,6 +125,8 @@ namespace HybridShooter.Weapon
         private bool reloadInserted;
         private float bloom;
         private float recoilToRecover;
+        /// <summary>아직 시선에 적용하지 않은 반동 (x = 위, y = 오른쪽). Tick 에서 recoilKickTime 에 걸쳐 나눠 적용</summary>
+        private Vector2 pendingKick;
         private float lastShotTime = float.NegativeInfinity;
         private bool aimZoomApplied;
         private bool subscribed;
@@ -240,9 +244,10 @@ namespace HybridShooter.Weapon
             PublishAmmo();
         }
 
-        /// <summary>다른 총으로 바꿀 때. 장전·조준·방아쇠를 모두 푼다</summary>
+        /// <summary>다른 총으로 바꿀 때. 장전·조준·방아쇠를 모두 푼다. 아직 덜 올라간 반동은 버린다 (다시 꺼낼 때 튀지 않게)</summary>
         public void Unequip()
         {
+            pendingKick = Vector2.zero;
             TriggerUp();
             AimUp();
             CancelReload();
@@ -311,13 +316,7 @@ namespace HybridShooter.Weapon
 
             bool resting = Time.time - lastShotTime > Stats.FireInterval + 0.05f;
             if (resting) bloom = Mathf.MoveTowards(bloom, 0f, bloomRecovery * dt);
-            if (resting && recoilToRecover > 0f)
-            {
-                float step = Mathf.Min(recoilToRecover, recoilRecoverSpeed * dt);
-                recoilToRecover -= step;
-                Owner.AddRecoil(-step, 0f);
-            }
-
+            UpdateRecoil(dt, resting);
             OnTick(dt);
             if (aimZoomApplied != AimZoomActive) RefreshAimZoom();
         }
@@ -630,12 +629,40 @@ namespace HybridShooter.Weapon
             Destroy(flash, 1f);
         }
 
+        /// <summary>한 발의 반동을 쌓아 둔다. 실제 시선 회전은 UpdateRecoil 이 recoilKickTime 에 걸쳐 나눠 한다</summary>
         private void ApplyRecoil()
         {
             Vector2 kick = GetRecoilKick();
             if (IsAiming) kick *= aimRecoilMultiplier;
-            Owner.AddRecoil(kick.x, kick.y);
-            recoilToRecover += kick.x * recoilRecoverRatio;
+            pendingKick += kick;
+        }
+
+        /// <summary>
+        /// 매 프레임 반동: 쌓인 반동을 부드럽게 올리고 (지수 감쇠 → 프레임레이트와 무관, 연사하면 자연스럽게 더해진다),
+        /// 다 올라간 뒤 쉬는 중이면 올라간 만큼의 recoilRecoverRatio 를 천천히 내린다.
+        /// 복귀량은 시선이 실제로 돈 양으로 센다 (시선 한계에 막힌 만큼은 복귀하지 않는다). 플레이어가 마우스로 내린 만큼도 덜 내린다
+        /// </summary>
+        private void UpdateRecoil(float dt, bool resting)
+        {
+            if (pendingKick != Vector2.zero)
+            {
+                float t = recoilKickTime > 0f ? 1f - Mathf.Exp(-3f * dt / recoilKickTime) : 1f;
+                Vector2 step = pendingKick * t;
+                if (pendingKick.sqrMagnitude < 0.0001f) step = pendingKick; // 남은 게 아주 작으면 한 번에 끝낸다
+                pendingKick -= step;
+                recoilToRecover += Owner.AddRecoil(step.x, step.y) * recoilRecoverRatio;
+            }
+
+            float pulledDown = Owner.LookInputPitchDown;
+            if (pulledDown > 0f) recoilToRecover = Mathf.Max(0f, recoilToRecover - pulledDown);
+
+            if (resting && pendingKick == Vector2.zero && recoilToRecover > 0f)
+            {
+                float step = Mathf.Min(recoilToRecover, recoilRecoverSpeed * dt);
+                float moved = -Owner.AddRecoil(-step, 0f);
+                // 아래 한계에 막혀 더 내려갈 수 없으면 남은 복귀량을 버린다 (매 프레임 헛도는 것 방지)
+                recoilToRecover = moved < step * 0.5f ? 0f : recoilToRecover - moved;
+            }
         }
 
         private void RefreshAimZoom()
