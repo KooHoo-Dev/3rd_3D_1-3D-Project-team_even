@@ -38,6 +38,9 @@ namespace HybridShooter.Monster.Behaviour
         // Active 시작부터 판정까지의 비율 (0~1). 0 = Active 첫 틱에 판정
         public float HitTimeRatio { get; set; } = 0.5f;
 
+        // 근접 판정 거리 ÷ 진입 거리(Spec.Range). 1 = 같음. StrikeAttack 의 Melee 판정만 쓴다. MonsterController 가 인스펙터 값을 넣는다
+        public float HitRangeRatio { get; set; } = 1f;
+
         // 예고 중 WindupLookPoint 쪽으로 도는 속도 (도/초). 0 = 돌지 않는다. MonsterController 가 인스펙터 값을 넣는다
         public float WindupTurnSpeed { get; set; }
 
