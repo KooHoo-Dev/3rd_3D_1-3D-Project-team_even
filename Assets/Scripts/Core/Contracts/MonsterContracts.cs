@@ -31,5 +31,11 @@ namespace HybridShooter.Core.Contracts
         /// 도약이 취소(이륙 실패)되면 발행하지 않는다 → 뛰지 않았는데 착지음이 나는 일이 없다
         /// </summary>
         event Action<MonsterAttackDef, Vector3> AttackLanded;
+
+        /// <summary>공격 몸이 플레이어에 부딪힘 (돌진 명중). position = 부딪힌 지점. 공격 주기당 1번</summary>
+        event Action<MonsterAttackDef, Vector3> AttackContacted;
+
+        /// <summary>사망 확정 (MonsterDiedEvent 직전). 울음·루프를 끄고 사망음을 낸다 — 자기 몸 소리는 전역 이벤트가 아니라 여기서</summary>
+        event Action Died;
     }
 }

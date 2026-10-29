@@ -23,8 +23,8 @@ namespace HybridShooter.Core.Data.Dtos
         public string PrefabKey = "";
         public string IdleSfxKey = "";  // SoundTable.Key (빈칸 = 없음)
         public string LoopSfxKey = "";  // 이동·날갯짓 루프
-        public string HurtSfxKey = "";  // 보스 페이즈 전환 때만 사용
         public string DeathSfxKey = "";
         public string StunSfxKey = "";  // 기절 시작 (돌진 벽 충돌)
+        public string HiddenSfxKey = "";  // 기습형: 플레이어 근처·시야 밖일 때 공격 전 1번 (있으면 근처에서 울지 않음)
     }
 }

@@ -24,10 +24,10 @@ namespace HybridShooter.Weapon
         [SerializeField, Range(0f, 1f)] private float unarmedDamageRatio = 0.5f;
         [Tooltip("직격 시 추가 피해 (Damage 대비 비율)")]
         [SerializeField, Range(0f, 2f)] private float directHitBonusRatio = 0.5f;
-        [Tooltip("폭발 설정. damage 는 WeaponTable.Damage 로 덮어쓴다")]
+        [Tooltip("폭발 설정. damage 는 WeaponTable.Damage, sfxKey 는 WeaponTable.ExplodeSfxKey 로 덮어쓴다")]
         [SerializeField] private ExplosionSettings explosion = new ExplosionSettings
         {
-            radius = 4f, minDamageRatio = 0.3f, force = 12f, sfxKey = "sfx_grenade_explode",
+            radius = 4f, minDamageRatio = 0.3f, force = 12f,
         };
 
         public RocketLauncher()
@@ -66,7 +66,7 @@ namespace HybridShooter.Weapon
                 Trail = rocketTrail,
             };
             settings.Explosion.damage = Stats.damage;
-            if (Def?.ExplodeSfx != null) settings.Explosion.sfxKey = Def.ExplodeSfx.Key; // WeaponTable.ExplodeSfxKey 우선, 없으면 프리팹 값
+            settings.Explosion.sfxKey = Def?.ExplodeSfx?.Key; // 기준은 WeaponTable.ExplodeSfxKey 하나 (빈칸 = 소리 없음)
             GunProjectile.Spawn(rocketPrefab, spawn, direction * rocketSpeed, settings, CreateProjectileContext());
         }
     }

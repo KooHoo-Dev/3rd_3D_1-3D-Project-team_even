@@ -1,0 +1,197 @@
+# 메인 메뉴 씬 UI 디자인·구현 프롬프트
+
+> 아래 `---` 사이 전체를 Claude Code(또는 다른 AI 코딩 도구)에 그대로 붙여 넣어 사용한다.
+> 결정 사항은 2026-10-28 기획 질의응답 결과를 반영했다.
+
+---
+
+## 역할과 목표
+
+너는 Unity 6000.3(URP) 프로젝트 "3D 하이브리드 슈터 (Team Even)"의 UI/연출 담당 개발자다.
+**게임 실행 → 로고(로딩) → 대치 장면 + PRESS ANY KEY → 메인 메뉴(게임 시작 / 옵션 / 게임 종료)** 흐름을 디자인하고 구현하라.
+게임 콘셉트: *1인칭으로 몰려오는 군중을 쓸어내고, 3인칭으로 거대한 보스와 맞서는 하이브리드 슈터.*
+
+작업 전에 반드시 읽을 것:
+- `README.md`, `Docs/Conventions/TeamRules.md` (폴더·네임스페이스·커밋·씬 규칙)
+- `Docs/Architecture/02-SystemInterfaces.md`, `Docs/Guides/02-API-사용법.md` (ServiceLocator / EventBus / DataManager)
+- `Docs/Design/SoundSystemGuide.md` (SoundService 배치·볼륨 API)
+- `Assets/Scripts/UI/UpgradeScreen.cs` (기존 UI 코드 스타일 참고: 표시 전용, Inspector 연결, 주석 밀도)
+
+## 프로젝트 컨텍스트 (확인된 사실)
+
+| 항목 | 내용 |
+|---|---|
+| 엔진 | Unity 6000.3, URP 17.3, uGUI 2.0 + TextMeshPro, Input System 1.19, Cinemachine 3.1.7, Timeline, DOTween + UniTask |
+| 네임스페이스 | `HybridShooter.<Scripts 아래 폴더 경로>` → 메뉴 코드는 `HybridShooter.UI.MainMenu` (`Assets/Scripts/UI/MainMenu/`) |
+| 데이터 | `DataManager.EnsureLoaded()` 가 StreamingAssets/Tables TSV 를 **동기** 로드. `IsLoaded`, `Loaded` 이벤트 제공 |
+| 사운드 | `ISoundService` (ServiceLocator 등록, **씬마다 1개**, DontDestroyOnLoad 아님). `SetVolume(SoundCategory, float)`, `MasterVolume`, BGM 크로스페이드. 믹서: `Assets/Resources/Audio/GameMixer.mixer` |
+| SoundCategory | `Bgm, Sfx, Monster, Ui` (`Core/Data/GameEnums.cs`) |
+| 감도 기본값 | `PlayerDef.LookSensitivity` (테이블 값) |
+| 입력 | `Assets/InputSystem_Actions.inputactions` — `Player`, `UI` 액션맵 존재. EventSystem 은 `InputSystemUIInputModule` 사용 |
+| 품질 | QualitySettings: `Mobile`, `PC` 2단계 |
+| 플레이어 프리팹 | `Assets/Scenes/MS/Prefabs/Player.prefab` |
+| 몬스터 프리팹 | `Assets/Resources/Prefabs/Monsters/` — GiantSlug, Letalobrach, Muscomorph_Air, Muscomorph_Ground, Pardathrox (보스: `Assets/Resources/Boss/Clypeosaurus/Prefab/Clypeosaurus.prefab`) |
+| 지형 | `Assets/Scenes/HS/MonsterIntegrationLab/Prefabs/Terrain And Obstacles.prefab`, `Assets/Scenes/GU/Map/TestMap_V1.unity` 참고 |
+| UI 에셋 | `Assets/ExternalAssets/SCI-FI UI Pack Pro/` (아래 매핑표) |
+| 빌드 씬 | 현재 `Assets/Scenes/TestScenes/Monster Player Integration.unity` 1개 → 게임 시작 시 로드할 씬 (Inspector 에서 씬 이름 지정 가능하게) |
+
+## 씬 구성
+
+```
+Assets/Scenes/Boot.unity       ← 빌드 인덱스 0. 로고 + 로딩
+Assets/Scenes/MainMenu.unity   ← 빌드 인덱스 1. 대치 디오라마 + 메뉴 UI
+(게임 씬)                       ← 빌드 인덱스 2. 지금은 Monster Player Integration
+```
+
+## 단계별 사양
+
+### 1. Boot — 로고 (로딩 화면 대체)
+- 검은 배경(`Camera` Solid Color #000 또는 전체 화면 Image) 정중앙에 로고.
+- **로고 이미지는 아직 없음** → TMP 텍스트 로고로 임시 제작 (폰트: `Common/Fonts/Aldrich-Regular SDF`, Cyan 발광 Outline/Glow). `[SerializeField] Sprite logoSprite` 가 할당되면 Sprite 로 대체되도록 만든다.
+- 연출: 페이드인(0.6s) → 짧은 SF 글리치/스캔라인 1회 → 유지 → 페이드아웃(0.6s).
+- 표시 중 실제 로딩:
+  1. `DataManager.EnsureLoaded()` 호출 (`LastReport` 에 오류가 있으면 Debug.LogError, 진행은 계속)
+  2. `SceneManager.LoadSceneAsync("MainMenu")` 를 `allowSceneActivation = false` 로 미리 로드
+  3. **최소 표시 시간(기본 2.5s)** 과 로딩 완료(progress ≥ 0.9) 둘 다 충족 시 페이드아웃 후 활성화
+- 로고 하단 작은 로딩 인디케이터: `Common/Scripts/JustRotate.cs` 로 회전하는 원형 아이콘 (선택).
+- 아무 키 입력 시 최소 시간만 단축 (로딩 완료 전엔 넘어가지 않음).
+
+### 2. MainMenu — 대치 장면 (연출용 디오라마)
+- 실제 게임 시스템을 구동하지 않는 **연출 전용** 씬. 플레이어·몬스터 프리팹을 배치하되 AI / 입력 / 물리 / 전투 스크립트는 비활성화하거나, 모델+Animator 만 있는 디스플레이용 변형 프리팹(`*_Display`)을 만든다. CrowdCoordinator·DataManager 기반 스폰 로직에 의존하지 않는다.
+- 구도: **플레이어 등 뒤 오버숄더(우측 어깨)** 시점. 플레이어는 화면 좌하단~중앙, 몬스터 무리는 화면 **우측~중앙 원경**까지 빽빽하게(전열은 크게, 후열은 많이·작게). 화면 좌측 1/3 은 메뉴를 위해 비교적 비워 둔다.
+- 플레이어: 무기를 든 조준 대기 Idle 루프.
+- 몬스터: 종류를 섞어 20~40마리. 각 개체 Idle/위협 애니메이션을 **랜덤 시작 오프셋·재생 속도(0.9~1.1)** 로 재생해 동기화된 느낌 제거. 비행형(Muscomorph_Air)은 상공에서 천천히 호버링. 원경에 보스 실루엣(Clypeosaurus)을 안개 속에 두는 것도 고려.
+- 카메라: Cinemachine 3 카메라. 느린 좌우 흔들림/돌리(주기 10~15s)와 숨쉬기 수준 Noise.
+- 분위기: 어두운 톤, 안개(URP Fog), 몬스터 쪽 역광 림라이트, Post-processing(Bloom, Vignette, 약한 Color Grading).
+- 환경 디테일: 바닥 안개/먼지 파티클, 바람에 날리는 재·불씨, 몬스터 눈 발광(Emission), 멀리서 간헐적 섬광.
+- BGM: 메뉴 전용 BGM 을 `ISoundService` 로 재생 (사운드 키는 SoundTable 에 추가 필요 시 TODO 로 남김).
+- 몬스터 프리팹 모델이 아직 없는 종류는 `TestMonster.prefab` 으로 자리만 잡아 두고 교체 가능하게.
+
+### 3. PRESS ANY KEY 단계
+- 메인 메뉴 씬 진입 직후에는 **대치 장면 + 로고(작게, 좌상단) + 하단 중앙 "PRESS ANY KEY"** 만 표시 (텍스트 깜빡임: 알파 0.3↔1, 1.2s 주기).
+- 아무 키/마우스 클릭/패드 버튼 → 메뉴 UI 슬라이드인(좌측에서 0.4s, 버튼 순차 딜레이 0.06s), 카메라는 살짝 플레이어 쪽으로 이동.
+- 이후 메뉴로 돌아오는 경우(게임 → 메인 메뉴)는 이 단계를 건너뛸 수 있게 static 플래그로 처리.
+
+### 4. 메인 메뉴 UI
+레이아웃 (1920×1080 기준, Canvas Scaler: Scale With Screen Size, Match 0.5):
+```
+┌──────────────────────────────────────────┐
+│ [LOGO]                                   │
+│                        👹 👹 👹 👹 👹       │
+│ ▶ GAME START          👹 👹 👹 👹 👹 👹     │
+│   OPTIONS                👹 👹 👹          │
+│   QUIT            🧍(등)                  │
+│                                          │
+│ v0.1.0                                   │
+└──────────────────────────────────────────┘
+```
+- 좌측 세로 정렬, 좌측 여백 ~120px, 버튼 간격 ~24px. 메뉴 뒤에 좌측→우측으로 투명해지는 어두운 그라데이션 패널을 깔아 가독성 확보.
+- 컬러: **V2 Cyan 기본 + Yellow 강조**. 기본 버튼은 Cyan, 호버/선택된 버튼과 GAME START 는 Yellow.
+- 좌하단 빌드 버전(`Application.version`), 우하단 작은 조작 힌트(`[Enter] 선택  [Esc] 뒤로`).
+- 키보드/패드 내비게이션: 첫 선택 = GAME START, Selectable Navigation Vertical, Esc = 팝업 닫기 / 메인에선 종료 팝업.
+- 버튼 사운드: 호버/클릭 효과음을 UI 카테고리로 재생.
+
+**호버 연동 연출** (배경이 버튼에 반응):
+| 호버 버튼 | 배경 반응 |
+|---|---|
+| GAME START | 플레이어가 무기를 들어 조준(Aim 포즈), 카메라 살짝 줌인 |
+| OPTIONS | 카메라가 약간 옆으로 이동, 장면 채도 살짝 낮춤 |
+| QUIT | 몬스터 일부 포효(애니+사운드), 화면 가장자리 붉은 비네트 |
+- 호버가 빨리 바뀌어도 튀지 않도록 모든 반응은 보간(DOTween)하고 이전 트윈은 Kill.
+
+### 5. 게임 시작 전환 — 카메라 1인칭 진입
+1. 메뉴 UI 슬라이드아웃(0.3s), 입력 잠금
+2. 카메라가 플레이어 머리(눈 높이)로 빠르게 파고들며 FOV 변화 (0.8~1.0s) → 1인칭 시점에서 몬스터 무리를 정면으로 봄
+3. 순간 암전(또는 Cyan 스캔라인 와이프) → `LoadSceneAsync(gameSceneName)`
+4. 게임 씬은 1인칭 군중전으로 시작하므로 시점이 자연스럽게 이어진다.
+- Cinemachine 카메라 2대(메뉴용 / 1인칭 진입용) Priority 전환 + Blend 로 구현 권장.
+
+### 6. 옵션 (팝업)
+기반 프리팹: `SCI-FI UI Pack_V2 Pro(Cyan)/Prefabs/Prefabs_PanelAndPopup/Popup_Settings.prefab` 를 복제해 수정. 탭은 `Toggle_PageTag` 로 구성.
+
+| 탭 | 항목 | 컨트롤 (V2 Prefabs_Option) | 적용 |
+|---|---|---|---|
+| 사운드 | 마스터 / BGM / 효과음 / 몬스터 / UI | `Slider` (0~100%) | `ISoundService.MasterVolume`, `SetVolume(SoundCategory, v)` 즉시 적용 |
+| 조작 | 마우스 감도(1인칭) / 감도(3인칭) / Y축 반전 | `Slider`, `Switch` | `PlayerDef.LookSensitivity` × 배율(0.1~3.0, 기본 1.0) |
+| 조작 | 키 안내 | 읽기 전용 목록 | Input Actions 의 바인딩 표시 문자열을 읽어 자동 생성 (리바인딩은 하지 않음) |
+| 그래픽 | 해상도 / 화면 모드 / 품질 / V-Sync / 프레임 제한 | `Dropdown`, `Switch` | `Screen.SetResolution`, `FullScreenMode`, `QualitySettings.SetQualityLevel`(Mobile/PC), `vSyncCount`, `targetFrameRate`(60/120/144/무제한) |
+
+- 하단 버튼: **적용 / 기본값 복원 / 닫기**. 사운드는 슬라이더 이동 즉시 미리듣기, 그래픽은 [적용] 시 반영.
+- **저장 구조**: `GameSettings` (순수 C# 데이터 + `PlayerPrefs` 저장/로드, 키 접두사 `Settings.`)를 `Assets/Scripts/Core/Settings/` 에 두고,
+  - 씬마다 새로 생기는 `SoundService` 가 시작 시 저장된 볼륨을 적용하도록 연결 (SoundService 수정 최소화: 별도 `SettingsApplier` 컴포넌트나 `GameSettings.Changed` 이벤트 구독 방식 중 택1, 사유를 주석으로)
+  - 플레이어 카메라가 감도 배율·Y반전을 읽도록 연결 지점을 TODO 로 명시 (Player 담당과 협의 사항)
+- 옵션은 일시정지 메뉴에서도 재사용할 수 있도록 메인 메뉴에 의존하지 않는 독립 프리팹(`Prefabs/UI/OptionsPopup.prefab`)으로 만든다.
+
+### 7. 게임 종료
+- `Popup_Quit.prefab`(V2) 기반 확인 팝업: "게임을 종료하시겠습니까?" [종료] [취소]
+- 팝업 뒤 배경 Dim + 약한 블러(가능하면). [종료] → `Application.Quit()` (에디터에서는 `EditorApplication.isPlaying = false`).
+
+## UI 에셋 매핑 (SCI-FI UI Pack Pro)
+
+| 용도 | 에셋 |
+|---|---|
+| GAME START 버튼 | `V2 Cyan/Prefabs/Prefabs_Button/Btn_StartMenuYellow.prefab` (호버 시 강조 애니메이터 `Common/Animation/Btn_Start.controller`) |
+| OPTIONS 버튼 | `Btn_SettingMenuCyan.prefab` (호버 시 Yellow 변형 `Btn_SettingMenuYellow`) |
+| QUIT 버튼 | `Btn_MainMenuCyan.prefab` 또는 `Btn_Rectangle02Cyan.prefab` (호버 시 Yellow) |
+| 옵션 팝업 | `V2 Cyan/Prefabs/Prefabs_PanelAndPopup/Popup_Settings.prefab` |
+| 종료 팝업 | `V2 Cyan/Prefabs/Prefabs_PanelAndPopup/Popup_Quit.prefab` |
+| 슬라이더·스위치·드롭다운·탭 | `V2 Cyan/Prefabs/Prefabs_Option/` — `Slider`, `Switch`, `Dropdown`, `Toggle_PageTag`, `Checkbox` |
+| 슬라이더 값 표시 | `Common/Scripts/TMSliderValuePass.cs` |
+| 닫기 버튼 | `Btn_ClosePage.prefab` |
+| 로딩 회전 아이콘 | `Common/Scripts/JustRotate.cs` + `Common/White Icons` |
+| 장식 라인·타이틀 | `V2 Cyan/Prefabs/Prefabs_Widget/LargeTitle1`, `SceneTopTitle*`, `Textures/DemoScene_Cyan/Decorations` |
+| 폰트 | 영문 타이틀 `Aldrich-Regular SDF`, 버튼 `Play-Bold SDF`, 본문 `Play-Regular SDF`. **한글이 필요한 텍스트는 한글 TMP 폰트 에셋을 Fallback 으로 연결** |
+
+- 에셋 원본 프리팹은 수정하지 말고 **Prefab Variant** 또는 복제본을 `Assets/Prefabs/UI/MainMenu/` 에 만든다.
+- 데모 씬(`Demo Scene V2(Cyan).unity`)을 열어 원래 쓰임새를 확인한 뒤 고른다. 위 매핑은 이름 기준 추정이므로 실제 모양이 맞지 않으면 더 적합한 프리팹으로 바꾸고 이유를 남긴다.
+
+## 스크립트 구성 (제안)
+
+```
+Assets/Scripts/UI/MainMenu/
+├─ BootSequence.cs          로고 연출 + 데이터 로드 + MainMenu 비동기 로드
+├─ MainMenuController.cs    상태 머신: PressAnyKey → Menu → (Options | QuitConfirm) → StartingGame
+├─ MainMenuButtonFx.cs      버튼 호버/선택 시 색·스케일·사운드, 배경 반응 이벤트 발행
+├─ MenuBackdropDirector.cs  호버 연동 연출(카메라·비네트·애니메이터 트리거)과 1인칭 진입 연출
+├─ DisplayActor.cs          디오라마 캐릭터용: 랜덤 애니 오프셋·속도, 트리거 재생
+└─ QuitConfirmPopup.cs
+Assets/Scripts/UI/Options/
+├─ OptionsPopup.cs          탭 전환, 각 컨트롤 ↔ GameSettings 바인딩
+└─ KeyGuideList.cs          InputActionAsset 에서 바인딩 표시 문자열로 목록 생성
+Assets/Scripts/Core/Settings/
+└─ GameSettings.cs          설정값 + PlayerPrefs 저장/로드 + Changed 이벤트
+```
+
+## 구현 규칙
+- 기존 코드 스타일을 따른다: `[SerializeField] private`, 한국어 XML 요약 주석, `sealed` 클래스, 필드 Tooltip.
+- 연출 수치(시간·거리·FOV·딜레이)는 하드코딩하지 말고 Inspector 노출.
+- `Time.timeScale` 에 영향받지 않도록 UI 트윈은 unscaled time 사용.
+- 메인 메뉴에서는 커서 표시·잠금 해제, 게임 시작 시 게임 씬이 다시 잠금.
+- 다른 담당자 시스템(SoundService, Player, Monster)은 **필요 최소한만** 수정하고, 수정한 경우 이유를 정리한다. 현재 사운드 시스템은 리팩터링 중(`Docs/Design/SoundSystemRefactor_v3.md`)이므로 충돌 가능 지점을 먼저 확인한다.
+- 개인 작업 씬 규칙: 완성 전에는 `Test_MainMenu` 로 작업하고, 완료 후 `Boot` / `MainMenu` 로 정리.
+
+## 작업 순서
+1. UI 팩 데모 씬 확인 → 사용할 프리팹 확정 (매핑표 갱신)
+2. `GameSettings` + 옵션 팝업 (독립적으로 테스트 가능)
+3. MainMenu 디오라마 배치(지형·플레이어·몬스터·조명·안개·포스트프로세싱·카메라)
+4. 메뉴 UI 레이아웃 + 키보드/패드 내비게이션 + PRESS ANY KEY
+5. 호버 연동 연출 + 환경 파티클
+6. 게임 시작 1인칭 진입 전환 + 종료 팝업
+7. Boot 씬(로고·로딩) + Build Settings 순서 정리 (Boot=0, MainMenu=1, 게임=2)
+
+## 완료 기준
+- [ ] 빌드 실행 시 검은 화면 로고 → 메뉴 장면까지 끊김 없이 이어지고, 로고는 최소 2.5s 이상 표시
+- [ ] 대치 장면에서 몬스터 애니메이션이 서로 엇갈려 자연스럽고, 메뉴가 장면 주요부를 가리지 않음
+- [ ] PRESS ANY KEY → 메뉴 슬라이드인, 마우스·키보드·패드 모두 조작 가능
+- [ ] 각 버튼 호버 시 배경 반응이 보간되어 나타나고 빠르게 옮겨 다녀도 튀지 않음
+- [ ] 옵션 값이 즉시/적용 시 반영되고 재실행 후에도 유지되며, 게임 씬의 볼륨·감도에도 적용됨
+- [ ] 게임 시작 시 1인칭 진입 연출 후 게임 씬 로드, 종료는 확인 팝업을 거침
+- [ ] 1920×1080 / 2560×1440 / 1280×720 에서 레이아웃 깨짐 없음
+- [ ] Console 에 에러·경고 없음 (UI 팩 자체 경고 제외)
+
+## 구현 전에 확인할 질문 (모르면 기본값으로 진행하고 TODO 기록)
+- 게임 시작 시 로드할 최종 게임 씬 이름 (기본: `Monster Player Integration`)
+- 메뉴 BGM / 버튼 효과음 / 포효 사운드 키 (없으면 SoundTable 추가 항목 목록만 작성)
+- 게임 타이틀 문구 (로고 텍스트)
+
+---

@@ -58,6 +58,7 @@ namespace HybridShooter.Monster.Behaviour
         // ── 애니메이션 ──
         private Animator animator;
 
+        public int MonsterId => monsterId;
         public MonsterDef Def { get; private set; }
         public MonsterStateMachine StateMachine { get; private set; }
 
@@ -65,6 +66,8 @@ namespace HybridShooter.Monster.Behaviour
         public event Action<MonsterAttackDef, SkillPhase> AttackPhaseChanged;
         public event Action<float> Stunned;
         public event Action<MonsterAttackDef, Vector3> AttackLanded;
+        public event Action<MonsterAttackDef, Vector3> AttackContacted;
+        public event Action Died;
 
         // ── 체력 ──
         public int MaxHp { get; private set; }
@@ -144,6 +147,7 @@ namespace HybridShooter.Monster.Behaviour
             {
                 attack.PhaseChanged += OnAttackPhaseChanged;
                 attack.BodyLanded += OnAttackBodyLanded;
+                attack.BodyContacted += OnAttackBodyContacted;
             }
         }
 
@@ -278,6 +282,9 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>도약 착지를 소리 쪽에 알린다</summary>
         private void OnAttackBodyLanded(MonsterAttack attack, Vector3 ground) => AttackLanded?.Invoke(FindAttackDef(attack), ground);
 
+        /// <summary>돌진 명중(몸 충돌)을 소리 쪽에 알린다</summary>
+        private void OnAttackBodyContacted(MonsterAttack attack, Vector3 point) => AttackContacted?.Invoke(FindAttackDef(attack), point);
+
         /// <summary>공격의 테이블 Def (Spec.SourceDefId). 테이블에 없으면 null</summary>
         private static MonsterAttackDef FindAttackDef(MonsterAttack attack) =>
             DataManager.MonsterAttacks.TryGet(attack.Spec.SourceDefId, out var def) ? def : null;
@@ -391,6 +398,7 @@ namespace HybridShooter.Monster.Behaviour
             foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = false; // 시체는 피격 판정 없음
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
             if (flyingExecutor != null) flyingExecutor.StartFalling();
+            Died?.Invoke();
             EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(Def, transform.position, gameObject, grantReward));
             despawnTime = Time.time + despawnDelay;
         }
