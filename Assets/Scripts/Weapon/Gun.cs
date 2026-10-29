@@ -239,7 +239,6 @@ namespace HybridShooter.Weapon
             {
                 EventBus<UpgradePurchasedEvent>.Subscribe(OnUpgradePurchased);
                 EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
-                EventBus<RoundStartedEvent>.Subscribe(OnRoundStarted);
                 subscribed = true;
             }
             OnInitialized();
@@ -710,37 +709,15 @@ namespace HybridShooter.Weapon
             if (subscribed == false) return;
             EventBus<UpgradePurchasedEvent>.Unsubscribe(OnUpgradePurchased);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
-            EventBus<RoundStartedEvent>.Unsubscribe(OnRoundStarted);
         }
 
         private void OnUpgradePurchased(UpgradePurchasedEvent evt) => RefreshStats();
 
-        /// <summary>
-        /// 라운드 정리: 진행 중인 동작(방아쇠·조준·장전)을 취소한다.
-        /// 처음부터 재시작이면 탄창·예비 탄창을 시작값으로 돌리고, 다음 RoundStartedEvent 에서 한 번 더 초기화한다. 다음 라운드 진행이면 탄약 유지
-        /// </summary>
+        /// <summary>처음부터 재시작이면 탄창·예비 탄창을 시작값으로. 다음 라운드 진행이면 유지</summary>
         private void OnRoundCleanup(RoundCleanupEvent evt)
         {
-            CancelActions();
             if (evt.FullReset == false) return;
-            ResetAmmo();
-            resetOnRoundStart = true;
-        }
-
-        /// <summary>
-        /// 라운드 시작: FullReset 의 모든 구독자가 강화를 초기화한 뒤이므로 능력치를 다시 계산한다.
-        /// 처음부터 재시작이었다면 발사·장착 타이머, 탄 퍼짐, 반동 복귀량을 비우고 탄약을 (초기화된 능력치 기준) 시작값으로
-        /// </summary>
-        private void OnRoundStarted(RoundStartedEvent evt)
-        {
-            RefreshStats();
-            if (resetOnRoundStart == false) return;
-            resetOnRoundStart = false;
-            nextFireTime = Time.time;
-            readyTime = Time.time;
-            lastShotTime = float.NegativeInfinity;
-            bloom = 0f;
-            recoilToRecover = 0f;
+            CancelReload();
             ResetAmmo();
             OnInitialized();
         }

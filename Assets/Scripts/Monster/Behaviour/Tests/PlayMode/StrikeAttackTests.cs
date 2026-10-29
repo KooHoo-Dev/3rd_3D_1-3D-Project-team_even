@@ -133,6 +133,30 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [Test]
+        public void HitRangeRatioExtendsMeleeHitRangeOnly()
+        {
+            // 진입 거리 1.5m, 비율 2 → 판정 거리 3m. 사거리(Range)는 그대로
+            attack.HitRangeRatio = 2f;
+            attack.Begin(target, 0f);
+            target.Position = new Vector3(0f, 0f, 2.9f);
+            attack.Tick(0.4f, 0.4f);
+            attack.Tick(0.7f, 0.3f);
+            Assert.AreEqual(2, target.Received.Count, "진입 거리 밖이어도 판정 거리 안이면 맞는다");
+            Assert.AreEqual(1.5f, attack.Range, "진입 거리는 Spec.Range 그대로");
+        }
+
+        [Test]
+        public void TargetBeyondHitRangeIsNotDamaged()
+        {
+            attack.HitRangeRatio = 2f;
+            attack.Begin(target, 0f);
+            target.Position = new Vector3(0f, 0f, 3.1f);
+            attack.Tick(0.4f, 0.4f);
+            attack.Tick(0.7f, 0.3f);
+            Assert.AreEqual(0, target.Received.Count, "판정 거리 3m 밖");
+        }
+
+        [Test]
         public void DeadTargetIsNotDamaged()
         {
             // 생존 판정은 공격이 아니라 소유자 몫이다: 사망 = Brain.SetTarget(null) 이 진행 중인 공격을 취소한다

@@ -5,7 +5,8 @@ namespace HybridShooter.Monster.Behaviour
     /// <summary>공격자 중심 반경 (근접)</summary>
     public sealed class MeleeArea : IHitArea
     {
-        public float Range { get; }
+        // 공격자 중심 반경 (m). StrikeAttack 이 판정 전에 진입 거리 × HitRangeRatio 로 맞춘다
+        public float Range { get; set; }
         /// <summary>HitAreas.From 이 Melee 모양 공격에 만든다</summary>
         /// <param name="range">공격자 중심 반경 (m)</param>
         public MeleeArea(float range) { Range = range; }

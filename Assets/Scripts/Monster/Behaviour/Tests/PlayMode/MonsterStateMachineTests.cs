@@ -168,7 +168,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [Test]
-        public void ConsecutiveAttackStaysInAttackWithoutStateChange()
+        public void ConsecutiveAttackWaitsCooldownInChase()
         {
             EnterAttack();
             int stateChangedCount = 0;
@@ -177,15 +177,20 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Step(); // Begin
             FinishRunningAttack();
             Assert.AreEqual(AttackResult.Completed, attack.LastResult);
-            Assert.AreSame(_stateMachine.Attack, _stateMachine.Current, "완료 틱에 상태를 바꾸지 않는다");
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current, "기본 공격(ChaseUntilReady)은 완료 틱에 Chase 로 간다");
+            Assert.IsFalse(movement.IsSuspended, "쿨다운 동안 슬롯으로 이동한다");
 
             Step(1.1f); // 회복 끝 +1.1s: 쿨다운(1.2s) 전
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current, "사거리 안이어도 쿨다운 중에는 Attack 으로 가지 않는다");
             Assert.AreEqual(1, beginCount, "쿨다운은 회복 끝부터 센다");
 
-            Step(0.2f); // 회복 끝 +1.3s: 사거리 안 + 쿨다운 끝 → 다시 Begin
-            Assert.AreEqual(2, beginCount);
-            Assert.AreEqual(0, stateChangedCount, "연속 공격 중 Attack ↔ Chase 왕복이 없다");
+            Step(0.2f); // 회복 끝 +1.3s: 사거리 안 + 쿨다운 끝 → Attack
             Assert.AreSame(_stateMachine.Attack, _stateMachine.Current);
+            Assert.AreEqual(1, beginCount, "전환한 판단에서는 공격을 시작하지 않는다");
+
+            Step(); // 다시 Begin
+            Assert.AreEqual(2, beginCount);
+            Assert.AreEqual(2, stateChangedCount, "Attack → Chase → Attack");
         }
 
         [Test]
@@ -203,11 +208,12 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [Test]
         public void FinishedAttackOutOfRangeReturnsToChase()
         {
+            var stayAttack = UseAfterAttack(AfterAttack.StayInAttack);
             EnterAttack();
             Step(); // Begin
             target.Position = new Vector3(0f, 0f, 10f);
             FinishRunningAttack();
-            Assert.AreEqual(AttackResult.Completed, attack.LastResult);
+            Assert.AreEqual(AttackResult.Completed, stayAttack.LastResult);
             Assert.AreSame(_stateMachine.Attack, _stateMachine.Current, "완료 틱에는 Attack 에 머문다");
 
             Step(); // 다음 틱에 사거리 밖 → Chase
