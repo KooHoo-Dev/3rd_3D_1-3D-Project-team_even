@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 985e01e4ccf3c7c4583ab072e81fdbdf, type: 3}
+  m_Name: AlienAtmospherePreset
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Atmosphere.AtmospherePreset
+  fogColor: {r: 0.36169454, g: 0.4632116, b: 0.6037736, a: 1}
+  fogDensity: 0.022
+  skyZenithColor: {r: 0.16, g: 0.17, b: 0.3, a: 1}
+  skyHorizonBlend: 0.3
+  starBrightness: 3
+  starTwinkle: 0.6
+  nebulaColorA: {r: 0.55, g: 0.22, b: 0.8, a: 1}
+  nebulaColorB: {r: 0.15, g: 0.6, b: 0.7, a: 1}
+  nebulaIntensity: 1
+  moonRadius: 14
+  moonColor: {r: 0.88, g: 0.9, b: 0.95, a: 1}
+  moonBrightness: 1.4
+  moonGlowColor: {r: 0.55, g: 0.68, b: 1, a: 1}
+  moonGlowIntensity: 0.8
+  moonEyeColor: {r: 2, g: 0.25, b: 0.1, a: 1}
+  moonEyeIntensity: 0.6
+  ambientSkyColor: {r: 0.4, g: 0.45, b: 0.58, a: 1}
+  ambientEquatorColor: {r: 0.3, g: 0.33, b: 0.4, a: 1}
+  ambientGroundColor: {r: 0.13, g: 0.12, b: 0.14, a: 1}
+  reflectionIntensity: 0.7
+  moonLightColor: {r: 0.72, g: 0.82, b: 1, a: 1}
+  moonLightIntensity: 1
+  moonLightRotation: {x: 28, y: -40, z: 0}
+  moonLightShadowStrength: 0.75
+  smokeColor: {r: 0.8392157, g: 0.29803923, b: 0.37484822, a: 0.32}
