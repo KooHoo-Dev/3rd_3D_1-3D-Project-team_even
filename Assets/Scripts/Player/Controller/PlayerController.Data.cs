@@ -232,6 +232,8 @@ namespace HybridShooter.Player
         /// <summary>마우스로 누적한 시선 각도. 몸 yaw 와 카메라 yaw 가 항상 이 값을 따른다</summary>
         private float lookYaw;
         private float lookPitch;
+        /// <summary>이번 프레임 마우스로 돌린 pitch (Update 처음에 0 → UpdateLook 이 채운다)</summary>
+        private float lookInputPitchDelta;
 
         // 카메라 리그 (Awake 에서 1회 캐싱)
         private bool rigReady;

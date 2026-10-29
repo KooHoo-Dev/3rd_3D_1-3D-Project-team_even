@@ -10,7 +10,7 @@ namespace HybridShooter.Player.Tester
     /// <summary>
     /// 테스트용 디버그 모드. 플레이어 프리팹에 달려 있고, 인스펙터에서 켜고 끈다 (Play 중에도 바로 반영).
     ///  - 무적 / 무한 스태미나 / 무한 탄약 / 목숨 무한 / 최종 사망 막기
-    ///  - Play 중 인스펙터 버튼(또는 컴포넌트 ⋮ 메뉴): 부활(연출)·즉시 부활, 체력·스태미나·탄약 채우기, 자해, 목숨 API
+    ///  - Play 중 인스펙터 버튼(또는 컴포넌트 ⋮ 메뉴): 부활(연출)·즉시 부활, 체력·스태미나·탄약 채우기, 예비 탄창 0/+1, 자해, 목숨 API
     /// 제거할 때는 이 파일과 프리팹의 컴포넌트만 지우면 된다
     /// </summary>
     [DisallowMultipleComponent]
@@ -19,7 +19,7 @@ namespace HybridShooter.Player.Tester
         [Header("상시")]
         [SerializeField] private bool invincible;
         [SerializeField] private bool infiniteStamina;
-        [Tooltip("모든 슬롯의 탄창을 항상 가득 채운다 (재장전 없음)")]
+        [Tooltip("모든 슬롯의 탄창과 예비 탄창을 항상 가득 채운다 (재장전 없음)")]
         [SerializeField] private bool infiniteAmmo;
 
         [Header("사망")]
@@ -89,12 +89,27 @@ namespace HybridShooter.Player.Tester
             if (player != null) player.RestoreStamina();
         }
 
+        /// <summary>모든 슬롯의 탄창 + 예비 탄창을 가득</summary>
         [ContextMenu("탄약 가득")]
         public void RefillAmmo()
         {
             if (gunSlot == null) return;
             for (int i = 0; i < GunSlot.SlotCount; i++)
                 if (gunSlot.GetGun(i) != null) gunSlot.GetGun(i).RefillAmmo();
+        }
+
+        /// <summary>지금 든 총의 예비 탄창을 0 으로 (탄이 떨어지는 상황 테스트)</summary>
+        [ContextMenu("예비 탄창 0")]
+        public void EmptySpareMagazines()
+        {
+            if (gunSlot != null && gunSlot.CurrentGun != null) gunSlot.CurrentGun.SetSpareMagazines(0);
+        }
+
+        /// <summary>IPlayerAmmo.AddMagazines(1) — 보급 획득 흉내</summary>
+        [ContextMenu("예비 탄창 +1 (AddMagazines)")]
+        public void AddSpareMagazine()
+        {
+            if (gunSlot != null) Debug.Log($"[PlayerDebugMode] AddMagazines(1) → {gunSlot.AddMagazines(1)}", this);
         }
 
         /// <summary>정면에서 맞은 것처럼 피해를 준다 (무적이면 무시된다)</summary>
@@ -166,6 +181,11 @@ namespace HybridShooter.Player.Tester
                     }
                     using (new EditorGUILayout.HorizontalScope())
                     {
+                        if (GUILayout.Button("예비 탄창 0")) mode.EmptySpareMagazines();
+                        if (GUILayout.Button("예비 탄창 +1")) mode.AddSpareMagazine();
+                    }
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
                         if (GUILayout.Button("목숨 +1")) mode.AddLife();
                         if (GUILayout.Button("최대 목숨 +1")) mode.AddMaxLife();
                         if (GUILayout.Button($"최대 목숨 = {mode.maxLivesToSet}")) mode.SetMaxLives();
@@ -180,6 +200,11 @@ namespace HybridShooter.Player.Tester
                                    (p.IsFinallyDead ? "최종 사망   " : "") +
                                    (p.IsReviveBuffActive ? $"보호 {p.ReviveBuffRemainingTime:0.0}초" : "");
                     if (state.Length > 0) EditorGUILayout.LabelField(state);
+                    Gun gun = mode.gunSlot != null ? mode.gunSlot.CurrentGun : null;
+                    if (gun != null)
+                        EditorGUILayout.LabelField($"{gun.DisplayName}  탄창 {gun.Ammo} / {gun.MagazineSize}   예비 탄창 " +
+                                                   (gun.InfiniteMagazines ? "무한" : $"{gun.SpareMagazines} / {gun.MaxMagazines}") +
+                                                   (gun.IsReloading ? "   장전 중" : ""));
                 }
             }
 

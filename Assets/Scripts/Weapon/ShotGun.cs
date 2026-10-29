@@ -9,7 +9,9 @@ namespace HybridShooter.Weapon
     ///  - 한 번에 pelletCount 발. 탄 배치는 고정 패턴(가운데 1 + 안쪽 원 + 바깥 원) + 약간의 흔들림 → 운보다 조준이 중요
     ///  - 같은 적에 맞은 펠릿은 합쳐서 한 번에 피해 (피격 반응이 펠릿마다 반복되지 않게)
     ///  - 거리 감쇠가 매우 크다. WeaponTable.Damage = 펠릿 1발 피해, Range = 감쇠 끝 거리
-    ///  - 장전은 한 발씩 (WeaponTable.ReloadTime = 한 발 넣는 시간). 장전 중에도 탄이 있으면 바로 쏠 수 있다
+    ///  - 장전 시간 = 자세 잡기 + 빈 칸 수 × WeaponTable.ReloadTime (한 발 넣는 시간, 그때마다 넣는 소리).
+    ///    탄은 다른 총처럼 장전이 끝날 때 예비 탄창 1개로 한 번에 채워진다.
+    ///    장전 중에도 탄이 남아 있으면 바로 쏠 수 있다 (장전 취소 → 탄·예비 탄창 그대로)
     /// </summary>
     public class ShotGun : Gun
     {
@@ -27,6 +29,7 @@ namespace HybridShooter.Weapon
         private struct PelletHit { public int Damage; public Vector3 Point; }
         private readonly Dictionary<IDamageable, PelletHit> pelletHits = new Dictionary<IDamageable, PelletHit>();
         private float nextShellTime;
+        private int shellsLeft;
 
         public ShotGun()
         {
@@ -98,17 +101,17 @@ namespace HybridShooter.Weapon
         {
             IsReloading = true;
             nextShellTime = Time.time + reloadStartDelay + Stats.reloadTime;
-            int missing = Stats.magazineSize - Ammo;
-            NotifyReloadStarted(reloadStartDelay + missing * Stats.reloadTime);
+            shellsLeft = Stats.magazineSize - Ammo;
+            NotifyReloadStarted(reloadStartDelay + shellsLeft * Stats.reloadTime);
         }
 
+        /// <summary>한 발 시간마다 넣는 소리만 내고, 마지막 칸까지 끝나면 CompleteReload 가 탄창을 한 번에 채운다</summary>
         protected override void UpdateReload()
         {
             while (IsReloading && Time.time >= nextShellTime)
             {
-                SetAmmo(Ammo + 1);
                 PlayReloadInsertSfx(); // 한 발 넣을 때마다
-                if (Ammo >= Stats.magazineSize) CompleteReload();
+                if (--shellsLeft <= 0) CompleteReload();
                 else nextShellTime += Stats.reloadTime;
             }
         }

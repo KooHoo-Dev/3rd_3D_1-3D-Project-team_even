@@ -16,7 +16,12 @@ namespace HybridShooter.Weapon
         public int damage;
         [Tooltip("분당 발사 수 (RPM)")]
         public float fireRate;
+        [Tooltip("탄창 하나에 든 탄약 수")]
         public int magazineSize;
+        [Tooltip("시작할 때 가진 예비 탄창 개수")]
+        public int startMagazines;
+        [Tooltip("가질 수 있는 예비 탄창 최대 개수 (탄창 단위)")]
+        public int maxMagazines;
         public float reloadTime;
         public float range;
         [Tooltip("기본 탄 퍼짐 원뿔 반각(도)")]
@@ -30,6 +35,8 @@ namespace HybridShooter.Weapon
             damage = def.Damage,
             fireRate = def.FireRate,
             magazineSize = def.MagazineSize,
+            startMagazines = def.StartMagazines,
+            maxMagazines = def.MaxMagazines,
             reloadTime = def.ReloadTime,
             range = def.Range,
             spreadAngle = def.SpreadAngle,
@@ -45,6 +52,11 @@ namespace HybridShooter.Weapon
     ///  - 입력: PlayerController → GunSlot → 지금 든 총의 TriggerDown / TriggerUp / AimDown / AimUp / Reload / ToggleFireMode
     ///  - 매 프레임: GunSlot.Update → Tick (장전·퍼짐 회복·반동 회복 → OnTick)
     ///  - 실제 발사: TryFire (탄·연사 간격·장전 검사) → Shoot (무기별 abstract)
+    ///  - 탄약: 탄창 안 탄약(Ammo / MagazineSize)과 예비 탄창(SpareMagazines / MaxMagazines, 탄창 단위)은 별개.
+    ///    장전이 "끝나는 순간"에만 예비 탄창 1개를 써서 탄창을 가득 채운다 (남은 탄은 버림). 취소되면 아무것도 바뀌지 않는다.
+    ///    예비 탄창이 없으면 장전할 수 없다 (infiniteMagazines 면 줄지 않음). 보충은 AddMagazines (보급 → GunSlot → 지금 든 총)
+    ///  - 장전 취소: 무기 교체, 쏠 수 없는 상태(CanUseWeapon: 구르기·투척·사망·벽넘기), GunSlot.InterruptReload(넉백 피격 등)
+    ///  - 처음부터 재시작(RoundCleanupEvent.FullReset)이면 탄창·예비 탄창을 시작값으로
     ///
     /// 무기별 기본 튜닝 값은 하위 클래스 생성자에서 정한다.
     /// (필드 초기값과 같은 시점이라, 씬/프리팹에 저장된 인스펙터 값이 있으면 그 값이 덮어쓴다)
@@ -58,8 +70,10 @@ namespace HybridShooter.Weapon
         [Tooltip("WeaponTable 에 행이 없을 때 쓰는 값 (테스트용)")]
         [SerializeField] protected GunStats fallbackStats = new GunStats
         {
-            damage = 10, fireRate = 600f, magazineSize = 30, reloadTime = 2f, range = 100f, spreadAngle = 1f,
+            damage = 10, fireRate = 600f, magazineSize = 30, startMagazines = 3, maxMagazines = 6, reloadTime = 2f, range = 100f, spreadAngle = 1f,
         };
+        [Tooltip("켜면 예비 탄창이 줄지 않는다 (보조무기). 보충(AddMagazines)도 받지 않는다")]
+        [SerializeField] protected bool infiniteMagazines;
 
         [Header("기준점")]
         [Tooltip("총구. 비우면 처음 꺼낼 때 모델 앞 끝에 자동으로 만든다")]
@@ -97,6 +111,8 @@ namespace HybridShooter.Weapon
         [SerializeField] protected float recoilYaw = 0.2f;
         [Tooltip("조준 중 반동 배율")]
         [SerializeField, Range(0f, 1f)] protected float aimRecoilMultiplier = 0.7f;
+        [Tooltip("한 발의 반동이 올라가는 시간(초). 이 시간 동안 약 95% 가 부드럽게 올라간다. 0 = 바로")]
+        [SerializeField, Min(0f)] protected float recoilKickTime = 0.06f;
         [Tooltip("사격을 멈추면 위로 튄 반동 중 이 비율만큼 저절로 내려온다")]
         [SerializeField, Range(0f, 1f)] protected float recoilRecoverRatio = 0.6f;
         [Tooltip("반동이 내려오는 속도(도/초)")]
@@ -121,12 +137,15 @@ namespace HybridShooter.Weapon
         private float reloadEndTime;
         private float reloadInsertTime;
         private bool reloadInserted;
+        private int triggerDownFrame = -1;
+        private float nextDryFireTime;
         private float bloom;
         private float recoilToRecover;
+        /// <summary>아직 시선에 적용하지 않은 반동 (x = 위, y = 오른쪽). Tick 에서 recoilKickTime 에 걸쳐 나눠 적용</summary>
+        private Vector2 pendingKick;
         private float lastShotTime = float.NegativeInfinity;
         private bool aimZoomApplied;
         private bool subscribed;
-        private bool resetOnRoundStart;
 
         protected static readonly RaycastHit[] SharedHits = new RaycastHit[32];
         /// <summary>다음 SpawnTracer 의 총알이 도착할 때 생성할 탄착 자리 (SpawnImpact 가 쌓는다)</summary>
@@ -181,8 +200,18 @@ namespace HybridShooter.Weapon
         public string DisplayName => Def != null ? Def.Name : GetType().Name;
         public GunSlot Owner { get; private set; }
 
+        /// <summary>탄창 안 탄약 (재장전 없이 쏠 수 있는 수)</summary>
         public int Ammo { get; private set; }
         public int MagazineSize => Stats.magazineSize;
+        /// <summary>예비 탄창 개수 (탄창 단위. 탄창 안 탄약과 별개)</summary>
+        public int SpareMagazines { get; private set; }
+        public int MaxMagazines => Stats.maxMagazines;
+        public bool InfiniteMagazines => infiniteMagazines;
+        public bool HasSpareMagazine => infiniteMagazines || SpareMagazines > 0;
+        /// <summary>지금 재장전을 시작할 수 있는지 (장전 중 아님 + 탄창이 가득 차지 않음 + 예비 탄창 있음)</summary>
+        public bool CanReload => IsReloading == false && Ammo < Stats.magazineSize && HasSpareMagazine;
+        /// <summary>탄창도 예비 탄창도 비었다 (더 쏠 수 없음)</summary>
+        public bool IsOutOfAmmo => Ammo <= 0 && HasSpareMagazine == false;
         public bool IsReloading { get; protected set; }
         public bool IsTriggerHeld { get; private set; }
         public bool IsAiming { get; private set; }
@@ -192,7 +221,7 @@ namespace HybridShooter.Weapon
         /// <summary>지금 쏘면 적용될 퍼짐(도). 이동·공중·연사·조준 반영</summary>
         public virtual float CurrentSpread => HipSpread * (IsAiming ? aimSpreadMultiplier : 1f);
 
-        /// <summary>GunSlot 이 게임 시작 시(또는 새로 슬롯에 넣을 때) 호출. 테이블·강화 값을 읽어 탄창을 채운다</summary>
+        /// <summary>GunSlot 이 게임 시작 시(또는 새로 슬롯에 넣을 때) 호출. 테이블·강화 값을 읽어 탄창·예비 탄창을 시작값으로 채운다</summary>
         public void Initialize(GunSlot owner)
         {
             Owner = owner;
@@ -202,19 +231,18 @@ namespace HybridShooter.Weapon
 
             PrepareModel();
             RefreshStats();
-            Ammo = Stats.magazineSize;
+            ResetAmmo();
 
             if (subscribed == false)
             {
                 EventBus<UpgradePurchasedEvent>.Subscribe(OnUpgradePurchased);
                 EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
-                EventBus<RoundStartedEvent>.Subscribe(OnRoundStarted);
                 subscribed = true;
             }
             OnInitialized();
         }
 
-        /// <summary>테이블 값 + 강화 값으로 Stats 를 다시 만든다. 탄창이 줄어들면 남은 탄도 맞춘다</summary>
+        /// <summary>테이블 값 + 강화 값으로 Stats 를 다시 만든다. 탄창·최대 예비 탄창이 줄어들면 남은 수도 맞춘다</summary>
         public void RefreshStats()
         {
             GunStats stats = Def != null ? GunStats.From(Def) : fallbackStats;
@@ -230,6 +258,7 @@ namespace HybridShooter.Weapon
             Stats = stats;
 
             if (Ammo > Stats.magazineSize) Ammo = Stats.magazineSize;
+            if (SpareMagazines > Stats.maxMagazines) SpareMagazines = Stats.maxMagazines;
             PublishAmmo();
         }
 
@@ -243,9 +272,10 @@ namespace HybridShooter.Weapon
             PublishAmmo();
         }
 
-        /// <summary>다른 총으로 바꿀 때. 장전·조준·방아쇠를 모두 푼다</summary>
+        /// <summary>다른 총으로 바꿀 때. 장전·조준·방아쇠를 모두 푼다. 아직 덜 올라간 반동은 버린다 (다시 꺼낼 때 튀지 않게)</summary>
         public void Unequip()
         {
+            pendingKick = Vector2.zero;
             TriggerUp();
             AimUp();
             CancelReload();
@@ -257,6 +287,7 @@ namespace HybridShooter.Weapon
         {
             if (IsTriggerHeld) return;
             IsTriggerHeld = true;
+            triggerDownFrame = Time.frameCount;
             OnTriggerDown();
         }
 
@@ -265,15 +296,6 @@ namespace HybridShooter.Weapon
             if (IsTriggerHeld == false) return;
             IsTriggerHeld = false;
             OnTriggerUp();
-        }
-
-        /// <summary>라운드 전환 시 방아쇠·조준·장전·점사 예약을 취소한다.</summary>
-        public void CancelActions()
-        {
-            TriggerUp();
-            AimUp();
-            CancelReload();
-            OnUnequipped();
         }
 
         public void AimDown()
@@ -293,24 +315,51 @@ namespace HybridShooter.Weapon
             RefreshAimZoom();
         }
 
-        /// <summary>재장전 시작. 이미 장전 중이거나 탄창이 가득 차면 false</summary>
+        /// <summary>
+        /// 재장전 시작. 이미 장전 중이거나, 탄창이 가득 찼거나, 쏠 수 없는 상태면 false.
+        /// 예비 탄창이 없으면 false + ReloadDeniedEvent (UI 경고)
+        /// </summary>
         public bool Reload()
         {
-            if (IsReloading || Ammo >= Stats.magazineSize || Owner == null) return false;
+            if (IsReloading || Ammo >= Stats.magazineSize || Owner == null || Owner.CanUseWeapon == false) return false;
+            if (HasSpareMagazine == false)
+            {
+                if (IsCurrent) EventBus<ReloadDeniedEvent>.Publish(new ReloadDeniedEvent());
+                return false;
+            }
             StartReload();
             return true;
         }
 
+        /// <summary>장전 취소. 탄창·예비 탄창은 바뀌지 않는다</summary>
         public void CancelReload()
         {
             if (IsReloading == false) return;
             FinishReload();
         }
 
-        /// <summary>재장전 동작 없이 탄창을 바로 채운다 (디버그 무한 탄약 등)</summary>
+        /// <summary>예비 탄창을 amount 개 보충 (최대까지). 무한 탄창이거나 이미 최대면 false</summary>
+        public bool AddMagazines(int amount)
+        {
+            if (amount <= 0 || infiniteMagazines || SpareMagazines >= Stats.maxMagazines) return false;
+            SpareMagazines = Mathf.Min(SpareMagazines + amount, Stats.maxMagazines);
+            PublishAmmo();
+            return true;
+        }
+
+        /// <summary>재장전 동작 없이 탄창과 예비 탄창을 바로 가득 채운다 (디버그 무한 탄약 등)</summary>
         public void RefillAmmo()
         {
-            if (Ammo < Stats.magazineSize) SetAmmo(Stats.magazineSize);
+            if (Ammo >= Stats.magazineSize && SpareMagazines >= Stats.maxMagazines) return;
+            SpareMagazines = Stats.maxMagazines;
+            SetAmmo(Stats.magazineSize);
+        }
+
+        /// <summary>예비 탄창 개수를 바로 정한다 (0 ~ 최대. 디버그용)</summary>
+        public void SetSpareMagazines(int count)
+        {
+            SpareMagazines = Mathf.Clamp(count, 0, Stats.maxMagazines);
+            PublishAmmo();
         }
 
         /// <summary>사격 모드 전환 (B). 지원하지 않는 총은 false</summary>
@@ -319,17 +368,13 @@ namespace HybridShooter.Weapon
         /// <summary>GunSlot 이 장착 중인 총에 대해서만 매 프레임 호출</summary>
         public void Tick(float dt)
         {
+            // 구르기·투척·사망·벽넘기 등 쏠 수 없는 상태가 되면 장전을 끊는다 (탄·예비 탄창 그대로)
+            if (IsReloading && Owner.CanUseWeapon == false) CancelReload();
             if (IsReloading) UpdateReload();
 
             bool resting = Time.time - lastShotTime > Stats.FireInterval + 0.05f;
             if (resting) bloom = Mathf.MoveTowards(bloom, 0f, bloomRecovery * dt);
-            if (resting && recoilToRecover > 0f)
-            {
-                float step = Mathf.Min(recoilToRecover, recoilRecoverSpeed * dt);
-                recoilToRecover -= step;
-                Owner.AddRecoil(-step, 0f);
-            }
-
+            UpdateRecoil(dt, resting);
             OnTick(dt);
             if (aimZoomApplied != AimZoomActive) RefreshAimZoom();
         }
@@ -361,7 +406,7 @@ namespace HybridShooter.Weapon
         /// <summary>거리에 따른 피해. 기본은 감쇠 없음</summary>
         protected virtual int DamageAtDistance(float distance) => Stats.damage;
 
-        /// <summary>기본: 탄창 전체를 ReloadTime 뒤에 한 번에 채운다 (소리: 시작 → reloadInsertAt 시점 탄창 넣기 → 완료)</summary>
+        /// <summary>기본: ReloadTime 뒤에 예비 탄창 1개로 탄창을 한 번에 채운다 (소리: 시작 → reloadInsertAt 시점 탄창 넣기 → 완료)</summary>
         protected virtual void StartReload()
         {
             IsReloading = true;
@@ -379,7 +424,6 @@ namespace HybridShooter.Weapon
                 PlayReloadInsertSfx();
             }
             if (Time.time < reloadEndTime) return;
-            SetAmmo(Stats.magazineSize);
             CompleteReload();
         }
         #endregion
@@ -406,7 +450,7 @@ namespace HybridShooter.Weapon
 
         /// <summary>
         /// 쏠 수 있으면 탄 1발을 쓰고 Shoot 을 부른다. 반동·퍼짐·소리·이벤트까지 처리.
-        /// 탄이 없으면 자동 재장전을 시작하고 false
+        /// 탄이 없으면 빈 총 소리 + 자동 재장전(예비 탄창이 있을 때)을 시도하고 false
         /// </summary>
         protected bool TryFire()
         {
@@ -415,8 +459,13 @@ namespace HybridShooter.Weapon
             if (IsReloading && (CanInterruptReload == false || Ammo <= 0)) return false;
             if (Ammo <= 0)
             {
-                PlaySfx(Def?.DryFireSfx, transform.position); // 빈 탄창 → 이어서 자동 장전 시작음
-                Reload();
+                // 연사 총·입력 버퍼는 매 프레임 여기로 온다. 빈 총 소리는 누른 순간 한 번, 누르고 있으면 DryFireRepeat 간격으로만
+                if (triggerDownFrame == Time.frameCount || Time.time >= nextDryFireTime)
+                {
+                    nextDryFireTime = Time.time + DryFireRepeat;
+                    PlaySfx(Def?.DryFireSfx, transform.position); // 예비 탄창이 있으면 이어서 자동 장전 시작음
+                    Reload();
+                }
                 return false;
             }
             if (IsReloading) CancelReload();
@@ -462,10 +511,18 @@ namespace HybridShooter.Weapon
         /// <summary>탄창·탄 넣는 소리 (기본 총은 장전 중간, 산탄총은 한 발마다)</summary>
         protected void PlayReloadInsertSfx() => PlaySfx(Def?.ReloadInsertSfx, transform.position);
 
-        /// <summary>탄을 끝까지 채운 장전 완료. 완료음(노리쇠·펌프) 후 FinishReload. 취소는 CancelReload → FinishReload 로 완료음 없음</summary>
+        /// <summary>
+        /// 장전 완료: 예비 탄창 1개를 써서 탄창을 가득 채우고(남은 탄은 버림) 완료음(노리쇠·펌프) 후 FinishReload.
+        /// 취소는 CancelReload → FinishReload 로 탄·예비 탄창 변화도 완료음도 없음
+        /// </summary>
         protected void CompleteReload()
         {
-            PlaySfx(Def?.ReloadEndSfx, transform.position);
+            if (HasSpareMagazine)
+            {
+                if (infiniteMagazines == false) SpareMagazines--;
+                SetAmmo(Stats.magazineSize);
+                PlaySfx(Def?.ReloadEndSfx, transform.position);
+            }
             FinishReload();
         }
 
@@ -616,41 +673,39 @@ namespace HybridShooter.Weapon
         #endregion
 
         #region 내부
+        /// <summary>빈 탄창으로 방아쇠를 누르고 있을 때 빈 총 소리 반복 간격(초)</summary>
+        private const float DryFireRepeat = 0.5f;
+
         private bool IsCurrent => Owner != null && Owner.CurrentGun == this;
 
         private void OnDestroy()
         {
-            if (subscribed) EventBus<UpgradePurchasedEvent>.Unsubscribe(OnUpgradePurchased);
-            if (subscribed) EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
-            if (subscribed) EventBus<RoundStartedEvent>.Unsubscribe(OnRoundStarted);
+            if (subscribed == false) return;
+            EventBus<UpgradePurchasedEvent>.Unsubscribe(OnUpgradePurchased);
+            EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
         }
 
         private void OnUpgradePurchased(UpgradePurchasedEvent evt) => RefreshStats();
 
-        private void OnRoundCleanup(RoundCleanupEvent e)
+        /// <summary>처음부터 재시작이면 탄창·예비 탄창을 시작값으로. 다음 라운드 진행이면 유지</summary>
+        private void OnRoundCleanup(RoundCleanupEvent evt)
         {
-            CancelActions();
-            if (e.FullReset) resetOnRoundStart = true;
+            if (evt.FullReset == false) return;
+            CancelReload();
+            ResetAmmo();
         }
 
-        private void OnRoundStarted(RoundStartedEvent e)
+        private void ResetAmmo()
         {
-            // FullReset의 모든 구독자가 강화를 초기화한 뒤 능력치를 다시 계산한다.
-            RefreshStats();
-            if (resetOnRoundStart == false) return;
-            resetOnRoundStart = false;
-            nextFireTime = Time.time;
-            readyTime = Time.time;
-            lastShotTime = float.NegativeInfinity;
-            bloom = 0f;
-            recoilToRecover = 0f;
-            RefillAmmo();
-            OnInitialized();
+            Ammo = Stats.magazineSize;
+            SpareMagazines = Mathf.Clamp(Stats.startMagazines, 0, Stats.maxMagazines);
+            PublishAmmo();
         }
 
         private void PublishAmmo()
         {
-            if (IsCurrent) EventBus<AmmoChangedEvent>.Publish(new AmmoChangedEvent(Ammo, Stats.magazineSize));
+            if (IsCurrent)
+                EventBus<AmmoChangedEvent>.Publish(new AmmoChangedEvent(Ammo, Stats.magazineSize, SpareMagazines, Stats.maxMagazines, infiniteMagazines));
         }
 
         /// <summary>총구 자리에 생성 (IK 뒤 총구를 따라감). 레이어를 총과 맞춰 저격 조준(무기 레이어 숨김) 때 같이 숨는다</summary>
@@ -665,12 +720,40 @@ namespace HybridShooter.Weapon
             Destroy(flash, 1f);
         }
 
+        /// <summary>한 발의 반동을 쌓아 둔다. 실제 시선 회전은 UpdateRecoil 이 recoilKickTime 에 걸쳐 나눠 한다</summary>
         private void ApplyRecoil()
         {
             Vector2 kick = GetRecoilKick();
             if (IsAiming) kick *= aimRecoilMultiplier;
-            Owner.AddRecoil(kick.x, kick.y);
-            recoilToRecover += kick.x * recoilRecoverRatio;
+            pendingKick += kick;
+        }
+
+        /// <summary>
+        /// 매 프레임 반동: 쌓인 반동을 부드럽게 올리고 (지수 감쇠 → 프레임레이트와 무관, 연사하면 자연스럽게 더해진다),
+        /// 다 올라간 뒤 쉬는 중이면 올라간 만큼의 recoilRecoverRatio 를 천천히 내린다.
+        /// 복귀량은 시선이 실제로 돈 양으로 센다 (시선 한계에 막힌 만큼은 복귀하지 않는다). 플레이어가 마우스로 내린 만큼도 덜 내린다
+        /// </summary>
+        private void UpdateRecoil(float dt, bool resting)
+        {
+            if (pendingKick != Vector2.zero)
+            {
+                float t = recoilKickTime > 0f ? 1f - Mathf.Exp(-3f * dt / recoilKickTime) : 1f;
+                Vector2 step = pendingKick * t;
+                if (pendingKick.sqrMagnitude < 0.0001f) step = pendingKick; // 남은 게 아주 작으면 한 번에 끝낸다
+                pendingKick -= step;
+                recoilToRecover += Owner.AddRecoil(step.x, step.y) * recoilRecoverRatio;
+            }
+
+            float pulledDown = Owner.LookInputPitchDown;
+            if (pulledDown > 0f) recoilToRecover = Mathf.Max(0f, recoilToRecover - pulledDown);
+
+            if (resting && pendingKick == Vector2.zero && recoilToRecover > 0f)
+            {
+                float step = Mathf.Min(recoilToRecover, recoilRecoverSpeed * dt);
+                float moved = -Owner.AddRecoil(-step, 0f);
+                // 아래 한계에 막혀 더 내려갈 수 없으면 남은 복귀량을 버린다 (매 프레임 헛도는 것 방지)
+                recoilToRecover = moved < step * 0.5f ? 0f : recoilToRecover - moved;
+            }
         }
 
         private void RefreshAimZoom()
