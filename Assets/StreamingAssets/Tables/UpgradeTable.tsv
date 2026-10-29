@@ -1,0 +1,10 @@
+Id	UpgradeType	Level	Cost	Value	Name	Description
+# UpgradeType: ReloadSpeed(재장전 시간 감소율, 0.1=10%)/MagazineSize(+발)/GrenadeCapacity(+개)  ·  Value 는 레벨마다 누적  ·  BL-030/031
+6001	ReloadSpeed	1	80	0.1	빠른 재장전 I	재장전 시간 10% 감소
+6002	ReloadSpeed	2	160	0.1	빠른 재장전 II	재장전 시간 10% 추가 감소
+6003	ReloadSpeed	3	300	0.1	빠른 재장전 III	재장전 시간 10% 추가 감소
+6011	MagazineSize	1	80	10	확장 탄창 I	탄창 +10발
+6012	MagazineSize	2	160	10	확장 탄창 II	탄창 +10발
+6013	MagazineSize	3	300	15	확장 탄창 III	탄창 +15발
+6021	GrenadeCapacity	1	100	1	수류탄 파우치 I	수류탄 최대 보유 +1
+6022	GrenadeCapacity	2	200	1	수류탄 파우치 II	수류탄 최대 보유 +1

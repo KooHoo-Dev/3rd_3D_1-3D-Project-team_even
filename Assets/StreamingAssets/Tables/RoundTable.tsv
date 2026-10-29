@@ -1,0 +1,4 @@
+Round	BossId	BossSpawnTimeMin	BossSpawnTimeMax	SupplyStartTime	SupplyInterval	BossReward
+# 마지막 행 이후 라운드는 마지막 행을 재사용  ·  BossSpawnTime: 라운드 시작 기준(초), 범위 내 무작위(BL-021)  ·  Supply: BL-018
+1	3001	165	195	60	45	100
+2	3001	165	195	60	40	150

@@ -8,17 +8,17 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Ground
   - Water
   - UI
   - Pillars
   - Buildings
   - Terrain
   - Trees
-  - 
-  - 
-  - 
-  - 
+  - FP_Body
+  - FP_Weapon
+  - TP_Body
+  - MagmaProjectile
   - 
   - 
   - 

@@ -1,0 +1,5 @@
+Id	MonsterId	Phase	HpThresholdPercent	PatternSequence	CooldownMultiplier	ElectricSweep	VisualState
+# HpThresholdPercent: 체력 % 이하에서 진입(1 페이즈 = 100)  ·  PatternSequence: 반복 특수 공격 Id 를 ; 로 연결, 순서대로 순환  ·  CooldownMultiplier: 쿨다운 배율
+# [구형 보스 페이즈 보관] 전격 스윕·쿨다운 배율 방식은 사용 중단. 팀원 확인을 위해 원본을 주석으로 유지한다.
+# 1	3001	1	100	300104;300105;300106	1	FALSE	Normal
+# 2	3001	2	50	300104;300105;300106	0.8	TRUE	ShellCracked
