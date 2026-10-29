@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
@@ -14,31 +13,15 @@ namespace HybridShooter.Round
     [RequireComponent(typeof(RoundBossEncounter))]
     public sealed class RoundSequencer : MonoBehaviour
     {
-        private enum TimedSituation
-        {
-            StartSupplyDropCycle
-        }
-
-        [Serializable]
-        private sealed class TimelineEntry
-        {
-            [Min(0f)] public float timeSeconds;
-            public TimedSituation situation;
-        }
-
         [Header("References")]
         [SerializeField] private MonsterWaveDirector monsterWaveDirector;
         [SerializeField] private SupplyDropper supplyDropper;
         [SerializeField] private RoundBossEncounter bossEncounter;
 
-        [Header("Round Timeline")]
-        [SerializeField] private List<TimelineEntry> timeline = new List<TimelineEntry>();
-
         private RoundDef roundDef;
         private GameState phase;
         private float elapsedSeconds;
         private float bossSpawnTime;
-        private int nextTimelineIndex;
         private bool isRoundRunning;
         private bool cameraReady;
         private bool bossDefeated;
@@ -78,13 +61,10 @@ namespace HybridShooter.Round
         {
             if (isRoundRunning || def == null) return;
 
-            timeline.RemoveAll(entry => entry == null);
-            timeline.Sort((a, b) => a.timeSeconds.CompareTo(b.timeSeconds));
             if (supplyDropper != null) supplyDropper.StopAutoDropCycle();
 
             roundDef = def;
             elapsedSeconds = 0f;
-            nextTimelineIndex = 0;
             bossSpawnTime = def.RollBossSpawnTime(UnityEngine.Random.value);
             cameraReady = false;
             bossDefeated = false;
@@ -95,7 +75,7 @@ namespace HybridShooter.Round
             if (isRoundRunning == false) return;
 
             monsterWaveDirector.StartRound(1);
-            ProcessTimeline();
+            UpdateSupplyStart();
         }
 
         public void StopRound()
@@ -118,7 +98,7 @@ namespace HybridShooter.Round
                 case GameState.CrowdBattle:
                     elapsedSeconds += Time.deltaTime;
                     if (elapsedSeconds >= bossSpawnTime) BeginBossIntro();
-                    else ProcessTimeline();
+                    else UpdateSupplyStart();
                     break;
                 case GameState.BossIntro:
                     if (cameraReady == false) return;
@@ -167,15 +147,10 @@ namespace HybridShooter.Round
             if (isRoundRunning && phase == GameState.Reward) rewardFinished = true;
         }
 
-        private void ProcessTimeline()
+        /// <summary>보급 시작 시각(RoundDef.SupplyStartTime, 라운드 시작 기준)이 되면 자동 투하를 한 번 켠다</summary>
+        private void UpdateSupplyStart()
         {
-            if (timeline.Count == 0 && supplyStarted == false && elapsedSeconds >= roundDef.SupplyStartTime) StartSupplyDropCycle();
-            while (isRoundRunning && nextTimelineIndex < timeline.Count && elapsedSeconds >= timeline[nextTimelineIndex].timeSeconds)
-            {
-                TimedSituation situation = timeline[nextTimelineIndex].situation;
-                nextTimelineIndex++;
-                if (situation == TimedSituation.StartSupplyDropCycle) StartSupplyDropCycle();
-            }
+            if (supplyStarted == false && elapsedSeconds >= roundDef.SupplyStartTime) StartSupplyDropCycle();
         }
 
         private void StartSupplyDropCycle()

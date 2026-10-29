@@ -181,6 +181,15 @@ namespace HybridShooter.Weapon
             return any;
         }
 
+        /// <summary>보급 1회분: 슬롯의 모든 총에 무기별 비율만큼 예비 탄창 보충 (예비로 꺼 둔 총 제외). 반환: 늘어난 예비 탄창 합</summary>
+        public int AddSupplyMagazines()
+        {
+            int added = 0;
+            foreach (var gun in slots)
+                if (gun != null) added += gun.AddSupplyMagazines();
+            return added;
+        }
+
         /// <summary>지금 든 총의 재장전을 취소 (탄·예비 탄창 그대로)</summary>
         public void InterruptReload() { if (CurrentGun != null) CurrentGun.CancelReload(); }
 

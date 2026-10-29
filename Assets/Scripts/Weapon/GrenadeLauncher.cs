@@ -50,6 +50,8 @@ namespace HybridShooter.Weapon
         }
 
         protected override float MagazineUpgradeRate => 0.2f;
+        /// <summary>스플래시 무기: 보급 탄약 충전을 엄격하게 (WeaponTable 행이 없을 때)</summary>
+        protected override float FallbackSupplyMagazineRatio => 0.25f;
 
         protected override void Shoot()
         {

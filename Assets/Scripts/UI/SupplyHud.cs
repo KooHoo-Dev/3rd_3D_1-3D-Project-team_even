@@ -103,18 +103,21 @@ namespace HybridShooter.UI
                 offset.y = 0f;
                 distance = $" — {offset.magnitude:0}m";
             }
-            PushMessage($"보급 투하: {GetSupplyName(e.Def.SupplyType)}{distance}");
+            PushMessage($"보급 투하: {e.Def.DisplayName}{distance}");
         }
 
+        /// <summary>실제 지급량 표시 (가득 차서 못 받은 쪽은 생략)</summary>
         private void OnSupplyCollected(SupplyCollectedEvent e)
-            => PushMessage($"{GetSupplyName(e.Def.SupplyType)} +{e.Def.Amount} 획득!");
+        {
+            string items = e.ItemAmount > 0 ? $" {e.Def.DisplayName} +{e.ItemAmount}" : string.Empty;
+            string magazines = e.MagazinesAdded > 0 ? $" 예비 탄창 +{e.MagazinesAdded}" : string.Empty;
+            PushMessage($"보급 획득!{items}{magazines}");
+        }
 
         // ── 표시 ──
 
         private void SetGrenades(int current, int max) => grenadeText.text = $"수류탄   {current} / {max}";
         private void SetHealPacks(int current, int max) => healPackText.text = $"회복 팩   {current} / {max}";
-
-        private static string GetSupplyName(SupplyType type) => type == SupplyType.Grenade ? "수류탄" : "회복 팩";
 
         private void PushMessage(string text)
         {

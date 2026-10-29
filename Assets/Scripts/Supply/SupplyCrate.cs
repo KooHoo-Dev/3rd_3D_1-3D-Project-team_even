@@ -34,11 +34,9 @@ namespace HybridShooter.Supply
         [Tooltip("콜라이더를 렌더러보다 넓혀서 줍기 쉽게 (m)")]
         [SerializeField] private float pickupPadding = 0.5f;
 
-        [Header("위치 표시 (멀리서도 보이는 빛기둥)")]
+        [Header("위치 표시 (멀리서도 보이는 빛기둥, 색 = SupplyTable.BeaconColor)")]
         [SerializeField] private bool showBeacon = true;
         [SerializeField] private float beaconHeight = 25f;
-        [SerializeField] private Color grenadeColor = new Color(1f, 0.55f, 0.1f, 1f);
-        [SerializeField] private Color healColor = new Color(0.2f, 1f, 0.35f, 1f);
 
         /// <summary>이 물자의 보급 정의 (종류·보충 수량). Launch 에서 설정</summary>
         public SupplyDef Def { get; private set; }
@@ -96,7 +94,7 @@ namespace HybridShooter.Supply
             speedAtLandingZone = Mathf.Max(fallSpeed, landingSpeed);
             CurrentState = State.Falling;
 
-            if (showBeacon) CreateBeacon(def.SupplyType == SupplyType.Grenade ? grenadeColor : healColor);
+            if (showBeacon) CreateBeacon(def.BeaconColor);
         }
 
         /// <summary>
@@ -147,36 +145,45 @@ namespace HybridShooter.Supply
         private void OnTriggerStay(Collider other) => TryCollect(other);
 
         /// <summary>
-        /// 닿은 콜라이더에 보급을 적용해 보고, 성공하면 SupplyCollectedEvent 발행 후 물자를 제거한다.
+        /// 닿은 콜라이더(또는 부모)가 플레이어(IItemUser)면 보급을 지급한다.
+        ///   아이템: 종류별 AmountMin~AmountMax 개 무작위 / 탄약: 슬롯의 모든 총에 무기별 비율만큼 (IPlayerAmmo.AddSupplyMagazines)
+        /// 둘 중 하나라도 실제로 늘었으면 SupplyCollectedEvent(실제 지급량) 발행 후 물자를 제거한다. 하나도 못 받으면 그대로 남는다.
         /// 이미 제거됐거나 Launch 전이면 무시.
         /// </summary>
         private void TryCollect(Collider other)
         {
             if (removed || Def == null) return;
-            if (ApplyTo(other) == false) return;
+            var itemUser = other.GetComponentInParent<IItemUser>();
+            if (itemUser == null) return;
 
-            EventBus<SupplyCollectedEvent>.Publish(new SupplyCollectedEvent(Def));
+            int items = GrantItems(itemUser, Def.RollAmount(UnityEngine.Random.value));
+            var ammo = other.GetComponentInParent<IPlayerAmmo>();
+            int magazines = ammo != null ? ammo.AddSupplyMagazines() : 0;
+            if (items == 0 && magazines == 0) return;
+
+            EventBus<SupplyCollectedEvent>.Publish(new SupplyCollectedEvent(Def, items, magazines, transform.position));
             Remove();
         }
 
-        /// <summary>
-        /// 보급 종류에 맞는 계약을 닿은 콜라이더(또는 부모)에서 찾아 실제 보유 수량을 보충한다.
-        /// 수류탄 → IItemUser.AddGrenades, 회복 팩 → IItemUser.AddHealPacks.
-        /// 대상이 아니거나(플레이어 아님) 가득 차면 false.
-        /// </summary>
-        private bool ApplyTo(Collider other)
+        /// <summary>종류에 맞는 아이템을 amount 개 보충하고, 최대치에 막히지 않고 실제로 늘어난 개수를 돌려준다</summary>
+        private int GrantItems(IItemUser itemUser, int amount)
         {
-            var itemUser = other.GetComponentInParent<IItemUser>();
-            if (itemUser == null) return false;
-
             switch (Def.SupplyType)
             {
                 case SupplyType.Grenade:
-                    return itemUser.AddGrenades(Def.Amount);
+                {
+                    int before = itemUser.Grenades;
+                    itemUser.AddGrenades(amount);
+                    return itemUser.Grenades - before;
+                }
                 case SupplyType.Heal:
-                    return itemUser.AddHealPacks(Def.Amount);
+                {
+                    int before = itemUser.HealPacks;
+                    itemUser.AddHealPacks(amount);
+                    return itemUser.HealPacks - before;
+                }
                 default:
-                    return false;
+                    return 0;
             }
         }
 

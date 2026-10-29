@@ -409,21 +409,12 @@ namespace HybridShooter.Analytics
         private void OnSupplyCollected(SupplyCollectedEvent e)
         {
             if (current == null || e.Def == null) return;
-            string name = SupplyName(e.Def);
+            string name = e.Def.DisplayName;
             current.Supplies.TryGetValue(name, out int count);
             current.Supplies[name] = count + 1;
-            AddEvent("보급 획득", name, e.Def.Amount);
+            AddEvent("보급 획득", e.MagazinesAdded > 0 ? $"{name} (예비 탄창 +{e.MagazinesAdded})" : name, e.ItemAmount);
         }
 
-        private static string SupplyName(SupplyDef def)
-        {
-            switch (def.SupplyType.ToString())
-            {
-                case "Heal": return "회복";
-                case "Grenade": return "수류탄";
-                default: return def.SupplyType.ToString();
-            }
-        }
         #endregion
 
         #region 사격
