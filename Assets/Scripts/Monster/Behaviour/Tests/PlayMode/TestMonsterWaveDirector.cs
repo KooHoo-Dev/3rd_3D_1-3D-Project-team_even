@@ -196,6 +196,80 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreEqual(Stage1Count, SpawnCount, "멈춘 동안 라운드 시간도 멈춰 스테이지 2 는 아직");
         }
 
+        // ── 군중 전멸 신호 (HordeCleared) ──
+
+        private int hordeClearedCount;
+
+        private void KillAllSpawned()
+        {
+            foreach (GameObject monster in spawnedMonsters.ToList())
+                EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(null, Vector3.zero, monster));
+        }
+
+        [UnityTest]
+        public IEnumerator HordeCleared_FiresOnce_WhenSpawnFinishedAndAllHordeDead()
+        {
+            yield return CreateDirector();
+            hordeClearedCount = 0;
+            director.HordeCleared += () => hordeClearedCount++;
+
+            director.StartRound(1);
+            yield return WaitRoundSeconds(190f);   // 소환 모두 끝남
+            Assert.AreEqual(0, hordeClearedCount, "살아 있으면 신호 없음");
+
+            KillAllSpawned();
+            Assert.AreEqual(1, hordeClearedCount);
+            KillAllSpawned();
+            Assert.AreEqual(1, hordeClearedCount, "한 번만");
+        }
+
+        [UnityTest]
+        public IEnumerator HordeCleared_DoesNotFire_WhenAllDeadButSpawnStillRunning()
+        {
+            yield return CreateDirector();
+            hordeClearedCount = 0;
+            director.HordeCleared += () => hordeClearedCount++;
+
+            director.StartRound(1);
+            yield return WaitRoundSeconds(10f);
+            KillAllSpawned();
+            yield return WaitRoundSeconds(2f);
+
+            Assert.AreEqual(0, hordeClearedCount, "소환이 남았으면 전멸이 아님");
+        }
+
+        [UnityTest]
+        public IEnumerator HordeCleared_DoesNotFire_AfterStopRound()
+        {
+            yield return CreateDirector();
+            hordeClearedCount = 0;
+            director.HordeCleared += () => hordeClearedCount++;
+
+            director.StartRound(1);
+            yield return WaitRoundSeconds(10f);
+            director.StopRound();
+            KillAllSpawned();
+            yield return WaitRoundSeconds(2f);
+
+            Assert.AreEqual(0, hordeClearedCount);
+        }
+
+        [UnityTest]
+        public IEnumerator HordeCleared_IgnoresDeathOfMonsterNotSpawnedByDirector()
+        {
+            yield return CreateDirector();
+            hordeClearedCount = 0;
+            director.HordeCleared += () => hordeClearedCount++;
+            var outsider = new GameObject("Outsider");
+
+            director.StartRound(1);
+            yield return WaitRoundSeconds(190f);
+            EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(null, Vector3.zero, outsider));
+            Assert.AreEqual(0, hordeClearedCount, "외부 몬스터 사망은 무시");
+
+            Object.DestroyImmediate(outsider);
+        }
+
         // ── ISpawnZoneProvider 대역 ──
 
         public bool TryGetSpawnPose(SpawnPattern pattern, int groupSeed, out Vector3 position, out Quaternion rotation)

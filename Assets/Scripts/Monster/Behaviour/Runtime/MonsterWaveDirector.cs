@@ -32,16 +32,28 @@ namespace HybridShooter.Monster.Behaviour
         private int nextStageIndex;       // 다음에 시작할 roundStages 인덱스. Count = 다 시작함
         private readonly List<MonsterWaveStage> runningStages = new List<MonsterWaveStage>();
 
+        // ── 군중 전멸 추적 ──
+        private bool isHordeTracking;     // StartRound ~ 전멸 확인(또는 StopRound) 사이만 true
+        private bool hasSpawnFinished;    // 모든 스테이지 소환이 끝남
+        private readonly HashSet<GameObject> aliveHordeMonsters = new HashSet<GameObject>();  // 이 director 가 소환해 살아 있는 몬스터
+
+        /// <summary>소환이 모두 끝나고 그 군중 몬스터가 전멸하면 1회 발행한다. StopRound 로 끝난 라운드에서는 발행하지 않는다</summary>
+        public event Action HordeCleared;
+
         /// <summary>전체 라운드 정리를 중단 안전망으로 구독한다. 시작·보스 전이는 시퀀서가 직접 호출한다.</summary>
         private void OnEnable()
         {
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
+            EventBus<MonsterSpawnedEvent>.Subscribe(OnMonsterSpawned);
+            EventBus<MonsterDiedEvent>.Subscribe(OnMonsterDied);
         }
 
         /// <summary>구독을 해제하고 남은 소환을 취소한다. 다시 켜도 자동으로 이어 가지 않는다</summary>
         private void OnDisable()
         {
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
+            EventBus<MonsterSpawnedEvent>.Unsubscribe(OnMonsterSpawned);
+            EventBus<MonsterDiedEvent>.Unsubscribe(OnMonsterDied);
             StopRound();
         }
 
@@ -76,6 +88,9 @@ namespace HybridShooter.Monster.Behaviour
             roundElapsedTime = 0f;
             nextStageIndex = 0;
             isRoundRunning = true;
+            isHordeTracking = true;
+            hasSpawnFinished = false;
+            aliveHordeMonsters.Clear();
 
             StartDueStages();
         }
@@ -83,10 +98,14 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// 실행 중 스테이지의 남은 소환과 아직 시작 안 한 스테이지를 모두 취소한다. 이미 나온 몬스터는 그대로 둔다.
         /// 라운드 정리·보스전 전이·비활성화 때 불린다. 스테이지 Finished 는 오지 않는다.
+        /// 전멸 추적도 끝내며 HordeCleared 는 발행하지 않는다.
         /// </summary>
         public void StopRound()
         {
             isRoundRunning = false;
+            isHordeTracking = false;
+            hasSpawnFinished = false;
+            aliveHordeMonsters.Clear();
             foreach (MonsterWaveStage stage in runningStages) stage.Stop();
             runningStages.Clear();
         }
@@ -163,7 +182,39 @@ namespace HybridShooter.Monster.Behaviour
             if (hasNoRunningStage == false) return;
 
             isRoundRunning = false;
+            hasSpawnFinished = true;
             Debug.Log($"[MonsterWaveDirector] 라운드 {roundNo} 군중전 소환 끝", this);
+            CheckHordeCleared();
+        }
+
+        /// <summary>추적 중에 소환된 몬스터만 살아 있는 군중 집합에 넣는다. 보스·씬에 미리 둔 몬스터는 추적 밖이라 제외된다</summary>
+        /// <param name="e">소환 이벤트. Instance 만 쓴다</param>
+        private void OnMonsterSpawned(MonsterSpawnedEvent e)
+        {
+            if (isHordeTracking == false) return;
+            aliveHordeMonsters.Add(e.Instance);
+        }
+
+        /// <summary>집합에 있던 군중 몬스터가 죽으면 빼고 전멸 여부를 본다. 집합에 없는 사망은 무시한다</summary>
+        /// <param name="e">사망 이벤트. Instance 만 쓴다</param>
+        private void OnMonsterDied(MonsterDiedEvent e)
+        {
+            bool wasHordeMonster = aliveHordeMonsters.Remove(e.Instance);
+            if (wasHordeMonster == false) return;
+            CheckHordeCleared();
+        }
+
+        /// <summary>소환이 끝났고 살아 있는 군중 몬스터가 없으면 추적을 끝내고 HordeCleared 를 1회 발행한다</summary>
+        private void CheckHordeCleared()
+        {
+            bool isAllHordeDead = aliveHordeMonsters.Count == 0;
+            if (isHordeTracking == false) return;
+            if (hasSpawnFinished == false) return;
+            if (isAllHordeDead == false) return;
+
+            isHordeTracking = false;
+            Debug.Log($"[MonsterWaveDirector] 라운드 {roundNo} 군중 전멸", this);
+            HordeCleared?.Invoke();
         }
 
         /// <summary>
