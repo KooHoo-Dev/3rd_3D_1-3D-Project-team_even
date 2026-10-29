@@ -146,6 +146,7 @@ namespace HybridShooter.Weapon
         private float lastShotTime = float.NegativeInfinity;
         private bool aimZoomApplied;
         private bool subscribed;
+        /// <summary>처음부터 재시작(FullReset) 정리를 받았으면 다음 RoundStartedEvent 에서 타이머·반동·탄약을 초기화</summary>
         private bool resetOnRoundStart;
 
         protected static readonly RaycastHit[] SharedHits = new RaycastHit[32];
@@ -299,7 +300,7 @@ namespace HybridShooter.Weapon
             OnTriggerUp();
         }
 
-        /// <summary>라운드 전환 시 방아쇠·조준·장전·점사 예약을 취소한다.</summary>
+        /// <summary>라운드 전환 시 방아쇠·조준·장전·점사 예약을 취소한다 (RunDirector 입력 차단·라운드 정리)</summary>
         public void CancelActions()
         {
             TriggerUp();
@@ -357,6 +358,19 @@ namespace HybridShooter.Weapon
             return true;
         }
 
+        /// <summary>
+        /// 보급 1회분 예비 탄창 충전. MaxMagazines × WeaponDef.SupplyMagazineRatio 를 내림 (최소 1, 비율 0 이면 충전 안 함).
+        /// 테이블 행이 없으면 FallbackSupplyMagazineRatio. 반환: 실제로 늘어난 개수
+        /// </summary>
+        public int AddSupplyMagazines()
+        {
+            float ratio = Def != null ? Def.SupplyMagazineRatio : FallbackSupplyMagazineRatio;
+            if (ratio <= 0f) return 0;
+            int before = SpareMagazines;
+            AddMagazines(Mathf.Max(1, Mathf.FloorToInt(Stats.maxMagazines * ratio)));
+            return SpareMagazines - before;
+        }
+
         /// <summary>재장전 동작 없이 탄창과 예비 탄창을 바로 가득 채운다 (디버그 무한 탄약 등)</summary>
         public void RefillAmmo()
         {
@@ -405,6 +419,8 @@ namespace HybridShooter.Weapon
 
         /// <summary>탄창 강화(+N발) 중 이 총이 받는 비율. 탄창이 작은 총은 낮게</summary>
         protected virtual float MagazineUpgradeRate => 1f;
+        /// <summary>WeaponTable 행이 없을 때(fallbackStats) 보급 1회 예비 탄창 충전 비율</summary>
+        protected virtual float FallbackSupplyMagazineRatio => 0.5f;
         /// <summary>장전 중에 쏘면 장전을 끊고 쏠 수 있는지 (산탄총 한 발씩 장전)</summary>
         protected virtual bool CanInterruptReload => false;
         /// <summary>지금 화면 확대를 걸지. 저격총은 노리쇠 당기는 동안 끈다</summary>
@@ -703,6 +719,7 @@ namespace HybridShooter.Weapon
             if (evt.FullReset == false) return;
             CancelReload();
             ResetAmmo();
+            OnInitialized();
         }
 
         private void ResetAmmo()

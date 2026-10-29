@@ -104,7 +104,7 @@ flowchart TB
 | `MonsterSpawnedEvent`, `MonsterDiedEvent(GrantReward)` | 몬스터 | 군중 생성(카운트), 보상(재화), UI·사운드 |
 | `MonsterWipeRequestedEvent` | 보스(등장 공격) | 몬스터 |
 | `BossAppearedEvent`, `BossDefeatedEvent` | 보스 | 코어, UI·사운드, 보상 (패턴 단계·타격은 `BossAttack` 지역 이벤트) |
-| `SupplyDroppedEvent`, `SupplyCollectedEvent` | 보급 | UI(낙하 위치 표시) (낙하 소리는 SupplyDropper 가 직접 재생) |
+| `SupplyDroppedEvent`, `SupplyCollectedEvent` | 보급 | UI(낙하 위치·지급량 표시), 사운드(GameSoundRouter: 투하음·안내 방송·랜덤 장전음), 빛기둥, 분석 |
 | `CurrencyChangedEvent`, `UpgradePurchasedEvent` | 보상 | UI, 무기(능력치 갱신) |
 | `RewardSelectionFinishedEvent` | UI(강화 화면) | 코어(다음 라운드) |
 

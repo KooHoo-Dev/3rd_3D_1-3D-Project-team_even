@@ -229,6 +229,7 @@ namespace HybridShooter.Core.Data
             foreach (var s in supplies)
             {
                 s.DropSfx = FindSound(r, SupplyDef.Table, s.Id, nameof(s.DropSfx), s.DropSfxKey);
+                s.AnnounceSfx = FindSound(r, SupplyDef.Table, s.Id, nameof(s.AnnounceSfx), s.AnnounceSfxKey);
                 s.CollectSfx = FindSound(r, SupplyDef.Table, s.Id, nameof(s.CollectSfx), s.CollectSfxKey);
             }
         }

@@ -42,7 +42,8 @@ sfx_explosion_small	Sfx	Audio/Weapon/Explosion/Explosion_Small_01;Audio/Weapon/E
 sfx_hit_flesh	Sfx	Audio/Sfx/HitFlesh_01;Audio/Sfx/HitFlesh_02;Audio/Sfx/HitFlesh_03	0.6	false	true	4	0.04	0.1	50	60
 sfx_boss_warning	Sfx	Audio/Sfx/BossWarning	1.0	false	false	1	1	0	100	0
 sfx_supply_drop	Sfx	Audio/Sfx/SupplyDrop	0.8	false	true	1	0.5	0	70	200
-sfx_supply_collect	Ui	Audio/UI/UI_MenuSelect	0.7	false	false	1	0.1	0	70	0
+sfx_supply_announce	Ui	Audio/Announce/Announce_SupplyDrop	1.0	false	false	1	1	0	95	0
+sfx_supply_reload	Sfx	Audio/Weapon/Reload/Reload_Rifle_Cock;Audio/Weapon/Reload/Reload_Pistol_Cock;Audio/Weapon/Reload/Reload_Rifle_MagIn;Audio/Weapon/Reload/Reload_SemiAuto_MagIn_01;Audio/Weapon/Reload/Reload_SemiAuto_MagIn_02;Audio/Weapon/Reload/Reload_SciFi	0.8	false	false	1	0.1	0.05	70	0
 # ── 플레이어 (자기 소리는 2D) ──
 sfx_player_hit	Sfx	Audio/Player/Voice/Voice_Hurt_01;Audio/Player/Voice/Voice_Hurt_02;Audio/Player/Voice/Voice_Hurt_03	0.8	false	false	1	0.15	0.05	90	0
 sfx_player_death	Sfx	Audio/Player/Voice/Voice_Death_01;Audio/Player/Voice/Voice_Death_02;Audio/Player/Voice/Voice_Death_03	1.0	false	false	1	1	0.03	100	0

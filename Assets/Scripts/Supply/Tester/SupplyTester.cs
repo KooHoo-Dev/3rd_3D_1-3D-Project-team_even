@@ -56,7 +56,7 @@ namespace HybridShooter.Supply.Tester
                 offset.y = 0f;
                 distance = $"{offset.magnitude:0.0}m";
             }
-            Debug.Log($"[SupplyTester] {crate.Def.SupplyType} x{crate.Def.Amount} 투하 → 착지 지점 {crate.LandingPosition}, 플레이어와 XZ 거리 {distance}, 낙하 높이 {crate.transform.position.y - crate.LandingPosition.y:0.0}m");
+            Debug.Log($"[SupplyTester] {crate.Def.DisplayName} x{crate.Def.AmountMin}~{crate.Def.AmountMax} 투하 → 착지 지점 {crate.LandingPosition}, 플레이어와 XZ 거리 {distance}, 낙하 높이 {crate.transform.position.y - crate.LandingPosition.y:0.0}m");
         }
     }
 }
