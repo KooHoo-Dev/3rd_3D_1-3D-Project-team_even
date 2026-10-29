@@ -65,6 +65,8 @@ namespace HybridShooter.UI.MainMenu
         [SerializeField] private string gameSceneName = "Monster Player Integration";
         [Tooltip("BGM 페이드아웃을 기다리는 최소 시간(초)")]
         [SerializeField] private float loadMinWait = 1f;
+        [Tooltip("GAME START 를 누른 뒤 로드 전에 GAME START 호버 연출(조준·줌인)을 보여 주는 시간(초, unscaled)")]
+        [SerializeField] private float startDelay = 2f;
 
         private State state;
         private Button[] buttons;
@@ -185,8 +187,21 @@ namespace HybridShooter.UI.MainMenu
             if (state != State.Menu) return;
             state = State.StartingGame;
             SetGroup(menuGroup, menuGroup.alpha, false);
-            // TODO(6단계): 1인칭 진입 연출 후 로드
-            SceneTransition.LoadAsync(gameSceneName, loadMinWait, destroyCancellationToken).Forget();
+            StartGameAsync().Forget();
+        }
+
+        /// <summary>
+        /// GAME START 연출을 startDelay 동안 보여 준 뒤 로드. 다른 반응이 걸려 있었더라도 GAME START 반응으로 맞춘다
+        /// (StartingGame 동안에는 Update 가 호버를 바꾸지 않으므로 끝까지 유지)
+        /// TODO(6단계): 대기 대신 1인칭 진입 연출
+        /// </summary>
+        private async UniTaskVoid StartGameAsync()
+        {
+            if (backdrop != null) backdrop.SetHover(MenuHover.GameStart);
+            var token = destroyCancellationToken;
+            if (startDelay > 0f)
+                await UniTask.Delay(System.TimeSpan.FromSeconds(startDelay), DelayType.UnscaledDeltaTime, cancellationToken: token);
+            await SceneTransition.LoadAsync(gameSceneName, loadMinWait, token);
         }
 
         private void OpenOptions()
