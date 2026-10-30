@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using HybridShooter.Atmosphere;
 using HybridShooter.UI.Options.Editor;
 using Unity.Cinemachine;
 using UnityEditor;
@@ -17,7 +18,7 @@ namespace HybridShooter.UI.MainMenu.Editor
     ///  1) *_Display 프리팹 (Assets/Prefabs/MainMenu/Display/): 게임 프리팹을 풀어서 렌더러·Animator 만 남기고
     ///     (AI·입력·물리·전투·사운드 이미터 제거) 에셋 팩 Animator 컨트롤러 + DisplayActor 를 붙인다.
     ///     게임 프리팹이 없는 종류(부포모프·덴솝테르)는 에셋 팩 프리팹을 그대로 쓴다
-    ///  2) 씬: Environment(인게임 맵 대신 같은 땅 텍스처의 바닥·바위 + 인게임과 같은 하늘·조명 + 원경 안개·포스트프로세싱
+    ///  2) 씬: Environment(인게임 맵 대신 같은 땅 텍스처의 바닥·바위 + 팀 외계 대기 기반의 어두운 밤(밤하늘·거대한 달·달빛·청회색 안개)·포스트프로세싱
     ///     + 바닥 안개·불씨 파티클·원경 섬광 + 호버 연출용 볼륨) + Diorama(플레이어·몬스터 무리·원경 보스·추락한 우주선 + MenuBackdropDirector) + CM_Menu 카메라
     /// 몬스터 배치는 씬에서 직접 옮긴 결과를 Placements 표로 고정해 두었다 (다시 만들어도 같다). 구도·수치는 아래 상수에서 조정
     /// </summary>
@@ -59,22 +60,41 @@ namespace HybridShooter.UI.MainMenu.Editor
             new Vector3(-35f, 6f, 70f), new Vector3(10f, 8f, 85f), new Vector3(45f, 6f, 65f), new Vector3(-10f, 5f, 95f),
         };
         private static readonly Color FlashColor = new Color(1f, 0.6f, 0.35f);
-        private static readonly Color EmberColor = new Color(2.4f, 0.9f, 0.3f); // HDR → Bloom
+        private static readonly Color EmberColor = new Color(2.2f, 0.55f, 0.25f); // HDR → Bloom. 달 눈동자와 같은 붉은 주황
 
-        /// <summary>바위 (위치, 크기, 회전). 원경 안개 속 실루엣 (2026-10-28 씬에서 조정한 값)</summary>
+        /// <summary>
+        /// 바위 (위치, 크기, 회전). 원경 안개 속 실루엣 (2026-10-28 씬에서 조정한 위치).
+        /// 어두운 밤하늘에서는 검은 산처럼 보여 달을 가리므로 2026-10-30 가운데 2→1.3, 오른쪽 4→2.6 으로 낮춤
+        /// </summary>
         private static readonly (Vector3 Position, float Scale, float Yaw)[] Rocks =
         {
-            (new Vector3(-7f, 0f, 163f), 2f, 110f),
-            (new Vector3(131f, 0f, 228f), 4f, 300f),
+            (new Vector3(-7f, 0f, 163f), 1.3f, 110f),
+            (new Vector3(131f, 0f, 228f), 2.6f, 300f),
             (new Vector3(-75f, 0f, 150f), 1.2f, 30f),
         };
 
-        /// <summary>원경을 덮는 안개. 스카이박스 지평선과 비슷한 회청색이라 땅 끝이 하늘로 녹아든다</summary>
-        private static readonly Color FogColor = new Color(0.46f, 0.5f, 0.56f);
-        /// <summary>지수² 안개 농도. 50m 원경 보스가 실루엣만 남는 정도</summary>
-        private const float FogDensity = 0.022f;
-        /// <summary>인게임 씬 Directional Light 회전</summary>
-        private static readonly Quaternion InGameSunRotation = new Quaternion(0.40821794f, -0.23456973f, 0.10938166f, 0.8754261f);
+        /// <summary>
+        /// 메뉴 전용 외계 대기 프리셋 (팀 AlienAtmospherePreset 과 같은 클래스). 없을 때만 MenuAtmosphere() 값으로 만들고,
+        /// 그 뒤로는 에셋에서 직접 조정한 값을 그대로 쓴다 (팀 프리셋은 게임 씬용이라 건드리지 않는다)
+        /// </summary>
+        private const string AtmospherePresetPath = "Assets/Settings/MainMenuAtmospherePreset.asset";
+        private const string SkyMaterialPath = "Assets/Materials/MainMenu/MainMenuSky.mat";
+        private const string SkyShaderName = "HybridShooter/Atmosphere/Alien Night Sky";
+
+        /// <summary>
+        /// 카메라 뒤에서 비추는 약한 차가운 보조광. 달빛이 정면(무리 너머)에서 오므로 이것이 없으면 플레이어 등과 몬스터 얼굴이 완전히 검다
+        /// </summary>
+        private static readonly Quaternion FillRotation = Quaternion.Euler(20f, 10f, 0f);
+        private static readonly Color FillColor = new Color(0.55f, 0.62f, 0.8f);
+        private const float FillIntensity = 0.6f; // 0.35 는 플레이어가 검은 실루엣이 됨
+
+        /// <summary>
+        /// 무리 위 20m 의 포인트 조명 (2026-10-30 씬에서 직접 단 값). 달빛·환경광만으로는 너무 어두워 무리 가운데와 보스를 위에서 비춘다
+        /// </summary>
+        private static readonly Vector3 OverheadLightPosition = new Vector3(3.3f, 19.9f, 32.9f);
+        private static readonly Color OverheadLightColor = new Color(0.99f, 0.98f, 0.8f);
+        private const float OverheadLightIntensity = 1000f;
+        private const float OverheadLightRange = 100f;
 
         /// <summary>디스플레이 캐릭터 한 종류</summary>
         private sealed class ActorSpec
@@ -219,7 +239,9 @@ namespace HybridShooter.UI.MainMenu.Editor
             foreach (var root in EditorSceneManager.GetActiveScene().GetRootGameObjects())
                 // 최상위 "Directional Light" 는 씬에서 직접 추가했던 보조광 → 지금은 Environment 의 Fill 로 만든다 (두 번 켜지지 않게)
                 if (root.name == "Environment" || root.name == "Diorama" || root.name == "CM_Menu"
-                    || (root.name == "Directional Light" && root.GetComponent<Light>() != null))
+                    || (root.name == "Directional Light" && root.GetComponent<Light>() != null)
+                    // 씬에서 직접 달았던 포인트 조명 → 지금은 Environment 의 Overhead Light 로 만든다
+                    || (root.name == "Point Light" && root.GetComponent<Light>() != null))
                     Object.DestroyImmediate(root);
 
             var environment = new GameObject("Environment");
@@ -292,25 +314,110 @@ namespace HybridShooter.UI.MainMenu.Editor
         }
 
         /// <summary>
-        /// 인게임 씬(Monster Player Integration)과 같은 하늘·조명: 기본 스카이박스, 스카이박스 주변광, 흰색 Directional 1.2 (같은 방향).
-        /// 여기에 디오라마 연출만 더한다 — 같은 방향 보조광 1.0, 몬스터 뒤 약한 역광(윤곽), 원경을 덮는 안개(신비감)
+        /// 게임 본편과 같은 외계 행성 밤 (팀 외계 대기: 별·성운 밤하늘, 붉은 눈동자 같은 거대한 달, 차가운 달빛, 청회색 안개) 을 메뉴용으로 더 어둡게.
+        ///  - 달빛은 무리 너머 오른쪽 위에서 비춘다 → 하늘의 달이 화면 오른쪽에 뜨고, 몬스터는 달을 등진 실루엣 + 윤곽광
+        ///  - 카메라 뒤 약한 보조광으로 플레이어 등·몬스터 앞면이 읽히게, 무리 위 포인트 조명으로 가운데·보스를 위에서
+        ///  - 환경광은 프리셋의 Gradient(하늘·지평선·땅) 3색
         /// </summary>
         private static void CreateLighting(Transform parent)
         {
-            var sun = CreateLight(parent, "Directional Light", InGameSunRotation, Color.white, 1.2f, LightShadows.Soft);
-            // 같은 방향 보조광 (씬에서 추가해 조정한 값) — 인게임보다 밝게
-            CreateLight(parent, "Directional Light (Fill)", InGameSunRotation, Color.white, 1f, LightShadows.Soft);
-            CreateLight(parent, "RimLight", Quaternion.Euler(15f, 200f, 0f), new Color(1f, 0.55f, 0.35f), 0.8f, LightShadows.None);
+            var preset = MenuAtmosphere();
+            var moon = CreateLight(parent, "Moonlight", Quaternion.Euler(preset.moonLightRotation), preset.moonLightColor, preset.moonLightIntensity, LightShadows.Soft);
+            moon.shadowStrength = preset.moonLightShadowStrength;
+            CreateLight(parent, "Fill (Camera)", FillRotation, FillColor, FillIntensity, LightShadows.None);
+            var overhead = CreateLight(parent, "Overhead Light", Quaternion.identity, OverheadLightColor, OverheadLightIntensity, LightShadows.None);
+            overhead.type = LightType.Point;
+            overhead.range = OverheadLightRange;
+            overhead.transform.localPosition = OverheadLightPosition;
 
-            RenderSettings.skybox = AssetDatabase.GetBuiltinExtraResource<Material>("Default-Skybox.mat");
-            RenderSettings.sun = sun;
-            RenderSettings.ambientMode = AmbientMode.Skybox;
-            RenderSettings.ambientIntensity = 1f;
+            RenderSettings.skybox = SkyMaterial(preset);
+            RenderSettings.sun = moon; // 하늘 셰이더는 메인 라이트 방향에 달을 그린다
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = preset.ambientSkyColor;
+            RenderSettings.ambientEquatorColor = preset.ambientEquatorColor;
+            RenderSettings.ambientGroundColor = preset.ambientGroundColor;
+            RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
+            RenderSettings.reflectionIntensity = preset.reflectionIntensity;
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogColor = FogColor;
-            RenderSettings.fogDensity = FogDensity;
-            DynamicGI.UpdateEnvironment(); // 굽지 않은 씬도 스카이박스 주변광이 바로 반영되게
+            RenderSettings.fogColor = preset.fogColor;
+            RenderSettings.fogDensity = preset.fogDensity;
+            DynamicGI.UpdateEnvironment(); // 굽지 않은 씬도 하늘 반사가 바로 반영되게
+        }
+
+        /// <summary>메뉴 프리셋. 없으면 만든다 (있으면 직접 조정한 값 유지)</summary>
+        private static AtmospherePreset MenuAtmosphere()
+        {
+            var preset = AssetDatabase.LoadAssetAtPath<AtmospherePreset>(AtmospherePresetPath);
+            if (preset != null) return preset;
+
+            // 팀 프리셋(게임 씬) 기준으로 메뉴용 값: 안개·하늘·환경광을 어둡게, 달은 화면 안에 들어오게 작게 + 눈동자 더 또렷하게
+            preset = ScriptableObject.CreateInstance<AtmospherePreset>();
+            preset.fogColor = new Color(0.2f, 0.25f, 0.33f);
+            preset.fogDensity = 0.022f;
+            preset.skyZenithColor = new Color(0.09f, 0.1f, 0.18f);
+            preset.skyHorizonBlend = 0.3f;
+            preset.starBrightness = 3f;
+            preset.starTwinkle = 0.6f;
+            preset.nebulaColorA = new Color(0.55f, 0.22f, 0.8f);
+            preset.nebulaColorB = new Color(0.15f, 0.6f, 0.7f);
+            preset.nebulaIntensity = 0.8f;
+            preset.moonRadius = 9f;
+            preset.moonColor = new Color(0.88f, 0.9f, 0.95f);
+            preset.moonBrightness = 1.2f;
+            preset.moonGlowColor = new Color(0.55f, 0.68f, 1f);
+            preset.moonGlowIntensity = 0.9f;
+            preset.moonEyeColor = new Color(2f, 0.25f, 0.1f);
+            preset.moonEyeIntensity = 0.75f;
+            preset.ambientSkyColor = new Color(0.2f, 0.225f, 0.29f);
+            preset.ambientEquatorColor = new Color(0.15f, 0.165f, 0.2f);
+            preset.ambientGroundColor = new Color(0.08f, 0.07f, 0.085f);
+            preset.reflectionIntensity = 0.5f;
+            preset.moonLightColor = new Color(0.72f, 0.82f, 1f);
+            preset.moonLightIntensity = 0.9f;
+            // 달 = 빛이 오는 쪽. 고도 12°, 정면에서 오른쪽 14° (메뉴가 있는 왼쪽을 피해 무리 너머)
+            preset.moonLightRotation = new Vector3(12f, 194f, 0f);
+            preset.moonLightShadowStrength = 0.8f;
+            preset.smokeColor = new Color(0.38f, 0.43f, 0.5f, 0.32f);
+            EnsureFolder(Path.GetDirectoryName(AtmospherePresetPath).Replace('\\', '/'));
+            AssetDatabase.CreateAsset(preset, AtmospherePresetPath);
+            return preset;
+        }
+
+        /// <summary>팀 밤하늘 셰이더로 메뉴 전용 하늘 재질 (값은 매번 프리셋에서, 팀 AtmosphereSetupMenu 와 같은 대응)</summary>
+        private static Material SkyMaterial(AtmospherePreset preset)
+        {
+            var shader = Shader.Find(SkyShaderName);
+            if (shader == null)
+            {
+                Debug.LogWarning($"[MainMenuDioramaBuilder] 하늘 셰이더가 없어 기본 하늘을 씁니다: {SkyShaderName}");
+                return AssetDatabase.GetBuiltinExtraResource<Material>("Default-Skybox.mat");
+            }
+            var sky = AssetDatabase.LoadAssetAtPath<Material>(SkyMaterialPath);
+            if (sky == null)
+            {
+                sky = new Material(shader);
+                EnsureFolder(Path.GetDirectoryName(SkyMaterialPath).Replace('\\', '/'));
+                AssetDatabase.CreateAsset(sky, SkyMaterialPath);
+            }
+            sky.shader = shader;
+            sky.SetColor("_ZenithColor", preset.skyZenithColor);
+            sky.SetColor("_HorizonColor", preset.fogColor);
+            sky.SetFloat("_HorizonBlend", preset.skyHorizonBlend);
+            sky.SetFloat("_StarBrightness", preset.starBrightness);
+            sky.SetFloat("_StarTwinkle", preset.starTwinkle);
+            sky.SetColor("_NebulaColorA", preset.nebulaColorA);
+            sky.SetColor("_NebulaColorB", preset.nebulaColorB);
+            sky.SetFloat("_NebulaIntensity", preset.nebulaIntensity);
+            sky.SetFloat("_MoonRadius", preset.moonRadius);
+            sky.SetColor("_MoonColor", preset.moonColor);
+            sky.SetFloat("_MoonBrightness", preset.moonBrightness);
+            sky.SetColor("_MoonGlowColor", preset.moonGlowColor);
+            sky.SetFloat("_MoonGlowIntensity", preset.moonGlowIntensity);
+            sky.SetColor("_EyeColor", preset.moonEyeColor);
+            sky.SetFloat("_EyeIntensity", preset.moonEyeIntensity);
+            EditorUtility.SetDirty(sky);
+            return sky;
         }
 
         private static Light CreateLight(Transform parent, string name, Quaternion rotation, Color color, float intensity, LightShadows shadows)
@@ -327,8 +434,8 @@ namespace HybridShooter.UI.MainMenu.Editor
         }
 
         /// <summary>
-        /// 인게임(PC 렌더러 볼륨 SampleSceneProfile: Bloom 0.25·Vignette 0.2·Neutral 톤매핑)과 같은 색감에 Bloom·Vignette 만 조금 더.
-        /// 프로필은 다시 만들 때마다 새로 쓴다
+        /// 팀 외계 대기 볼륨(AlienAtmosphereVolume)과 같은 색감 — ACES, 채도↓ 대비↑, 그림자 청록·밝은 곳 옅은 보라 Split Toning,
+        /// HDR 만 번지는 Bloom, 필름 그레인 — 에 메뉴용으로 노출을 낮추고 비네트를 더 진하게. 프로필은 다시 만들 때마다 새로 쓴다
         /// </summary>
         private static void CreateVolume(Transform parent)
         {
@@ -336,16 +443,31 @@ namespace HybridShooter.UI.MainMenu.Editor
             var profile = ScriptableObject.CreateInstance<VolumeProfile>();
             AssetDatabase.CreateAsset(profile, VolumeProfilePath);
 
+            AddOverride<Tonemapping>(profile).mode.Override(TonemappingMode.ACES);
+
+            var color = AddOverride<ColorAdjustments>(profile);
+            color.postExposure.Override(-0.25f);
+            color.contrast.Override(20f);
+            color.saturation.Override(-20f);
+
+            var split = AddOverride<SplitToning>(profile);
+            split.shadows.Override(new Color(0.35f, 0.5f, 0.55f));
+            split.highlights.Override(new Color(0.68f, 0.64f, 0.78f));
+            split.balance.Override(-20f);
+
             var bloom = AddOverride<Bloom>(profile);
-            bloom.intensity.Override(0.4f);
-            bloom.threshold.Override(1f);
-            bloom.scatter.Override(0.6f);
+            bloom.threshold.Override(1.1f);
+            bloom.intensity.Override(0.8f);
+            bloom.scatter.Override(0.65f);
 
             var vignette = AddOverride<Vignette>(profile);
-            vignette.intensity.Override(0.28f);
-            vignette.smoothness.Override(0.4f);
+            vignette.intensity.Override(0.38f);
+            vignette.smoothness.Override(0.45f);
 
-            AddOverride<Tonemapping>(profile).mode.Override(TonemappingMode.Neutral);
+            var grain = AddOverride<FilmGrain>(profile);
+            grain.type.Override(FilmGrainLookup.Medium1);
+            grain.intensity.Override(0.18f);
+            grain.response.Override(0.8f);
             AssetDatabase.SaveAssets();
 
             var go = new GameObject("Global Volume", typeof(Volume));
@@ -420,7 +542,7 @@ namespace HybridShooter.UI.MainMenu.Editor
             main.startSpeed = new ParticleSystem.MinMaxCurve(0.1f, 0.3f);
             main.startSize = new ParticleSystem.MinMaxCurve(8f, 14f);
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            main.startColor = new Color(0.75f, 0.78f, 0.82f, 0.18f);
+            main.startColor = new Color(0.45f, 0.52f, 0.65f, 0.22f); // 달빛 받은 청회색 포자 안개
             main.maxParticles = 120;
             SetEmission(fog, 7f);
             SetBox(fog, new Vector3(70f, 0.6f, 30f));

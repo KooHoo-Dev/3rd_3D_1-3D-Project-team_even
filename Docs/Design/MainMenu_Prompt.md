@@ -265,3 +265,24 @@ Assets/Scripts/Core/Settings/
 - 파티클 재질은 셰이더 GUI 를 거치지 않으므로 블렌드 값·키워드를 빌더가 직접 맞춘다 (`CrashedShipSmoke.mat` 와 같은 투명 설정)
 - 볼륨 프로필: `Assets/Settings/MainMenuHoverOptionsProfile.asset`, `MainMenuHoverQuitProfile.asset` (Priority 1, 다시 만들 때마다 새로 씀)
 - 수치는 `MenuBackdropDirector`·`DistantFlash` Inspector, 파티클·섬광 위치는 `MainMenuDioramaBuilder` (`FlashPoints`, `CreateAtmosphere`)
+
+### 어두운 분위기·UI 디자인 개선 (2026-10-30)
+게임 본편 분위기(팀 외계 행성 대기, `Assets/Scenes/MS/Docs/AtmosphereGuide.md`)에 맞춰 메뉴를 어둡게 바꾸고 UI 를 그 톤에 맞췄다.
+- **팀 분위기 시스템 가져옴**: develop 에서 `Assets/Scripts/Atmosphere`·`Assets/Prefabs/Atmosphere` 만 (다른 파일은 그대로). 밤하늘 셰이더와 `AtmospherePreset` 클래스를 쓰고, 팀 프리셋·볼륨(게임 씬용)은 건드리지 않는다
+- **메뉴 전용 프리셋** `Assets/Settings/MainMenuAtmospherePreset.asset`: 없을 때만 빌더가 만들고 이후엔 직접 조정한 값 유지 (팀 프리셋 기준으로 안개·하늘·환경광을 어둡게, 달 반지름 14→9°, 눈동자 0.6→0.75)
+- **하늘·조명** (`Rebuild Diorama`):
+  - 하늘 = 팀 밤하늘 셰이더의 메뉴 전용 재질 `Assets/Materials/MainMenu/MainMenuSky.mat` (별·성운·붉은 눈동자 같은 거대한 달)
+  - 달빛 = 무리 너머 오른쪽 위(고도 12°, 오른쪽 14°)에서 오는 차가운 빛 0.9 → 하늘의 달이 화면 오른쪽에 뜨고 몬스터는 달을 등진 실루엣
+  - 카메라 뒤 차가운 보조광 0.6 (처음 0.35 는 플레이어가 검은 실루엣), 이전의 흰 태양·보조광·주황 역광은 제거
+  - 무리 위 20m 포인트 조명 `Overhead Light` (밝기 1000, 범위 100, 연노랑 흰색) — 너무 어두워서 씬에서 직접 단 값을 빌더로 옮김
+  - 원경 바위가 어두운 하늘에서 검은 산처럼 달을 가려 가운데 2→1.3, 오른쪽 4→2.6 으로 낮춤
+  - 환경광 Gradient 3색, 안개 = 어두운 청회색 (밀도 0.022 그대로)
+- **팀 파일 범위**: develop 에서 처음엔 폴더째 가져왔으나 `SupplyBeaconOverride` 등이 develop 에만 있는 보급 필드를 써서 컴파일 오류 → 메뉴에 필요한 `AtmospherePreset.cs` 와 밤하늘 셰이더만 남김
+- **포스트 프로세싱** `MainMenuVolumeProfile`: 팀 외계 대기 볼륨과 같은 색감(ACES, 채도 −20·대비 +20, 그림자 청록·밝은 곳 옅은 보라 Split Toning, HDR 만 번지는 Bloom, 필름 그레인)에 노출 −0.25, 비네트 0.38
+- 바닥 안개는 달빛 받은 청회색, 불씨는 달 눈동자와 같은 붉은 주황
+- **UI** (`Rebuild Menu UI`): 차가운 청회색 + 붉은 포인트
+  - 버튼: 팩 버튼 상자 대신 글자 중심의 얇은 메뉴 (투명 클릭 영역 + Aldrich 글자). 평소 청회색(GAME START 만 흰색·더 크게), 선택하면 달빛 흰색 + 왼쪽 붉은 표식 + 글자 16px 밀림 + 붉은 밑줄이 그어짐 (`MainMenuButtonFx`)
+  - 로고: 72pt 넓은 자간 + 붉은 선, PRESS ANY KEY: 넓은 자간 + 양옆 가는 선, 조작 힌트는 키 이름(ENTER·ESC)만 붉게
+  - 메뉴 뒤 그라데이션 패널은 더 어둡고 넓게 (폭 1000, 남색 검정 0.85)
+  - 옵션 팝업은 아직 SCI-FI 팩(시안) 그대로 — 같은 톤으로 맞추는 건 다음 작업
+- **미리보기 캡처** `Tools > MainMenu > Capture Preview` (batchmode: `MainMenuPreviewCapture.CaptureBatch -captureDir 폴더`): 메뉴 카메라 시점으로 PRESS ANY KEY 단계·메뉴 단계 PNG 두 장 (씬 저장 안 함)
