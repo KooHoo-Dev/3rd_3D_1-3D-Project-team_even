@@ -119,6 +119,100 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &416631614
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 416631617}
+  - component: {fileID: 416631616}
+  - component: {fileID: 416631615}
+  m_Layer: 0
+  m_Name: SoundService
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &416631615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 416631614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dfe8fb3f8a637e94fbf82df2f73353e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.GameSoundRouter
+  crowdBgmKey: bgm_crowd
+  bossBgmKey: bgm_boss
+  bossWarningKey: sfx_boss_warning
+  hitImpactKey: sfx_hit_flesh
+  hitMarkerKey: ui_hit_marker
+  gameOverKey: ui_game_over
+  stageClearKey: ui_stage_clear
+  upgradeSelectKey: ui_upgrade_select
+  healthWarningKey: ui_health_warning
+  useAnnouncer: 1
+  announceFightKey: ann_fight
+  announceVictoryKey: ann_victory
+  announceGameOverKey: ann_game_over
+  announcerDelay: 0.8
+  healthWarningInterval: 2
+  monsterNearDistance: 15
+  monsterNearIdleInterval: {x: 1.5, y: 3.5}
+  bossDuckLevel: 0.3
+  bossDuckTime: 3
+--- !u!114 &416631616
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 416631614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a05c20358bebe940a2539c5f1df36d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.SoundService
+  voiceCount: 40
+  loopRefreshInterval: 0.25
+  loopFadeTime: 0.2
+  minDistance: 2
+  unlimitedDistance: 300
+  bgmFadeTime: 1.5
+  duckFadeTime: 0.3
+  mixer: {fileID: 24100000, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  snapshotFadeTime: 0.5
+  bgmGroup: {fileID: 1916248860737149651, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  sfxGroup: {fileID: -7809499384278224037, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  monsterGroup: {fileID: -2541985567382436315, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  uiGroup: {fileID: -261122123259414772, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  masterVolume: 1
+  bgmVolume: 1
+  sfxVolume: 1
+  monsterVolume: 1
+  uiVolume: 1
+--- !u!4 &416631617
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 416631614}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &508647983
 GameObject:
   m_ObjectHideFlags: 0
@@ -477,6 +571,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 274f9ad95dbbb0c42bebe278a1d43f57, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.WaveDirectorLab
+  director: {fileID: 0}
 --- !u!4 &769059939
 Transform:
   m_ObjectHideFlags: 0
@@ -861,7 +956,6 @@ Transform:
   - {fileID: 790174625}
   - {fileID: 1039042971}
   - {fileID: 6398381555528643356}
-  - {fileID: 349576669600419823}
   - {fileID: 1357165565}
   - {fileID: 1442314330}
   m_Father: {fileID: 1785309838}
@@ -1433,15 +1527,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 31.4
+      value: -44
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 13.99012
+      value: 3.87
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 13.4
+      value: 15.7
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2155,21 +2249,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 459512, guid: 9df12a0dcdc7b4b6391ce00b492a9ffe, type: 3}
   m_PrefabInstance: {fileID: 345228267841809082}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &349576669600419823
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4463912937599494067}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1175457862}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &500254567481170106
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2502,39 +2581,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 444402, guid: a754a763720cb4a258ab9498caf07209, type: 3}
   m_PrefabInstance: {fileID: 554288619870302711}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &628760751275931209
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4463912937599494067}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 987a10021157ef54f9504827ff870bec, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.MovementLabGizmos
-  coordinator: {fileID: 2713737162465012031}
-  targetSource: {fileID: 1685987952}
-  optionalMonsterRoot: {fileID: 0}
-  showApproach: 1
-  showWaiting: 1
-  showFree: 1
-  showAssigned: 1
-  showInvalid: 1
-  showLines: 1
-  showMonsterIds: 1
-  showSlotIds: 0
-  showLabels: 0
-  maxDetailedMonsters: 32
-  slotSize: 0.28
-  approachColor: {r: 0.25, g: 0.75, b: 1, a: 1}
-  waitingColor: {r: 1, g: 0.7, b: 0.2, a: 1}
-  freeColor: {r: 1, g: 1, b: 1, a: 1}
-  assignedColor: {r: 0.2, g: 1, b: 0.35, a: 1}
-  invalidColor: {r: 1, g: 0, b: 0, a: 1}
-  reservationLineColor: {r: 1, g: 0.8, b: 0.1, a: 1}
-  intentLineColor: {r: 1, g: 0.35, b: 0.15, a: 1}
 --- !u!1001 &735872835729749656
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3982,6 +4028,67 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: fa768651f6443457daf13c9e6eea031e, type: 3}
+--- !u!1001 &1602844207490529914
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3334109015109527107, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: m_Name
+      value: Crowd Coordinator
+      objectReference: {fileID: 0}
+    - target: {fileID: 5981608044873487605, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: targetSource
+      value: 
+      objectReference: {fileID: 1685987952}
+    - target: {fileID: 7299975324597526040, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3.01081
+      objectReference: {fileID: 0}
+    - target: {fileID: 7299975324597526040, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7299975324597526040, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -1.48348
+      objectReference: {fileID: 0}
+    - target: {fileID: 7299975324597526040, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7299975324597526040, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7299975324597526040, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7299975324597526040, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7299975324597526040, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7299975324597526040, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7299975324597526040, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
 --- !u!215 &1606622226481933522
 ReflectionProbe:
   m_ObjectHideFlags: 0
@@ -5903,41 +6010,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 109574, guid: 49e58e7878217479b9ac5240cb3c9b41, type: 3}
   m_PrefabInstance: {fileID: 2710063049269387101}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2713737162465012031
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4463912937599494067}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3487f5d42e47433f9640a565b6f9ef08, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.CrowdCoordinator
-  targetSource: {fileID: 1685987952}
-  settings:
-    EngageCapacity: 8
-    NearRadius: 6
-    ReleaseRadius: 10.5
-    AllocationInterval: 0.2
-    ThinkCycle: 0.5
-    EnableCrowdControl: 1
-    UseSlots: 0
-    Slots:
-      ApproachCount: 8
-      ApproachRadius: 1
-      MinimumRingGap: 1.2
-      MaxRingCount: 6
-      WaitingRadius: 8
-      MinimumSpacing: 1.1
-      SampleRadius: 0.3
-      ArrivalDistance: 0.2
-      ProgressTimeout: 6
-      ProgressDistance: 0.15
-      RejectionSeconds: 2
-      AgentTypeId: 0
-      AreaMask: -1
 --- !u!4 &2739004507470744584
 Transform:
   m_ObjectHideFlags: 0
@@ -9787,24 +9859,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 423274, guid: 74a42457326e143149fe6a9e74aa7178, type: 3}
   m_PrefabInstance: {fileID: 4428331006692357021}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &4463912937599494067
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 349576669600419823}
-  - component: {fileID: 2713737162465012031}
-  - component: {fileID: 628760751275931209}
-  m_Layer: 0
-  m_Name: Crowd Coordinator
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
 --- !u!215 &4497458524589682068
 ReflectionProbe:
   m_ObjectHideFlags: 0
@@ -18784,6 +18838,7 @@ SceneRoots:
   - {fileID: 1645460288}
   - {fileID: 573109723}
   - {fileID: 1785309838}
+  - {fileID: 1602844207490529914}
   - {fileID: 782320109}
   - {fileID: 1127682380}
   - {fileID: 587008727}
@@ -18794,3 +18849,4 @@ SceneRoots:
   - {fileID: 3171359749072270106}
   - {fileID: 1685987938}
   - {fileID: 559738288}
+  - {fileID: 416631617}

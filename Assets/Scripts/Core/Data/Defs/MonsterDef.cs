@@ -24,8 +24,6 @@ namespace HybridShooter.Core.Data.Defs
         public bool IsFlying => Role == MonsterRole.Air;
         public int MaxHp { get; }
         public float MoveSpeed { get; }
-        /// <summary>질주 속도(m/s)</summary>
-        public float RunSpeed { get; }
         /// <summary>탐지 거리(m). -1 = 전장 전체</summary>
         public float DetectRange { get; }
         public bool DetectsAll => DetectRange < 0f;
@@ -76,7 +74,6 @@ namespace HybridShooter.Core.Data.Defs
             Role = ParseUtil.Enum<MonsterRole>(d.Role, r, Table, Id, nameof(d.Role));
             MaxHp = d.MaxHp;
             MoveSpeed = d.MoveSpeed;
-            RunSpeed = d.RunSpeed;
             DetectRange = d.DetectRange;
             BodyScale = d.BodyScale;
             Height = d.Height;
@@ -93,7 +90,7 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(Enum.IsDefined(typeof(MonsterGrade), Grade), Table, Id, "GradeId 는 1(Weak)~3(Boss) 중 하나");
             r.Check(string.IsNullOrEmpty(Key) == false, Table, Id, "Key 가 비었습니다");
             r.Check(MaxHp > 0, Table, Id, "MaxHp 는 1 이상");
-            r.Check(MoveSpeed > 0f && RunSpeed >= MoveSpeed, Table, Id, "MoveSpeed 는 0 초과, RunSpeed 는 MoveSpeed 이상");
+            r.Check(MoveSpeed > 0f, Table, Id, "MoveSpeed 는 0 초과");
             r.Check(DetectRange > 0f || DetectRange == -1f, Table, Id, "DetectRange 는 0 초과 또는 -1(전장 전체)");
             r.Check(BodyScale > 0f && Height > 0f, Table, Id, "BodyScale, Height 는 0 초과");
             r.Check(IsFlying ? FlyHeight > 0f : FlyHeight == 0f, Table, Id, "FlyHeight 는 Air 역할만 0 초과");

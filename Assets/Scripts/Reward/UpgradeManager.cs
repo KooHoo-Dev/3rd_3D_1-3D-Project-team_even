@@ -14,7 +14,7 @@ namespace HybridShooter.Reward
     /// 라운드 종료 후 강화 선택 단계 담당 (BL-030, BL-031, BL-032).
     /// 보스를 처치하면 이번 라운드에 번 재화를 보여 주고, 세 강화 중 하나를 구매한 뒤 다음 라운드를 요청한다.
     ///
-    ///   열기   : GameStateChangedEvent(Current = Reward) 수신. [임시] BossDefeatedEvent 로도 연다 (코어 구현 전까지)
+    ///   열기   : GameStateChangedEvent(Current = Reward) 수신.
     ///   구매   : TryPurchase → IUpgradeState.TryPurchase (재화 차감·레벨 상승·UpgradePurchasedEvent 는 Ledger 담당)
     ///   종료   : Finish → RewardSelectionFinishedEvent 발행 (다음 라운드 진행은 코어 담당)
     ///   획득액 : CurrencyChangedEvent 의 증가분(Delta > 0)을 합산. BossAppearedEvent 이전 = 군중전, 이후 = 보스전
@@ -114,7 +114,6 @@ namespace HybridShooter.Reward
             active = this;
 
             EventBus<GameStateChangedEvent>.Subscribe(OnGameStateChanged);
-            EventBus<BossDefeatedEvent>.Subscribe(OnBossDefeated);
             EventBus<BossAppearedEvent>.Subscribe(OnBossAppeared);
             EventBus<RoundStartedEvent>.Subscribe(OnRoundStarted);
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
@@ -128,7 +127,6 @@ namespace HybridShooter.Reward
             active = null;
 
             EventBus<GameStateChangedEvent>.Unsubscribe(OnGameStateChanged);
-            EventBus<BossDefeatedEvent>.Unsubscribe(OnBossDefeated);
             EventBus<BossAppearedEvent>.Unsubscribe(OnBossAppeared);
             EventBus<RoundStartedEvent>.Unsubscribe(OnRoundStarted);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
@@ -188,9 +186,6 @@ namespace HybridShooter.Reward
             if (e.Current == GameState.Reward) Open();
             else Close();
         }
-
-        /// <summary>[임시] 코어가 GameState.Reward 를 발행하기 전까지 보스 처치로도 연다. 코어 구현 후 이 함수와 구독을 지운다</summary>
-        private void OnBossDefeated(BossDefeatedEvent e) => Open();
 
         /// <summary>보스 등장 이후의 획득 재화는 보스전으로 센다</summary>
         private void OnBossAppeared(BossAppearedEvent e) => bossPhase = true;

@@ -234,18 +234,30 @@ namespace HybridShooter.Core.Events
         public BossDefeatedEvent(MonsterDef boss, Vector3 position) { Boss = boss; Position = position; }
     }
 
-    // ── 보급 (E7) ──  [보급] → UI(낙하 위치 표시)·사운드
+    // ── 보급 (E7) ──  [보급] → UI(낙하 위치 표시)·사운드(투하음·안내 방송)·빛기둥
     public readonly struct SupplyDroppedEvent
     {
         public readonly SupplyDef Def;
+        /// <summary>착지 예정 위치</summary>
         public readonly Vector3 Position;
-        public SupplyDroppedEvent(SupplyDef def, Vector3 position) { Def = def; Position = position; }
+        /// <summary>투하된 상자 (빛기둥 교체 등). 발행 직후에는 항상 살아 있다</summary>
+        public readonly GameObject Crate;
+        public SupplyDroppedEvent(SupplyDef def, Vector3 position, GameObject crate) { Def = def; Position = position; Crate = crate; }
     }
 
+    // [보급] → UI(획득 알림)·사운드(랜덤 장전음)·분석
     public readonly struct SupplyCollectedEvent
     {
         public readonly SupplyDef Def;
-        public SupplyCollectedEvent(SupplyDef def) { Def = def; }
+        /// <summary>실제로 늘어난 아이템(수류탄·회복 팩) 개수. 가득 차 있었으면 0</summary>
+        public readonly int ItemAmount;
+        /// <summary>슬롯의 모든 총에 실제로 채운 예비 탄창 합. 모두 가득 차 있었으면 0</summary>
+        public readonly int MagazinesAdded;
+        public readonly Vector3 Position;
+        public SupplyCollectedEvent(SupplyDef def, int itemAmount, int magazinesAdded, Vector3 position)
+        {
+            Def = def; ItemAmount = itemAmount; MagazinesAdded = magazinesAdded; Position = position;
+        }
     }
 
     // ── 보상·강화 (E8) ──  [보상] → UI, 무기(능력치 갱신)

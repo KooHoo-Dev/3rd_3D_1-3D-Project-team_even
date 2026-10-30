@@ -134,7 +134,7 @@ foreach (CrowdSpawnRuleDef rule in round.SpawnRules)    // 시작 시간 순으�
 
 ```csharp
 SupplyDef pick = SupplyDef.Pick(DataManager.Supplies.All, Random.value); // Weight(가중치) 기반
-// pick.SupplyType (Grenade / Heal), pick.Amount, pick.PrefabKey
+// pick.SupplyType (Grenade / Heal), pick.RollAmount(Random.value), pick.PrefabKey
 ```
 
 ### 1-8. 레시피: 테이블을 고친 뒤 확인하기
@@ -482,8 +482,8 @@ public class KillCounter : MonoBehaviour
 
 | 이벤트 | 발행 | 담긴 정보 | 주 구독자 |
 |---|---|---|---|
-| `SupplyDroppedEvent` | 보급 | `Def`, `Position` | UI (낙하 위치 표시), 사운드 |
-| `SupplyCollectedEvent` | 보급 | `Def` | UI, 사운드 |
+| `SupplyDroppedEvent` | 보급 | `Def`, `Position`, `Crate` | UI (낙하 위치 표시), 사운드 (투하음·안내 방송), 빛기둥 |
+| `SupplyCollectedEvent` | 보급 | `Def`, `ItemAmount`, `MagazinesAdded`, `Position` | UI, 사운드 (랜덤 장전음), 분석 |
 | `CurrencyChangedEvent` | 지갑(자동) | `Balance`, `Delta` | UI |
 | `UpgradePurchasedEvent` | 강화(자동) | `Upgrade` | UI, 무기(능력치 갱신) |
 | `RewardSelectionFinishedEvent` | UI(강화 화면) | (없음) | 코어 (다음 라운드 시작) |

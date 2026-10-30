@@ -8,11 +8,15 @@ namespace HybridShooter.Core.Data.Dtos
     {
         public int Id;
         public string SupplyType = "";  // SupplyType enum
-        public int Amount;
+        public string DisplayName = "";  // HUD·분석 표시 이름
+        public int AmountMin;  // 아이템 지급 개수 최소 (획득 때 무작위)
+        public int AmountMax;  // 아이템 지급 개수 최대
         public int Weight;
+        public string BeaconColor = "";  // 빛기둥 색 #RRGGBB
         public string PrefabKey = "";
         public string MarkerKey = "";
         public string DropSfxKey = "";  // SoundTable.Key (투하, 착지 지점)
+        public string AnnounceSfxKey = "";  // SoundTable.Key (투하 안내, 2D)
         public string CollectSfxKey = "";  // SoundTable.Key (획득)
     }
 }

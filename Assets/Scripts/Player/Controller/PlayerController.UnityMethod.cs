@@ -80,7 +80,7 @@ namespace HybridShooter.Player
 
         private void OnApplicationFocus(bool hasFocus)
         {
-            if (hasFocus) SetCursorLocked(true);
+            if (hasFocus && flowInputBlocked == false) SetCursorLocked(true);
         }
 
         private void Update()

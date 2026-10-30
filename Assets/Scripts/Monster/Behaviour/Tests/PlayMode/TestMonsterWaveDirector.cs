@@ -139,7 +139,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [UnityTest]
-        public IEnumerator BossIntroTransition_StopsRound_OtherStatesDoNot()
+        public IEnumerator StateNotifications_DoNotControlRound_DirectStopCancelsSpawns()
         {
             yield return CreateDirector();
             director.StartRound(1);
@@ -150,8 +150,10 @@ namespace HybridShooter.Monster.Behaviour.Tests
             yield return WaitRoundSeconds(2f);
             Assert.Greater(SpawnCount, countAtPause, "Paused 는 멈추지 않음");
 
-            LogAssert.Expect(LogType.Log, new Regex("보스전 전이로 군중 소환 중단"));
             EventBus<GameStateChangedEvent>.Publish(new GameStateChangedEvent(GameState.CrowdBattle, GameState.BossIntro));
+            yield return WaitRoundSeconds(2f);
+            Assert.Greater(SpawnCount, countAtPause, "상태 알림은 시퀀서의 직접 호출을 대신하지 않음");
+            director.StopRound();
             int countAtBossIntro = SpawnCount;
             yield return WaitRoundSeconds(70f);
             Assert.AreEqual(countAtBossIntro, SpawnCount);
@@ -160,15 +162,17 @@ namespace HybridShooter.Monster.Behaviour.Tests
         // ── 완료 기준 9 ──
 
         [UnityTest]
-        public IEnumerator RoundStartedEvent_StartsThatRound_MissingRoundWarnsOnly()
+        public IEnumerator RoundStartedNotification_DoesNotStartRound_DirectStartUsesRequestedData()
         {
             yield return CreateDirector();
-            LogAssert.Expect(LogType.Warning, new Regex("라운드 2 스테이지 데이터 없음"));
             EventBus<RoundStartedEvent>.Publish(new RoundStartedEvent(2, null));
             yield return WaitRoundSeconds(10f);
-            Assert.AreEqual(0, SpawnCount, "라운드 2 는 데이터가 없어 소환 없음");
+            Assert.AreEqual(0, SpawnCount, "라운드 알림만으로는 소환하지 않음");
 
             EventBus<RoundStartedEvent>.Publish(new RoundStartedEvent(1, null));
+            yield return WaitRoundSeconds(2f);
+            Assert.AreEqual(0, SpawnCount, "시퀀서의 직접 호출 전에 시작하지 않음");
+            director.StartRound(1);
             yield return WaitRoundSeconds(10f);
             Assert.Greater(SpawnCount, 0, "라운드 1 은 시작");
         }

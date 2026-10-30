@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &484270416923930871
+--- !u!1 &3334109015109527107
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,9 +8,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 4580875960392636587}
-  - component: {fileID: 2225439952682401403}
-  - component: {fileID: 3743255282526593293}
+  - component: {fileID: 7299975324597526040}
+  - component: {fileID: 8939933189621404129}
+  - component: {fileID: 5981608044873487605}
   m_Layer: 0
   m_Name: Crowd Coordinator
   m_TagString: Untagged
@@ -18,28 +18,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4580875960392636587
+--- !u!4 &7299975324597526040
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 484270416923930871}
+  m_GameObject: {fileID: 3334109015109527107}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 3.01081, y: 0, z: -1.48348}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2225439952682401403
+--- !u!114 &8939933189621404129
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 484270416923930871}
+  m_GameObject: {fileID: 3334109015109527107}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3487f5d42e47433f9640a565b6f9ef08, type: 3}
@@ -52,35 +52,35 @@ MonoBehaviour:
     ReleaseRadius: 10.5
     AllocationInterval: 0.2
     ThinkCycle: 0.5
-    EnableCrowdControl: 1
-    UseSlots: 1
+    EnableCrowdControl: 0
+    UseSlots: 0
     Slots:
-      ApproachCount: 8
-      ApproachRadius: 1
+      ApproachCount: 7
+      ApproachRadius: 1.3
       MinimumRingGap: 1.2
       MaxRingCount: 6
       WaitingRadius: 8
       MinimumSpacing: 1.1
       SampleRadius: 0.3
-      ArrivalDistance: 0.2
+      ArrivalDistance: 0.35
       ProgressTimeout: 6
       ProgressDistance: 0.15
       RejectionSeconds: 2
       AgentTypeId: 0
       AreaMask: -1
---- !u!114 &3743255282526593293
+--- !u!114 &5981608044873487605
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 484270416923930871}
+  m_GameObject: {fileID: 3334109015109527107}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 987a10021157ef54f9504827ff870bec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.MovementLab::HybridShooter.Monster.MovementLab.MovementLabGizmos
-  coordinator: {fileID: 2225439952682401403}
+  coordinator: {fileID: 8939933189621404129}
   targetSource: {fileID: 0}
   optionalMonsterRoot: {fileID: 0}
   showApproach: 1
@@ -90,8 +90,8 @@ MonoBehaviour:
   showInvalid: 1
   showLines: 1
   showMonsterIds: 1
-  showSlotIds: 1
-  showLabels: 1
+  showSlotIds: 0
+  showLabels: 0
   maxDetailedMonsters: 32
   slotSize: 0.28
   approachColor: {r: 0.25, g: 0.75, b: 1, a: 1}
