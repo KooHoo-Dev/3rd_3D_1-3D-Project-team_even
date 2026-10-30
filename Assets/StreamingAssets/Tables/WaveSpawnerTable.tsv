@@ -21,6 +21,8 @@ Id	MonsterId	Count	StartDelay	SpawnInterval	SpawnPattern
 219	2002	2	2	3	Surround
 220	1003	8	0	0.7	Air
 221	2003	1	1	0	Surround
+222	1002	18	0	3	Surround
+223	1003	6	5	9	Air
 2201	1003	16	0	0.2	Herd
 2202	1002	9	2	10	Surround
 2203	1002	12	0	0.3	Herd
@@ -50,6 +52,8 @@ Id	MonsterId	Count	StartDelay	SpawnInterval	SpawnPattern
 2227	1003	18	0	0.2	Herd
 2228	1003	10	0	0.4	Herd
 2229	1002	10	9	4	Surround
+2230	1003	18	0	3	Herd
+2231	1002	9	2	6	Surround
 3201	2002	2	0	4	Flank
 3202	1002	10	0	0.8	Surround
 3203	2001	1	0	0	Surround
@@ -76,6 +80,8 @@ Id	MonsterId	Count	StartDelay	SpawnInterval	SpawnPattern
 3224	2002	3	0	2.5	Flank
 3225	2001	1	4	0	Surround
 3226	1002	8	0	0.5	Surround
+3227	1002	18	0	3	Surround
+3228	2002	4	5	15	Flank
 4201	1003	8	0	1	Air
 4202	1003	12	0	0.5	Air
 4203	2003	1	0	0	Surround
@@ -103,6 +109,8 @@ Id	MonsterId	Count	StartDelay	SpawnInterval	SpawnPattern
 4225	1003	20	0	0.5	Air
 4226	1003	16	2	0.3	Air
 4227	2001	1	0	0	Surround
+4228	1003	18	0	3	Air
+4229	2002	4	5	15	Flank
 5201	1002	6	2	2	Surround
 5202	1002	20	0	0	Herd
 5203	1003	14	0	0.3	Air
@@ -127,3 +135,5 @@ Id	MonsterId	Count	StartDelay	SpawnInterval	SpawnPattern
 5222	2003	2	0	3	Surround
 5223	1003	8	0	0.8	Air
 5224	1002	12	0	1	Surround
+5225	1002	18	0	3	Surround
+5226	1003	6	5	9	Air
