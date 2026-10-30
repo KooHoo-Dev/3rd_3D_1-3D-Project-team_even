@@ -1,7 +1,9 @@
 using System.Collections;
+using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
+using HybridShooter.Core.Services;
 using UnityEngine;
 
 namespace HybridShooter.Round
@@ -40,8 +42,12 @@ namespace HybridShooter.Round
         {
             // 플레이어의 시작 위치와 각 파트의 Start 초기화가 끝난 뒤 시작한다.
             yield return null;
-            if (startOnPlay) StartRun();
+            // 무기 선택 화면(IRoundStartGate)이 붙잡고 있으면 그 화면의 [출발]이 StartRun 을 부른다
+            if (startOnPlay && IsStartHeld == false) StartRun();
         }
+
+        /// <summary>시작을 붙잡는 화면이 있는지 (등록되지 않았으면 false)</summary>
+        private static bool IsStartHeld => ServiceLocator.TryGet<IRoundStartGate>(out var gate) && gate.HoldsStart;
 
         [ContextMenu("Start Run")]
         public void StartRun()
@@ -51,10 +57,21 @@ namespace HybridShooter.Round
             BeginNextRound();
         }
 
+        /// <summary>게임 오버 → 처음부터 바로 다시 시작 (무기 선택 화면을 거치지 않음)</summary>
         [ContextMenu("Restart Run")]
         public void RestartRun()
         {
-            if (isActiveAndEnabled == false || CurrentState != GameState.GameOver) return;
+            if (ReturnToReady()) BeginNextRound();
+        }
+
+        /// <summary>
+        /// 게임 오버 → 처음부터 재시작 준비만 하고 Ready 에서 멈춘다 (전부 정리·1인칭 복귀).
+        /// 무기 선택 화면(LoadoutPanel)이 GameOver → Ready 를 보고 다시 열리고, [출발]에서 StartRun 을 부른다.
+        /// </summary>
+        [ContextMenu("Return To Ready")]
+        public bool ReturnToReady()
+        {
+            if (isActiveAndEnabled == false || CurrentState != GameState.GameOver) return false;
 
             roundSequencer.StopRound();
             nextRoundPending = false;
@@ -63,7 +80,7 @@ namespace HybridShooter.Round
             CurrentRound = 0;
             ChangeState(GameState.Ready);
             EventBus<CameraModeRequestedEvent>.Publish(new CameraModeRequestedEvent(CameraMode.FirstPerson, 0f));
-            BeginNextRound();
+            return true;
         }
 
         private void BeginNextRound()
@@ -111,6 +128,8 @@ namespace HybridShooter.Round
             }
 
             if (nextRoundPending == false || isRunning == false) return;
+            // 보상 뒤 무기 선택 화면이 열려 있으면 Reward 상태(시간 정지)로 기다린다
+            if (IsStartHeld) return;
             nextRoundPending = false;
             roundSequencer.StopRound();
             EventBus<RoundCleanupEvent>.Publish(new RoundCleanupEvent(false));
@@ -124,6 +143,8 @@ namespace HybridShooter.Round
             CurrentState = state;
             SetSimulationPaused(state == GameState.Reward || state == GameState.GameOver);
             EventBus<GameStateChangedEvent>.Publish(new GameStateChangedEvent(previous, state));
+            // Reward 는 보스를 처치해야만 들어온다 (RoundSequencer) → 스테이지 클리어. 보상 화면이 열린 뒤에 알린다
+            if (state == GameState.Reward) EventBus<StageClearedEvent>.Publish(new StageClearedEvent(CurrentRound));
         }
 
         private void SetSimulationPaused(bool paused)

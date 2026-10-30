@@ -54,6 +54,7 @@
 | FireSfxKey, ReloadSfxKey, ReloadInsertSfxKey, ReloadEndSfxKey | string | 장전음: 시작 · 탄창·탄 넣기(기본 총 = 장전 55% 시점, 산탄총 = 한 발 시간마다 소리만) · 완료(취소 시 없음) |
 | Category | enum | `Sidearm`(1번 칸 고정 권총, 정확히 1행) / `Loadout`(출발 전 2·3번 칸 선택) / `Supply`(4번 보급 칸 전용, 1회용 — 보급 상자로 탄 충전 안 됨) |
 | IconKey | string | `Resources/UI/WeaponIcons/{IconKey}` 스프라이트. 비우면 무기 슬롯 HUD 가 이름 텍스트로 대체 |
+| UnlockOrder | int | 해금 순서. `0` = 처음부터 해금(권총·돌격소총) · `1~` = 스테이지(보스) 클리어마다 작은 수부터 하나씩 영구 해금 (PlayerPrefs `Unlock.Weapons`). Supply 는 `0` |
 
 ## GrenadeTable — BL-005
 | 컬럼 | 타입 | 설명 |

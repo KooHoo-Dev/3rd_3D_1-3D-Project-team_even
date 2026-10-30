@@ -76,4 +76,13 @@ namespace HybridShooter.Core.Contracts
     {
         bool IsUnlocked(int weaponId);
     }
+
+    /// <summary>
+    /// 라운드(스테이지) 시작을 붙잡는 화면 (무기 선택 화면이 구현해 ServiceLocator 에 등록한다).
+    /// RunDirector 는 HoldsStart 동안 startOnPlay 자동 시작과 다음 라운드 진행을 미룬다. 등록되지 않았으면 바로 진행
+    /// </summary>
+    public interface IRoundStartGate
+    {
+        bool HoldsStart { get; }
+    }
 }

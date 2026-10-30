@@ -16,7 +16,7 @@ namespace HybridShooter.Weapon
     ///    0번 = Sidearm(권총, 고정) · 1·2번 = startingGuns 중 Loadout 순서대로 (출발 전 선택 화면이 ApplyLoadout 으로 덮어씀) · 3번 = 보급 칸(비움).
     ///    슬롯에 안 들어간 총은 "예비"로 꺼 둔다. 총은 파괴하지 않고 예비 ↔ 슬롯을 오간다 (같은 무기를 다시 주울 수 있게).
     ///  - 게임 중 교체는 보급 칸만 (ISupplyWeaponUser.EquipSupplyWeapon). 이전 보급 무기는 탄을 초기화해 예비로 반납(= 버림).
-    ///    보급 무기는 1회용: 예비 탄창 보충(보급 상자 등)에서 제외되고, 탄이 떨어져도 칸에 남는다. 처음부터 재시작하면 칸을 비운다.
+    ///    보급 무기는 1회용: 예비 탄창 보충(보급 상자 등)에서 제외되고, 탄이 떨어져도 칸에 남는다. 라운드(스테이지)가 끝나면(재시작·다음 라운드) 칸을 비운다.
     ///  - PlayerController 의 입력을 지금 든 총(CurrentGun)으로 넘긴다. 실제 동작은 각 총이 덮어쓴 함수가 정한다.
     ///  - 총이 필요로 하는 조준선·반동·확대·이동 상태를 PlayerController 와 이어준다.
     ///  - 예비 탄창 보충·장전 취소 창구 (IPlayerAmmo, ServiceLocator 등록). 피격(PlayerDamagedEvent)이 reloadInterruptOnHit 규칙에 맞으면 장전을 끊는다
@@ -248,19 +248,23 @@ namespace HybridShooter.Weapon
 
         /// <summary>
         /// 2·3번 칸(LoadoutSlots 순서)을 weaponIds 로 바꾼다. 빠진 총은 예비로 되돌린다 (파괴 X).
-        /// 모두 Category = Loadout · 해금 · 서로 다름이어야 하며, 하나라도 어긋나면 아무것도 바꾸지 않고 false
+        /// Id 0 = 빈 칸 (해금 전엔 3번 칸이 빌 수 있다). 적어도 한 칸은 채워야 한다.
+        /// 채운 칸은 모두 Category = Loadout · 해금 · 서로 다름이어야 하며, 하나라도 어긋나면 아무것도 바꾸지 않고 false
         /// </summary>
         public bool ApplyLoadout(IReadOnlyList<int> weaponIds)
         {
             if (weaponIds == null || weaponIds.Count != LoadoutSlots.Count)
             {
-                Debug.LogWarning($"{name}: ApplyLoadout 는 무기 {LoadoutSlots.Count}개가 필요합니다", this);
+                Debug.LogWarning($"{name}: ApplyLoadout 는 무기 {LoadoutSlots.Count}개가 필요합니다 (빈 칸은 0)", this);
                 return false;
             }
 
             var picks = new Gun[LoadoutSlots.Count];
+            bool any = false;
             for (int i = 0; i < picks.Length; i++)
             {
+                if (weaponIds[i] == 0) continue;
+                any = true;
                 Gun gun = FindGun(weaponIds[i]);
                 string error = gun == null ? "가 없습니다"
                     : CategoryOf(gun) != WeaponCategory.Loadout ? "는 Loadout 분류가 아닙니다"
@@ -273,6 +277,11 @@ namespace HybridShooter.Weapon
                     return false;
                 }
                 picks[i] = gun;
+            }
+            if (any == false)
+            {
+                Debug.LogWarning($"{name}: ApplyLoadout - 2·3번 칸이 모두 비었습니다 (한 칸 이상 필요)", this);
+                return false;
             }
 
             Gun held = CurrentGun;
@@ -395,10 +404,10 @@ namespace HybridShooter.Weapon
             }
         }
 
-        /// <summary>처음부터 재시작이면 보급 칸을 비운다 (다음 라운드 진행이면 유지). 2·3번 선택은 유지</summary>
+        /// <summary>라운드(스테이지) 정리마다 보급 칸을 비운다 (재시작·다음 라운드 모두, 보급 무기는 그 스테이지 한정). 2·3번 선택은 유지</summary>
         private void OnRoundCleanup(RoundCleanupEvent evt)
         {
-            if (evt.FullReset == false || slots[SupplySlot] == null) return;
+            if (slots[SupplySlot] == null) return;
             int previousId = SupplyWeaponId;
             ReturnSupplyWeapon();
             if (CurrentGun == null && Select(startSlot) == false) SelectNext(1);
@@ -436,7 +445,7 @@ namespace HybridShooter.Weapon
         }
 
         /// <summary>
-        /// 소켓 아래 총 전부 초기화 → 분류대로 배치 (0 = Sidearm, 1·2 = startingGuns 중 Loadout, 3 = 비움) → 나머지는 예비로 꺼 둠
+        /// 소켓 아래 총 전부 초기화 → 분류대로 배치 (0 = Sidearm, 1·2 = startingGuns 중 해금된 Loadout, 3 = 비움) → 나머지는 예비로 꺼 둠
         /// </summary>
         private void LoadLoadout()
         {
@@ -471,7 +480,7 @@ namespace HybridShooter.Weapon
             foreach (var gun in candidates)
             {
                 if (next >= LoadoutSlots.Count) break;
-                if (CategoryOf(gun) == WeaponCategory.Loadout && reserve.Contains(gun)) PlaceFromReserve(LoadoutSlots[next++], gun);
+                if (CategoryOf(gun) == WeaponCategory.Loadout && IsUnlocked(gun.WeaponId) && reserve.Contains(gun)) PlaceFromReserve(LoadoutSlots[next++], gun);
             }
 
             if (Select(startSlot) == false) SelectNext(1);

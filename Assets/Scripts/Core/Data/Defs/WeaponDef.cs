@@ -31,6 +31,8 @@ namespace HybridShooter.Core.Data.Defs
         public WeaponCategory Category { get; }
         /// <summary>Resources/UI/WeaponIcons/{IconKey} 스프라이트 이름. 비었으면 HUD 가 이름 텍스트로 대체</summary>
         public string IconKey { get; }
+        /// <summary>해금 순서. 0 = 처음부터 해금 · 1~ = 스테이지 클리어마다 작은 수부터 하나씩 (Supply 는 무시하고 항상 해금)</summary>
+        public int UnlockOrder { get; }
         /// <summary>Link 단계에서 채워짐 (키가 비었으면 null)</summary>
         public SoundDef FireSfx { get; internal set; }
         /// <summary>장전 시작</summary>
@@ -70,6 +72,7 @@ namespace HybridShooter.Core.Data.Defs
             SupplyMagazineRatio = d.SupplyMagazineRatio;
             Category = ParseUtil.Enum<WeaponCategory>(d.Category, r, Table, Id, nameof(d.Category));
             IconKey = d.IconKey ?? "";
+            UnlockOrder = d.UnlockOrder;
             FireSfxKey = d.FireSfxKey;
             ReloadSfxKey = d.ReloadSfxKey;
             ReloadInsertSfxKey = d.ReloadInsertSfxKey;
@@ -85,6 +88,7 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(ReloadTime > 0f, Table, Id, "ReloadTime 은 0 초과");
             r.Check(Range > 0f, Table, Id, "Range 는 0 초과");
             r.Check(SupplyMagazineRatio >= 0f && SupplyMagazineRatio <= 1f, Table, Id, "SupplyMagazineRatio 는 0 ~ 1");
+            r.Check(UnlockOrder >= 0, Table, Id, "UnlockOrder 는 0 이상");
         }
     }
 }

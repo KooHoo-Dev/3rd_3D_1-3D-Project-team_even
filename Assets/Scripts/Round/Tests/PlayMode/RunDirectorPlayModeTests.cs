@@ -37,7 +37,12 @@ namespace HybridShooter.Round.Tests
         private object previousStages;
         private readonly List<RoundStartedEvent> starts = new List<RoundStartedEvent>();
         private readonly List<bool> cleanups = new List<bool>();
+        private readonly List<int> stageClears = new List<int>();
         private bool completeCamera = true;
+        private const string TestUnlockKey = "Test.RunDirector.Unlock.Weapons";
+        // 실제 진행(PlayerPrefs Unlock.Weapons)을 건드리지 않도록 테스트 키의 해금 Ledger 를 등록한다
+        private WeaponUnlockLedger unlocks;
+        private IWeaponUnlocks previousUnlocks;
 
         private GameState State => Get<GameState>(director, "CurrentState");
         private int Round => Get<int>(director, "CurrentRound");
@@ -62,6 +67,11 @@ namespace HybridShooter.Round.Tests
             ledger = new UpgradeLedger();
             ServiceLocator.Register<ICurrencyWallet>(wallet);
             ServiceLocator.Register<IUpgradeState>(ledger);
+            ServiceLocator.TryGet(out previousUnlocks);
+            unlocks = new WeaponUnlockLedger(TestUnlockKey);
+            unlocks.ResetAll();
+            unlocks.BindEvents();
+            ServiceLocator.Register<IWeaponUnlocks>(unlocks);
 
             root = new GameObject("RunDirectorTest");
             root.SetActive(false);
@@ -94,6 +104,7 @@ namespace HybridShooter.Round.Tests
             EventBus<RoundStartedEvent>.Subscribe(OnRoundStarted);
             EventBus<RoundCleanupEvent>.Subscribe(OnCleanup);
             EventBus<GameStateChangedEvent>.Subscribe(OnStateChanged);
+            EventBus<StageClearedEvent>.Subscribe(OnStageCleared);
             Time.timeScale = 1f;
             root.SetActive(true);
             yield return null;
@@ -106,6 +117,7 @@ namespace HybridShooter.Round.Tests
             EventBus<RoundStartedEvent>.Unsubscribe(OnRoundStarted);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnCleanup);
             EventBus<GameStateChangedEvent>.Unsubscribe(OnStateChanged);
+            EventBus<StageClearedEvent>.Unsubscribe(OnStageCleared);
             if (root != null) UnityEngine.Object.Destroy(root);
             yield return null;
             SetData("rounds", previousRounds);
@@ -113,12 +125,17 @@ namespace HybridShooter.Round.Tests
             ServiceLocator.Unregister<ICurrencyWallet>(wallet);
             ServiceLocator.Unregister<IUpgradeState>(ledger);
             ServiceLocator.Unregister<IPlayerTarget>(player);
+            unlocks.UnbindEvents();
+            unlocks.ResetAll();
+            ServiceLocator.Unregister<IWeaponUnlocks>(unlocks);
+            if (previousUnlocks != null && ReferenceEquals(previousUnlocks, unlocks) == false) ServiceLocator.Register(previousUnlocks);
             if (previousWallet != null) ServiceLocator.Register(previousWallet);
             if (previousUpgrades != null) ServiceLocator.Register(previousUpgrades);
             if (previousPlayer != null) ServiceLocator.Register(previousPlayer);
             Time.timeScale = 1f;
             starts.Clear();
             cleanups.Clear();
+            stageClears.Clear();
             completeCamera = true;
         }
 
@@ -248,6 +265,81 @@ namespace HybridShooter.Round.Tests
             yield return null;
         }
 
+        [UnityTest]
+        public IEnumerator BossDefeat_PublishesStageClearedOnce_AndUnlocksNextWeapon()
+        {
+            var next = unlocks.PeekNext();
+            Call(director, "StartRun");
+            yield return DefeatBoss();
+            yield return null;
+            Assert.AreEqual(new[] { 1 }, stageClears);
+            if (next != null) Assert.IsTrue(unlocks.IsUnlocked(next.Id), "스테이지 클리어마다 다음 무기 하나 해금");
+
+            // 테스터처럼 보스 처치 이벤트만 직접 보내면 해금되지 않는다
+            var after = unlocks.PeekNext();
+            EventBus<BossDefeatedEvent>.Publish(new BossDefeatedEvent(null, Vector3.zero));
+            if (after != null) Assert.IsFalse(unlocks.IsUnlocked(after.Id));
+            Assert.AreEqual(1, stageClears.Count);
+        }
+
+        [UnityTest]
+        public IEnumerator ReturnToReady_ResetsRunAndWaitsForStart()
+        {
+            Assert.IsFalse((bool)Call(director, "ReturnToReady"), "게임 오버가 아니면 무시");
+            Call(director, "StartRun");
+            yield return null;
+            EventBus<PlayerFinalDeathEvent>.Publish(new PlayerFinalDeathEvent());
+            yield return WaitForState(GameState.GameOver);
+
+            Assert.IsTrue((bool)Call(director, "ReturnToReady"));
+            Assert.AreEqual(GameState.Ready, State);
+            Assert.AreEqual(0, Round);
+            Assert.IsFalse(Get<bool>(director, "IsRunning"));
+            Assert.AreEqual(new[] { false, true }, cleanups);
+            Assert.AreEqual(1f, Time.timeScale);
+            yield return null;
+            Assert.AreEqual(GameState.Ready, State, "출발(StartRun) 전에는 라운드를 시작하지 않는다");
+
+            Call(director, "StartRun");
+            Assert.AreEqual(GameState.CrowdBattle, State);
+            Assert.AreEqual(1, Round);
+        }
+
+        [UnityTest]
+        public IEnumerator StartGate_HoldsNextRoundInReward_UntilReleased()
+        {
+            var gate = new TestStartGate();
+            ServiceLocator.Register<IRoundStartGate>(gate);
+            try
+            {
+                Call(director, "StartRun");
+                yield return DefeatBoss();
+                gate.Holds = true;
+                EventBus<RewardSelectionFinishedEvent>.Publish(new RewardSelectionFinishedEvent());
+                for (int i = 0; i < 5; i++) yield return null;
+                Assert.AreEqual(GameState.Reward, State, "무기 선택 중에는 보상 단계(시간 정지)로 기다린다");
+                Assert.AreEqual(1, Round);
+                Assert.AreEqual(0f, Time.timeScale);
+                Assert.AreEqual(0, cleanups.Count, "무기를 고르기 전에는 라운드 정리(탄약 초기화)를 하지 않는다");
+
+                gate.Holds = false;
+                yield return WaitForState(GameState.CrowdBattle);
+                Assert.AreEqual(2, Round);
+                Assert.AreEqual(new[] { false }, cleanups);
+                Assert.AreEqual(1f, Time.timeScale);
+            }
+            finally
+            {
+                ServiceLocator.Unregister<IRoundStartGate>(gate);
+            }
+        }
+
+        private sealed class TestStartGate : IRoundStartGate
+        {
+            public bool Holds;
+            public bool HoldsStart => Holds;
+        }
+
         private IEnumerator DefeatBoss()
         {
             yield return WaitForState(GameState.BossBattle);
@@ -264,6 +356,7 @@ namespace HybridShooter.Round.Tests
 
         private void OnRoundStarted(RoundStartedEvent e) => starts.Add(e);
         private void OnCleanup(RoundCleanupEvent e) => cleanups.Add(e.FullReset);
+        private void OnStageCleared(StageClearedEvent e) => stageClears.Add(e.Round);
 
         private void OnStateChanged(GameStateChangedEvent e)
         {

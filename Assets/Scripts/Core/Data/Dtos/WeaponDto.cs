@@ -27,5 +27,6 @@ namespace HybridShooter.Core.Data.Dtos
         public float SupplyMagazineRatio;  // 보급 1회 예비 탄창 충전 비율 (MaxMagazines × 비율, 내림·최소 1)
         public string Category = "";  // WeaponCategory enum
         public string IconKey = "";  // Resources/UI/WeaponIcons/{IconKey} 스프라이트 (비우면 HUD 가 이름 표시)
+        public int UnlockOrder;  // 0 = 처음부터 해금 · 1~ = 스테이지(보스) 클리어마다 이 순서로 해금
     }
 }
