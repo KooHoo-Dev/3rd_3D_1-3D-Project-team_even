@@ -18,7 +18,7 @@ namespace HybridShooter.UI.MainMenu.Editor
     ///     (AI·입력·물리·전투·사운드 이미터 제거) 에셋 팩 Animator 컨트롤러 + DisplayActor 를 붙인다.
     ///     게임 프리팹이 없는 종류(부포모프·덴솝테르)는 에셋 팩 프리팹을 그대로 쓴다
     ///  2) 씬: Environment(인게임 맵 대신 같은 땅 텍스처의 바닥·바위 + 인게임과 같은 하늘·조명 + 원경 안개·포스트프로세싱
-    ///     + 바닥 안개·불씨 파티클·원경 섬광 + 호버 연출용 볼륨) + Diorama(플레이어·몬스터 무리·원경 보스 + MenuBackdropDirector) + CM_Menu 카메라
+    ///     + 바닥 안개·불씨 파티클·원경 섬광 + 호버 연출용 볼륨) + Diorama(플레이어·몬스터 무리·원경 보스·추락한 우주선 + MenuBackdropDirector) + CM_Menu 카메라
     /// 몬스터 배치는 씬에서 직접 옮긴 결과를 Placements 표로 고정해 두었다 (다시 만들어도 같다). 구도·수치는 아래 상수에서 조정
     /// </summary>
     public static class MainMenuDioramaBuilder
@@ -47,6 +47,11 @@ namespace HybridShooter.UI.MainMenu.Editor
         private const float CameraFov = 45f;
         private static readonly Vector3 BossPosition = new Vector3(6f, 0f, 50f);
         private const float BossYaw = -169.45f;
+
+        /// <summary>추락한 우주선 (2026-10-29 씬에서 직접 놓은 자리: 오른쪽 원경, 살짝 기울어짐. 크기는 프리팹 기본 0.69)</summary>
+        private const string ShipPath = "Assets/Scenes/GU/Prefabs/Spaceship_Broken.prefab";
+        private static readonly Vector3 ShipPosition = new Vector3(15.73f, 2.15f, 30.6f);
+        private static readonly Quaternion ShipRotation = new Quaternion(-0.025284223f, 0.9988745f, -0.040118933f, -0.001015519f);
 
         /// <summary>원경 섬광 위치 후보 (몬스터 무리 너머 양옆·정면, 안개 속)</summary>
         private static readonly Vector3[] FlashPoints =
@@ -573,7 +578,7 @@ namespace HybridShooter.UI.MainMenu.Editor
             return director;
         }
 
-        /// <summary>플레이어(기준점) + 몬스터 무리(Placements) + 원경 보스</summary>
+        /// <summary>플레이어(기준점) + 몬스터 무리(Placements) + 원경 보스 + 추락한 우주선</summary>
         private static void PlaceActors(Transform diorama, Dictionary<ActorSpec, GameObject> prefabs)
         {
             Spawn(prefabs[Player], diorama, Vector3.zero, Quaternion.identity);
@@ -584,6 +589,11 @@ namespace HybridShooter.UI.MainMenu.Editor
                 Spawn(prefabs[spec], crowd, position, Quaternion.Euler(0f, yaw, 0f));
 
             Spawn(prefabs[Boss], diorama, BossPosition, Quaternion.Euler(0f, BossYaw, 0f));
+
+            // 연출 전용 소품이라 게임 스크립트가 없어 디스플레이 프리팹을 만들지 않고 그대로 놓는다
+            var ship = AssetDatabase.LoadAssetAtPath<GameObject>(ShipPath);
+            if (ship != null) Spawn(ship, diorama, ShipPosition, ShipRotation);
+            else Debug.LogWarning($"[MainMenuDioramaBuilder] 우주선 프리팹이 없어 빼고 만듭니다: {ShipPath}");
         }
 
         /// <summary>바닥(y = 0) 위에, 비행형은 local.y 높이에 놓는다</summary>
