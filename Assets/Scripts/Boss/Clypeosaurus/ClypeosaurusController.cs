@@ -1,5 +1,6 @@
 ﻿using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
+using HybridShooter.Core.Data.Defs;
 using UnityEngine;
 
 namespace HybridShooter.Boss.Clypeosaurus
@@ -11,6 +12,7 @@ namespace HybridShooter.Boss.Clypeosaurus
         
         private BossController boss;
         private int nextHitIndex;
+        private bool initialized;
         
         private void Awake()
         {
@@ -19,6 +21,8 @@ namespace HybridShooter.Boss.Clypeosaurus
         
         private void Start()
         {
+            if (initialized) return;
+
             var target = playerSource as IPlayerTarget;
 
             if (target?.Root == null)
@@ -38,8 +42,17 @@ namespace HybridShooter.Boss.Clypeosaurus
                 return;
             }
 
+            Initialize(bossData, target);
+        }
+
+        /// <summary>라운드에서 생성할 때 플레이어를 직접 받아 초기화하고, Start의 중복 초기화를 막는다.</summary>
+        public void Initialize(BossDef def, IPlayerTarget target)
+        {
+            if (initialized) return;
+
+            var attackData = DataManager.Clypeosaurus;
             nextHitIndex = 0;
-            boss.Initialize(bossData, target);
+            boss.Initialize(def, target);
 
             var entrance = GetComponent<EntranceAttack>();
             entrance.Initialize(attackData, target);
@@ -48,6 +61,7 @@ namespace HybridShooter.Boss.Clypeosaurus
             GetComponent<MagmaBarrageAttack>().Initialize(attackData, target);
             GetComponent<SuctionAttack>().Initialize(attackData, target);
 
+            initialized = true;
             if (entrance.TryStart() == false)
             {
                 Debug.LogError("[Clypeosaurus] 등장 공격 시작 실패. 초기화·NavMesh를 확인해주세요.", this);
