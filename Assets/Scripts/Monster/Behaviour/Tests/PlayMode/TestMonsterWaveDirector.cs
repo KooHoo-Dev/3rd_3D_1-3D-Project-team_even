@@ -19,15 +19,16 @@ namespace HybridShooter.Monster.Behaviour.Tests
     /// 실제 MonsterPool·실제 테이블(DataManager)을 쓰고, 소환 위치만 이 클래스가 대신한다 (원점). 소환 수는 MonsterSpawnedEvent 로 센다.
     /// </summary>
     /// <remarks>
-    /// Time.captureDeltaTime = 0.5 라서 1프레임 = 라운드 0.5초다. 라운드 1 = 스테이지 1 (0초, 23마리) · 2 (60초, 21마리) · 3 (120초, 52마리).
-    /// 스테이지 1 은 약 40초, 2 는 약 96초, 3 은 약 165초에 소환이 끝난다.
+    /// Time.captureDeltaTime = 0.5 라서 1프레임 = 라운드 0.5초다. 라운드 1 = 스테이지 1 (0초, 41마리) · 2 (60초, 40마리) · 3 (120초, 57마리) · 4 (150초, 보스 대기 24마리).
+    /// 스테이지 1 은 약 39초, 2 는 약 103초, 3 은 약 151초, 4 는 약 201초에 소환이 끝난다.
     /// </remarks>
     public sealed class TestMonsterWaveDirector : ISpawnZoneProvider
     {
         private const float SecondsPerFrame = 0.5f;
-        private const int Stage1Count = 6 + 8 + 1 + 8;
-        private const int Stage2Count = 2 + 3 + 10 + 2 + 3 + 1;
-        private const int Stage3Count = 2 + 12 + 16 + 4 + 16 + 2;
+        private const int Stage1Count = 10 + 12 + 3 + 12 + 4;
+        private const int Stage2Count = 3 + 4 + 16 + 3 + 3 + 1 + 10;
+        private const int Stage3Count = 2 + 12 + 14 + 4 + 2 + 12 + 2 + 8 + 1;
+        private const int Stage4Count = 18 + 6;
 
         private MonsterWaveDirector director;
         private readonly List<GameObject> spawnedMonsters = new List<GameObject>();
@@ -86,6 +87,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             LogAssert.Expect(LogType.Log, new Regex("스테이지 1 시작"));
             LogAssert.Expect(LogType.Log, new Regex("스테이지 2 시작"));
             LogAssert.Expect(LogType.Log, new Regex("스테이지 3 시작"));
+            LogAssert.Expect(LogType.Log, new Regex("스테이지 4 시작"));
             LogAssert.Expect(LogType.Log, new Regex("군중전 소환 끝"));
 
             director.StartRound(1);
@@ -101,8 +103,8 @@ namespace HybridShooter.Monster.Behaviour.Tests
             yield return WaitRoundSeconds(10f);   // 125초
             Assert.Greater(SpawnCount, Stage1Count + Stage2Count, "스테이지 3 시작");
 
-            yield return WaitRoundSeconds(60f);   // 185초
-            Assert.AreEqual(Stage1Count + Stage2Count + Stage3Count, SpawnCount, "모든 스테이지가 남은 소환을 끝까지 냄");
+            yield return WaitRoundSeconds(80f);   // 205초
+            Assert.AreEqual(Stage1Count + Stage2Count + Stage3Count + Stage4Count, SpawnCount, "모든 스테이지가 남은 소환을 끝까지 냄");
         }
 
         // ── 완료 기준 8 ──
