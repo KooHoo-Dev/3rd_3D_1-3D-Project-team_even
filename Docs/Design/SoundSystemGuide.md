@@ -59,6 +59,7 @@
 - 몬스터에 맞는 판정(Collider)이 있어야 총에 맞고 죽습니다 (몬스터 담당).
 
 옵션 화면을 만들 때 (UI 담당): 볼륨은 `ISoundService.SetVolume(SoundCategory.Bgm, 0.8f)` 처럼 0~1 값으로 넣으면 믹서에 반영됩니다. 카테고리는 `Bgm` · `Sfx` · `Monster` · `Ui` 네 가지입니다.
+전체 볼륨은 `ISoundService.MasterVolume` 입니다. 저장된 옵션 볼륨은 `GameSettings`(`Core/Settings`)가 씬이 열릴 때마다 (`SceneManager.sceneLoaded`, SoundService.Start 보다 먼저) 넣어 주므로, 씬에 SoundService 만 두면 따로 연결할 것이 없습니다. 이때 SoundService Inspector 의 볼륨 값은 저장값으로 덮어써집니다. SoundService 는 시작할 때 믹서를 Default 스냅샷으로 되돌립니다 (강화 화면 중에 씬을 나가도 다음 씬이 먹먹하지 않게).
 
 ---
 

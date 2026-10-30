@@ -156,8 +156,18 @@ namespace HybridShooter.Audio
             return source;
         }
 
-        /// <summary>믹서 볼륨 적용. Awake 의 SetFloat 는 무시될 수 있어서 Start 에서 한다</summary>
-        private void Start() => ApplyMixerVolumes();
+        /// <summary>
+        /// 믹서 볼륨 적용. Awake 의 SetFloat 는 무시될 수 있어서 Start 에서 한다.
+        /// 믹서 에셋은 씬이 바뀌어도 상태가 남으므로 (강화 화면 Reward 중 메인 메뉴로 나가는 경우) 기본 스냅샷으로 바로 되돌린다.
+        /// 저장된 옵션 볼륨은 GameSettings 가 씬 로드 직후(Start 전) SetVolume 으로 넣어 두므로 여기서 그 값이 적용된다
+        /// </summary>
+        private void Start()
+        {
+            ApplyMixerVolumes();
+            if (mixer == null) return;
+            var snapshot = mixer.FindSnapshot(DefaultSnapshot);
+            if (snapshot != null) snapshot.TransitionTo(0f);
+        }
 
         /// <summary>Inspector 볼륨 슬라이더를 플레이 중에 바꾸면 믹서에도 반영</summary>
         private void OnValidate()
