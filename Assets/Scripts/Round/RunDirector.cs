@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace HybridShooter.Round
 {
-    /// <summary>라운드 반복·최종 사망·재시작을 관리한다. 진행 횟수와 관계없이 1라운드 데이터를 재사용한다.</summary>
+    /// <summary>라운드 반복·최종 사망·재시작을 관리한다. 진행 횟수와 관계없이 1라운드 RoundDef 를 재사용한다. 웨이브 라운드는 RoundSequencer 가 진행 횟수로 순환한다.</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(RoundSequencer))]
     public sealed class RunDirector : MonoBehaviour
@@ -73,9 +73,9 @@ namespace HybridShooter.Round
 
             isRunning = true;
             CurrentRound++;
-            // Round는 표시용 진행 횟수이고, 데이터와 웨이브 번호는 항상 1이다.
+            // Round는 진행 횟수다. RoundDef 는 항상 1이고, 웨이브 번호는 RoundSequencer 가 이 횟수로 순환해 고른다.
             EventBus<RoundStartedEvent>.Publish(new RoundStartedEvent(CurrentRound, def));
-            if (isRunning) roundSequencer.StartRound(def);
+            if (isRunning) roundSequencer.StartRound(def, CurrentRound);
         }
 
         private void OnPhaseChanged(GameState phase)
