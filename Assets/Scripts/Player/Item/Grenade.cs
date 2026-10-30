@@ -28,12 +28,21 @@ namespace HybridShooter.Player
         [Tooltip("던질 때 주는 회전 속도 (rad/s)")]
         [SerializeField] private float spin = 10f;
 
+        [Header("착지")]
+        [Tooltip("처음 부딪힐 때 남길 속도 비율 (작을수록 그 자리에 멈춘다)")]
+        [SerializeField, Range(0f, 1f)] private float impactVelocityKeep = 0.2f;
+        [Tooltip("착지 후 이동 감쇠 (구르지 않게)")]
+        [SerializeField] private float landedLinearDamping = 3f;
+        [Tooltip("착지 후 회전 감쇠")]
+        [SerializeField] private float landedAngularDamping = 5f;
+
         private Rigidbody body;
         private GrenadeStats stats;
         private ProjectileContext context;
         private GrenadeDef def;
         private float explodeTime;
         private bool launched;
+        private bool landed;
 
         private void OnEnable() => EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
 
@@ -72,7 +81,11 @@ namespace HybridShooter.Player
                         if (a != null && b != null) Physics.IgnoreCollision(a, b);
             }
 
+            landed = false;
             body.isKinematic = false;
+            // 던지는 쪽이 감쇠 없는 포물선으로 착지점을 계산하므로 날아가는 동안은 감쇠를 끈다
+            body.linearDamping = 0f;
+            body.angularDamping = 0.05f;
             body.interpolation = RigidbodyInterpolation.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             body.linearVelocity = velocity;
@@ -82,6 +95,17 @@ namespace HybridShooter.Player
         private void Update()
         {
             if (launched && Time.time >= explodeTime) Explode();
+        }
+
+        /// <summary>처음 부딪히면 거의 멈춘다 (조준한 곳에서 굴러가지 않게). 벽에 맞으면 그 앞으로 떨어진다</summary>
+        private void OnCollisionEnter(Collision collision)
+        {
+            if (launched == false || landed) return;
+            landed = true;
+            body.linearVelocity *= impactVelocityKeep;
+            body.angularVelocity *= impactVelocityKeep;
+            body.linearDamping = landedLinearDamping;
+            body.angularDamping = landedAngularDamping;
         }
 
         private void Explode()
