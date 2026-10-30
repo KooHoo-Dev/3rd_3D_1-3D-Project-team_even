@@ -19,6 +19,10 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
     /// </remarks>
     public sealed class MonsterPoolLab : MonoBehaviour
     {
+        [Header("디버그")]
+        [Tooltip("켜면 조작 창(Game/Scene 뷰)과 F5~F12 소환 키를 쓴다. 끄면 전부 숨긴다")]
+        [SerializeField] private bool isDebug = true;
+
         [Header("풀")]
         [Tooltip("소환에 쓸 씬의 MonsterPool")]
         [SerializeField] private MonsterPool monsterPool;
@@ -60,6 +64,8 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
         /// <summary>F5~F12 중 이번 프레임 눌린 키의 번호로 소환한다. 배열에 없는 번호의 키는 무시한다</summary>
         private void Update()
         {
+            if (isDebug == false) return;
+            
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
 
@@ -110,7 +116,11 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
         // ════════ IMGUI ════════
 
         /// <summary>Game 뷰 오른쪽 위에 조작 창을 그린다. 옛 MovementLabController 창(왼쪽 위)과 겹치지 않게 한다</summary>
-        private void OnGUI() => DrawControlWindow(Screen.width);
+        private void OnGUI()
+        {
+            if (isDebug == false) return;
+            DrawControlWindow(Screen.width);
+        }
 
         /// <summary>
         /// 조작 창을 뷰 오른쪽 위에 그린다. Game 뷰(OnGUI)와 Scene 뷰(OnSceneGUI)가 같이 쓴다.
@@ -127,6 +137,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
         /// <summary>Scene 뷰 위에 조작 창을 띄운다. Handles.BeginGUI 구간에서 DrawControlWindow 를 그린다</summary>
         private void OnSceneGUI(UnityEditor.SceneView sceneView)
         {
+            if (isDebug == false) return;
             UnityEditor.Handles.BeginGUI();
             DrawControlWindow(sceneView.position.width);
             UnityEditor.Handles.EndGUI();
