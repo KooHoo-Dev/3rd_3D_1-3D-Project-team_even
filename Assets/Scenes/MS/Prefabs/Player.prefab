@@ -1017,7 +1017,7 @@ MonoBehaviour:
     FadeOut: 0.8
     Source: {x: 0, y: 0, z: 0}
     Radius: 0
-  walkSpeed: 3
+  walkSpeed: 5
   sprintMultiplier: 1.6
   maxWalkSpeed: 10
   groundAcceleration: 45
