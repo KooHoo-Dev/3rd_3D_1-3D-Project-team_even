@@ -49,13 +49,23 @@ namespace HybridShooter.Player
         [SerializeField] private float releaseTime = 0.25f;
         [Tooltip("켜면 타이머 대신 애니메이션 이벤트가 ReleaseGrenade() 를 부른다")]
         [SerializeField] private bool releaseByAnimationEvent;
-        [Tooltip("조준선보다 위로 던지는 각도(도)")]
-        [SerializeField] private float upwardAngle = 10f;
         [Tooltip("수류탄이 생성될 손 (비우면 카메라 앞 spawnForward 지점)")]
         [SerializeField] private Transform throwHand;
         [SerializeField] private float spawnForward = 0.6f;
-        [Tooltip("플레이어 이동 속도를 수류탄에 얼마나 더할지")]
-        [SerializeField, Range(0f, 1f)] private float inheritVelocity = 0.5f;
+
+        [Header("투척 궤도 (조준한 바닥에 떨어진다)")]
+        [Tooltip("최대 사거리(m, 수평). 하늘이나 이보다 먼 곳을 조준하면 이 거리의 바닥에 떨어진다")]
+        [SerializeField] private float maxThrowRange = 20f;
+        [Tooltip("최소 사거리(m, 수평). 발밑 바닥을 조준해도 이만큼은 앞으로 던진다")]
+        [SerializeField] private float minThrowRange = 2f;
+        [Tooltip("가장 짧은 비행 시간(초). 가까운 곳에 던질 때의 궤도 높이를 정한다")]
+        [SerializeField] private float minFlightTime = 0.5f;
+        [Tooltip("가장 긴 비행 시간(초). 먼 곳에 던질 때의 궤도 높이를 정한다 (폭발 시간보다 길어지지 않게 자동으로 줄인다)")]
+        [SerializeField] private float maxFlightTime = 1.4f;
+        [Tooltip("착지 후 폭발까지 최소로 남길 시간(초). 공중 폭발 방지")]
+        [SerializeField] private float fuseMargin = 0.25f;
+        [Tooltip("바닥을 찾을 때 목표 지점 위 몇 m 에서 아래로 검사할지")]
+        [SerializeField] private float groundProbeHeight = 10f;
 
         [Header("회복 팩")]
         [SerializeField] private int startHealPacks = 1;
@@ -120,6 +130,10 @@ namespace HybridShooter.Player
         public Transform ThrowSpawn { get; set; }
         /// <summary>던질 수류탄 프리팹 (손에 든 모형을 만들 때 쓴다)</summary>
         public Grenade GrenadePrefab => grenadePrefab;
+        /// <summary>마지막 투척의 출발점 · 목표 착지점 · 초기 속도 (디버그 기즈모용)</summary>
+        public Vector3 LastThrowFrom { get; private set; }
+        public Vector3 LastThrowTarget { get; private set; }
+        public Vector3 LastThrowVelocity { get; private set; }
         public bool IsHealing => healing;
         /// <summary>회복 효과가 끝날 때까지 남은 시간(초)</summary>
         public float HealRemainingTime => healing ? Mathf.Max(0f, healEndTime - Time.time) : 0f;
@@ -167,13 +181,14 @@ namespace HybridShooter.Player
 
             Ray aim = gunSlot != null ? gunSlot.AimRay : new Ray(transform.position + Vector3.up * 1.5f, transform.forward);
             Vector3 spawn = SpawnPoint(aim);
-            Vector3 aimPoint = gunSlot != null ? gunSlot.GetAimPoint(100f, grenadeHitMask) : aim.GetPoint(100f);
-            Vector3 direction = (aimPoint - spawn).normalized;
-            Vector3 right = Vector3.Cross(Vector3.up, direction);
-            if (right.sqrMagnitude > 0.0001f) direction = Quaternion.AngleAxis(-upwardAngle, right.normalized) * direction;
+            Vector3 target = ResolveThrowTarget(aim);
+            Vector3 velocity = SolveLaunchVelocity(spawn, target);
+            LastThrowFrom = spawn;
+            LastThrowTarget = target;
+            LastThrowVelocity = velocity;
 
-            Vector3 velocity = direction * GrenadeStats.throwSpeed + player.Velocity * inheritVelocity;
-            var grenade = Instantiate(grenadePrefab, spawn, Quaternion.LookRotation(direction));
+            Vector3 facing = velocity.sqrMagnitude > 0.0001f ? velocity : transform.forward;
+            var grenade = Instantiate(grenadePrefab, spawn, Quaternion.LookRotation(facing));
             var context = new ProjectileContext(Faction.Player, gameObject, transform, grenadeDef != null ? grenadeDef.Id : 0, grenadeHitMask);
             grenade.Launch(GrenadeStats, context, grenadeDef, velocity, ownColliders);
 
@@ -333,6 +348,93 @@ namespace HybridShooter.Player
                 hit.collider.transform.IsChildOf(transform) == false)
                 return hit.point - delta / distance * 0.15f;
             return target;
+        }
+
+        /// <summary>
+        /// 수류탄이 떨어질 지점.
+        ///  - 조준선이 최대 사거리(수평) 안에서 맞은 곳이 있으면 그곳 (벽·몬스터도 그대로)
+        ///  - 하늘이거나 더 멀면 → 조준 방향으로 최대 사거리 지점의 바닥
+        ///  - 발밑 바닥이면 → 최소 사거리 지점의 바닥
+        /// </summary>
+        private Vector3 ResolveThrowTarget(Ray aim)
+        {
+            Vector3 origin = transform.position;
+            Vector3 flatForward = Vector3.ProjectOnPlane(aim.direction, Vector3.up);
+            if (flatForward.sqrMagnitude < 0.0001f) flatForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+            flatForward.Normalize();
+
+            // 내려다볼수록 조준선이 길어지므로 수평 사거리보다 넉넉히 검사한다
+            float probeRange = maxThrowRange * 2f + Vector3.Distance(aim.origin, origin);
+            if (RaycastIgnoringSelf(aim.origin, aim.direction, probeRange, out var hit))
+            {
+                float flat = Vector3.ProjectOnPlane(hit.point - origin, Vector3.up).magnitude;
+                if (flat <= maxThrowRange)
+                {
+                    bool isGround = Vector3.Dot(hit.normal, Vector3.up) > 0.5f;
+                    if (flat >= minThrowRange || isGround == false) return hit.point;
+                    return GroundAt(origin + flatForward * minThrowRange, origin.y);
+                }
+            }
+            return GroundAt(origin + flatForward * maxThrowRange, origin.y);
+        }
+
+        /// <summary>point 위에서 아래로 바닥을 찾는다. 없으면 fallbackY 높이</summary>
+        private Vector3 GroundAt(Vector3 point, float fallbackY)
+        {
+            Vector3 from = new Vector3(point.x, Mathf.Max(point.y, fallbackY) + groundProbeHeight, point.z);
+            if (RaycastIgnoringSelf(from, Vector3.down, groundProbeHeight * 3f, out var hit)) return hit.point;
+            return new Vector3(point.x, fallbackY, point.z);
+        }
+
+        /// <summary>가장 가까운, 내 몸이 아닌 충돌 지점</summary>
+        private bool RaycastIgnoringSelf(Vector3 from, Vector3 direction, float range, out RaycastHit best)
+        {
+            best = default;
+            bool found = false;
+            var hits = Physics.RaycastAll(from, direction, range, grenadeHitMask, QueryTriggerInteraction.Ignore);
+            foreach (var hit in hits)
+            {
+                if (hit.collider.transform.IsChildOf(transform)) continue;
+                if (found && hit.distance >= best.distance) continue;
+                best = hit;
+                found = true;
+            }
+            return found;
+        }
+
+        /// <summary>
+        /// from 에서 던져 비행 시간 t 뒤에 정확히 to 에 닿는 초기 속도.
+        /// t 는 수평 거리 / throwSpeed 를 [minFlightTime, maxFlightTime] 로 묶고, 폭발 시간보다 fuseMargin 만큼 짧게 한다
+        /// (가까우면 낮고 빠르게, 멀면 높은 포물선)
+        /// </summary>
+        private Vector3 SolveLaunchVelocity(Vector3 from, Vector3 to)
+        {
+            Vector3 delta = to - from;
+            float flat = new Vector2(delta.x, delta.z).magnitude;
+
+            float longest = maxFlightTime;
+            if (GrenadeStats.fuseTime > 0f) longest = Mathf.Min(longest, GrenadeStats.fuseTime - fuseMargin);
+            longest = Mathf.Max(longest, 0.1f);
+            float shortest = Mathf.Min(minFlightTime, longest);
+
+            float t = Mathf.Clamp(flat / Mathf.Max(0.1f, GrenadeStats.throwSpeed), shortest, longest);
+            return delta / t - 0.5f * t * Physics.gravity;
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (LastThrowVelocity == Vector3.zero) return;
+            Gizmos.color = Color.yellow;
+            Vector3 prev = LastThrowFrom;
+            for (float t = 0.05f; t <= 3f; t += 0.05f)
+            {
+                Vector3 next = LastThrowFrom + LastThrowVelocity * t + 0.5f * t * t * Physics.gravity;
+                Gizmos.DrawLine(prev, next);
+                prev = next;
+                if (next.y < LastThrowTarget.y - 1f) break;
+            }
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(LastThrowTarget, 0.3f);
         }
 
         private void ResetCounts()
