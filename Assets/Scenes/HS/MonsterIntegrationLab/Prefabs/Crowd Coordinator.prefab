@@ -52,8 +52,8 @@ MonoBehaviour:
     ReleaseRadius: 10.5
     AllocationInterval: 0.2
     ThinkCycle: 0.5
-    EnableCrowdControl: 1
-    UseSlots: 1
+    EnableCrowdControl: 0
+    UseSlots: 0
     Slots:
       ApproachCount: 7
       ApproachRadius: 1.3
