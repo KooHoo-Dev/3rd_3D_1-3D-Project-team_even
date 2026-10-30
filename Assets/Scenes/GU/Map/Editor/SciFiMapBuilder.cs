@@ -51,6 +51,7 @@ public static class SciFiMapBuilder
 
     // 수동 편집 기록 (Save Sci-Fi Map Edits 메뉴가 씀)
     private const string EditsPath = "Assets/Scenes/GU/Map/SciFiMapEdits.json";
+    private static readonly string[] KeepTiltPrefabs = { "Spaceship_Broken" }; // 수동 편집을 적용할 때 똑바로 세우지 않을 프리펩
     private const string NavMeshDataPath = "Assets/Scenes/GU/Map/SciFiMap_NavMesh.asset";
 
     // 스폰 지점 (Tools/Map/Place Sci-Fi Spawn Points 메뉴가 씬의 Player·BossSpawnPoint를 옮김)
@@ -98,6 +99,11 @@ public static class SciFiMapBuilder
     // CrashSite 그룹이 옮겨지면 같은 만큼 따라간다.
     private static readonly Vector3 ShipPosition = new Vector3(-49.43f, -0.19f, -90.27f);
     private static readonly Quaternion ShipRotation = new Quaternion(0.07769645f, -0.95590156f, 0.17838787f, -0.21998493f);
+
+    // 추락 지점 소품: 선체 가장자리(Bounds 반경)에서 떨어진 거리 범위(m)
+    private const float CrashCoverGapMin = 10f, CrashCoverGapMax = 26f;   // 회피용 엄폐물 (생존자가 끌어다 놓은 느낌, 선체와 떨어짐)
+    private const float CrashRockGapMin = 5f, CrashRockGapMax = 24f;      // 바위
+    private const float CrashDebrisGapMin = 6f, CrashDebrisGapMax = 18f;  // 통·잔해
 
     // 외곽 방어선 울타리 (방어선 중심 기준 동쪽으로 FenceOffsetX)
     private const float FenceOffsetX = 15f;
@@ -187,6 +193,7 @@ public static class SciFiMapBuilder
         }
 
         EditData edits = LoadEdits();
+        _edits = edits;
         for (int k = 0; k < SiteNames.Length; k++)
         {
             MovedEdit e = edits.moved.Find(m => m.path == "Props/" + SiteNames[k]);
@@ -209,7 +216,8 @@ public static class SciFiMapBuilder
         MakeNamesUnique(root.transform);
         ApplyEdits(root.transform, edits);
 
-        // 3) NavMesh 굽기 (수동 편집까지 반영된 상태에서)
+        // 3) 콜라이더 정리 → NavMesh 굽기 (수동 편집까지 반영된 상태에서)
+        CleanupColliders(root.transform);
         BakeNavMesh(root, source);
 
         // 4) 프리펩 저장 후 씬에 배치
@@ -361,6 +369,7 @@ public static class SciFiMapBuilder
     // ───────────────────────── 소품 ─────────────────────────
 
     private static Terrain _terrain;
+    private static EditData _edits; // 이번 빌드의 수동 편집 기록 (배치 중에 미리 참고할 것이 있을 때)
     private static readonly List<Vector3> Occupied = new List<Vector3>(); // (x, z, 반경)
 
     private static void BuildProps(Transform root, Terrain terrain)
@@ -476,23 +485,31 @@ public static class SciFiMapBuilder
     {
         GameObject ship = Spawn("Spaceship_Broken", parent);
         float shipRadius = 10f;
+        Vector2 shipXZ = CrashCenter;
         if (ship != null)
         {
             Vector2 baseXZ = DefaultSiteCenters[SiteCrash];
             Vector3 shift = new Vector3(CrashCenter.x - baseXZ.x, GroundY(CrashCenter) - GroundY(baseXZ), CrashCenter.y - baseXZ.y);
             ship.transform.SetPositionAndRotation(ShipPosition + shift, ShipRotation);
+
+            // 손으로 맞춘 추락선 자세가 저장돼 있으면 주변 소품을 배치하기 전에 먼저 적용한다.
+            // (나중에 적용하면 소품은 옛 자리 기준으로 흩어지고 추락선만 옮겨진다)
+            MovedEdit manual = _edits?.moved.Find(m => m.path == "Props/CrashSite/Spaceship_Broken");
+            if (manual != null) SetRootPose(parent.root, ship.transform, manual.position, manual.rotation, manual.scale);
+
             shipRadius = Footprint(ship);
             Bounds sb = GetBounds(ship);
-            Occupy(new Vector2(sb.center.x, sb.center.z), shipRadius);
+            shipXZ = new Vector2(sb.center.x, sb.center.z);
+            Occupy(shipXZ, shipRadius);
         }
 
+        // 추락선에 바짝 붙지 않게 선체 가장자리에서 일정 거리 밖에 놓는다.
         PlaceCover(parent, new[] { "Container_01", "Concrete_wall2_Shield", "Stone_Big1", "Rock_01" },
-            CrashCenter, shipRadius + 4f, shipRadius + 18f, MaxPropSlope, null);
-
+            shipXZ, shipRadius + CrashCoverGapMin, shipRadius + CrashCoverGapMax, MaxPropSlope, null);
         Scatter(parent, new[] { "Rock_01", "Stone_med1", "Stone_med2", "Stone_med3", "Rock_Shales_01", "Rock_Shales_03" },
-            10, CrashCenter, shipRadius + 3f, shipRadius + 20f, 2f, 0.8f, 1.3f, 0.2f, 0f);
+            10, shipXZ, shipRadius + CrashRockGapMin, shipRadius + CrashRockGapMax, 2f, 0.8f, 1.3f, 0.2f, 0f);
         Scatter(parent, new[] { "Prop_Barrel1 gray", "Prop3", "Prop5", "Prop7", "Cover Panel2D" },
-            6, CrashCenter, shipRadius + 2f, shipRadius + 14f, 1.5f, 1f, 1f, 0.1f, 25f);
+            6, shipXZ, shipRadius + CrashDebrisGapMin, shipRadius + CrashDebrisGapMax, 1.5f, 1f, 1f, 0.1f, 0f);
     }
 
     /// <summary>외곽 방어선(동): 군데군데 무너진 남북 방향 울타리 + 안테나·태양광 패널 + 낮은 방벽</summary>
@@ -527,7 +544,7 @@ public static class SciFiMapBuilder
         Scatter(parent, new[] { "Antenna_01", "Antenna_03", "Antenna_05", "Antenna_Big", "Solar_Panel1", "Solar_Panel2", "Solar_Panel3", "Solar_Panel4", "Radar_Sphere" },
             8, DefenseCenter, 6f, 45f, 3f, 1f, 1f, 0f, 0f);
         Scatter(parent, new[] { "Barrier_2m", "Barrier_4m", "Barrier_01_A", "Barrier_Edge_2m", "Concrete_wall2_Barrier3", "Cover Panel6A" },
-            12, DefenseCenter + new Vector2(-12f, 0f), 4f, 32f, 3f, 1f, 1f, 0.05f, 8f);
+            12, DefenseCenter + new Vector2(-12f, 0f), 4f, 32f, 3f, 1f, 1f, 0.05f, 0f);
     }
 
     /// <summary>정제 플랜트(북동): 크레인 + 탱크·발전기 군집(사이 통로 4m 이상) + 작은 설비</summary>
@@ -899,6 +916,85 @@ public static class SciFiMapBuilder
     }
 
     /// <summary>
+    /// Props 아래 장애물 소품(프리펩 인스턴스)마다, 소품 방향에 맞춘 로컬 Bounds 상자로
+    /// - 콜라이더가 하나도 없으면 BoxCollider를 붙인다. (Rock_01 등은 원본에 콜라이더가 없어 몬스터·플레이어가 통과함)
+    /// - NavMeshModifierVolume(Not Walkable)을 붙인다. 소품 윗면이나 땅에 박힌 소품 속 지면이 NavMesh 섬으로 남아
+    ///   몬스터가 그 위로 소환(SnapToNavMesh)되는 것을 막는다.
+    /// 착륙장 바닥판·유도등은 밟고 다니는 바닥이라 뺀다. ObstacleColliderBuilder처럼 볼록 메시로 감싸지 않는 이유는
+    /// 크레인·기울어진 드릴 탑 같은 소품이 큰 덩어리가 되어 통로를 막고, 소품 수백 개마다 메시 에셋이 생기기 때문이다.
+    /// </summary>
+    private static void CleanupColliders(Transform root)
+    {
+        Transform props = root.Find("Props");
+        if (props == null) return;
+        List<Transform> obstacles = new List<Transform>();
+        CollectObstacles(props, obstacles);
+
+        int notWalkable = UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
+        int boxes = 0, volumes = 0;
+        foreach (Transform prop in obstacles)
+        {
+            if (!TryGetLocalBounds(prop, out Bounds local)) continue;
+
+            bool hasCollider = false;
+            foreach (Collider c in prop.GetComponentsInChildren<Collider>())
+                if (c.enabled && !c.isTrigger) { hasCollider = true; break; }
+            if (!hasCollider)
+            {
+                BoxCollider box = prop.gameObject.AddComponent<BoxCollider>();
+                box.center = local.center;
+                box.size = local.size;
+                boxes++;
+            }
+
+            NavMeshModifierVolume volume = prop.gameObject.AddComponent<NavMeshModifierVolume>();
+            volume.center = local.center;
+            volume.size = local.size;
+            volume.area = notWalkable;
+            volumes++;
+        }
+        Debug.Log($"[SciFiMapBuilder] 콜라이더 정리: 장애물 {obstacles.Count}개, BoxCollider 추가 {boxes}, NavMesh 제외 볼륨 {volumes}");
+    }
+
+    /// <summary>프리펩 인스턴스 루트를 장애물 하나로 모은다. (그룹은 내려가고, 바닥판·유도등은 뺌)</summary>
+    private static void CollectObstacles(Transform parent, List<Transform> result)
+    {
+        foreach (Transform t in parent)
+        {
+            if (!PrefabUtility.IsAnyPrefabInstanceRoot(t.gameObject))
+            {
+                CollectObstacles(t, result);
+                continue;
+            }
+            GameObject source = PrefabUtility.GetCorrespondingObjectFromSource(t.gameObject);
+            string sourceName = source != null ? source.name : t.name;
+            if (sourceName.StartsWith("Hangar_Ground_Plate") || sourceName.StartsWith("Lamp_")) continue;
+            result.Add(t);
+        }
+    }
+
+    /// <summary>prop의 모든 메시 정점 범위를 prop 로컬 공간 상자로 구한다. (메시가 없으면 false)</summary>
+    private static bool TryGetLocalBounds(Transform prop, out Bounds local)
+    {
+        local = default;
+        bool found = false;
+        foreach (MeshFilter filter in prop.GetComponentsInChildren<MeshFilter>())
+        {
+            if (filter.sharedMesh == null) continue;
+            if (!filter.TryGetComponent(out MeshRenderer renderer) || !renderer.enabled) continue;
+            Bounds mb = filter.sharedMesh.bounds;
+            for (int k = 0; k < 8; k++)
+            {
+                Vector3 corner = mb.center + Vector3.Scale(mb.extents, new Vector3((k & 1) == 0 ? -1 : 1, (k & 2) == 0 ? -1 : 1, (k & 4) == 0 ? -1 : 1));
+                Vector3 p = prop.InverseTransformPoint(filter.transform.TransformPoint(corner));
+                if (found) local.Encapsulate(p);
+                else { local = new Bounds(p, Vector3.zero); found = true; }
+            }
+        }
+        return found;
+    }
+
+    /// <summary>
     /// 기존 Map의 NavMeshSurface 설정(에이전트·레이어·콜라이더 기준)을 그대로 써서 SciFiMap 자식만 대상으로 굽는다.
     /// 구운 데이터는 에셋으로 저장해 프리펩이 참조하게 한다. 씬에 인스턴스가 켜질 때 NavMesh가 등록된다.
     /// </summary>
@@ -1162,8 +1258,48 @@ public static class SciFiMapBuilder
             if (System.Array.Exists(SiteNames, s => e.path == "Props/" + s)) continue;
             Transform t = FindPath(root, e.path);
             if (t == null) { Debug.LogWarning($"[SciFiMapBuilder] 옮길 오브젝트를 찾지 못함: {e.path}"); continue; }
-            SetRootPose(root, t, e.position, e.rotation, e.scale);
+
+            // 씬에서 메시를 클릭해 옮기면 소품 안의 자식(LOD 메시 등)만 움직인다. 그러면 나머지 LOD·콜라이더는 제자리에 남으므로,
+            // 그 자식이 저장된 자세에 오도록 소품(프리펩 인스턴스 루트) 전체를 옮긴다.
+            GameObject propRoot = PrefabUtility.GetNearestPrefabInstanceRoot(t.gameObject);
+            if (propRoot == null || propRoot.transform == t)
+            {
+                SetRootPose(root, t, e.position, e.rotation, e.scale);
+                Upright(t);
+                continue;
+            }
+            Transform prop = propRoot.transform;
+            Vector3 childLocalPos = prop.InverseTransformPoint(t.position);
+            Quaternion childLocalRot = Quaternion.Inverse(prop.rotation) * t.rotation;
+            Quaternion propRot = root.rotation * e.rotation * Quaternion.Inverse(childLocalRot);
+            Vector3 propPos = root.TransformPoint(e.position) - propRot * Vector3.Scale(childLocalPos, prop.lossyScale);
+            prop.SetPositionAndRotation(propPos, propRot);
+            Upright(prop);
         }
+    }
+
+    /// <summary>
+    /// 기울어진 소품을 똑바로 세운다. 프리펩 원래 자세 기준으로 좌우·앞뒤 기울기를 없애고 수평 방향(yaw)만 남긴다.
+    /// 일부러 기울여 둔 추락선 등(KeepTiltPrefabs)은 그대로 둔다. 회전축은 소품 Bounds 바닥 중심이라 세운 뒤에도 놓인 자리가 유지된다.
+    /// </summary>
+    private static void Upright(Transform prop)
+    {
+        GameObject source = PrefabUtility.GetCorrespondingObjectFromSource(prop.gameObject);
+        if (source == null || System.Array.IndexOf(KeepTiltPrefabs, source.name) >= 0) return;
+
+        Quaternion baseRot = source.transform.localRotation;
+        Quaternion tilt = prop.rotation * Quaternion.Inverse(baseRot);
+        Vector3 forward = tilt * Vector3.forward;
+        forward.y = 0f;
+        if (forward.sqrMagnitude < 1e-6f) forward = tilt * Vector3.up; // 앞이 수직을 보면 위 방향으로 수평 방향을 정함
+        forward.y = 0f;
+        if (forward.sqrMagnitude < 1e-6f) return;
+
+        Bounds before = GetBounds(prop.gameObject);
+        Vector3 pivot = new Vector3(before.center.x, before.min.y, before.center.z);
+        prop.rotation = Quaternion.LookRotation(forward.normalized, Vector3.up) * baseRot;
+        Bounds after = GetBounds(prop.gameObject);
+        prop.position += pivot - new Vector3(after.center.x, after.min.y, after.center.z);
     }
 
     /// <summary>t의 자세를 root 기준으로 구한다. 스케일은 root 기준 lossyScale(회전 없는 축 비율 근사).</summary>
