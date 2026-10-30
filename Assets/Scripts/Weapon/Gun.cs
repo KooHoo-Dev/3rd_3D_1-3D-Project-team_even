@@ -371,6 +371,14 @@ namespace HybridShooter.Weapon
             return SpareMagazines - before;
         }
 
+        /// <summary>새로 주웠거나 버려질 때(보급 무기): 장전 취소 + 탄창·예비 탄창을 시작값으로 + 사격 모드 등 초기화</summary>
+        public void ResetForPickup()
+        {
+            CancelReload();
+            ResetAmmo();
+            OnInitialized();
+        }
+
         /// <summary>재장전 동작 없이 탄창과 예비 탄창을 바로 가득 채운다 (디버그 무한 탄약 등)</summary>
         public void RefillAmmo()
         {
@@ -717,9 +725,7 @@ namespace HybridShooter.Weapon
         private void OnRoundCleanup(RoundCleanupEvent evt)
         {
             if (evt.FullReset == false) return;
-            CancelReload();
-            ResetAmmo();
-            OnInitialized();
+            ResetForPickup();
         }
 
         private void ResetAmmo()

@@ -36,6 +36,8 @@ namespace HybridShooter.Player
             items = GetComponent<PlayerItems>();
             // 씬·프리팹·빌더 어디서 만든 플레이어든 1인칭 목 숨김이 빠지지 않게
             if (GetComponent<PlayerFirstPersonNeck>() == null) gameObject.AddComponent<PlayerFirstPersonNeck>();
+            interactor = GetComponent<PlayerInteractor>();
+            if (interactor == null) interactor = gameObject.AddComponent<PlayerInteractor>();
             stamina = maxStamina;
             InitLives();
 
@@ -80,7 +82,7 @@ namespace HybridShooter.Player
 
         private void OnApplicationFocus(bool hasFocus)
         {
-            if (hasFocus && flowInputBlocked == false) SetCursorLocked(true);
+            if (hasFocus && IsGameplayInputBlocked == false) SetCursorLocked(true);
         }
 
         private void Update()

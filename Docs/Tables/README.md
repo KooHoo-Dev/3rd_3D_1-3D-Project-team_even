@@ -52,6 +52,8 @@
 | ReloadTime | float | 강화 전 재장전(초) |
 | Range / SpreadAngle | float | 사거리(m) / 퍼짐 반각(도) |
 | FireSfxKey, ReloadSfxKey, ReloadInsertSfxKey, ReloadEndSfxKey | string | 장전음: 시작 · 탄창·탄 넣기(기본 총 = 장전 55% 시점, 산탄총 = 한 발 시간마다 소리만) · 완료(취소 시 없음) |
+| Category | enum | `Sidearm`(1번 칸 고정 권총, 정확히 1행) / `Loadout`(출발 전 2·3번 칸 선택) / `Supply`(4번 보급 칸 전용, 1회용 — 보급 상자로 탄 충전 안 됨) |
+| IconKey | string | `Resources/UI/WeaponIcons/{IconKey}` 스프라이트. 비우면 무기 슬롯 HUD 가 이름 텍스트로 대체 |
 
 ## GrenadeTable — BL-005
 | 컬럼 | 타입 | 설명 |

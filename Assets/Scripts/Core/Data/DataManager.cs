@@ -469,6 +469,10 @@ namespace HybridShooter.Core.Data
 
             ValidateMonsters(r);
 
+            int sidearmCount = weapons.Count(w => w.Category == WeaponCategory.Sidearm);
+            if (sidearmCount != 1)
+                r.Warn(WeaponDef.Table, "-", $"Category Sidearm(1번 칸 권총) 행이 {sidearmCount}개입니다 (정확히 1개여야 함)");
+
             foreach (UpgradeType type in Enum.GetValues(typeof(UpgradeType)))
                 if (upgradeTracks.Contains(type) == false) r.Warn(UpgradeDef.Table, type, "이 강화 종류의 데이터가 없습니다");
 

@@ -275,4 +275,20 @@ namespace HybridShooter.Core.Events
 
     /// <summary>[UI(강화 선택 화면)] → 코어. 강화 선택 종료, 다음 라운드 시작 요청 (BL-032)</summary>
     public readonly struct RewardSelectionFinishedEvent { }
+
+    // ── 상호작용·보급 무기 ──  [플레이어] → UI(상호작용 프롬프트·슬롯 HUD), 사운드, 분석
+    /// <summary>상호작용 대상(조준 중인 상자 등)이 바뀌었거나 프롬프트 내용이 바뀜. HasTarget = false 면 프롬프트 숨김</summary>
+    public readonly struct InteractFocusChangedEvent
+    {
+        public readonly bool HasTarget;
+        public readonly InteractPrompt Prompt;
+        public InteractFocusChangedEvent(bool hasTarget, InteractPrompt prompt) { HasTarget = hasTarget; Prompt = prompt; }
+    }
+
+    /// <summary>보급 칸(4번) 무기가 바뀜. Id 0 = 비어 있음 (처음부터 재시작 시 New = 0)</summary>
+    public readonly struct SupplyWeaponChangedEvent
+    {
+        public readonly int PreviousWeaponId, NewWeaponId;
+        public SupplyWeaponChangedEvent(int previousWeaponId, int newWeaponId) { PreviousWeaponId = previousWeaponId; NewWeaponId = newWeaponId; }
+    }
 }

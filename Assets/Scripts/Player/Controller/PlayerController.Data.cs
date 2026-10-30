@@ -287,6 +287,7 @@ namespace HybridShooter.Player
 
         // 소모품 (수류탄 · 회복 팩). 같은 오브젝트의 PlayerItems
         private PlayerItems items;
+        private PlayerInteractor interactor;
 
         // 키 배치
         private InputPlayerSettings keySettings = new InputPlayerSettings();
