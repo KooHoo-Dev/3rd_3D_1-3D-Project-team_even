@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using Unity.AI.Navigation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -50,6 +51,11 @@ public static class SciFiMapBuilder
 
     // 수동 편집 기록 (Save Sci-Fi Map Edits 메뉴가 씀)
     private const string EditsPath = "Assets/Scenes/GU/Map/SciFiMapEdits.json";
+    private const string NavMeshDataPath = "Assets/Scenes/GU/Map/SciFiMap_NavMesh.asset";
+
+    // 스폰 지점 (Tools/Map/Place Sci-Fi Spawn Points 메뉴가 씬의 Player·BossSpawnPoint를 옮김)
+    private const float PlayerFromShip = 6f;                     // 추락선 가장자리에서 맵 중앙 쪽으로 떨어진 거리
+    private static readonly Vector2 BossOffset = new Vector2(0f, -10f); // 분화구 중심 기준. 드릴(북쪽)을 피해 남쪽 바닥
 
     // 중앙 광장(착륙장)
     private const float PlazaRadius = 45f;
@@ -203,7 +209,10 @@ public static class SciFiMapBuilder
         MakeNamesUnique(root.transform);
         ApplyEdits(root.transform, edits);
 
-        // 3) 프리펩 저장 후 씬에 배치
+        // 3) NavMesh 굽기 (수동 편집까지 반영된 상태에서)
+        BakeNavMesh(root, source);
+
+        // 4) 프리펩 저장 후 씬에 배치
         PrefabUtility.SaveAsPrefabAsset(root, SavePath);
         Object.DestroyImmediate(root);
         AssetDatabase.SaveAssets();
@@ -278,7 +287,8 @@ public static class SciFiMapBuilder
                 float width = CliffWidth + (n1 * 2f - 1f) * CliffWidthVar;
                 float cliffT = Smooth01(1f - edge / width);
                 float rough = Mathf.PerlinNoise(wx * 0.2f, wz * 0.2f) * 3f;
-                h = Mathf.Max(h, baseH + (CliffHeight + n2 * CliffHeightVar + rough) * cliffT);
+                // cliffT가 0인 안쪽까지 max를 걸면 기준면보다 낮은 곳(분화구·낮은 평지)이 전부 기준면으로 메워진다.
+                if (cliffT > 0f) h = Mathf.Max(h, baseH + (CliffHeight + n2 * CliffHeightVar + rough) * cliffT);
 
                 heights[j, i] = Mathf.Clamp01(h / scaleY);
             }
@@ -821,12 +831,17 @@ public static class SciFiMapBuilder
         return (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
     }
 
+    /// <summary>메시 Renderer들의 Bounds. 파티클(연기 등)은 수십 m로 부풀어 있어 뺀다.</summary>
     private static Bounds GetBounds(GameObject go)
     {
-        Renderer[] renderers = go.GetComponentsInChildren<Renderer>();
-        if (renderers.Length == 0) return new Bounds(go.transform.position, Vector3.one * 0.5f);
-        Bounds b = renderers[0].bounds;
-        for (int i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
+        bool found = false;
+        Bounds b = new Bounds(go.transform.position, Vector3.one * 0.5f);
+        foreach (Renderer r in go.GetComponentsInChildren<Renderer>())
+        {
+            if (r is ParticleSystemRenderer || r is TrailRenderer || r is LineRenderer) continue;
+            if (found) b.Encapsulate(r.bounds);
+            else { b = r.bounds; found = true; }
+        }
         return b;
     }
 
@@ -881,6 +896,99 @@ public static class SciFiMapBuilder
         GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(asset, scene);
         Undo.RegisterCreatedObjectUndo(instance, "Build Sci-Fi Map");
         Selection.activeGameObject = instance;
+    }
+
+    /// <summary>
+    /// 기존 Map의 NavMeshSurface 설정(에이전트·레이어·콜라이더 기준)을 그대로 써서 SciFiMap 자식만 대상으로 굽는다.
+    /// 구운 데이터는 에셋으로 저장해 프리펩이 참조하게 한다. 씬에 인스턴스가 켜질 때 NavMesh가 등록된다.
+    /// </summary>
+    private static void BakeNavMesh(GameObject root, Terrain source)
+    {
+        NavMeshSurface surface = root.AddComponent<NavMeshSurface>();
+        NavMeshSurface template = source.GetComponent<NavMeshSurface>();
+        if (template != null)
+        {
+            surface.agentTypeID = template.agentTypeID;
+            surface.layerMask = template.layerMask;
+            surface.useGeometry = template.useGeometry;
+            surface.defaultArea = template.defaultArea;
+        }
+        else
+        {
+            surface.useGeometry = UnityEngine.AI.NavMeshCollectGeometry.PhysicsColliders;
+        }
+        surface.collectObjects = CollectObjects.Children; // 씬의 Player 등 다른 오브젝트는 빼고 맵만
+        surface.BuildNavMesh();
+
+        AssetDatabase.DeleteAsset(NavMeshDataPath);
+        AssetDatabase.CreateAsset(surface.navMeshData, NavMeshDataPath);
+    }
+
+    /// <summary>
+    /// 씬의 Player를 추락선 옆(맵 중앙 쪽)에, BossSpawnPoint를 분화구 남쪽 바닥에 옮긴다.
+    /// 빌드 때마다 덮어쓰지 않도록 별도 메뉴로 둔다. 옮긴 뒤 손으로 다듬어도 빌드가 건드리지 않는다.
+    /// </summary>
+    [MenuItem("Tools/Map/Place Sci-Fi Spawn Points")]
+    private static void PlaceSpawnPoints()
+    {
+        GameObject map = FindSceneInstance();
+        Terrain terrain = map != null ? map.GetComponentInChildren<Terrain>() : null;
+        if (terrain == null)
+        {
+            Debug.LogError("[SciFiMapBuilder] 활성 씬에서 SciFiMap을 찾지 못했습니다. 먼저 Build Sci-Fi Map을 실행하세요.");
+            return;
+        }
+        _terrain = terrain;
+
+        // 지점 그룹 위치가 곧 지점 중심이다. (수동으로 옮긴 경우 포함)
+        Transform pad = map.transform.Find("Props/" + SiteNames[SitePad]);
+        Transform crater = map.transform.Find("Props/" + SiteNames[SiteCrater]);
+        Transform crash = map.transform.Find("Props/" + SiteNames[SiteCrash]);
+        Vector2 padXZ = pad != null ? new Vector2(pad.position.x, pad.position.z) : DefaultSiteCenters[SitePad];
+        Vector2 craterXZ = crater != null ? new Vector2(crater.position.x, crater.position.z) : DefaultSiteCenters[SiteCrater];
+
+        Transform player = FindInScene("Player");
+        if (player != null)
+        {
+            Transform ship = crash != null ? crash.Find("Spaceship_Broken") : null;
+            Vector2 shipXZ = crash != null ? new Vector2(crash.position.x, crash.position.z) : DefaultSiteCenters[SiteCrash];
+            float shipRadius = 10f;
+            if (ship != null)
+            {
+                Bounds sb = GetBounds(ship.gameObject);
+                shipXZ = new Vector2(sb.center.x, sb.center.z);
+                shipRadius = Mathf.Max(sb.extents.x, sb.extents.z);
+            }
+            Vector2 toPad = (padXZ - shipXZ).normalized;
+            Vector2 xz = shipXZ + toPad * (shipRadius + PlayerFromShip);
+            Undo.RecordObject(player, "Place Sci-Fi Spawn Points");
+            player.SetPositionAndRotation(new Vector3(xz.x, GroundY(xz), xz.y), Quaternion.LookRotation(new Vector3(toPad.x, 0f, toPad.y)));
+        }
+        else Debug.LogWarning("[SciFiMapBuilder] 씬에서 Player를 찾지 못했습니다.");
+
+        Transform boss = FindInScene("BossSpawnPoint");
+        if (boss != null)
+        {
+            Vector2 xz = craterXZ + BossOffset;
+            Undo.RecordObject(boss, "Place Sci-Fi Spawn Points");
+            boss.position = new Vector3(xz.x, GroundY(xz), xz.y);
+        }
+        else Debug.LogWarning("[SciFiMapBuilder] 씬에서 BossSpawnPoint를 찾지 못했습니다.");
+
+        EditorSceneManager.MarkSceneDirty(map.scene);
+        Debug.Log($"[SciFiMapBuilder] 스폰 지점 이동: Player {(player != null ? player.position.ToString() : "-")}, BossSpawnPoint {(boss != null ? boss.position.ToString() : "-")}");
+    }
+
+    /// <summary>활성 씬에서 이름이 같은 오브젝트를 찾는다. (SciFiMap 내부 제외, 비활성 포함)</summary>
+    private static Transform FindInScene(string name)
+    {
+        foreach (GameObject go in SceneManager.GetActiveScene().GetRootGameObjects())
+        {
+            if (go.name == "SciFiMap") continue;
+            foreach (Transform t in go.GetComponentsInChildren<Transform>(true))
+                if (t.name == name) return t;
+        }
+        return null;
     }
 
     /// <summary>활성 씬의 안개·환경광·방향광을 붉은 먼지 행성 분위기로 맞춘다. (씬 설정이라 프리펩에는 들어가지 않음)</summary>
