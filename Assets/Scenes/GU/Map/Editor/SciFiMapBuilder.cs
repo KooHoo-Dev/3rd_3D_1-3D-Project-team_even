@@ -24,7 +24,7 @@ public static class SciFiMapBuilder
     private const string SourceTerrainName = "ReductedTerrain";
     private const string TerrainDataPath = "Assets/Scenes/GU/Map/SciFiTerrain.asset";
     private const string SavePath = "Assets/Scenes/GU/Map/SciFiMap.prefab";
-    private const string LayerDir = "Assets/Sci-Fi Base/Terrain/Layers/";
+    internal const string LayerDir = "Assets/Sci-Fi Base/Terrain/Layers/";
     private const string PrefabDir = "Assets/Sci-Fi Base/Prefabs/";
     private const string RockDir = "Assets/Sci-Fi Base/Rocks/";
     private const string GUPrefabDir = "Assets/Scenes/GU/Prefabs/";
@@ -163,11 +163,11 @@ public static class SciFiMapBuilder
     private static readonly Color SunColor = new Color(1f, 0.72f, 0.55f);
     private const float SunIntensity = 1.1f;
     private static readonly Vector3 SunEuler = new Vector3(28f, -35f, 0f);
-    private static readonly Color GuideLightColor = new Color(1f, 0.15f, 0.1f);
+    internal static readonly Color GuideLightColor = new Color(1f, 0.15f, 0.1f);
     private static readonly Color CraterGlowColor = new Color(1f, 0.25f, 0.1f);
 
     // 소품 배치 공통
-    private const float MaxPropSlope = 20f;  // 이보다 가파른 곳엔 배치하지 않음(도)
+    internal const float MaxPropSlope = 20f;  // 이보다 가파른 곳엔 배치하지 않음(도)
     private const float EdgeMargin = 2f;
     private const int PlaceTries = 30;
 
@@ -218,7 +218,7 @@ public static class SciFiMapBuilder
 
         // 3) 콜라이더 정리 → NavMesh 굽기 (수동 편집까지 반영된 상태에서)
         CleanupColliders(root.transform);
-        BakeNavMesh(root, source);
+        BakeNavMesh(root, source, NavMeshDataPath);
 
         // 4) 프리펩 저장 후 씬에 배치
         PrefabUtility.SaveAsPrefabAsset(root, SavePath);
@@ -232,7 +232,7 @@ public static class SciFiMapBuilder
 
     // ───────────────────────── 지형 ─────────────────────────
 
-    private static Terrain FindSourceTerrain()
+    internal static Terrain FindSourceTerrain()
     {
         GameObject map = AssetDatabase.LoadAssetAtPath<GameObject>(SourceMapPath);
         if (map == null) return null;
@@ -370,12 +370,13 @@ public static class SciFiMapBuilder
 
     private static Terrain _terrain;
     private static EditData _edits; // 이번 빌드의 수동 편집 기록 (배치 중에 미리 참고할 것이 있을 때)
+    private static bool _useSiteRules = true;                   // IsFree에서 광장·순환로를 피할지 (인게임 맵 전용)
+    private static System.Func<Vector2, float, bool> _extraFilter; // IsFree에 더할 금지 구역 (다른 빌더용)
     private static readonly List<Vector3> Occupied = new List<Vector3>(); // (x, z, 반경)
 
     private static void BuildProps(Transform root, Terrain terrain)
     {
-        _terrain = terrain;
-        Occupied.Clear();
+        BeginPlacement(terrain, true);
         Transform props = new GameObject("Props").transform;
         props.SetParent(root, false);
 
@@ -703,7 +704,7 @@ public static class SciFiMapBuilder
         return false;
     }
 
-    private static void AddPointLight(Transform parent, string name, Vector3 position, Color color, float range, float intensity)
+    internal static void AddPointLight(Transform parent, string name, Vector3 position, Color color, float range, float intensity)
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
@@ -720,7 +721,7 @@ public static class SciFiMapBuilder
     /// center 주변 반경 [rMin, rMax] 안에 names 중 무작위 프리펩을 count개 배치한다.
     /// 자리마다 최대 PlaceTries번 시도하며, IsFree를 통과하지 못하면 그 개체는 버린다.
     /// </summary>
-    private static void Scatter(Transform parent, string[] names, int count, Vector2 center, float rMin, float rMax,
+    internal static void Scatter(Transform parent, string[] names, int count, Vector2 center, float rMin, float rMax,
         float clearance, float scaleMin, float scaleMax, float sinkRatio, float maxTilt, float maxSlope = MaxPropSlope)
     {
         for (int k = 0; k < count; k++)
@@ -751,7 +752,7 @@ public static class SciFiMapBuilder
     /// 높이를 CoverTallMinHeight~MaxHeight로 맞추고, 그래도 폭이 CoverMinWidth보다 좁은 프리펩은 쓰지 않는다.
     /// 엄폐물끼리는 CoverSpacing 이상 띄워 사이로 지나갈 수 있게 한다. filter가 false인 자리는 쓰지 않는다.
     /// </summary>
-    private static void PlaceCover(Transform site, string[] names, Vector2 center, float rMin, float rMax, float maxSlope,
+    internal static void PlaceCover(Transform site, string[] names, Vector2 center, float rMin, float rMax, float maxSlope,
         System.Func<Vector2, bool> filter)
     {
         Transform parent = Group(site, "Cover");
@@ -809,18 +810,34 @@ public static class SciFiMapBuilder
         if (xz.y - r < tp.z + EdgeMargin || xz.y + r > tp.z + size.z - EdgeMargin) return false;
         if (_terrain.terrainData.GetSteepness((xz.x - tp.x) / size.x, (xz.y - tp.z) / size.z) > maxSlope) return false;
 
-        float d = Vector2.Distance(xz, Center);
-        if (d < PadRadius + 1f + r) return false;
-        if (Mathf.Abs(d - RingRadius) < RingHalfWidth + r) return false;
+        if (_useSiteRules)
+        {
+            float d = Vector2.Distance(xz, Center);
+            if (d < PadRadius + 1f + r) return false;
+            if (Mathf.Abs(d - RingRadius) < RingHalfWidth + r) return false;
+        }
+        if (_extraFilter != null && !_extraFilter(xz, r)) return false;
 
         foreach (Vector3 o in Occupied)
             if (Vector2.Distance(xz, new Vector2(o.x, o.y)) < r + o.z + clearance) return false;
         return true;
     }
 
-    private static void Occupy(Vector2 xz, float r) => Occupied.Add(new Vector3(xz.x, xz.y, r));
+    internal static void Occupy(Vector2 xz, float r) => Occupied.Add(new Vector3(xz.x, xz.y, r));
 
-    private static Transform Group(Transform parent, string name)
+    /// <summary>
+    /// 다른 빌더(TutorialMapBuilder)가 이 파일의 배치 도우미를 쓰기 전에 부른다.
+    /// siteRules=false면 인게임 맵의 광장·순환로 금지 구역을 끄고, extraFilter(xz, 반경)로 자기 금지 구역을 넣을 수 있다.
+    /// </summary>
+    internal static void BeginPlacement(Terrain terrain, bool siteRules, System.Func<Vector2, float, bool> extraFilter = null)
+    {
+        _terrain = terrain;
+        Occupied.Clear();
+        _useSiteRules = siteRules;
+        _extraFilter = extraFilter;
+    }
+
+    internal static Transform Group(Transform parent, string name)
     {
         Transform t = new GameObject(name).transform;
         t.SetParent(parent, false);
@@ -835,7 +852,7 @@ public static class SciFiMapBuilder
         return t;
     }
 
-    private static GameObject Spawn(string name, Transform parent)
+    internal static GameObject Spawn(string name, Transform parent)
     {
         GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabDir + name + ".prefab");
         if (prefab == null) prefab = AssetDatabase.LoadAssetAtPath<GameObject>(RockDir + name + ".prefab");
@@ -849,7 +866,7 @@ public static class SciFiMapBuilder
     }
 
     /// <summary>메시 Renderer들의 Bounds. 파티클(연기 등)은 수십 m로 부풀어 있어 뺀다.</summary>
-    private static Bounds GetBounds(GameObject go)
+    internal static Bounds GetBounds(GameObject go)
     {
         bool found = false;
         Bounds b = new Bounds(go.transform.position, Vector3.one * 0.5f);
@@ -862,7 +879,7 @@ public static class SciFiMapBuilder
         return b;
     }
 
-    private static float Footprint(GameObject go)
+    internal static float Footprint(GameObject go)
     {
         Bounds b = GetBounds(go);
         return Mathf.Max(b.extents.x, b.extents.z);
@@ -874,10 +891,10 @@ public static class SciFiMapBuilder
         if (h > maxHeight) go.transform.localScale *= maxHeight / h;
     }
 
-    private static float GroundY(Vector2 xz) => _terrain.SampleHeight(new Vector3(xz.x, 0f, xz.y)) + _terrain.transform.position.y;
+    internal static float GroundY(Vector2 xz) => _terrain.SampleHeight(new Vector3(xz.x, 0f, xz.y)) + _terrain.transform.position.y;
 
     /// <summary>Bounds 중심을 xz에 맞추고, 바닥 네 모서리·중심 중 가장 낮은 지면에 닿게(sinkRatio만큼 파묻어) 놓는다.</summary>
-    private static void SetOnGround(GameObject go, Vector2 xz, float sinkRatio)
+    internal static void SetOnGround(GameObject go, Vector2 xz, float sinkRatio)
     {
         Bounds b = GetBounds(go);
         go.transform.position += new Vector3(xz.x - b.center.x, 0f, xz.y - b.center.z);
@@ -923,7 +940,7 @@ public static class SciFiMapBuilder
     /// 착륙장 바닥판·유도등은 밟고 다니는 바닥이라 뺀다. ObstacleColliderBuilder처럼 볼록 메시로 감싸지 않는 이유는
     /// 크레인·기울어진 드릴 탑 같은 소품이 큰 덩어리가 되어 통로를 막고, 소품 수백 개마다 메시 에셋이 생기기 때문이다.
     /// </summary>
-    private static void CleanupColliders(Transform root)
+    internal static void CleanupColliders(Transform root)
     {
         Transform props = root.Find("Props");
         if (props == null) return;
@@ -998,7 +1015,7 @@ public static class SciFiMapBuilder
     /// 기존 Map의 NavMeshSurface 설정(에이전트·레이어·콜라이더 기준)을 그대로 써서 SciFiMap 자식만 대상으로 굽는다.
     /// 구운 데이터는 에셋으로 저장해 프리펩이 참조하게 한다. 씬에 인스턴스가 켜질 때 NavMesh가 등록된다.
     /// </summary>
-    private static void BakeNavMesh(GameObject root, Terrain source)
+    internal static void BakeNavMesh(GameObject root, Terrain source, string dataPath)
     {
         NavMeshSurface surface = root.AddComponent<NavMeshSurface>();
         NavMeshSurface template = source.GetComponent<NavMeshSurface>();
@@ -1016,8 +1033,8 @@ public static class SciFiMapBuilder
         surface.collectObjects = CollectObjects.Children; // 씬의 Player 등 다른 오브젝트는 빼고 맵만
         surface.BuildNavMesh();
 
-        AssetDatabase.DeleteAsset(NavMeshDataPath);
-        AssetDatabase.CreateAsset(surface.navMeshData, NavMeshDataPath);
+        AssetDatabase.DeleteAsset(dataPath);
+        AssetDatabase.CreateAsset(surface.navMeshData, dataPath);
     }
 
     /// <summary>
@@ -1088,7 +1105,7 @@ public static class SciFiMapBuilder
     }
 
     /// <summary>활성 씬의 안개·환경광·방향광을 붉은 먼지 행성 분위기로 맞춘다. (씬 설정이라 프리펩에는 들어가지 않음)</summary>
-    private static void ApplyAtmosphere()
+    internal static void ApplyAtmosphere()
     {
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Exponential;
