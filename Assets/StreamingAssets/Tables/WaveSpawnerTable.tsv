@@ -19,5 +19,5 @@ Id	MonsterId	Count	StartDelay	SpawnInterval	SpawnPattern
 217	1003	3	0	2	Air
 218	1002	10	8	0.5	Surround
 219	2002	2	2	3	Surround
-220	1004	4	0	0.7	Air
+220	1003	8	0	0.7	Air
 221	2003	1	1	0	Surround
