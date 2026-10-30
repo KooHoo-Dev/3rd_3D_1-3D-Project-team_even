@@ -27,7 +27,7 @@ namespace HybridShooter.Core.Events
     /// <summary>
     /// 라운드 정리 요청. 받으면 각 파트는 자기 몬스터·투사체·보급·예약된 코루틴/타이머를 전부 정리한다.
     /// FullReset = true 이면 처음부터 재시작(BL-033): 플레이어 위치·체력, 강화, 재화까지 초기화.
-    /// FullReset = false 이면 다음 라운드 진행(BL-032): 강화·재화·수류탄 수는 유지.
+    /// FullReset = false 이면 다음 라운드 진행(BL-032): 강화·재화·수류탄 수는 유지. 총 탄약은 시작값으로, 보급 무기는 사라진다 (둘 다 공통).
     /// </summary>
     public readonly struct RoundCleanupEvent
     {
@@ -46,6 +46,13 @@ namespace HybridShooter.Core.Events
     {
         public readonly int ReachedRound;
         public GameOverEvent(int reachedRound) { ReachedRound = reachedRound; }
+    }
+
+    /// <summary>[코어(RunDirector)] → 무기 해금 등. 보스를 처치하고 보상 단계(Reward)에 들어감 = 스테이지 클리어. 라운드마다 한 번</summary>
+    public readonly struct StageClearedEvent
+    {
+        public readonly int Round;
+        public StageClearedEvent(int round) { Round = round; }
     }
 
     // ── 플레이어 (E1) ──  [플레이어] → UI·사운드, 코어
@@ -275,4 +282,27 @@ namespace HybridShooter.Core.Events
 
     /// <summary>[UI(강화 선택 화면)] → 코어. 강화 선택 종료, 다음 라운드 시작 요청 (BL-032)</summary>
     public readonly struct RewardSelectionFinishedEvent { }
+
+    // ── 상호작용·보급 무기 ──  [플레이어] → UI(상호작용 프롬프트·슬롯 HUD), 사운드, 분석
+    /// <summary>상호작용 대상(조준 중인 상자 등)이 바뀌었거나 프롬프트 내용이 바뀜. HasTarget = false 면 프롬프트 숨김</summary>
+    public readonly struct InteractFocusChangedEvent
+    {
+        public readonly bool HasTarget;
+        public readonly InteractPrompt Prompt;
+        public InteractFocusChangedEvent(bool hasTarget, InteractPrompt prompt) { HasTarget = hasTarget; Prompt = prompt; }
+    }
+
+    /// <summary>보급 칸(4번) 무기가 바뀜. Id 0 = 비어 있음 (처음부터 재시작 시 New = 0)</summary>
+    public readonly struct SupplyWeaponChangedEvent
+    {
+        public readonly int PreviousWeaponId, NewWeaponId;
+        public SupplyWeaponChangedEvent(int previousWeaponId, int newWeaponId) { PreviousWeaponId = previousWeaponId; NewWeaponId = newWeaponId; }
+    }
+
+    /// <summary>[코어(WeaponUnlockLedger)] → UI(해금 알림). 무기가 영구 해금됨 (다음 출발 때 무기 선택 화면에서 고를 수 있다)</summary>
+    public readonly struct WeaponUnlockedEvent
+    {
+        public readonly WeaponDef Weapon;
+        public WeaponUnlockedEvent(WeaponDef weapon) { Weapon = weapon; }
+    }
 }

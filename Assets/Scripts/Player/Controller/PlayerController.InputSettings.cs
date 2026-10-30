@@ -20,8 +20,10 @@ namespace HybridShooter.Player
             public Key fireModeKey = Key.B;
             public Key grenadeKey = Key.G;
             public Key healKey = Key.V;
+            /// <summary>상호작용 (조준한 보급 상자 등)</summary>
+            public Key interactKey = Key.F;
             public Key[] slotKeys = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4 };
-            /// <summary>테스트용: 주무기를 예비 총으로 교체</summary>
+            /// <summary>테스트용: 보급 무기(Category = Supply)를 돌아가며 보급 칸에 장착</summary>
             public Key debugSwapPrimaryKey = Key.T;
 
 
