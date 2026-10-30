@@ -254,6 +254,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: Map
       objectReference: {fileID: 0}
+    - target: {fileID: 4432307678539368453, guid: eeaaafb5e461ed94baab3b7023638f8f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -10.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 9026565013820482551, guid: eeaaafb5e461ed94baab3b7023638f8f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9026565013820482551, guid: eeaaafb5e461ed94baab3b7023638f8f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -17.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 9026565013820482551, guid: eeaaafb5e461ed94baab3b7023638f8f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 44.1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 4566507217793133627, guid: eeaaafb5e461ed94baab3b7023638f8f, type: 3}
