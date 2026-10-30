@@ -131,6 +131,18 @@ PrefabInstance:
       propertyPath: 'attacks.Array.data[1]'
       value: 
       objectReference: {fileID: 1194398169}
+    - target: {fileID: 1601464397953940699, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+      propertyPath: playerSource
+      value: 
+      objectReference: {fileID: 159822770}
+    - target: {fileID: 1601464397953940699, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+      propertyPath: footstepShakeRadius
+      value: 80
+      objectReference: {fileID: 0}
+    - target: {fileID: 1601464397953940699, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+      propertyPath: footstepShake.Intensity
+      value: 0.6
+      objectReference: {fileID: 0}
     - target: {fileID: 5523472075301917310, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: m_Name
       value: Clypeosaurus
@@ -426,7 +438,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -30.792439
+      value: -30.015984
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.y
@@ -434,23 +446,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 195.37503
+      value: 182.47725
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.99144495
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0.13052596
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -458,7 +470,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: -15
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -602,8 +614,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2743ca3a171749b5b6f4ad08282f9982, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossDamageTester
-  bossId: 1
-  playerSource: {fileID: 159822770}
 --- !u!114 &1194398169 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2158953421807436580, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
