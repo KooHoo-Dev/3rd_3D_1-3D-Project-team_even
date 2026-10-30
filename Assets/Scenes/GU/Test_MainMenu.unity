@@ -6232,7 +6232,7 @@ MonoBehaviour:
   menuCamera: {fileID: 1066656720}
   menuCameraOffset: {x: -0.1, y: 0, z: 0.6}
   cameraMoveTime: 1.2
-  gameSceneName: Monster Player Integration
+  gameSceneName: IntroCrawl
   loadMinWait: 1
   startDelay: 2
 --- !u!114 &560006190
