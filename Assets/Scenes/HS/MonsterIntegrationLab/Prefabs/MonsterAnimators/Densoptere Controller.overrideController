@@ -8,4 +8,14 @@ AnimatorOverrideController:
   m_PrefabAsset: {fileID: 0}
   m_Name: Densoptere Controller
   m_Controller: {fileID: 9100000, guid: c2b0f71f214c1cb468afb27679698451, type: 2}
-  m_Clips: []
+  m_Clips:
+  - m_OriginalClip: {fileID: 7400000, guid: 456dcfcfbc771c24da4c0807b1e7c878, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: cf1587c8ee3daa44fa33fc60684678d6, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: d2734a7e90b3cef4a8fd8dc2265304f6, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: ac787a564a99ff44b9f4cc8fa872fd78, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: 45bfc908198d89d4aa22ca23d3927fed, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: ac787a564a99ff44b9f4cc8fa872fd78, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: d62d5ee68de81f842a58145b00413744, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: f14664b46352a0948b0a0ebae8577a3b, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: 55440a8f12d832444ae5c07cba8fba74, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 93029f1d713bdec42b7d597741bf03cd, type: 3}

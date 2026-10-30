@@ -550,8 +550,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ad8f803dad39054f84fcbcba3bee096, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterPoolLab
+  isDebug: 1
   monsterPool: {fileID: 782320108}
-  monsterIds: e9030000ea030000ec030000ed030000ee030000
+  monsterIds: e9030000ec030000ed030000ee030000
   spawnCount: 8
   spawnRadius: 12
   spawnSampleDistance: 3
@@ -6746,15 +6747,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9069896505416824339, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.731147
+      value: 3.4
       objectReference: {fileID: 0}
     - target: {fileID: 9069896505416824339, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 13.990118
+      value: 17.2
       objectReference: {fileID: 0}
     - target: {fileID: 9069896505416824339, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 33.050526
+      value: 77
       objectReference: {fileID: 0}
     - target: {fileID: 9069896505416824339, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
       propertyPath: m_LocalRotation.w

@@ -1855,7 +1855,6 @@ GameObject:
   - component: {fileID: -6963252850141782799}
   - component: {fileID: 3673681119355232943}
   - component: {fileID: 5730098645658161961}
-  - component: {fileID: 1523295838211662566}
   m_Layer: 14
   m_Name: Muscomorph_Heavy
   m_TagString: Untagged
@@ -1873,8 +1872,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -4.1047177, y: 0.0000005634008, z: -1.9925778}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 1.25, y: 1.25, z: 1.25}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 3183208877200141592}
   - {fileID: 6307761569766056045}
@@ -1975,7 +1974,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99256aef488ff7f42a2606f864e2feef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterController
-  monsterId: 1002
+  monsterId: 1006
   despawnDelay: 2
   moveClipSpeed: 3
   idleSpeedThreshold: 0.1
@@ -1983,7 +1982,6 @@ MonoBehaviour:
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
   hitTimeRatio: 0.5
-  hitRangeRatio: 2.4
   windupTurnSpeed: 360
 --- !u!114 &3673681119355232943
 MonoBehaviour:
@@ -2022,22 +2020,6 @@ CapsuleCollider:
   m_Height: 1.6548433
   m_Direction: 1
   m_Center: {x: 0.010138631, y: 0.74, z: 0}
---- !u!114 &1523295838211662566
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7794425194075702535}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4607b74028a507a4ca90f96559fed09e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Monster.Tester.MonsterHitAreaVisualizer
-  hitFlashSeconds: 0.3
-  previewColor: {r: 0.2, g: 0.8, b: 1, a: 0.25}
-  hitColor: {r: 1, g: 0.15, b: 0.1, a: 0.6}
-  missColor: {r: 1, g: 0.9, b: 0.1, a: 0.5}
 --- !u!1 &7960356510021968820
 GameObject:
   m_ObjectHideFlags: 0
