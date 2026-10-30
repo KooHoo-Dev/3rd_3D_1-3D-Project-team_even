@@ -33,13 +33,19 @@ public static class SciFiMapBuilder
 
     // 지점 그룹 이름과 기본 중심 좌표 (월드 XZ). 지형 가장자리는 높이 20~60m 산이고, 걸을 수 있는 평지는 대략 X -78~147, Z -94~122 이다.
     // 씬에서 지점 그룹(Props/<이름>)을 옮기고 Save Sci-Fi Map Edits로 저장하면, 다음 빌드부터 그 위치가 중심이 된다. (지형 조각도 따라감)
-    private static readonly string[] SiteNames = { "LandingPad", "CrashSite", "DefenseLine", "Refinery", "Crater", "Wasteland" };
+    // RuinsSE/S/N/SW: 들판의 기지 폐허 구역 (순환로 바깥 띠, 다른 지점·분화구→착륙장 통로를 피한 자리)
+    private static readonly string[] SiteNames =
+        { "LandingPad", "CrashSite", "DefenseLine", "Refinery", "Crater", "Wasteland", "RuinsSE", "RuinsS", "RuinsN", "RuinsSW", "RuinsE", "Camp", "Lab" };
     private static readonly Vector2[] DefaultSiteCenters =
     {
         new Vector2(35f, 9f), new Vector2(-49.43f, -90.27f), new Vector2(125f, 10f),
         new Vector2(110f, 95f), new Vector2(-40f, 90f), new Vector2(-60f, 10f),
+        new Vector2(99f, -55f), new Vector2(19f, -82f), new Vector2(51f, 98f), new Vector2(-34f, -50f), new Vector2(113f, 54f),
+        new Vector2(63f, -19f), new Vector2(2f, 108f),
     };
     private const int SitePad = 0, SiteCrash = 1, SiteDefense = 2, SiteRefinery = 3, SiteCrater = 4, SiteWasteland = 5;
+    private const int SiteRuinsSE = 6, SiteRuinsS = 7, SiteRuinsN = 8, SiteRuinsSW = 9, SiteRuinsE = 10;
+    private const int SiteCamp = 11, SiteLab = 12; // 간이 기지(착륙장 남동쪽 구석), 연구소 기지(분화구 북동쪽, 분화구를 내려다봄)
     private static readonly Vector2[] SiteCenters = new Vector2[SiteNames.Length];
 
     private static Vector2 Center => SiteCenters[SitePad];
@@ -82,8 +88,19 @@ public static class SciFiMapBuilder
     private const float CliffNoiseScale = 0.03f;
 
     // 지형 레이어 인덱스 (LayerNames 순서)
-    private static readonly string[] LayerNames = { "Sand1", "Sand2", "Sand3", "SandRock", "Sand6" };
-    private const int LayerBase = 0, LayerBaseAlt = 1, LayerRoad = 2, LayerRock = 3, LayerCrater = 4;
+    private static readonly string[] LayerNames = { "Sand1", "Sand2", "Sand3", "SandRock", "Sand6", "Sand4", "Sand7" };
+    private const int LayerBase = 0, LayerBaseAlt = 1, LayerRoad = 2, LayerRock = 3, LayerCrater = 4, LayerDark = 5, LayerStreak = 6;
+
+    // 들판 모래 언덕 (평평한 들판을 깨는 완만한 기복)
+    private const float DuneAmplitude = 2.4f;
+    private const float DuneScale = 0.022f;
+    private const float DuneKeepRadius = 20f;   // 추락선 주변은 원래 지형 그대로 둔다 (손으로 맞춘 추락선 높이가 원래 지형 기준이라)
+    private const float DuneKeepBlend = 10f;
+    // 기준면으로 평탄화하는 지점 (폐허 구역 바닥판이 뜨거나 묻히지 않게)
+    private static readonly int[] FlatSites = { SiteRuinsSE, SiteRuinsS, SiteRuinsN, SiteRuinsSW, SiteRuinsE, SiteCamp, SiteLab };
+    private const float SiteFlatRadius = 16f;
+    private const float SiteFlatRadiusWide = 26f;
+    private const float SiteFlatBlend = 8f;
 
     // 착륙장 + 엄폐물 링
     private const float PadRadius = 17f;          // 바닥판을 까는 반경 (안쪽 15m는 비워 둠)
@@ -92,7 +109,7 @@ public static class SciFiMapBuilder
     private const float CoverRingMin = 21f;
     private const float CoverRingMax = 29f;
     private const float CoverGateHalfAngle = 18f; // 동서남북 진입 통로 반각(도)
-    private const float CoverMaxHeight = 1.5f;    // 컨테이너를 뺀 엄폐물 최대 높이
+    private const float CoverMaxHeight = 1.7f;    // 낮은 엄폐물 최대 높이 (높이 단계 규칙상 1.6~1.8m 띠)
 
     // 추락선: MapDesign 씬에서 손으로 맞춘 자세를 그대로 쓴다. (오일러 약 17.87, -208.1, -13.8)
     // 손으로 맞출 당시 지형이 (73.6, 23.8)만큼 밀려 있었으므로, 지형 기준 같은 자리가 되도록 그만큼 되돌린 값이다.
@@ -130,13 +147,14 @@ public static class SciFiMapBuilder
     private const float DrillPartScale = 1.5f;
     private const float DrillHeight = 32f;
     private static readonly Vector2 DrillOffset = new Vector2(0f, 8f); // 분화구 남쪽 바닥은 보스용으로 비워 둠
+    private const float CraterCoverRimMin = 3f, CraterCoverRimMax = 12f; // 분화구 회피용 엄폐물: 테두리 바깥 띠 (사발 반경 기준)
     private const float CraterMaxSlope = 32f; // 분화구 사발 경사(최대 약 27°)에도 바위·엄폐물을 놓을 수 있게
 
     // 지점별 전용 엄폐물(보스 장판·돌진 회피용): 지점마다 2~5개, 몸 전체를 가리는 높이
     private const int CoverMinCount = 2;
     private const int CoverMaxCount = 5;
-    private const float CoverTallMinHeight = 2.4f;
-    private const float CoverTallMaxHeight = 3.2f;
+    private const float CoverTallMinHeight = 3.1f; // 높이 단계 규칙상 3.1m 이상 (1.8m 엄폐물을 밟고도 못 올라감)
+    private const float CoverTallMaxHeight = 3.6f;
     private const float CoverMinWidth = 2.5f;   // 가로 폭이 이보다 좁으면 폭 기준으로 키움
     private const float CoverHardMaxHeight = 5f; // 폭 기준으로 키운 결과가 이보다 높으면 쓰지 않음
     private const float CoverSpacing = 6f;      // 엄폐물 사이 최소 간격(이동 통로)
@@ -154,6 +172,54 @@ public static class SciFiMapBuilder
     private static readonly string[] BoundaryRockNames =
         { "Rock_Shales_01", "Rock_Shales_03", "Rock_Shales_06", "Rock_Shales_09", "Stone_Big1", "Rock_01" };
 
+    // 기지 폐허 구역: Sci-Fi Base/Scenes/Scene_2_Standard의 구성(포장 바닥 + 콘크리트 벽·탑 + 파이프 + 방벽 + 조명·안테나)을
+    // 작은 단위로 조립한다. 바닥판 위에 2~3면 벽(가운데 입구), 모서리 탑, 바깥 파이프 줄, 입구 앞 방벽, 안쪽 소품.
+    private const float RuinWidth = 24f, RuinDepth = 16f, RuinSizeVar = 2f;
+    private const float RuinEntranceHalf = 3.5f;      // 벽마다 비워 두는 입구 반폭 (7m)
+    private const float RuinBrokenChance = 0.15f;     // 벽 조각이 무너져 비어 있을 확률
+    private const float RuinMissingTileChance = 0.12f; // 바닥판이 깨져 비어 있을 확률
+    private const float RuinPipeOffset = 2f;          // 벽 바깥으로 파이프 줄이 떨어진 거리
+    private static readonly string[] RuinFloorNames = { "Concrete_Ground1", "Concrete_Ground2", "Concrete_Ground3", "Concrete_Ground4" };
+    private static readonly string[] RuinWallNames = { "Concrete_wall1", "Concrete_wall1", "Concrete_wall1 Stripes Variant", "Concrete_wall2" };
+    private static readonly string[] RuinPipeNames = { "Pipe2_A", "Pipe2_Connector1", "Pipe2_A", "Pipe2_B" };
+    private static readonly string[] RuinInsideNames = { "Prop1", "Prop2", "Prop4", "Prop6", "Prop8", "Prop9", "Prop10", "Powerbox_01", "Prop_Barrel1", "Prop_Cylinder2" };
+    private static readonly string[] RuinAccentNames = { "Antenna_04", "Antenna_05", "Solar_Panel3", "Billboard2_no_holdfast", "Prop_Went_big2" };
+
+    private static readonly string[] LabPipelineNames = { "Pipe2_A", "Pipe2_Connector1", "Pipe2_A", "Pipe2_Support1" };
+    private const float LabPipelineGapChance = 0.12f;
+
+    // 필드 대형 엄폐물: 넓은 평지 곳곳의 큰 바위 지형·기지 잔해 (지점 사이 빈 들판을 채움)
+    // 보스(Clypeosaurus) 몸통 폭이 약 15m인데 NavMesh 에이전트 반경은 0.5m라 좁은 틈도 길로 잡힌다. 그래서 간격을 배치 규칙으로 지킨다.
+    private const int FieldCoverCount = 22;
+    private const float FieldCoverSpacing = 15f;               // 큰 물체(주변 바위 포함) 사이 최소 간격 = 보스 통로 (보스 몸통 폭 약 15m)
+    private const float FieldCoverClearance = 3f;              // 작은 소품과의 간격
+    private const float FieldCoverCompanionReach = 4f;         // 큰 엄폐물 둘레에 붙이는 작은 바위가 차지하는 폭
+    private const float BossCorridorHalf = 14f;                // 분화구(보스 등장)→착륙장 직선 통로 반폭: 큰 엄폐물 금지
+    private const float FieldCoverPadKeep = CoverRingMax + 4f; // 착륙장 낮은 엄폐물 링 안쪽은 큰 엄폐물 금지
+    private const float PlayableRise = 8f;                     // 기준면보다 이만큼 높은 곳은 산비탈로 보고 쓰지 않음 (평지 5m 단차 + 언덕 기복은 허용, 산은 20m 이상)
+    private const float FieldRockMinHeight = 4f, FieldRockMaxHeight = 8f;
+    private const float FieldWreckChance = 0.4f;
+    // 순환로 안쪽 띠(착륙장 엄폐물 링과 순환로 사이): 군중전 공간이라 낮은 바위만 드문드문
+    private const int InnerCoverCount = 6;
+    private const float InnerRockMinHeight = 3f, InnerRockMaxHeight = 5f;
+    private const float InnerCoverReach = 1.5f;
+    private static readonly string[] InnerRockNames = { "Stone_Big1", "Rock_01", "Rock_Shales_04", "Rock_Shales_10" }; // 옆으로 넓은 Rock_Group1은 좁은 띠에 안 맞아 뺌
+    private static readonly string[] FieldRockNames = { "Rock_Group1", "Stone_Big1", "Rock_01", "Rock_Shales_04", "Rock_Shales_10" };
+    private static readonly string[] FieldWreckNames = { "Tank_02", "Tank_03", "Container_01", "Generator_Set_02", "Wall_Large_06", "Concrete_wall2_Barrier3" };
+    private static readonly string[] FieldToppledNames = { "Tank_02", "Tank_03" }; // 옆으로 쓰러뜨려 놓을 것
+    private static readonly string[] FieldCompanionNames = { "Stone_med1", "Stone_med3", "Stone_med5", "Rock_Shales_02", "Rock_Shales_07" };
+
+    // 환경 디테일: 들판 곳곳의 중간 돌(장애물) + 작은 돌·자갈 무더기(콜라이더 끔, NavMesh·이동과 무관)
+    private const int MediumRockCount = 70;
+    private const int PebbleClusterCount = 70;
+    private const int PebblesPerClusterMin = 3, PebblesPerClusterMax = 8;
+    private const float PebbleClusterRadius = 4f;
+    private const float PebbleMaxRise = 10f; // 산기슭 조금 위까지는 자갈을 흩뿌린다
+    private static readonly string[] MediumRockNames =
+        { "Stone_med1", "Stone_med2", "Stone_med4", "Stone_med6", "Rock_Shales_01", "Rock_Shales_03", "Rock_Shales_05", "Rock_Shales_08" };
+    private static readonly string[] PebbleNames =
+        { "Stone_small1", "Stone_small2", "Stone_small3", "Stone_small4", "Stone_small5", "Stone_Tiny1", "Stone_Tiny2", "Stone_Tiny3" };
+
     // 분위기: 붉은 갈색 먼지 안개 + 어두운 하늘 + 낮게 깔린 햇빛 + 붉은 포인트 조명 (MapDesign 씬 설정을 바꾼다)
     private static readonly Color FogColor = new Color(0.42f, 0.27f, 0.21f);
     private const float FogDensity = 0.008f;
@@ -165,6 +231,16 @@ public static class SciFiMapBuilder
     private static readonly Vector3 SunEuler = new Vector3(28f, -35f, 0f);
     internal static readonly Color GuideLightColor = new Color(1f, 0.15f, 0.1f);
     private static readonly Color CraterGlowColor = new Color(1f, 0.25f, 0.1f);
+
+    // 높이 단계 규칙 (맵 핵심 설계: 플레이어가 몬스터가 못 오는 높은 곳에서 사격하는 이점을 없앤다)
+    // 플레이어 점프 높이 1.2m(PlayerController.jumpHeight). 장애물 윗면 높이(지면 기준)를 세 단계로만 허용한다:
+    //   ① 0.35m 이하: 밟아도 의미 없는 턱  ② 1.6~1.8m: 맨땅에서 점프로 못 올라감  ③ 3.1m 이상: ②를 밟고 점프해도 못 올라감
+    // 그 사이 높이는 가까운 단계로 크기를 맞춘다. 계단·캣워크·플랫폼처럼 올라설 수 있는 구조물은 아예 쓰지 않는다.
+    private const float PerchLowMax = 0.35f;
+    private const float PerchMidMin = 1.6f, PerchMidMax = 1.8f;
+    private const float PerchTallMin = 3.1f;
+    private const float PerchScaleMin = 0.8f, PerchScaleMax = 1.3f; // 이 배율 범위로 맞출 수 없으면 그대로 둔다
+    private const float PerchAirborne = 0.5f; // 바닥이 지면보다 이만큼 위에 뜬 부품(드릴 빔 등)은 규칙에서 뺀다
 
     // 소품 배치 공통
     internal const float MaxPropSlope = 20f;  // 이보다 가파른 곳엔 배치하지 않음(도)
@@ -264,6 +340,10 @@ public static class SciFiMapBuilder
         float minX = terrainPos.x, maxX = terrainPos.x + data.size.x;
         float minZ = terrainPos.z, maxZ = terrainPos.z + data.size.z;
 
+        // 언덕을 넣지 않을 추락선 자리: 손으로 맞춘 자세가 있으면 그 위치, 없으면 추락 지점 중심
+        MovedEdit ship = _edits?.moved.Find(m => m.path == "Props/CrashSite/Spaceship_Broken");
+        Vector2 shipKeep = ship != null ? new Vector2(ship.position.x, ship.position.z) : CrashCenter;
+
         for (int j = 0; j < res; j++)
         {
             for (int i = 0; i < res; i++)
@@ -273,11 +353,21 @@ public static class SciFiMapBuilder
                 Vector2 p = new Vector2(wx, wz);
                 float h = heights[j, i] * scaleY + Lift;
 
-                // 광장·순환로: 기준면으로 평탄화
+                // 들판 모래 언덕: 완만한 큰 기복 + 잔물결 (아래 평탄화 구역에서는 지워진다)
+                float duneW = Smooth01((Vector2.Distance(p, shipKeep) - DuneKeepRadius) / DuneKeepBlend);
+                h += duneW * ((Mathf.PerlinNoise(wx * DuneScale + 500f, wz * DuneScale + 500f) - 0.5f) * 2f * DuneAmplitude
+                            + (Mathf.PerlinNoise(wx * DuneScale * 4f, wz * DuneScale * 4f) - 0.5f) * DuneAmplitude * 0.5f);
+
+                // 광장·순환로·폐허 구역·추락 지점: 기준면으로 평탄화
                 float d = Vector2.Distance(p, Center);
                 float flat = Mathf.Max(
                     1f - Smooth01((d - PlazaRadius) / PlazaBlend),
                     1f - Smooth01((Mathf.Abs(d - RingRadius) - RingHalfWidth) / RingBlend));
+                foreach (int site in FlatSites)
+                {
+                    float r = site == SiteCamp || site == SiteLab ? SiteFlatRadiusWide : SiteFlatRadius; // 옆에 건물이 붙는 구역은 넓게
+                    flat = Mathf.Max(flat, 1f - Smooth01((Vector2.Distance(p, SiteCenters[site]) - r) / SiteFlatBlend));
+                }
                 h = Mathf.Lerp(h, baseH, flat);
 
                 // 굴착 분화구: 사발 모양 + 둥근 테두리
@@ -331,17 +421,25 @@ public static class SciFiMapBuilder
                 float crater = 1f - Smooth01((dc - CraterRadius * 0.8f) / (CraterRadius * 0.4f));
                 float rock = Smooth01((data.GetSteepness(nx, nz) - 25f) / 15f);
                 float patch = Smooth01((Mathf.PerlinNoise(p.x * 0.05f + 50f, p.y * 0.05f + 50f) - 0.4f) / 0.3f);
+                float patch2 = Smooth01((Mathf.PerlinNoise(p.x * 0.018f + 900f, p.y * 0.018f + 900f) - 0.45f) / 0.25f);
+                float streak = Smooth01((Mathf.PerlinNoise(p.x * 0.11f + 300f, p.y * 0.03f + 300f) - 0.55f) / 0.2f); // 바람에 쓸린 줄무늬
 
-                // 우선순위: 급경사 바위 > 분화구 바닥 > 길 > 바탕(두 가지 모래를 얼룩지게)
+                // 우선순위: 급경사 바위 > 분화구 바닥 > 길 > 바탕(참고 씬처럼 모래 네 가지를 큰 얼룩·작은 얼룩·줄무늬로 섞음)
                 float rest = 1f - rock;
                 float wCrater = rest * crater;
                 rest -= wCrater;
                 float wRoad = rest * road * 0.85f;
                 rest -= wRoad;
+                float wStreak = rest * streak * 0.6f;
+                rest -= wStreak;
+                float wDark = rest * patch2;
+                rest -= wDark;
 
                 alpha[j, i, LayerRock] = rock;
                 alpha[j, i, LayerCrater] = wCrater;
                 alpha[j, i, LayerRoad] = wRoad;
+                alpha[j, i, LayerStreak] = wStreak;
+                alpha[j, i, LayerDark] = wDark;
                 alpha[j, i, LayerBaseAlt] = rest * patch;
                 alpha[j, i, LayerBase] = rest * (1f - patch);
             }
@@ -373,6 +471,7 @@ public static class SciFiMapBuilder
     private static bool _useSiteRules = true;                   // IsFree에서 광장·순환로를 피할지 (인게임 맵 전용)
     private static System.Func<Vector2, float, bool> _extraFilter; // IsFree에 더할 금지 구역 (다른 빌더용)
     private static readonly List<Vector3> Occupied = new List<Vector3>(); // (x, z, 반경)
+    private static readonly List<Vector3> BigOccupied = new List<Vector3>(); // 보스 통로 간격을 따지는 큰 물체만
 
     private static void BuildProps(Transform root, Terrain terrain)
     {
@@ -381,13 +480,42 @@ public static class SciFiMapBuilder
         props.SetParent(root, false);
 
         Random.State prev = Random.state;
+        // 간이 공항(착륙장 구석)은 착륙장 엄폐물 링보다 먼저 놓아, 링 엄폐물이 유도로를 피해 가게 한다.
+        Transform camp = SiteGroup(props, SiteCamp);
+        Random.InitState(7130);
+        CompoundFrame campFrame = BuildCompound(camp, SiteCenters[SiteCamp], CampSpec, Center); // 앞면(격납고 입구)이 착륙장을 봄
+        // 격납고 양옆: 관제·사무동, 창고동 (뒤쪽은 순환로와 가까워 비움)
+        AttachBuilding(camp, "ControlOffice", campFrame, 1, 2, 2);
+        AttachBuilding(camp, "Storage", campFrame, -1, 2, 1);
+        Random.InitState(7133); BuildTaxiway(camp);
         Random.InitState(7101); BuildLandingPad(SiteGroup(props, SitePad));
+        for (int k = SiteRuinsSE; k <= SiteRuinsE; k++) // 폐허는 자리가 고정이라 먼저 놓고, 뒤의 지점 소품이 피해 가게 한다
+        {
+            Random.InitState(7111 + k);
+            BuildCompound(SiteGroup(props, k), SiteCenters[k], RuinSpec);
+        }
+        Transform lab = SiteGroup(props, SiteLab);
+        Random.InitState(7131);
+        CompoundFrame labFrame = BuildCompound(lab, SiteCenters[SiteLab], LabSpec, CraterCenter); // 앞면이 분화구를 봄
+        // 연구동(오른쪽 = 분화구를 볼 때 남쪽, 북쪽 산비탈과 왼쪽 탱크 더미를 피함) + 장비 창고(뒤, 파이프 줄 너머)
+        AttachBuilding(lab, "ResearchHall", labFrame, 1, 3, 2);
+        AttachBuilding(lab, "EquipmentShed", labFrame, 0, 2, 1);
+        Random.InitState(7132); BuildLabPipeline(lab);
         Random.InitState(7102); BuildCrashSite(SiteGroup(props, SiteCrash));
         Random.InitState(7103); BuildDefenseLine(SiteGroup(props, SiteDefense));
         Random.InitState(7104); BuildRefinery(SiteGroup(props, SiteRefinery));
         Random.InitState(7105); BuildCrater(SiteGroup(props, SiteCrater));
         Random.InitState(7106); BuildWasteland(SiteGroup(props, SiteWasteland));
-        Random.InitState(7107); BuildBoundary(Group(props, "Boundary")); // 지점 소품을 피해서 놓도록 마지막에
+        Transform fieldCover = Group(props, "FieldCover");
+        Random.InitState(7108);
+        BuildFieldCover(fieldCover, "들판 대형", FieldCoverCount, FieldWreckChance, FieldRockMinHeight, FieldRockMaxHeight,
+            FieldCoverCompanionReach, FieldCoverPadKeep, float.MaxValue);
+        Random.InitState(7112);
+        BuildFieldCover(fieldCover, "순환로 안쪽", InnerCoverCount, 0f, InnerRockMinHeight, InnerRockMaxHeight,
+            InnerCoverReach, FieldCoverPadKeep, RingRadius - RingHalfWidth - 2f);
+        Random.InitState(7109); BuildMediumRocks(Group(props, "Rocks"));
+        Random.InitState(7107); BuildBoundary(Group(props, "Boundary")); // 지점 소품을 피해서 놓도록 소품 중 마지막에
+        Random.InitState(7110); BuildPebbles(Group(root, "Details"));   // 장애물이 아니라 Props 밖에 둔다 (콜라이더 정리·NavMesh 제외)
         Random.state = prev;
     }
 
@@ -501,7 +629,7 @@ public static class SciFiMapBuilder
             shipRadius = Footprint(ship);
             Bounds sb = GetBounds(ship);
             shipXZ = new Vector2(sb.center.x, sb.center.z);
-            Occupy(shipXZ, shipRadius);
+            OccupyBig(shipXZ, shipRadius);
         }
 
         // 추락선에 바짝 붙지 않게 선체 가장자리에서 일정 거리 밖에 놓는다.
@@ -542,10 +670,10 @@ public static class SciFiMapBuilder
 
         PlaceCover(parent, new[] { "Concrete_wall2_Barrier2", "Wall3_Barrier1", "Barrier_Solid_01", "Container_01" },
             DefenseCenter + new Vector2(-12f, 0f), 4f, 30f, MaxPropSlope, null);
-        Scatter(parent, new[] { "Antenna_01", "Antenna_03", "Antenna_05", "Antenna_Big", "Solar_Panel1", "Solar_Panel2", "Solar_Panel3", "Solar_Panel4", "Radar_Sphere" },
-            8, DefenseCenter, 6f, 45f, 3f, 1f, 1f, 0f, 0f);
+        Scatter(parent, new[] { "Antenna_01", "Antenna_03", "Antenna_05", "Solar_Panel1", "Solar_Panel2", "Solar_Panel3", "Solar_Panel4" },
+            5, DefenseCenter, 6f, 45f, 3f, 1f, 1f, 0f, 0f);
         Scatter(parent, new[] { "Barrier_2m", "Barrier_4m", "Barrier_01_A", "Barrier_Edge_2m", "Concrete_wall2_Barrier3", "Cover Panel6A" },
-            12, DefenseCenter + new Vector2(-12f, 0f), 4f, 32f, 3f, 1f, 1f, 0.05f, 0f);
+            8, DefenseCenter + new Vector2(-12f, 0f), 4f, 32f, 3f, 1f, 1f, 0.05f, 0f);
     }
 
     /// <summary>정제 플랜트(북동): 크레인 + 탱크·발전기 군집(사이 통로 4m 이상) + 작은 설비</summary>
@@ -554,11 +682,11 @@ public static class SciFiMapBuilder
         Scatter(parent, new[] { "Crane_01" }, 1, RefineryCenter, 0f, 4f, 4f, 1f, 1f, 0f, 0f);
         PlaceCover(parent, new[] { "Container_01", "Barrier_Solid_01", "Concrete_wall2_Barrier1" },
             RefineryCenter, 6f, 30f, MaxPropSlope, null);
-        Scatter(parent, new[] { "Tank_01", "Tank_02", "Tank_03", "Tank_04", "Tank_Stack_01", "Tank_Stack_02", "Tank_Stack_03",
-                "Generator_Set_01", "Generator_Set_02", "Generator_Set_03", "Fuel_Tank_01", "Radiator_Big" },
-            14, RefineryCenter, 6f, 30f, 4f, 1f, 1f, 0f, 0f);
-        Scatter(parent, new[] { "Powerbox_01", "Powerbox_05", "Powerbox_09", "Pipe3_A", "Pipe2_A", "Prop_Barrel1", "Prop_Cylinder1", "Prop_vents_03" },
-            10, RefineryCenter, 4f, 34f, 2f, 1f, 1f, 0f, 0f);
+        Scatter(parent, new[] { "Tank_01", "Tank_02", "Tank_03", "Tank_04", "Tank_Stack_01", "Tank_Stack_02",
+                "Generator_Set_01", "Generator_Set_02", "Generator_Set_03", "Radiator_Big" },
+            10, RefineryCenter, 6f, 30f, 4f, 1f, 1f, 0f, 0f);
+        Scatter(parent, new[] { "Powerbox_01", "Powerbox_05", "Prop_Barrel1", "Prop_Cylinder1", "Prop_vents_03" }, // 작은 잡동사니는 적게
+            4, RefineryCenter, 4f, 34f, 2f, 1f, 1f, 0f, 0f);
     }
 
     /// <summary>굴착 분화구(북서): 비스듬히 박힌 거대 드릴 탑(참고 씬 조립) + 회피용 엄폐물 + 테두리 바위</summary>
@@ -584,14 +712,16 @@ public static class SciFiMapBuilder
             Bounds baseB = GetBounds(drill.GetChild(0).gameObject);
             drill.position += new Vector3(drillXZ.x - baseB.center.x, 0f, drillXZ.y - baseB.center.z);
             drill.position += Vector3.up * (GroundY(drillXZ) - GetBounds(drill.GetChild(0).gameObject).min.y - baseB.size.y * 0.3f);
-            Occupy(drillXZ, Mathf.Max(baseB.extents.x, baseB.extents.z));
+            OccupyBig(drillXZ, Mathf.Max(baseB.extents.x, baseB.extents.z));
         }
 
         // 드릴이 찌른 행성의 '살'이 비치는 붉은 빛
         AddPointLight(parent, "CraterGlow", new Vector3(CraterCenter.x, GroundY(CraterCenter) + 2f, CraterCenter.y), CraterGlowColor, CraterRadius + 4f, 3f);
 
-        PlaceCover(parent, new[] { "Stone_Big1", "Rock_01", "Concrete_wall2_Shield", "Concrete_wall2_Barrier1", "Barrier_Solid_01" },
-            CraterCenter, 6f, CraterRadius - 2f, CraterMaxSlope, null);
+        // 회피용 엄폐물은 분화구 사발 안(보스 등장 공간)이 아니라 테두리 바깥 띠에 둔다.
+        PlaceCover(parent, new[] { "Stone_Big1", "Rock_01", "Concrete_wall2_Shield", "Barrier_Solid_01" },
+            CraterCenter, CraterRadius + CraterCoverRimMin, CraterRadius + CraterCoverRimMax, CraterMaxSlope,
+            xz => DistanceToSegment(xz, CraterCenter, Center) > BossCorridorHalf);
         Scatter(parent, new[] { "Rock_Shales_02", "Rock_Shales_05", "Rock_Shales_07", "Stone_med4", "Stone_med5", "Stone_Big1" },
             12, CraterCenter, CraterRadius - 4f, CraterRadius + 10f, 2f, 0.8f, 1.5f, 0.2f, 0f, CraterMaxSlope);
     }
@@ -606,6 +736,535 @@ public static class SciFiMapBuilder
             10, WastelandCenter, 0f, 34f, 3f, 0.8f, 1.4f, 0.2f, 0f);
         Scatter(parent, new[] { "Stone_med1", "Stone_med2", "Stone_med3", "Stone_med6", "Stone_small1", "Stone_small3" },
             10, WastelandCenter, 0f, 36f, 2f, 0.8f, 1.3f, 0.2f, 0f);
+    }
+
+    /// <summary>
+    /// 사각 구역(폐허·간이 기지·연구소)의 구성 설정. BuildCompound가 이 설정대로 조립한다.
+    /// 면 번호: 0=뒤(+v) 1=오른쪽(+u) 2=앞(-v, 늘 열림) 3=왼쪽(-u)
+    /// </summary>
+    private sealed class CompoundSpec
+    {
+        public float Width, Depth, SizeVar;
+        public string[] FloorNames;
+        public float MissingTileChance;
+        public string[] WallNames;
+        public float BrokenChance;                 // 벽 조각이 무너져 비어 있을 확률
+        public float ExtraOpenChance;              // 옆면 하나를 더 열어 L자로 만들 확률
+        public bool SideEntrances = true;          // 옆벽 가운데 입구 (조각이 긴 벽은 입구에 걸려 통째로 빠지므로 끔)
+        public bool Divider;                       // 뒷벽 가운데에서 앞으로 나온 칸막이
+        public int Towers;                         // 0: 없음, 2: 뒷면 양 모서리, 3: 앞 모서리 하나 더(반반)
+        public bool ContainerStack;
+        public string[] TankNames;                 // 바깥 옆면 탱크 더미 후보 (null이면 없음)
+        public float TankChance;
+        public string[] PipeNames;                 // 뒷벽 바깥 파이프 줄 (null이면 없음)
+        public int FrontBarriersMin, FrontBarriersMax;
+        public string[] InsideNames;
+        public int InsideMin, InsideMax;
+        public string[] AccentNames;               // 바깥 모서리 세로 포인트
+        public int AccentCount;
+        public string LampName;
+        public Color LightColor;
+        public float LightRange;
+    }
+
+    // 기지 폐허: 무너진 콘크리트 벽·탑 (Scene_2_Standard 구성 축소)
+    private static readonly CompoundSpec RuinSpec = new CompoundSpec
+    {
+        Width = RuinWidth, Depth = RuinDepth, SizeVar = RuinSizeVar,
+        FloorNames = RuinFloorNames, MissingTileChance = RuinMissingTileChance,
+        WallNames = RuinWallNames, BrokenChance = RuinBrokenChance, ExtraOpenChance = 0.2f,
+        Divider = true, Towers = 3, ContainerStack = true,
+        TankNames = new[] { "Tank_Stack_01", "Tank_Stack_03" }, TankChance = 0.6f,
+        PipeNames = RuinPipeNames, FrontBarriersMin = 2, FrontBarriersMax = 3,
+        InsideNames = RuinInsideNames, InsideMin = 3, InsideMax = 5,
+        AccentNames = RuinAccentNames, AccentCount = 1,
+        LampName = "Lamp_03_B", LightColor = new Color(1f, 0.55f, 0.3f), LightRange = 0f,
+    };
+
+    // 간이 공항(착륙장 한 구석): 지붕 없는 격납고 벽(ㄷ자, 입구가 착륙장을 봄) + 연료 탱크 + 화물 컨테이너 + 창고 표지판. 안테나는 두지 않는다.
+    // 착륙장 가장자리에서 격납고 입구까지는 BuildTaxiway가 유도로와 유도등을 깐다. 지붕·2층·계단은 두지 않는다.
+    private static readonly CompoundSpec CampSpec = new CompoundSpec
+    {
+        Width = 18f, Depth = 12f, SizeVar = 0f,
+        FloorNames = new[] { "Hangar_Ground_Plate1" }, MissingTileChance = 0f,
+        WallNames = new[] { "Wall_Hangar1", "Wall_Hangar1_Window", "Wall_Hangar1" }, BrokenChance = 0.05f,
+        ExtraOpenChance = 0f, SideEntrances = false, // 격납고: 앞면만 열린 ㄷ자
+        Divider = false, Towers = 0, ContainerStack = true,
+        TankNames = null, TankChance = 0f, // 옆면은 관제·사무동과 창고동이 차지 (연료 탱크 대신)
+        PipeNames = null, FrontBarriersMin = 0, FrontBarriersMax = 0,
+        InsideNames = new[] { "Generator_01", "Powerbox_03", "Prop_Barrel1", "Prop_Barrel1 yellow", "Prop5", "Prop_Cylinder1", "Prop_Went_big1" },
+        InsideMin = 3, InsideMax = 5,
+        AccentNames = new[] { "Billboard_Warehouse", "Prop_Went_big2" }, AccentCount = 2, // 안테나 없이 창고 표지판·대형 환기구
+        LampName = "Lamp_03_B", LightColor = new Color(1f, 0.78f, 0.5f), LightRange = 12f,
+    };
+
+    // 블록 건물 (간이 공항·연구소 옆): 콘크리트 탑 블록(Concrete_wall2_Tower_UP1B)을 붙여 세운 속이 꽉 찬 덩어리. 내부·지붕·계단 없음
+    private const float BuildingGap = 4f;          // 구역과 건물 사이 통로
+
+    // 간이 공항 유도로: 착륙장 가장자리 → 격납고 입구. 가운데 줄무늬 도로판, 양옆 붉은 유도등
+    private static readonly string[] TaxiwayNames = { "Concrete_Road1_stripes", "Concrete_Road1" };
+    private const float TaxiwayLampSpacing = 6f;
+    private const float TaxiwayLampSide = 4f;   // 유도로 중심선에서 유도등까지
+
+    // 연구소 기지(분화구 옆): 드릴이 찌른 행성을 관측하던 선발대 연구소. 온전한 파란 패널 벽, 칸막이, 발전·측정 장비, 차가운 조명
+    private static readonly CompoundSpec LabSpec = new CompoundSpec
+    {
+        Width = 22f, Depth = 14f, SizeVar = 0f,
+        FloorNames = new[] { "Ground_Plate1" }, MissingTileChance = 0.03f,
+        WallNames = new[] { "Concrete_wall2", "Concrete_wall1 Stripes Variant", "Concrete_wall2" }, BrokenChance = 0.05f, // 콘크리트 기반 간이 시설
+        ExtraOpenChance = 0f,
+        Divider = true, Towers = 0, ContainerStack = false,
+        TankNames = new[] { "Tank_01", "Tank_02" }, TankChance = 1f,
+        PipeNames = new[] { "Pipe3_A", "Pipe3_Connector1" }, FrontBarriersMin = 0, FrontBarriersMax = 0, // 앞은 파이프라인이 분화구로 나감
+        InsideNames = new[] { "Generator_Set_01", "Powerbox_10", "Powerbox_12", "Prop_vents_05", "Radiator_Big", "Prop_Cylinder2", "Billboard_Reactor1" },
+        InsideMin = 4, InsideMax = 6,
+        AccentNames = new[] { "Antenna_05" }, AccentCount = 1, // 장식은 안테나 하나만 (Antenna_Big은 계단 달린 발판이라 뺌)
+        LampName = "Lamp_03_B", LightColor = new Color(0.6f, 0.8f, 1f), LightRange = 14f,
+    };
+
+    /// <summary>
+    /// 사각 구역 하나를 spec대로 조립한다. 지형은 SculptTerrain에서 이 자리를 기준면으로 평탄화해 둔다.
+    /// ① 바닥판 격자 ② 2~3면 벽(옆벽 가운데 7m 입구, 뒷벽은 막음) + 칸막이 ③ 모서리 탑 ④ 컨테이너·탱크
+    /// ⑤ 뒷벽 바깥 파이프 ⑥ 앞 방벽 ⑦ 안쪽 소품·조명 ⑧ 바깥 세로 포인트.
+    /// faceToward가 있으면 열린 앞면이 그쪽을 보게 돌리고, 없으면 무작위 방향.
+    /// 다 놓은 뒤 구역 전체를 큰 물체로 기록해 필드 엄폐물이 보스 통로 간격을 지키게 한다.
+    /// </summary>
+    private static CompoundFrame BuildCompound(Transform parent, Vector2 center, CompoundSpec spec, Vector2? faceToward = null)
+    {
+        float width = spec.Width + Random.Range(-spec.SizeVar, spec.SizeVar);
+        float depth = spec.Depth + Random.Range(-spec.SizeVar, spec.SizeVar);
+        float yawDeg = Random.Range(0f, 180f);
+        if (faceToward.HasValue)
+        {
+            Vector2 back = (center - faceToward.Value).normalized; // 앞면(-v)이 목표를 보려면 +v는 반대쪽
+            yawDeg = Mathf.Atan2(back.x, back.y) * Mathf.Rad2Deg;
+        }
+        Quaternion yaw = Quaternion.Euler(0f, yawDeg, 0f);
+        Vector3 u3 = yaw * Vector3.right, v3 = yaw * Vector3.forward;
+        Vector2 u = new Vector2(u3.x, u3.z), v = new Vector2(v3.x, v3.z);
+        float groundY = GroundY(center);
+
+        // ① 바닥판: 회전 전 크기로 격자를 정하고, 윗면을 지면보다 살짝 위에 맞춘다.
+        GameObject probe = Spawn(spec.FloorNames[0], parent);
+        if (probe == null) return new CompoundFrame { Center = center, U = u, V = v, Width = width, Depth = depth };
+        Vector3 tile = GetBounds(probe).size;
+        Object.DestroyImmediate(probe);
+        int nx = Mathf.Max(1, Mathf.RoundToInt(width / Mathf.Max(tile.x, 0.5f)));
+        int nz = Mathf.Max(1, Mathf.RoundToInt(depth / Mathf.Max(tile.z, 0.5f)));
+        width = nx * tile.x;
+        depth = nz * tile.z;
+        for (int ix = 0; ix < nx; ix++)
+        {
+            for (int iz = 0; iz < nz; iz++)
+            {
+                if (Random.value < spec.MissingTileChance) continue;
+                GameObject go = Spawn(spec.FloorNames[Random.Range(0, spec.FloorNames.Length)], parent);
+                if (go == null) continue;
+                go.transform.rotation = yaw * go.transform.rotation;
+                Vector2 xz = center + u * ((ix + 0.5f) * tile.x - width * 0.5f) + v * ((iz + 0.5f) * tile.z - depth * 0.5f);
+                Bounds b = GetBounds(go);
+                go.transform.position += new Vector3(xz.x - b.center.x, groundY + 0.05f - b.max.y, xz.y - b.center.z);
+            }
+        }
+
+        // ② 벽: 앞면은 늘 열고, ExtraOpenChance로 옆면 하나를 더 연다(L자). 뒷벽은 입구 없이, 옆벽은 가운데 입구.
+        Vector2[] corners =
+        {
+            center - u * (width * 0.5f) + v * (depth * 0.5f), center + u * (width * 0.5f) + v * (depth * 0.5f),
+            center + u * (width * 0.5f) - v * (depth * 0.5f), center - u * (width * 0.5f) - v * (depth * 0.5f),
+        };
+        int extraOpen = Random.value < spec.ExtraOpenChance ? (Random.value < 0.5f ? 1 : 3) : -1;
+        for (int side = 0; side < 4; side++)
+        {
+            if (side == 2 || side == extraOpen) continue;
+            BuildWallLine(parent, corners[side], corners[(side + 1) % 4], spec.WallNames,
+                side == 0 || !spec.SideEntrances ? -1f : Random.Range(0.35f, 0.65f), spec.BrokenChance);
+        }
+        if (spec.Divider)
+        {
+            // 뒷벽 가운데에서 앞쪽으로 절반 길이: 안을 두 칸으로 나눠 엄폐 각을 만든다
+            Vector2 backMid = (corners[0] + corners[1]) * 0.5f;
+            BuildWallLine(parent, backMid, backMid - v * (depth * 0.5f), spec.WallNames, -1f, 0f);
+            Occupy(backMid - v * (depth * 0.25f), depth * 0.25f + 1f); // 안쪽 소품이 칸막이와 겹치지 않게
+        }
+
+        // ③ 탑: 뒷면 양 모서리, Towers=3이면 앞 모서리 하나 더(반반)
+        if (spec.Towers >= 2)
+        {
+            BuildTower(parent, corners[0], yaw);
+            BuildTower(parent, corners[1], yaw);
+            if (spec.Towers >= 3 && Random.value < 0.5f) BuildTower(parent, corners[Random.value < 0.5f ? 2 : 3], yaw);
+        }
+
+        // ④ 쌓인 컨테이너 (안쪽 한 칸) + 바깥 옆면 탱크 더미
+        if (spec.ContainerStack)
+        {
+            Vector2 stackXZ = center + u * (width * 0.25f * (Random.value < 0.5f ? -1f : 1f)) + v * (depth * 0.2f);
+            GameObject lower = Spawn("Container_01", parent);
+            if (lower != null)
+            {
+                AlignLongAxis(lower, u);
+                SetOnGround(lower, stackXZ, 0f);
+                ApplyPerchRule(lower.transform); // 위에 쌓기 전에 높이 단계를 맞춰 둔다 (나중에 맞추면 위 컨테이너와 겹침)
+                Occupy(stackXZ, Footprint(lower));
+                GameObject upper = Spawn("Container_01", parent);
+                if (upper != null && Random.value < 0.7f)
+                {
+                    AlignLongAxis(upper, u);
+                    upper.transform.rotation = Quaternion.Euler(0f, Random.Range(-12f, 12f), 0f) * upper.transform.rotation;
+                    SetOnGround(upper, stackXZ, 0f);
+                    upper.transform.position += Vector3.up * (GetBounds(lower).max.y - GetBounds(upper).min.y);
+                }
+                else if (upper != null) Object.DestroyImmediate(upper);
+            }
+        }
+        if (spec.TankNames != null && Random.value < spec.TankChance)
+        {
+            GameObject tanks = Spawn(spec.TankNames[Random.Range(0, spec.TankNames.Length)], parent);
+            if (tanks != null)
+            {
+                tanks.transform.rotation = yaw * tanks.transform.rotation;
+                SetOnGround(tanks, corners[3] - u * 5f + v * (depth * 0.3f), 0f);
+            }
+        }
+
+        // ⑤ 뒷벽 바깥 파이프 줄
+        if (spec.PipeNames != null)
+            BuildWallLine(parent, corners[0] + v * RuinPipeOffset, corners[1] + v * RuinPipeOffset, spec.PipeNames, -1f, 0f);
+
+        // ⑥ 열린 앞면 바깥에 방벽 (가운데는 비움)
+        Vector2 frontMid = (corners[2] + corners[3]) * 0.5f - v * 5f;
+        int barriers = Random.Range(spec.FrontBarriersMin, spec.FrontBarriersMax + 1);
+        for (int k = 0; k < barriers; k++)
+        {
+            float off = (k - (barriers - 1) * 0.5f) * 6f;
+            if (Mathf.Abs(off) < 2f) off += 4f;
+            GameObject bar = Spawn("Barrier_4m", parent);
+            if (bar == null) continue;
+            AlignLongAxis(bar, u);
+            bar.transform.rotation = Quaternion.Euler(0f, Random.Range(-15f, 15f), 0f) * bar.transform.rotation;
+            SetOnGround(bar, frontMid + u * off, 0.02f);
+        }
+
+        // ⑦ 안쪽 소품 + 모서리 조명
+        Scatter(parent, spec.InsideNames, Random.Range(spec.InsideMin, spec.InsideMax + 1), center, 0f, Mathf.Min(width, depth) * 0.5f - 1.5f, 1f, 1f, 1f, 0f, 0f);
+        GameObject lamp = Spawn(spec.LampName, parent);
+        if (lamp != null)
+        {
+            lamp.transform.rotation = yaw * lamp.transform.rotation;
+            SetOnGround(lamp, corners[3] + u * 1.5f + v * 1.5f, 0f);
+            if (spec.LightRange > 0f)
+            {
+                Bounds lb = GetBounds(lamp);
+                AddPointLight(parent, "CompoundLight", new Vector3(center.x, lb.max.y, center.y), spec.LightColor, spec.LightRange, 2f);
+            }
+        }
+
+        // ⑧ 바깥 세로 포인트 (먼 데서도 보이는 실루엣): 뒷면 바깥 모서리부터 차례로
+        Vector2[] accentSpots = { corners[1] + u * 4f + v * 2f, corners[0] - u * 4f + v * 2f, corners[1] + u * 4f - v * (depth * 0.5f) };
+        for (int k = 0; k < spec.AccentCount && k < accentSpots.Length; k++)
+        {
+            GameObject accent = Spawn(spec.AccentNames[(k + Random.Range(0, spec.AccentNames.Length)) % spec.AccentNames.Length], parent);
+            if (accent == null) continue;
+            accent.transform.rotation = yaw * accent.transform.rotation;
+            SetOnGround(accent, accentSpots[k], 0f);
+        }
+
+        OccupyBig(center, Mathf.Sqrt(width * width + depth * depth) * 0.5f + RuinPipeOffset + 6f); // 바깥 탱크·포인트까지
+        return new CompoundFrame { Center = center, U = u, V = v, Width = width, Depth = depth };
+    }
+
+    /// <summary>BuildCompound가 실제로 놓은 구역의 위치·방향·크기 (옆에 건물을 붙일 때 씀)</summary>
+    private struct CompoundFrame
+    {
+        public Vector2 Center, U, V;
+        public float Width, Depth;
+    }
+
+    /// <summary>
+    /// a에서 b까지 names 조각을 긴 변이 선을 따르게 이어 놓는다. entranceT(0~1)가 0 이상이면 그 위치에 입구를 비운다.
+    /// brokenChance 확률로 조각을 빼 무너진 틈을 만든다. 놓은 조각들을 돌려준다.
+    /// </summary>
+    private static List<GameObject> BuildWallLine(Transform parent, Vector2 a, Vector2 b, string[] names, float entranceT, float brokenChance,
+        float entranceHalf = RuinEntranceHalf)
+    {
+        List<GameObject> placed = new List<GameObject>();
+        float len = Vector2.Distance(a, b);
+        Vector2 dir = (b - a) / Mathf.Max(len, 0.001f);
+        float entrance = entranceT * len;
+        float pos = 0f;
+        for (int k = 0; pos < len - 0.5f && k < 64; k++)
+        {
+            GameObject go = Spawn(names[k % names.Length], parent);
+            if (go == null) break;
+            float piece = AlignLongAxis(go, dir);
+            bool inEntrance = entranceT >= 0f && pos < entrance + entranceHalf && pos + piece > entrance - entranceHalf;
+            if (inEntrance || pos + piece > len + piece * 0.5f || Random.value < brokenChance)
+                Object.DestroyImmediate(go);
+            else
+            {
+                SetOnGround(go, a + dir * (pos + piece * 0.5f), 0.05f);
+                placed.Add(go);
+            }
+            pos += piece;
+        }
+        return placed;
+    }
+
+    /// <summary>
+    /// 콘크리트 블록 건물 하나: 받침(Concrete_wall2_Base1) 위에 탑 블록(Concrete_wall2_Tower_UP1B)을 얹은 덩어리를 격자로 붙여 세운다.
+    /// 속이 꽉 찬 블록이라 내부·지붕·문·계단이 없고, 윗면이 3.1m 이상이라 올라설 수도 없다.
+    /// (얇고 높은 벽 위에 지붕을 얹은 건물은 쓰지 않는다) 칸이 3개 이상이면 한 모서리 칸을 비워 ㄱ자 덩어리로 만든다.
+    /// </summary>
+    private static void BuildBlockBuilding(Transform parent, string label, Vector2 center, Vector2 u, Vector2 v, int cols, int rows)
+    {
+        Transform bld = Group(parent, "Building_" + label);
+        Quaternion yaw = Quaternion.LookRotation(new Vector3(v.x, 0f, v.y), Vector3.up); // 로컬 +X = u, +Z = v
+        Vector2 cell = TowerBlockSize(bld);
+        int skipCorner = cols * rows >= 3 ? Random.Range(0, 4) : -1;
+        for (int ix = 0; ix < cols; ix++)
+        {
+            for (int iz = 0; iz < rows; iz++)
+            {
+                bool corner = (ix == 0 || ix == cols - 1) && (iz == 0 || iz == rows - 1);
+                int cornerId = (ix == 0 ? 0 : 1) + (iz == 0 ? 0 : 2);
+                if (corner && cornerId == skipCorner) continue;
+                Vector2 xz = center + u * ((ix + 0.5f - cols * 0.5f) * cell.x) + v * ((iz + 0.5f - rows * 0.5f) * cell.y);
+                BuildTower(bld, xz, yaw);
+            }
+        }
+        float w = cols * cell.x, d = rows * cell.y;
+        OccupyBig(center, Mathf.Sqrt(w * w + d * d) * 0.5f + 1f);
+    }
+
+    /// <summary>받침·탑 블록 한 칸의 바닥 크기 (회전 전 X, Z 중 큰 쪽). 받침이 탑보다 넓으면 받침 기준.</summary>
+    private static Vector2 TowerBlockSize(Transform parent)
+    {
+        Vector2 size = Vector2.zero;
+        foreach (string name in new[] { "Concrete_wall2_Base1", "Concrete_wall2_Tower_UP1B" })
+        {
+            GameObject probe = Spawn(name, parent);
+            if (probe == null) continue;
+            Bounds b = GetBounds(probe);
+            size = Vector2.Max(size, new Vector2(b.size.x, b.size.z));
+            Object.DestroyImmediate(probe);
+        }
+        return size.x > 0.5f && size.y > 0.5f ? size : new Vector2(3f, 3f);
+    }
+
+    /// <summary>
+    /// 구역 옆에 콘크리트 블록 건물을 붙인다. side=±1은 구역의 오른쪽(+u)/왼쪽(-u), 0은 뒤쪽(+v).
+    /// side가 null이면 좌우 중 지면이 낮은(산비탈이 아닌) 쪽을 고른다.
+    /// </summary>
+    private static void AttachBuilding(Transform parent, string label, CompoundFrame frame, int? side, int cols, int rows)
+    {
+        Vector2 cell = TowerBlockSize(parent);
+        float width = cols * cell.x, depth = rows * cell.y;
+        Vector2 spot;
+        if (side == 0)
+            spot = frame.Center + frame.V * (frame.Depth * 0.5f + BuildingGap + depth * 0.5f);
+        else
+        {
+            Vector2 right = frame.Center + frame.U * (frame.Width * 0.5f + BuildingGap + width * 0.5f);
+            Vector2 left = frame.Center - frame.U * (frame.Width * 0.5f + BuildingGap + width * 0.5f);
+            spot = side.HasValue ? (side.Value > 0 ? right : left) : (GroundY(right) <= GroundY(left) ? right : left);
+        }
+        BuildBlockBuilding(parent, label, spot, frame.U, frame.V, cols, rows);
+    }
+
+    /// <summary>콘크리트 탑: 받침(Concrete_wall2_Base1) 위에 탑(Concrete_wall2_Tower_UP1B)을 Bounds로 얹는다.</summary>
+    private static void BuildTower(Transform parent, Vector2 xz, Quaternion yaw)
+    {
+        GameObject foot = Spawn("Concrete_wall2_Base1", parent);
+        if (foot == null) return;
+        foot.transform.rotation = yaw * foot.transform.rotation;
+        SetOnGround(foot, xz, 0.05f);
+        ApplyPerchRule(foot.transform, true); // 탑을 얹기 전에 받침 높이 단계를 맞춰 둔다 (받침이 탑보다 넓으면 그 턱에 올라서지 못하게)
+        GameObject tower = Spawn("Concrete_wall2_Tower_UP1B", parent);
+        if (tower == null) return;
+        tower.transform.rotation = yaw * tower.transform.rotation;
+        SetOnGround(tower, xz, 0f);
+        tower.transform.position += Vector3.up * (GetBounds(foot).max.y - GetBounds(tower).min.y);
+    }
+
+    /// <summary>회전 전 Bounds의 긴 변(X 또는 Z)이 dir을 향하도록 돌리고 그 길이를 돌려준다.</summary>
+    private static float AlignLongAxis(GameObject go, Vector2 dir)
+    {
+        Bounds b = GetBounds(go);
+        bool alongX = b.size.x >= b.size.z;
+        float phi = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+        go.transform.rotation = Quaternion.Euler(0f, alongX ? -phi : 90f - phi, 0f) * go.transform.rotation;
+        return Mathf.Max(Mathf.Max(b.size.x, b.size.z), 0.5f);
+    }
+
+    /// <summary>
+    /// 필드 대형 엄폐물: 들판 곳곳에 높이 4~8m 바위 지형이나 기지 잔해(쓰러진 탱크·컨테이너·벽 조각)를 놓고 둘레에 작은 바위를 붙인다.
+    /// 보스 이동을 막지 않도록 서로 FieldCoverSpacing 이상 띄우고, 순환로·착륙장 안쪽·분화구→착륙장 통로·산비탈은 피한다.
+    /// </summary>
+    /// <param name="minCenterDist">착륙장 중심에서 이보다 가까운 곳은 쓰지 않음</param>
+    /// <param name="maxCenterDist">착륙장 중심에서 이보다 먼 곳은 쓰지 않음 (순환로 안쪽 띠만 채울 때)</param>
+    private static void BuildFieldCover(Transform parent, string label, int count, float wreckChance, float minHeight, float maxHeight,
+        float reach, float minCenterDist, float maxCenterDist)
+    {
+        float baseY = GroundY(Center);
+        _extraFilter = (xz, r) =>
+        {
+            float d = Vector2.Distance(xz, Center);
+            return GroundY(xz) < baseY + PlayableRise && d > minCenterDist + r && d < maxCenterDist - r
+                   && DistanceToSegment(xz, CraterCenter, Center) > BossCorridorHalf + r;
+        };
+
+        Vector3 tp = _terrain.transform.position;
+        Vector3 size = _terrain.terrainData.size;
+        int placed = 0;
+        for (int attempt = 0; attempt < count * 4 && placed < count; attempt++)
+        {
+            bool wreck = Random.value < wreckChance;
+            string[] rocks = maxCenterDist < 1000f ? InnerRockNames : FieldRockNames;
+            string name = wreck ? FieldWreckNames[Random.Range(0, FieldWreckNames.Length)] : rocks[Random.Range(0, rocks.Length)];
+            GameObject go = Spawn(name, parent);
+            if (go == null) continue;
+
+            Quaternion yaw = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            if (wreck && System.Array.IndexOf(FieldToppledNames, name) >= 0)
+                go.transform.rotation = yaw * Quaternion.Euler(0f, 0f, 90f) * go.transform.rotation; // 옆으로 쓰러진 탱크
+            else
+                go.transform.rotation = yaw * go.transform.rotation;
+            if (!wreck)
+            {
+                float h = Mathf.Max(GetBounds(go).size.y, 0.01f);
+                go.transform.localScale *= Mathf.Clamp(Random.Range(minHeight, maxHeight) / h, 0.5f, 6f);
+            }
+
+            float r = Footprint(go);
+            bool ok = false;
+            for (int t = 0; t < PlaceTries && !ok; t++)
+            {
+                // 띠(maxCenterDist가 유한)는 띠 안에서, 아니면 지형 전체에서 뽑는다. (좁은 띠를 지형 전체에서 뽑으면 거의 안 걸림)
+                Vector2 xz;
+                if (maxCenterDist < 1000f)
+                {
+                    float a = Random.Range(0f, Mathf.PI * 2f);
+                    xz = Center + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * Random.Range(minCenterDist + r, maxCenterDist - r);
+                }
+                else xz = new Vector2(Random.Range(tp.x + 10f, tp.x + size.x - 10f), Random.Range(tp.z + 10f, tp.z + size.z - 10f));
+                if (!IsFree(xz, r + reach, FieldCoverClearance, MaxPropSlope) || !FarFromBig(xz, r + reach, FieldCoverSpacing)) continue;
+                SetOnGround(go, xz, wreck ? 0.12f : 0.2f);
+                Occupy(xz, r);
+                ok = true;
+
+                // 둘레에 작은 바위를 붙여 땅에서 솟은 느낌을 낸다. 그다음 둘레까지 차지한 것으로 기록해 다음 엄폐물과 간격을 지킨다.
+                if (reach >= 1f)
+                    Scatter(parent, FieldCompanionNames, Random.Range(1, 4), xz, r + 0.5f, r + reach - 0.5f, 0.3f, 0.8f, 1.5f, 0.25f, 0f);
+                OccupyBig(xz, r + reach);
+            }
+            if (ok) placed++;
+            else Object.DestroyImmediate(go);
+        }
+        _extraFilter = null;
+        Debug.Log($"[SciFiMapBuilder] {label} 엄폐물 {placed}/{count}개 배치");
+    }
+
+    /// <summary>들판 곳곳의 중간 크기 돌(1~2m). 걸려 넘지 못하는 장애물이라 Props 아래에 두고 순환로·착륙장은 피한다.</summary>
+    private static void BuildMediumRocks(Transform parent)
+    {
+        float baseY = GroundY(Center);
+        _extraFilter = (xz, r) => GroundY(xz) < baseY + PlayableRise;
+        Vector3 tp = _terrain.transform.position;
+        Vector3 size = _terrain.terrainData.size;
+        for (int k = 0; k < MediumRockCount; k++)
+        {
+            Vector2 c = new Vector2(Random.Range(tp.x + 10f, tp.x + size.x - 10f), Random.Range(tp.z + 10f, tp.z + size.z - 10f));
+            Scatter(parent, MediumRockNames, 1, c, 0f, 6f, 2f, 0.7f, 1.4f, 0.25f, 0f);
+        }
+        _extraFilter = null;
+    }
+
+    /// <summary>
+    /// 작은 돌·자갈 무더기. 발에 걸리지 않게 콜라이더를 끄고, Props 밖(Details)에 두어 NavMesh·콜라이더 정리에서 빠진다.
+    /// 순환로 위에도 흩어 길이 너무 깨끗하지 않게 하되, 착륙장 바닥판과 다른 소품 위는 피한다.
+    /// </summary>
+    private static void BuildPebbles(Transform parent)
+    {
+        float baseY = GroundY(Center);
+        Vector3 tp = _terrain.transform.position;
+        Vector3 size = _terrain.terrainData.size;
+        int made = 0;
+        for (int attempt = 0; attempt < PebbleClusterCount * 20 && made < PebbleClusterCount; attempt++)
+        {
+            Vector2 c = new Vector2(Random.Range(tp.x + 10f, tp.x + size.x - 10f), Random.Range(tp.z + 10f, tp.z + size.z - 10f));
+            if (GroundY(c) > baseY + PebbleMaxRise || Vector2.Distance(c, Center) < PadRadius + 2f) continue; // 산 위·착륙장이면 다시 뽑음
+            made++;
+            int n = Random.Range(PebblesPerClusterMin, PebblesPerClusterMax + 1);
+            for (int i = 0; i < n; i++)
+            {
+                Vector2 xz = c + Random.insideUnitCircle * PebbleClusterRadius;
+                GameObject go = Spawn(PebbleNames[Random.Range(0, PebbleNames.Length)], parent);
+                if (go == null) continue;
+                go.transform.localScale *= Random.Range(0.6f, 1.6f);
+                go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f) * go.transform.rotation;
+                if (Overlaps(xz, Footprint(go)))
+                {
+                    Object.DestroyImmediate(go);
+                    continue;
+                }
+                foreach (Collider col in go.GetComponentsInChildren<Collider>()) col.enabled = false;
+                SetOnGround(go, xz, 0.3f);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 간이 공항 유도로: 착륙장 바닥판 가장자리에서 격납고 입구까지 도로판을 잇고 양옆에 붉은 유도등을 세운다.
+    /// 도로판은 밟는 바닥(장애물 아님)이고, 유도로 띠는 점유로 기록해 착륙장 엄폐물 링이 그 위에 놓이지 않게 한다.
+    /// </summary>
+    private static void BuildTaxiway(Transform parent)
+    {
+        Vector2 camp = SiteCenters[SiteCamp];
+        Vector2 dir = (camp - Center).normalized;
+        Vector2 start = Center + dir * (PadRadius + 0.5f);
+        Vector2 end = camp - dir * (CampSpec.Depth * 0.5f);
+        float len = Vector2.Distance(start, end);
+        if (len < 2f) return;
+
+        BuildWallLine(parent, start, end, TaxiwayNames, -1f, 0f);
+        for (float t = 3f; t < len; t += 3f) Occupy(start + dir * t, TaxiwayLampSide + 1f);
+
+        Vector2 side = new Vector2(-dir.y, dir.x);
+        for (float t = TaxiwayLampSpacing * 0.5f; t < len; t += TaxiwayLampSpacing)
+        {
+            foreach (float s in new[] { -1f, 1f })
+            {
+                GameObject lamp = Spawn("Lamp_Position", parent);
+                if (lamp == null) continue;
+                SetOnGround(lamp, start + dir * t + side * (s * TaxiwayLampSide), 0f);
+                Bounds lb = GetBounds(lamp);
+                AddPointLight(lamp.transform, "GuideLight", new Vector3(lb.center.x, lb.max.y + 0.3f, lb.center.z), GuideLightColor, 4f, 1.5f);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 연구소 앞에서 분화구 테두리까지 이어지는 시료 파이프라인 (연구소가 드릴·분화구를 관측하던 흔적).
+    /// 사이사이 끊어 두어 사람·몬스터가 넘나들 틈을 남기고, 중간에 조명 하나를 세운다.
+    /// </summary>
+    private static void BuildLabPipeline(Transform parent)
+    {
+        Vector2 lab = SiteCenters[SiteLab];
+        Vector2 dir = (CraterCenter - lab).normalized;
+        Vector2 start = lab + dir * (LabSpec.Depth * 0.5f + 7f);             // 앞 방벽 바깥부터
+        Vector2 end = CraterCenter - dir * (CraterRadius + CraterRimWidth);  // 분화구 테두리까지
+        if (Vector2.Dot(end - start, dir) <= 2f) return;
+        BuildWallLine(parent, start, end, LabPipelineNames, -1f, LabPipelineGapChance);
+        GameObject lamp = Spawn("Lamp_05", parent);
+        if (lamp != null) SetOnGround(lamp, (start + end) * 0.5f + new Vector2(-dir.y, dir.x) * 2f, 0f);
+    }
+
+    private static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
+    {
+        Vector2 ab = b - a;
+        float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / Mathf.Max(ab.sqrMagnitude, 1e-6f));
+        return Vector2.Distance(p, a + ab * t);
     }
 
     /// <summary>외곽 경계: 중심에서 방향마다 바깥으로 걸어가 산기슭(또는 지형 끝)을 찾고, 그 둘레를 따라 외벽 구간과 바위 구간을 번갈아 놓는다.</summary>
@@ -826,6 +1485,23 @@ public static class SciFiMapBuilder
     internal static void Occupy(Vector2 xz, float r) => Occupied.Add(new Vector3(xz.x, xz.y, r));
 
     /// <summary>
+    /// 큰 물체(구역·추락선·드릴·필드 대형 엄폐물)로 기록한다. 보스 통로 간격(FieldCoverSpacing)은 큰 물체끼리만 따진다.
+    /// (작은 통·돌까지 18m씩 비우면 들판에 큰 엄폐물 놓을 자리가 거의 남지 않는다)
+    /// </summary>
+    private static void OccupyBig(Vector2 xz, float r)
+    {
+        Occupy(xz, r);
+        BigOccupied.Add(new Vector3(xz.x, xz.y, r));
+    }
+
+    private static bool FarFromBig(Vector2 xz, float r, float spacing)
+    {
+        foreach (Vector3 o in BigOccupied)
+            if (Vector2.Distance(xz, new Vector2(o.x, o.y)) < r + o.z + spacing) return false;
+        return true;
+    }
+
+    /// <summary>
     /// 다른 빌더(TutorialMapBuilder)가 이 파일의 배치 도우미를 쓰기 전에 부른다.
     /// siteRules=false면 인게임 맵의 광장·순환로 금지 구역을 끄고, extraFilter(xz, 반경)로 자기 금지 구역을 넣을 수 있다.
     /// </summary>
@@ -833,6 +1509,7 @@ public static class SciFiMapBuilder
     {
         _terrain = terrain;
         Occupied.Clear();
+        BigOccupied.Clear();
         _useSiteRules = siteRules;
         _extraFilter = extraFilter;
     }
@@ -862,8 +1539,36 @@ public static class SciFiMapBuilder
             Debug.LogWarning($"[SciFiMapBuilder] 프리펩을 찾지 못함: {name}");
             return null;
         }
+        if (System.Array.IndexOf(ExcludedPrefabNames, name) >= 0)
+        {
+            Debug.LogWarning($"[SciFiMapBuilder] 맵 컨셉에 맞지 않아 배치하지 않음: {name}");
+            return null;
+        }
+        if (HasClimbablePart(prefab))
+        {
+            Debug.LogWarning($"[SciFiMapBuilder] 올라설 수 있는 부품(계단·사다리·발판)이 있어 배치하지 않음: {name}");
+            return null;
+        }
         return (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
     }
+
+    /// <summary>
+    /// 맵 핵심 설계(플레이어가 몬스터가 못 오는 높은 곳에서 사격하지 못하게) 때문에 쓰지 않는 프리펩인지.
+    /// 자식 이름에 계단·사다리·발판·캣워크·경사로·엘리베이터가 있거나, 프리펩 이름 자체가 그런 구조물이면 true.
+    /// </summary>
+    private static bool HasClimbablePart(GameObject prefab)
+    {
+        if (ClimbableCache.TryGetValue(prefab, out bool cached)) return cached;
+        bool found = ClimbablePattern.IsMatch(prefab.name);
+        foreach (Transform t in prefab.GetComponentsInChildren<Transform>(true))
+            if (!found && ClimbablePattern.IsMatch(t.name)) found = true;
+        ClimbableCache[prefab] = found;
+        return found;
+    }
+
+    private static readonly string[] ExcludedPrefabNames = { "Radar_Sphere" }; // 맵 컨셉(추락한 굴착 전초기지)에 맞지 않음
+    private static readonly Regex ClimbablePattern = new Regex("stair|ladder|catwalk|platform|ramp|elevator", RegexOptions.IgnoreCase);
+    private static readonly Dictionary<GameObject, bool> ClimbableCache = new Dictionary<GameObject, bool>();
 
     /// <summary>메시 Renderer들의 Bounds. 파티클(연기 등)은 수십 m로 부풀어 있어 뺀다.</summary>
     internal static Bounds GetBounds(GameObject go)
@@ -948,9 +1653,10 @@ public static class SciFiMapBuilder
         CollectObstacles(props, obstacles);
 
         int notWalkable = UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
-        int boxes = 0, volumes = 0;
+        int boxes = 0, volumes = 0, resized = 0;
         foreach (Transform prop in obstacles)
         {
+            if (ApplyPerchRule(prop)) resized++;
             if (!TryGetLocalBounds(prop, out Bounds local)) continue;
 
             bool hasCollider = false;
@@ -970,7 +1676,36 @@ public static class SciFiMapBuilder
             volume.area = notWalkable;
             volumes++;
         }
-        Debug.Log($"[SciFiMapBuilder] 콜라이더 정리: 장애물 {obstacles.Count}개, BoxCollider 추가 {boxes}, NavMesh 제외 볼륨 {volumes}");
+        Debug.Log($"[SciFiMapBuilder] 콜라이더 정리: 장애물 {obstacles.Count}개, 높이 단계 맞춤 {resized}, BoxCollider 추가 {boxes}, NavMesh 제외 볼륨 {volumes}");
+    }
+
+    /// <summary>
+    /// 높이 단계 규칙: 장애물 윗면 높이(지면 기준)가 올라설 수 있는 높이면 가까운 단계(PerchMid 띠 또는 PerchTallMin)로
+    /// 바닥 중심을 고정한 채 크기를 맞춘다. 공중에 뜬 부품은 건드리지 않는다. 크기를 바꿨으면 true.
+    /// </summary>
+    private static bool ApplyPerchRule(Transform prop, bool force = false)
+    {
+        // 드릴 탑·블록 건물은 부품을 맞물려 쌓은 것이라 나중에 크기를 따로 바꾸면 어긋난다 (블록 받침은 쌓기 전에 force로 맞춤)
+        if (!force && prop.parent != null && (prop.parent.name == "Drill" || prop.parent.name.StartsWith("Building_"))) return false;
+        Bounds b = GetBounds(prop.gameObject);
+        float ground = GroundY(new Vector2(b.center.x, b.center.z));
+        if (b.min.y - ground > PerchAirborne || b.size.y < 0.01f) return false;
+
+        float top = b.max.y - ground;
+        float target;
+        if (top <= PerchLowMax || (top >= PerchMidMin && top <= PerchMidMax) || top >= PerchTallMin) return false;
+        else if (top < PerchMidMin) target = PerchMidMin;
+        else target = top < (PerchMidMax + PerchTallMin) * 0.5f ? PerchMidMax : PerchTallMin;
+
+        // 바닥(b.min.y)은 그대로 두고 전체 높이를 늘이거나 줄여 윗면이 target에 오게 한다.
+        float scale = (target + ground - b.min.y) / b.size.y;
+        // 배율이 크면(납작한 태양광 패널이 4배로 커지는 등) 오히려 어색하다. 범위를 넘으면 크기를 바꾸지 않는다.
+        if (scale < PerchScaleMin || scale > PerchScaleMax) return false;
+        Vector3 bottom = new Vector3(b.center.x, b.min.y, b.center.z);
+        prop.localScale *= scale;
+        Bounds after = GetBounds(prop.gameObject);
+        prop.position += bottom - new Vector3(after.center.x, after.min.y, after.center.z);
+        return true;
     }
 
     /// <summary>프리펩 인스턴스 루트를 장애물 하나로 모은다. (그룹은 내려가고, 바닥판·유도등은 뺌)</summary>
@@ -983,9 +1718,15 @@ public static class SciFiMapBuilder
                 CollectObstacles(t, result);
                 continue;
             }
+            if (t.parent != null && t.parent.name.StartsWith("Building_"))
+            {
+                result.Add(t); // 건물 부품은 바닥판 프리펩이라도(콘크리트 슬래브 지붕) 장애물: 지붕 위 NavMesh·몬스터 소환을 막는다
+                continue;
+            }
             GameObject source = PrefabUtility.GetCorrespondingObjectFromSource(t.gameObject);
             string sourceName = source != null ? source.name : t.name;
-            if (sourceName.StartsWith("Hangar_Ground_Plate") || sourceName.StartsWith("Lamp_")) continue;
+            if (sourceName.StartsWith("Hangar_Ground_Plate") || sourceName.StartsWith("Concrete_Ground") || sourceName.StartsWith("Concrete_Road")
+                || sourceName.StartsWith("Ground_Plate") || sourceName.StartsWith("Lamp_")) continue; // 밟는 바닥·가는 조명
             result.Add(t);
         }
     }
@@ -1193,8 +1934,10 @@ public static class SciFiMapBuilder
             GetRootPose(instance.transform, t, out Vector3 pos, out Quaternion rot, out Vector3 scale);
             if (before.TryGetValue(kv.Key, out Transform b))
             {
-                GetRootPose(asset.transform, b, out Vector3 bPos, out Quaternion bRot, out Vector3 bScale);
-                if ((pos - bPos).sqrMagnitude < 1e-6f && Quaternion.Angle(rot, bRot) < 0.01f && (scale - bScale).sqrMagnitude < 1e-8f) continue;
+                // 바뀌었는지는 부모 기준(local)으로 따진다. 루트 기준으로 따지면 부모를 따라 움직인 LOD 자식까지 전부 기록된다.
+                // (기록하는 값은 루트 기준이라, 지점 그룹 위치가 바뀌어도 놓은 자리가 유지된다)
+                if ((t.localPosition - b.localPosition).sqrMagnitude < 1e-6f && Quaternion.Angle(t.localRotation, b.localRotation) < 0.01f
+                    && (t.localScale - b.localScale).sqrMagnitude < 1e-8f) continue;
                 AddedEdit a = data.added.Find(e => JoinPath(e.parentPath, e.name) == kv.Key);
                 if (a != null)
                 {
