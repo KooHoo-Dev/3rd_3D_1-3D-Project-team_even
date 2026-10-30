@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -128,6 +129,31 @@ public static class SciFiMapBuilder
     private const float CoverHardMaxHeight = 5f; // 폭 기준으로 키운 결과가 이보다 높으면 쓰지 않음
     private const float CoverSpacing = 6f;      // 엄폐물 사이 최소 간격(이동 통로)
 
+    // 외곽 경계: 평지를 둘러싼 산기슭을 찾아 그 안쪽을 따라 무너진 기지 외벽과 바위 무더기를 번갈아 놓는다.
+    private const int BoundarySamples = 180;          // 둘레를 찾는 방향 수(2도 간격)
+    private const float BoundaryRise = 9f;            // 기준면보다 이만큼 높아지면 산기슭으로 본다 (평지의 5m 단차는 무시)
+    private const float BoundaryInset = 1.5f;         // 산기슭에서 안쪽으로 물린 거리
+    private const float BoundaryNoiseScale = 0.02f;
+    private const float BoundaryWallThreshold = 0.5f; // 노이즈가 이보다 크면 외벽 구간, 작으면 바위 구간
+    private const float BoundaryWallGapChance = 0.15f;
+    private const float BoundaryRockStep = 7f;
+    private static readonly string[] BoundaryWallNames =
+        { "Wall_Large_01", "Wall_Large_02", "Wall_Large_03", "Wall_Large_05", "Concrete_wall1", "Concrete_wall2", "Wall1A", "Wall1B" };
+    private static readonly string[] BoundaryRockNames =
+        { "Rock_Shales_01", "Rock_Shales_03", "Rock_Shales_06", "Rock_Shales_09", "Stone_Big1", "Rock_01" };
+
+    // 분위기: 붉은 갈색 먼지 안개 + 어두운 하늘 + 낮게 깔린 햇빛 + 붉은 포인트 조명 (MapDesign 씬 설정을 바꾼다)
+    private static readonly Color FogColor = new Color(0.42f, 0.27f, 0.21f);
+    private const float FogDensity = 0.008f;
+    private static readonly Color AmbientSky = new Color(0.30f, 0.24f, 0.24f);
+    private static readonly Color AmbientEquator = new Color(0.28f, 0.20f, 0.17f);
+    private static readonly Color AmbientGround = new Color(0.12f, 0.09f, 0.08f);
+    private static readonly Color SunColor = new Color(1f, 0.72f, 0.55f);
+    private const float SunIntensity = 1.1f;
+    private static readonly Vector3 SunEuler = new Vector3(28f, -35f, 0f);
+    private static readonly Color GuideLightColor = new Color(1f, 0.15f, 0.1f);
+    private static readonly Color CraterGlowColor = new Color(1f, 0.25f, 0.1f);
+
     // 소품 배치 공통
     private const float MaxPropSlope = 20f;  // 이보다 가파른 곳엔 배치하지 않음(도)
     private const float EdgeMargin = 2f;
@@ -183,6 +209,7 @@ public static class SciFiMapBuilder
         AssetDatabase.SaveAssets();
 
         ReplaceInActiveScene();
+        ApplyAtmosphere();
         Debug.Log($"[SciFiMapBuilder] 생성 완료: {SavePath}");
     }
 
@@ -340,6 +367,7 @@ public static class SciFiMapBuilder
         Random.InitState(7104); BuildRefinery(SiteGroup(props, SiteRefinery));
         Random.InitState(7105); BuildCrater(SiteGroup(props, SiteCrater));
         Random.InitState(7106); BuildWasteland(SiteGroup(props, SiteWasteland));
+        Random.InitState(7107); BuildBoundary(Group(props, "Boundary")); // 지점 소품을 피해서 놓도록 마지막에
         Random.state = prev;
     }
 
@@ -387,7 +415,10 @@ public static class SciFiMapBuilder
         {
             float a = k * Mathf.PI * 2f / PadLampCount;
             GameObject lamp = Spawn("Lamp_Position", parent);
+            if (lamp == null) continue;
             SetOnGround(lamp, Center + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (PadRadius + 0.6f), 0f);
+            Bounds lb = GetBounds(lamp);
+            AddPointLight(lamp.transform, "GuideLight", new Vector3(lb.center.x, lb.max.y + 0.3f, lb.center.z), GuideLightColor, 6f, 2f);
         }
 
         // 회피용 엄폐물: 엄폐물 링 띠 안, 동서남북 진입 통로 밖
@@ -528,6 +559,9 @@ public static class SciFiMapBuilder
             Occupy(drillXZ, Mathf.Max(baseB.extents.x, baseB.extents.z));
         }
 
+        // 드릴이 찌른 행성의 '살'이 비치는 붉은 빛
+        AddPointLight(parent, "CraterGlow", new Vector3(CraterCenter.x, GroundY(CraterCenter) + 2f, CraterCenter.y), CraterGlowColor, CraterRadius + 4f, 3f);
+
         PlaceCover(parent, new[] { "Stone_Big1", "Rock_01", "Concrete_wall2_Shield", "Concrete_wall2_Barrier1", "Barrier_Solid_01" },
             CraterCenter, 6f, CraterRadius - 2f, CraterMaxSlope, null);
         Scatter(parent, new[] { "Rock_Shales_02", "Rock_Shales_05", "Rock_Shales_07", "Stone_med4", "Stone_med5", "Stone_Big1" },
@@ -544,6 +578,115 @@ public static class SciFiMapBuilder
             10, WastelandCenter, 0f, 34f, 3f, 0.8f, 1.4f, 0.2f, 0f);
         Scatter(parent, new[] { "Stone_med1", "Stone_med2", "Stone_med3", "Stone_med6", "Stone_small1", "Stone_small3" },
             10, WastelandCenter, 0f, 36f, 2f, 0.8f, 1.3f, 0.2f, 0f);
+    }
+
+    /// <summary>외곽 경계: 중심에서 방향마다 바깥으로 걸어가 산기슭(또는 지형 끝)을 찾고, 그 둘레를 따라 외벽 구간과 바위 구간을 번갈아 놓는다.</summary>
+    private static void BuildBoundary(Transform parent)
+    {
+        float baseY = GroundY(Center);
+        List<Vector2> pts = new List<Vector2>();
+        for (int k = 0; k < BoundarySamples; k++)
+        {
+            float a = k * Mathf.PI * 2f / BoundarySamples;
+            Vector2 dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+            float d = RingRadius + RingHalfWidth;
+            while (InsideTerrain(Center + dir * (d + 1f), EdgeMargin) && GroundY(Center + dir * (d + 1f)) < baseY + BoundaryRise) d += 1f;
+            pts.Add(Center + dir * (d - BoundaryInset));
+        }
+
+        float carry = 0f; // 앞 구간에서 넘어온 거리
+        for (int k = 0; k < pts.Count; k++)
+        {
+            Vector2 p0 = pts[k], p1 = pts[(k + 1) % pts.Count];
+            float seg = Vector2.Distance(p0, p1);
+            Vector2 dir = (p1 - p0) / Mathf.Max(seg, 0.001f);
+            float t = carry;
+            while (t < seg)
+            {
+                Vector2 xz = p0 + dir * t;
+                bool wall = Mathf.PerlinNoise(xz.x * BoundaryNoiseScale + 300f, xz.y * BoundaryNoiseScale + 300f) > BoundaryWallThreshold;
+                t += wall ? PlaceBoundaryWall(parent, xz, dir) : PlaceBoundaryRocks(parent, xz);
+            }
+            carry = t - seg;
+        }
+    }
+
+    /// <summary>start에서 dir 방향으로 외벽 한 칸을 놓고 그 길이를 돌려준다. 가끔 무너진 틈(빈칸)이나 기울어진 벽을 섞는다.</summary>
+    private static float PlaceBoundaryWall(Transform parent, Vector2 start, Vector2 dir)
+    {
+        GameObject go = Spawn(BoundaryWallNames[Random.Range(0, BoundaryWallNames.Length)], parent);
+        if (go == null) return BoundaryRockStep;
+        Bounds b = GetBounds(go);
+        bool alongX = b.size.x >= b.size.z;
+        float len = Mathf.Max(Mathf.Max(b.size.x, b.size.z), 2f);
+        if (Random.value < BoundaryWallGapChance)
+        {
+            Object.DestroyImmediate(go);
+            return len;
+        }
+
+        // 긴 변이 둘레 방향을 따르도록 돌린다. (Unity yaw θ에서 로컬 +X는 (cosθ, -sinθ), 로컬 +Z는 (sinθ, cosθ))
+        float phi = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+        float yaw = alongX ? -phi : 90f - phi;
+        float lean = Random.value < 0.2f ? Random.Range(-12f, 12f) : 0f;
+        go.transform.rotation = Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(lean, 0f, 0f) * go.transform.rotation;
+
+        Vector2 xz = start + dir * (len * 0.5f);
+        if (Overlaps(xz, len * 0.5f))
+        {
+            Object.DestroyImmediate(go);
+            return len;
+        }
+        SetOnGround(go, xz, 0.1f);
+        return len;
+    }
+
+    /// <summary>xz 근처에 바위 2~3개 무더기를 놓고 다음 칸까지 거리를 돌려준다.</summary>
+    private static float PlaceBoundaryRocks(Transform parent, Vector2 xz)
+    {
+        int count = Random.Range(2, 4);
+        for (int k = 0; k < count; k++)
+        {
+            Vector2 p = xz + Random.insideUnitCircle * 3f;
+            GameObject go = Spawn(BoundaryRockNames[Random.Range(0, BoundaryRockNames.Length)], parent);
+            if (go == null) continue;
+            go.transform.localScale *= Random.Range(1.2f, 2.2f);
+            go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f) * go.transform.rotation;
+            if (Overlaps(p, Footprint(go)))
+            {
+                Object.DestroyImmediate(go);
+                continue;
+            }
+            SetOnGround(go, p, 0.25f);
+        }
+        return BoundaryRockStep;
+    }
+
+    private static bool InsideTerrain(Vector2 xz, float margin)
+    {
+        Vector3 tp = _terrain.transform.position;
+        Vector3 size = _terrain.terrainData.size;
+        return xz.x > tp.x + margin && xz.x < tp.x + size.x - margin && xz.y > tp.z + margin && xz.y < tp.z + size.z - margin;
+    }
+
+    private static bool Overlaps(Vector2 xz, float r)
+    {
+        foreach (Vector3 o in Occupied)
+            if (Vector2.Distance(xz, new Vector2(o.x, o.y)) < r + o.z) return true;
+        return false;
+    }
+
+    private static void AddPointLight(Transform parent, string name, Vector3 position, Color color, float range, float intensity)
+    {
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = position;
+        Light light = go.AddComponent<Light>();
+        light.type = LightType.Point;
+        light.color = color;
+        light.range = range;
+        light.intensity = intensity;
+        light.shadows = LightShadows.None;
     }
 
     /// <summary>
@@ -738,6 +881,31 @@ public static class SciFiMapBuilder
         GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(asset, scene);
         Undo.RegisterCreatedObjectUndo(instance, "Build Sci-Fi Map");
         Selection.activeGameObject = instance;
+    }
+
+    /// <summary>활성 씬의 안개·환경광·방향광을 붉은 먼지 행성 분위기로 맞춘다. (씬 설정이라 프리펩에는 들어가지 않음)</summary>
+    private static void ApplyAtmosphere()
+    {
+        RenderSettings.fog = true;
+        RenderSettings.fogMode = FogMode.Exponential;
+        RenderSettings.fogColor = FogColor;
+        RenderSettings.fogDensity = FogDensity;
+        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+        RenderSettings.ambientSkyColor = AmbientSky;
+        RenderSettings.ambientEquatorColor = AmbientEquator;
+        RenderSettings.ambientGroundColor = AmbientGround;
+
+        Scene scene = SceneManager.GetActiveScene();
+        foreach (Light light in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+        {
+            if (light.type != LightType.Directional || light.gameObject.scene != scene) continue;
+            Undo.RecordObjects(new Object[] { light, light.transform }, "Sci-Fi Map Atmosphere");
+            light.color = SunColor;
+            light.intensity = SunIntensity;
+            light.transform.rotation = Quaternion.Euler(SunEuler);
+            break;
+        }
+        EditorSceneManager.MarkSceneDirty(scene);
     }
 
     private static GameObject FindSceneInstance()
