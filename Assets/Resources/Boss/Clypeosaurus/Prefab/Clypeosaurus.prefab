@@ -1695,6 +1695,7 @@ GameObject:
   - component: {fileID: 6183423561265755135}
   - component: {fileID: 6204140023404708941}
   - component: {fileID: 823172667169261941}
+  - component: {fileID: 1601464397953940699}
   - component: {fileID: 7874530854670405339}
   - component: {fileID: 534779049517218803}
   - component: {fileID: 2158953421807436580}
@@ -1849,6 +1850,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb69d9808e974c938eea5b0393f454b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossView
+  idleState: Base Layer.IdleBreathe
+  hitState: Base Layer.GetHitFront
+  deathState: Base Layer.Death
 --- !u!114 &823172667169261941
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1865,6 +1869,19 @@ MonoBehaviour:
   - {fileID: 534779049517218803}
   - {fileID: 2158953421807436580}
   - {fileID: 7764257687145243604}
+--- !u!114 &1601464397953940699
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0033b1c0a0d430c81f1ad8a1f39239f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.ClypeosaurusController
+  playerSource: {fileID: 0}
 --- !u!114 &7874530854670405339
 MonoBehaviour:
   m_ObjectHideFlags: 0

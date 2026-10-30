@@ -6,9 +6,10 @@ namespace HybridShooter.Boss
     [RequireComponent(typeof(Animator))]
     public class BossView : MonoBehaviour
     {
-        private const string idleState = "Base Layer.IdleBreathe";
-        private const string hitState = "Base Layer.GetHitFront";
-        private const string deathState = "Base Layer.Death";
+        // 기본 상태 애니메이션 직렬화 필드 (인스펙터 연결 필수)
+        [SerializeField] private string idleState;
+        [SerializeField] private string hitState;
+        [SerializeField] private string deathState;
         
         private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
 

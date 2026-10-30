@@ -9,15 +9,12 @@ namespace HybridShooter.Boss
     [RequireComponent(typeof(BossMovement), typeof(BossView))]
     public class BossController : MonoBehaviour, IDamageable
     {
-        private static readonly float[] HitHpRatios = { 0.75f, 0.50f, 0.25f };
-        
         private BossHealth health;
         private BossMovement movement;
         private BossView view;
         private BossAttack currentAttack;
         
         private float nextAttackTime;
-        private int nextHitIndex;
         
         public BossDef Def { get; private set; }
 
@@ -51,7 +48,6 @@ namespace HybridShooter.Boss
             Def = def;
             health = new BossHealth(def.MaxHp);
             nextAttackTime = Time.time;
-            nextHitIndex = 0;
 
             IsReacting = false;
             IsInvulnerable = false;
@@ -87,12 +83,9 @@ namespace HybridShooter.Boss
                 
                 movement.Stop();
                 currentAttack?.Cancel();
+                
+                view.PlayDeath();
             }
-            else
-            {
-                CheckHitReaction();
-            }
-            
             
             Damaged?.Invoke(info);
             // 일반 몬스터와 같은 피격 사실 → 히트마커·타격음·데미지 숫자
@@ -100,21 +93,14 @@ namespace HybridShooter.Boss
 
             if (died) Died?.Invoke();
         }
-
-        private void CheckHitReaction()
+        
+        // 피격 경직 공통 처리
+        public void StartHitReaction()
         {
-            bool crossed = false;
+            if (isActiveAndEnabled == false || IsAlive == false) return;
+            if (IsInvulnerable) return;
 
-            // 한 번에 여러 기준을 넘으면 모두 사용 처리하도록
-            while (nextHitIndex < HitHpRatios.Length && HpRatio <= HitHpRatios[nextHitIndex])
-            {
-                nextHitIndex++;
-                crossed = true;
-            }
-
-            if (crossed == false) return;
-
-            // 공격 취소 중에도 이동이 재개되지 않도록 먼저 설정
+            // 공격 취소 중 이동이 재개되지 않도록 먼저 설정한다.
             IsReacting = true;
 
             currentAttack?.Cancel();
