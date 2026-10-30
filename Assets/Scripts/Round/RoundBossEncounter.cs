@@ -18,11 +18,13 @@ namespace HybridShooter.Round
         [SerializeField] private int bossId = 1;
 
         private BossController boss;
+        private EntranceAttack entrance;
         private BossDef bossDef;
         private IPlayerTarget player;
         private MonsterDef eventBoss;
 
         public event Action Defeated;
+        public bool IsEntranceComplete => boss != null && (entrance == null || entrance.IsRunning == false);
 
         public bool Prepare()
         {
@@ -46,18 +48,21 @@ namespace HybridShooter.Round
             Transform point = spawnPoint != null ? spawnPoint : transform;
             boss = Instantiate(bossPrefab, point.position, point.rotation);
             boss.gameObject.SetActive(true);
-            boss.Initialize(bossDef, player);
-
-            var data = DataManager.Clypeosaurus;
-            if (boss.TryGetComponent<StompAttack>(out var stomp)) stomp.Initialize(data, player);
-            if (boss.TryGetComponent<MagmaBarrageAttack>(out var barrage)) barrage.Initialize(data, player);
-            if (boss.TryGetComponent<SuctionAttack>(out var suction)) suction.Initialize(data, player);
-
             boss.Died += OnBossDied;
-            EventBus<MonsterWipeRequestedEvent>.Publish(new MonsterWipeRequestedEvent(boss.transform.position, false));
+            entrance = boss.GetComponent<EntranceAttack>();
+            if (entrance != null) entrance.Impacted += OnEntranceImpacted;
+
+            if (boss.TryGetComponent<ClypeosaurusController>(out var controller)) controller.Initialize(bossDef, player);
+            else boss.Initialize(bossDef, player);
+
+            if (entrance == null) RequestMonsterWipe(boss.transform.position);
             // 보스 이벤트의 MonsterDef는 현재 테이블 이전 중이라 null일 수 있다.
             EventBus<BossAppearedEvent>.Publish(new BossAppearedEvent(eventBoss, boss.gameObject));
         }
+
+        private void OnEntranceImpacted(BossAttack attack, Vector3 position) => RequestMonsterWipe(position);
+
+        private static void RequestMonsterWipe(Vector3 position) => EventBus<MonsterWipeRequestedEvent>.Publish(new MonsterWipeRequestedEvent(position, false));
 
         private void OnBossDied()
         {
@@ -73,6 +78,8 @@ namespace HybridShooter.Round
             if (boss == null) return;
             var previous = boss;
             boss = null;
+            if (entrance != null) entrance.Impacted -= OnEntranceImpacted;
+            entrance = null;
             previous.Died -= OnBossDied;
             previous.gameObject.SetActive(false);
             Destroy(previous.gameObject);

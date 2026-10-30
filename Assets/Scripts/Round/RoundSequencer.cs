@@ -5,6 +5,9 @@ using HybridShooter.Core.GameFlow;
 using HybridShooter.Monster.Behaviour;
 using HybridShooter.Supply;
 using UnityEngine;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+using UnityEngine.InputSystem;
+#endif
 
 namespace HybridShooter.Round
 {
@@ -24,6 +27,7 @@ namespace HybridShooter.Round
         private float bossSpawnTime;
         private bool isRoundRunning;
         private bool cameraReady;
+        private bool bossStarted;
         private bool bossDefeated;
         private bool rewardFinished;
         private bool supplyStarted;
@@ -67,6 +71,7 @@ namespace HybridShooter.Round
             elapsedSeconds = 0f;
             bossSpawnTime = def.RollBossSpawnTime(UnityEngine.Random.value);
             cameraReady = false;
+            bossStarted = false;
             bossDefeated = false;
             rewardFinished = false;
             supplyStarted = false;
@@ -82,6 +87,7 @@ namespace HybridShooter.Round
         {
             isRoundRunning = false;
             cameraReady = false;
+            bossStarted = false;
             bossDefeated = false;
             rewardFinished = false;
             if (monsterWaveDirector != null) monsterWaveDirector.StopRound();
@@ -93,6 +99,11 @@ namespace HybridShooter.Round
         {
             if (isRoundRunning == false) return;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            var keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.f12Key.wasPressedThisFrame && phase == GameState.CrowdBattle) BeginBossIntro();
+#endif
+
             switch (phase)
             {
                 case GameState.CrowdBattle:
@@ -102,8 +113,14 @@ namespace HybridShooter.Round
                     break;
                 case GameState.BossIntro:
                     if (cameraReady == false) return;
-                    ChangePhase(GameState.BossBattle);
-                    if (isRoundRunning) bossEncounter.Begin(roundDef.Boss);
+                    if (bossStarted == false)
+                    {
+                        bossStarted = true;
+                        bossEncounter.Begin(roundDef.Boss);
+                    }
+                    if (isRoundRunning == false) return;
+                    if (bossDefeated) ChangePhase(GameState.Reward);
+                    else if (bossEncounter.IsEntranceComplete) ChangePhase(GameState.BossBattle);
                     break;
                 case GameState.BossBattle:
                     if (bossDefeated) ChangePhase(GameState.Reward);
@@ -139,7 +156,7 @@ namespace HybridShooter.Round
 
         private void OnBossDefeated()
         {
-            if (isRoundRunning && phase == GameState.BossBattle) bossDefeated = true;
+            if (isRoundRunning && (phase == GameState.BossIntro || phase == GameState.BossBattle)) bossDefeated = true;
         }
 
         private void OnRewardSelectionFinished(RewardSelectionFinishedEvent e)
