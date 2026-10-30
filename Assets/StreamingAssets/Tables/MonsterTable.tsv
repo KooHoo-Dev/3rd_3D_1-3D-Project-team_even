@@ -20,3 +20,5 @@ Id	Key	Name	GradeId	Role	MaxHp	MoveSpeed	RunSpeed	DetectRange	BodyScale	Height	F
 2103	giant_slug_elite	자이언트 슬러그 · 강화	2	ZonePressure	135	1.725	2.3	45	1.2	1.4	0	Default	20	Prefabs/Monsters/GiantSlug_Elite	mon_giant_slug_idle	mon_giant_slug_move_loop	mon_giant_slug_death		
 # 부포모프 자폭형: 접근 → 예고 → 자기 중심 폭발 → 보상 없이 사망
 1005	bufomorph_suicide	부포모프 · 자폭	1	SelfDestruct	18	4.2	6	25	0.8	0.9	0	Default	2	Prefabs/Monsters/Bufomorph_Suicide	mon_bufomorph_idle		mon_bufomorph_death		
+# 무스코모프 중량형: 무스코모프 육상보다 느리고 단단함
+1006	muscomorph_heavy	무스코모프 · 중량	1	Melee	28	2.5	4.2	25	0.8	0.8	0	WingsOff	1	Prefabs/Monsters/Muscomorph_Heavy	mon_muscomorph_idle	mon_muscomorph_walk_loop	mon_muscomorph_death		

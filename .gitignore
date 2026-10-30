@@ -145,3 +145,5 @@ ProfilerCaptures
 
 # --- macOS Finder 파일 ---
 .DS_Store
+Assets/StreamingAssets/Tables/_WaveStudioBackups
+Assets/StreamingAssets/Tables/_WaveStudioBackups.meta

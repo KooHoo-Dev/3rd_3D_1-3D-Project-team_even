@@ -477,6 +477,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 274f9ad95dbbb0c42bebe278a1d43f57, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.WaveDirectorLab
+  director: {fileID: 0}
 --- !u!4 &769059939
 Transform:
   m_ObjectHideFlags: 0
@@ -550,7 +551,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterPoolLab
   monsterPool: {fileID: 782320108}
-  monsterIds: ea030000eb030000d1070000d2070000d3070000
+  monsterIds: e9030000ea030000ec030000ed030000ee030000
   spawnCount: 8
   spawnRadius: 12
   spawnSampleDistance: 3
@@ -1433,11 +1434,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 31.4
+      value: 79
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 13.99012
+      value: 14.1
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.z
