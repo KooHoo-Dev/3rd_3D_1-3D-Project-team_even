@@ -38,10 +38,10 @@ namespace HybridShooter.Monster.Behaviour
             this.findDamageable = findDamageable;
         }
 
-        /// <summary>예고 시작: 플레이어 발밑 Terrain 지면점을 목표로 확정하고 표식을 켠다. 그쪽으로 도는 것은 예고 중 Tick 이 한다</summary>
+        /// <summary>예고 시작: 조준점(AimPoint) 아래 Terrain 지면점을 목표로 확정하고 표식을 켠다. 그쪽으로 도는 것은 예고 중 Tick 이 한다</summary>
         protected override void OnWindup()
         {
-            targetPoint = TerrainGround.PointUnder(Target.PlayerTrackingInfo.Position);
+            targetPoint = TerrainGround.PointUnder(AimPoint);
 
             float diameter = Spec.Radius * 2f;
             marker = settings.MarkerPool.Get(targetPoint);

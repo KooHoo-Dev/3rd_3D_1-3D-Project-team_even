@@ -66,11 +66,11 @@ namespace HybridShooter.Monster.Behaviour
             return true;
         }
 
-        /// <summary>이륙 순간 위치를 한 번 읽고 최대 사거리까지 제한한다. 유효 지면/궤적이 없으면 도약하지 않는다.</summary>
+        /// <summary>이륙 순간 조준점(AimPoint)을 한 번 읽고 최대 사거리까지 제한한다. 유효 지면/궤적이 없으면 도약하지 않는다.</summary>
         private bool Launch(float now)
         {
             startRoot = Body.Position;
-            Vector3 target = Target.PlayerTrackingInfo.Position;
+            Vector3 target = AimPoint;
             Vector3 destination = ClampDestination(startRoot, target, Spec.Range);
             if (TerrainGround.TryNavMeshPoint(Body.AttackGroundOrigin, settings.NavMeshTolerance, Body.AttackNavigationFilter,
                                               out Vector3 startGround) == false)

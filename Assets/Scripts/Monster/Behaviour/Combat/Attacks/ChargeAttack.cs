@@ -124,23 +124,23 @@ namespace HybridShooter.Monster.Behaviour
             currentSpeed = 0f;
         }
 
-        /// <summary>Active 시작: 몸을 플레이어 쪽으로 한 번에 돌리고 돌진 속도로 달리기 시작한다. OnActive 첫 틱이 부른다</summary>
+        /// <summary>Active 시작: 몸을 조준점(AimPoint) 쪽으로 한 번에 돌리고 돌진 속도로 달리기 시작한다. OnActive 첫 틱이 부른다</summary>
         private void StartCharging()
         {
-            Body.TurnToward(Target.PlayerTrackingInfo.Position, FullTurnDegrees, 1f);
+            Body.TurnToward(AimPoint, FullTurnDegrees, 1f);
             currentSpeed = settings.ChargeSpeed;
             stage = ChargeStage.Charging;
         }
 
         /// <summary>
-        /// 달리기 1틱: 플레이어 쪽으로 천천히 방향을 보정하고 정면으로 이동한다.
-        /// 벽에 막히면 기절로 끝내고, 이동 구간에서 부딪히면 피해 후 감속, 지나쳤거나 최대 거리를 넘으면 감속으로 넘어간다.
+        /// 달리기 1틱: 조준점(AimPoint) 쪽으로 천천히 방향을 보정하고 정면으로 이동한다.
+        /// 벽에 막히면 기절로 끝내고, 이동 구간에서 실제 플레이어와 부딪히면 피해 후 감속, 조준점을 지나쳤거나 최대 거리를 넘으면 감속으로 넘어간다.
         /// </summary>
         /// <param name="deltaTime">지난 틱부터 경과 시간 (s)</param>
         private void TickCharging(float deltaTime)
         {
-            Vector3 targetPosition = Target.PlayerTrackingInfo.Position;
-            Body.TurnToward(targetPosition, settings.ChargeTurnSpeed, deltaTime);
+            Vector3 aimPoint = AimPoint;
+            Body.TurnToward(aimPoint, settings.ChargeTurnSpeed, deltaTime);
             Vector3 from = Body.Position;
             bool hitWall = movement.MoveDuringAttack(ForwardStep(deltaTime));
             Vector3 to = Body.Position;
@@ -151,9 +151,9 @@ namespace HybridShooter.Monster.Behaviour
                 HitWall();
                 return;
             }
-            HitIfTouched(from, to, targetPosition);
+            HitIfTouched(from, to, Target.PlayerTrackingInfo.Position);
 
-            bool passedTarget = IsPastTarget(Body.Forward, to, targetPosition);
+            bool passedTarget = IsPastTarget(Body.Forward, to, aimPoint);
             bool reachedMaxDistance = travelledDistance >= settings.MaxChargeDistance;
             if (hasHit || passedTarget || reachedMaxDistance) stage = ChargeStage.Braking;
         }

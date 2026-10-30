@@ -25,7 +25,7 @@ namespace HybridShooter.Monster.Behaviour
 
         // ── 이번 주기 (OnWindup 에서 초기화) ──
         private DiveStage stage;
-        private Vector3 diveCenter;        // P, 예고 시작 때 플레이어 위치 (월드)
+        private Vector3 diveCenter;        // P, 예고 시작 때 조준점(AimPoint) 수평 위치 + 플레이어 높이 (월드)
         private Vector3 diveDirection;     // ĥ, 몬스터 → P 수평 단위 방향
         private float startOffset;         // s₀ (m, 음수). 시작 위치의 ĥ 축 좌표
         private float startHeight;         // y₀ (월드 y, m). 시작 높이
@@ -103,12 +103,13 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 예고 시작: 급강하 중심 P, 방향 ĥ, 시작 좌표 s₀, 시작 높이 y₀ 를 고정한다. 플레이어 쪽 회전은 기반 Tick 이 예고 내내 한다.
+        /// 예고 시작: 급강하 중심 P(조준점 수평 위치, 플레이어 높이), 방향 ĥ, 시작 좌표 s₀, 시작 높이 y₀ 를 고정한다. 조준점 쪽 회전은 기반 Tick 이 예고 내내 한다.
         /// 바로 머리 위(수평 0.5m 미만)면 ĥ = 몸 정면, s₀ = −0.5m 로 둔다.
         /// </summary>
         protected override void OnWindup()
         {
-            diveCenter = Target.PlayerTrackingInfo.Position;
+            diveCenter = AimPoint;
+            diveCenter.y = Target.PlayerTrackingInfo.Position.y; // 조준 offset 의 높이는 버린다 (땅에 박히지 않게)
             Vector3 toCenter = HitAreas.Flat(diveCenter - Body.Position);
             float horizontalDistance = toCenter.magnitude;
             if (horizontalDistance < MinStartDistance)
