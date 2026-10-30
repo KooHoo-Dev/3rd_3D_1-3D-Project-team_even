@@ -85,6 +85,7 @@ namespace HybridShooter.Player
 
         private void Update()
         {
+            lookInputPitchDelta = 0f; // 입력을 읽지 않고 return 하는 프레임에 지난 값이 남지 않게
             UpdateLifeCycle();
             if (externalControl || DebugBlockInput || isReviving) return;
             InputHandle();

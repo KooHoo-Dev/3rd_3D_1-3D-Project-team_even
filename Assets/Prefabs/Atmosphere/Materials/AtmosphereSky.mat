@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: AtmosphereSky
+  m_Shader: {fileID: 4800000, guid: db6c8e0145fb8144c99daaa64e424884, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _EyeIntensity: 0.6
+    - _EyeSize: 0.3
+    - _HorizonBlend: 0.3
+    - _HorizonExponent: 0.8
+    - _MoonBrightness: 1.4
+    - _MoonGlowIntensity: 0.8
+    - _MoonRadius: 14
+    - _NebulaBandWidth: 0.4
+    - _NebulaIntensity: 1
+    - _NebulaScale: 2.2
+    - _StarBrightness: 3
+    - _StarTwinkle: 0.6
+    - _StarTwinkleSpeed: 2
+    - _SunGlowFalloff: 24
+    - _SunGlowIntensity: 0.6
+    m_Colors:
+    - _EyeColor: {r: 2, g: 0.25, b: 0.1, a: 1}
+    - _EyeOffset: {r: 0.06, g: 0.05, b: 0, a: 0}
+    - _HorizonColor: {r: 0.31, g: 0.36, b: 0.43, a: 1}
+    - _MoonColor: {r: 0.88, g: 0.9, b: 0.95, a: 1}
+    - _MoonGlowColor: {r: 0.55, g: 0.68, b: 1, a: 1}
+    - _NebulaBandNormal: {r: 0.35, g: 0.45, b: -0.82, a: 0}
+    - _NebulaColorA: {r: 0.55, g: 0.22, b: 0.8, a: 1}
+    - _NebulaColorB: {r: 0.15, g: 0.6, b: 0.7, a: 1}
+    - _SunGlowColor: {r: 1, g: 0.62, b: 0.35, a: 1}
+    - _ZenithColor: {r: 0.16, g: 0.17, b: 0.3, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

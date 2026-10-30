@@ -94,7 +94,8 @@ namespace HybridShooter.Player
 
         /// <summary>
         /// 목 보호: 눈(eyeLocal)이 목 뼈보다 시선 수평 정면으로 neckClearance 만큼 앞에 있도록 앞으로 미는 양 (FP_Rig 부모 기준).
-        /// 목 위치는 지난 프레임 IK 가 끝난 뒤 값 (PlayerFirstPersonNeck 이 ReportNeckPosition 으로 넘긴다). 부모 기준이라 이동해도 1프레임 차이는 작다.
+        /// 목 위치는 지난 프레임 FBBIK 직전 값 (PlayerFirstPersonNeck 이 ReportNeckPosition 으로 넘긴다. 1인칭 손 IK 가 끌어낸 몫은 빼서 순환을 막는다).
+        /// 부모 기준이라 이동해도 1프레임 차이는 작다.
         /// 1인칭 총 자리는 눈(FirstPersonEyePose)을 따라가므로 총도 같이 앞으로 간다. 1인칭 정도(FirstPersonBlend)만큼만 적용
         /// </summary>
         private Vector3 NeckGuardOffset(Vector3 eyeLocal)

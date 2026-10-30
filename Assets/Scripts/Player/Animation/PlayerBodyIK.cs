@@ -102,8 +102,12 @@ namespace HybridShooter.Player
         /// <summary>프로필의 발 IK 설정을 Grounder 에 입힌다 (Lab 에서 값을 바꾸면 다시 부른다)</summary>
         public void ApplyFootSettings()
         {
+            if (grounder == null) return;
+            // 발 IK 레이캐스트도 이동 판정과 같은 땅을 보게 한다 (씬마다 터레인 레이어가 달라도 어긋나지 않게)
+            if (player != null) grounder.solver.layers = player.GroundMask;
+
             PlayerAnimationProfile profile = driver != null ? driver.Profile : null;
-            if (grounder == null || profile == null || profile.footIK == null) return;
+            if (profile == null || profile.footIK == null) return;
             PlayerAnimationProfile.FootIKSettings s = profile.footIK;
             grounder.solver.maxStep = s.maxStep;
             grounder.solver.footRadius = s.footRadius;

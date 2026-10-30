@@ -6,11 +6,12 @@
 *.hlsl text
 *.compute text
 *.meta text
-*.unity text
-*.prefab text
-*.mat text
-*.anim text
-*.controller text
+# Unity serialized assets: may be binary (e.g. legacy asset store packs), let git detect
+*.unity text=auto
+*.prefab text=auto
+*.mat text=auto
+*.anim text=auto
+*.controller text=auto
 *.asmdef text
 *.asmref text
 *.shadergraph text

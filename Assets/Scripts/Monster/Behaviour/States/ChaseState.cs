@@ -13,6 +13,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// 대상이 없으면 Idle 로 간다.
         /// 재정비 중(RepositionInChase 공격 뒤)이면 공격의 IsRepositioned 가 true 가 될 때까지 Attack 으로 가지 않는다.
+        /// 쿨다운 대기 중(ChaseUntilReady 공격 뒤)이면 쿨다운이 끝날 때까지 Attack 으로 가지 않고 슬롯으로 이동한다.
         /// 그 외에는 사거리 안이고 공격 허가가 있으면 Attack 으로 간다.
         /// </summary>
         public override void Tick()
@@ -27,8 +28,21 @@ namespace HybridShooter.Monster.Behaviour
                 if (Owner.CurrentAttack.IsRepositioned(Owner.Target, Owner.Now) == false) return;
                 Owner.ClearAfterAttackFlags();
             }
+            if (IsWaitingCooldown()) return;
 
             if (Owner.IsTargetInAttackRange && Owner.CanAttack) Owner.ChangeState(Owner.Attack);
+        }
+
+        /// <summary>
+        /// ChaseUntilReady 공격의 쿨다운이 아직 안 끝났는지. Tick 이 Attack 전이 전에 묻는다.
+        /// 다른 After 공격(돌진·공중)은 기존 흐름대로 쿨다운을 Attack 안에서 기다리므로 false.
+        /// </summary>
+        /// <returns>true = 쿨다운 대기 중, Attack 으로 가지 않는다</returns>
+        private bool IsWaitingCooldown()
+        {
+            MonsterAttack currentAttack = Owner.CurrentAttack;
+            if (currentAttack.After != AfterAttack.ChaseUntilReady) return false;
+            return currentAttack.CanStart(Owner.Now) == false;
         }
     }
 }

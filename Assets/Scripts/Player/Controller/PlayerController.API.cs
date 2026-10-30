@@ -67,7 +67,7 @@ namespace HybridShooter.Player
         /// <summary>디버그: 목 때문에 1인칭 눈을 앞으로 민 거리(m)</summary>
         public float NeckPush => neckPush;
 
-        /// <summary>IK 가 모두 끝난 목 뼈 월드 위치 (PlayerFirstPersonNeck 이 매 프레임). 다음 프레임 1인칭 눈 위치(목 보호)에 쓴다</summary>
+        /// <summary>목 뼈 월드 위치 (PlayerFirstPersonNeck 이 매 프레임, 기본은 FBBIK 직전). 다음 프레임 1인칭 눈 위치(목 보호)에 쓴다</summary>
         public void ReportNeckPosition(Vector3 worldPosition)
         {
             if (rigReady == false) return;
@@ -124,13 +124,21 @@ namespace HybridShooter.Player
 
         public void RequestJump() => jumpRequestedTime = Time.time;
 
-        /// <summary>시선을 이만큼 돌린다 (총 반동). pitch 음수 = 위로, yaw 양수 = 오른쪽</summary>
-        public void AddLookOffset(float pitch, float yaw)
+        /// <summary>
+        /// 시선을 이만큼 돌린다 (총 반동). pitch 음수 = 위로, yaw 양수 = 오른쪽.
+        /// 반환: 실제로 돌아간 양 (x = pitch, y = yaw). 위·아래 한계에 막히면 pitch 는 덜 돈다
+        /// </summary>
+        public Vector2 AddLookOffset(float pitch, float yaw)
         {
+            float before = lookPitch;
             lookYaw = Mathf.Repeat(lookYaw + yaw, 360f);
             lookPitch = Mathf.Clamp(lookPitch + pitch, minPitch, MaxPitch);
             SyncRigRotationNow();
+            return new Vector2(lookPitch - before, yaw);
         }
+
+        /// <summary>이번 프레임 마우스로 돌린 pitch (양수 = 아래). 입력을 읽지 않은 프레임은 0. 총 반동 복귀가 플레이어 보정만큼 덜 내려오게 쓴다</summary>
+        public float LookInputPitchDelta => lookInputPitchDelta;
 
         /// <summary>조준 확대. fovMultiplier 1 = 원래 시야, sensitivityMultiplier = 마우스 감도 배율</summary>
         public void SetAimZoom(float fovMultiplier, float sensitivityMultiplier)

@@ -13,7 +13,6 @@ namespace HybridShooter.Core.Data.Dtos
         public string Role = "";  // MonsterRole enum
         public int MaxHp;
         public float MoveSpeed;
-        public float RunSpeed;
         public float DetectRange;  // -1 = 전장 전체
         public float BodyScale;
         public float Height;

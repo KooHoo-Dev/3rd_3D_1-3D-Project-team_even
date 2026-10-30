@@ -19,7 +19,8 @@ namespace HybridShooter.Core.Events
     public static class EventBus<T> where T : struct
     {
         private static readonly List<Action<T>> handlers = new List<Action<T>>();
-        private static readonly List<Action<T>> snapshot = new List<Action<T>>();
+        /// <summary>순회용 복사본 재사용 풀. 핸들러 안에서 같은 이벤트를 다시 Publish 해도 바깥 순회가 깨지지 않도록 호출마다 따로 쓴다</summary>
+        private static readonly Stack<List<Action<T>>> snapshotPool = new Stack<List<Action<T>>>();
 
         static EventBus() => EventBusRegistry.Register(Clear);
 
@@ -32,13 +33,21 @@ namespace HybridShooter.Core.Events
 
         public static void Publish(T evt)
         {
-            // 콜백 안에서 구독/해제해도 안전하도록 복사본으로 순회
-            snapshot.Clear();
+            // 콜백 안에서 구독/해제·같은 이벤트 재발행을 해도 안전하도록 호출마다 복사본으로 순회
+            var snapshot = snapshotPool.Count > 0 ? snapshotPool.Pop() : new List<Action<T>>();
             snapshot.AddRange(handlers);
-            foreach (var h in snapshot)
+            try
             {
-                try { h(evt); }
-                catch (Exception e) { Debug.LogException(e); }
+                foreach (var h in snapshot)
+                {
+                    try { h(evt); }
+                    catch (Exception e) { Debug.LogException(e); }
+                }
+            }
+            finally
+            {
+                snapshot.Clear();
+                snapshotPool.Push(snapshot);
             }
         }
 

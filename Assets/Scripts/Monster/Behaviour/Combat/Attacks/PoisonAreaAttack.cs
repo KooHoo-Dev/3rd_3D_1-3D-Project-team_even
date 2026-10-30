@@ -52,7 +52,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <returns>항상 true (동작 완료)</returns>
         protected override bool OnActive(float now, float deltaTime)
         {
-            Vector3 launchPoint = Body.Position + Vector3.up * settings.LaunchHeight;
+            Vector3 launchPoint = Body.Position + Vector3.up * settings.LaunchHeight + Body.Forward * settings.LaunchWidth;
             PoisonProjectile projectile = settings.ProjectilePool.Get(launchPoint);
             projectile.Launch(settings, launchPoint, targetPoint, Spec.ProjectileSpeed, marker,
                               Target, Spec.Radius, findDamageable, Spec.SourceDefId);

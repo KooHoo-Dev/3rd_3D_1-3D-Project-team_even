@@ -6,12 +6,14 @@ using UnityEngine;
 
 namespace HybridShooter.Boss
 {
-    [RequireComponent(typeof(BossMovement))]
+    [RequireComponent(typeof(BossMovement), typeof(BossView))]
     public class BossController : MonoBehaviour, IDamageable
     {
         private BossHealth health;
         private BossMovement movement;
+        private BossView view;
         private BossAttack currentAttack;
+        
         private float nextAttackTime;
         
         public BossDef Def { get; private set; }
@@ -22,7 +24,10 @@ namespace HybridShooter.Boss
         public int CurrentHp => health?.CurrentHp ?? 0;
         public float HpRatio => health?.HpRatio ?? 0f;
         public bool IsAttacking => currentAttack != null;
-        public bool CanStartAttack => isActiveAndEnabled && IsAlive && IsAttacking == false && Time.time >= nextAttackTime;
+        public bool IsInvulnerable { get; private set; }
+        public bool IsReacting { get; private set; }
+        
+        public bool CanStartAttack => isActiveAndEnabled && IsAlive && IsAttacking == false && IsReacting == false && Time.time >= nextAttackTime;
         
         public event Action<DamageInfo> Damaged;
         public event Action Died;
@@ -30,6 +35,7 @@ namespace HybridShooter.Boss
         private void Awake()
         {
             movement = GetComponent<BossMovement>();
+            view = GetComponent<BossView>();
         }
 
         public void Initialize(BossDef def, IPlayerTarget target)
@@ -42,21 +48,43 @@ namespace HybridShooter.Boss
             Def = def;
             health = new BossHealth(def.MaxHp);
             nextAttackTime = Time.time;
+
+            IsReacting = false;
+            IsInvulnerable = false;
             
             movement.Initialize(def.MoveSpeed, target.Root);
+            view.ResetState();
         }
 
+        private void Update()
+        {
+            if (IsReacting == false || view.IsHitFinished == false) return;
+
+            IsReacting = false;
+
+            if (IsAlive)
+            {
+                view.PlayIdle();
+                movement.Resume();
+            }
+        }
+        
         public void TakeDamage(in DamageInfo info)
         {
+            if (IsInvulnerable) return;
             if (this.CanBeHitBy(info.AttackerFaction) == false) return;
             if (health.ApplyDamage(info.Amount) == false) return;
-
+            
             bool died = (health.IsAlive == false);
             
             if (died)
             {
+                IsReacting = false;
+                
                 movement.Stop();
                 currentAttack?.Cancel();
+                
+                view.PlayDeath();
             }
             
             Damaged?.Invoke(info);
@@ -66,15 +94,31 @@ namespace HybridShooter.Boss
             if (died) Died?.Invoke();
         }
         
+        // 피격 경직 공통 처리
+        public void StartHitReaction()
+        {
+            if (isActiveAndEnabled == false || IsAlive == false) return;
+            if (IsInvulnerable) return;
+
+            // 공격 취소 중 이동이 재개되지 않도록 먼저 설정한다.
+            IsReacting = true;
+
+            currentAttack?.Cancel();
+            movement.Pause();
+
+            view.PlayHit();
+        }
+        
         internal bool TryBeginAttack(BossAttack attack)
         {
             if (CanStartAttack == false) return false;
 
             currentAttack = attack;
             movement.Pause();
+
             return true;
         }
-
+        
         internal void EndAttack(BossAttack attack, bool completed = false)
         {
             if (currentAttack != attack) return;
@@ -82,8 +126,19 @@ namespace HybridShooter.Boss
 
             if (completed) nextAttackTime = Time.time + Def.PatternCooldown;
 
-            if (IsAlive && isActiveAndEnabled) movement.Resume();
-            else movement.Stop();
+            if (IsAlive == false || isActiveAndEnabled == false)
+            {
+                movement.Stop();
+            }
+            else if (IsReacting == false)
+            {
+                movement.Resume();
+            }
+        }
+        
+        public void SetInvulnerable(bool value)
+        {
+            IsInvulnerable = value;
         }
     }
 }

@@ -12,65 +12,76 @@ namespace HybridShooter.Supply
     /// 보급 투하 담당 (BL-018).
     ///
     ///   1) 종류 선택: SupplyDef.Pick (SupplyTable Weight)
-    ///   2) 낙하 지점: ISpawnZoneProvider.TryGetSupplyDropPosition (기본 = 플레이어 기준 XZ 30~150m) → 아래로 레이캐스트해 지면 찾기
+    ///   2) 낙하 지점: ISpawnZoneProvider.TryGetSupplyDropPosition (기본 = 플레이어 기준 XZ 30~150m) → 아래로 레이캐스트해 지면 찾기.
+    ///      Terrain 높이가 ConfigTable.SupplyMaxTerrainHeight 이상인 곳(산 위 등)은 버리고 다시 뽑는다
     ///   3) Resources/{PrefabKey} 프리팹 생성 → SupplyCrate.Launch (지면 + SupplyDropHeight 에서 낙하)
-    ///   4) SupplyDroppedEvent 발행 (UI 낙하 위치 표시·사운드)
+    ///   4) SupplyDroppedEvent 발행 (투하음·안내 방송 = GameSoundRouter, 알림 = SupplyHud, 빛기둥 = SupplyBeaconOverride)
     ///
-    /// 자동 투하: 플레이 시작(또는 RoundStartedEvent) 후 firstDropDelay 초부터 dropInterval 초마다.
-    /// 필드 위의 보급이 maxActiveSupplies 개가 되면 수동·자동 모두 투하하지 않는다.
+    /// 자동 투하: RoundSequencer 가 RoundDef.SupplyStartTime 에 StartAutoDropCycle(RoundDef.SupplyInterval) 을 호출하면
+    /// 바로 한 번, 이후 interval 초마다. 투하 시각·간격의 기준은 RoundTable 하나뿐이다.
+    /// 지점을 못 찾아 실패하면 그 회차를 버리지 않고 RetryDelay 초 뒤 다시 시도한다 (MaxRetries 번까지).
+    /// 필드 위의 보급이 ConfigTable.SupplyMaxActive 개가 되면 수동·자동 모두 투하하지 않는다.
     /// 라운드 정리(RoundCleanupEvent) 시 남아 있는 보급을 전부 제거하고 자동 투하를 멈춘다.
     /// </summary>
     public sealed class SupplyDropper : MonoBehaviour
     {
         /// <summary>낙하 시작 높이 하한 (BL-018). 테이블 값이 이보다 작아도 이 값으로 올린다</summary>
         public const float MinDropHeight = 30f;
+        /// <summary>자동 투하가 실패했을 때 다시 시도하기까지의 시간(초)</summary>
+        private const float RetryDelay = 1f;
+        /// <summary>한 회차에서 다시 시도하는 최대 횟수. 넘으면 그 회차는 건너뛰고 다음 주기를 기다린다</summary>
+        private const int MaxRetries = 5;
 
         [Tooltip("지면 탐색 레이캐스트 대상 레이어")]
         [SerializeField] private LayerMask groundMask = ~0;
-        [Tooltip("낙하 지점에서 지면을 못 찾았을 때 다시 뽑는 횟수")]
-        [SerializeField] private int maxPositionTries = 10;
-        
-        [Tooltip("투하 주기 (초)")]
-        [SerializeField, Min(0.1f)] private float dropInterval = 25f;
-        [Tooltip("필드에 동시에 존재할 수 있는 보급 최대 개수. 이 수에 도달하면 투하하지 않는다")]
-        [SerializeField, Min(1)] private int maxActiveSupplies = 10;
+        [Tooltip("낙하 지점에서 지면을 못 찾았거나 너무 높을 때 다시 뽑는 횟수 (투하 1번 기준)")]
+        [SerializeField] private int maxPositionTries = 20;
 
         private readonly List<SupplyCrate> activeCrates = new List<SupplyCrate>();
         private readonly Dictionary<string, SupplyCrate> prefabCache = new Dictionary<string, SupplyCrate>();
         private bool autoDrop = false;
+        private float dropInterval;
         private float nextAutoDropTime = float.PositiveInfinity;
-        
+        private int retryCount;
+
         /// <summary>현재 필드에 남아 있는 보급 목록 (낙하 중 + 착지 후)</summary>
         public IReadOnlyList<SupplyCrate> ActiveCrates => activeCrates;
-        /// <summary>필드에 동시에 존재할 수 있는 보급 최대 개수</summary>
-        public int MaxActiveSupplies => maxActiveSupplies;
+        /// <summary>필드에 동시에 존재할 수 있는 보급 최대 개수 (ConfigTable.SupplyMaxActive)</summary>
+        public int MaxActiveSupplies => Mathf.Max(1, DataManager.Config.GetInt(GameConfig.SupplyMaxActive, 5));
         /// <summary>최대 개수에 도달해 더 이상 투하할 수 없는 상태인지</summary>
-        public bool IsAtLimit => activeCrates.Count >= maxActiveSupplies;
+        public bool IsAtLimit => activeCrates.Count >= MaxActiveSupplies;
         /// <summary>다음 자동 투하까지 남은 시간(초). 자동 투하가 꺼져 있거나 멈춘 상태면 Infinity</summary>
         public float TimeUntilNextDrop => autoDrop ? Mathf.Max(0f, nextAutoDropTime - Time.time) : float.PositiveInfinity;
 
-        /// <summary>라운드 시작·정리 이벤트 구독 (OnDisable 과 짝)</summary>
+        /// <summary>라운드 정리 이벤트 구독 (OnDisable 과 짝)</summary>
         private void OnEnable()
         {
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
         }
 
-        /// <summary>라운드 시작·정리 이벤트 구독 해제</summary>
+        /// <summary>라운드 정리 이벤트 구독 해제</summary>
         private void OnDisable()
         {
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
         }
 
         /// <summary>
-        /// 자동 투하 타이머 처리. 예약 시각이 되면 다음 투하를 dropInterval 뒤로 예약하고,
-        /// 최대 개수 미만일 때만 랜덤 보급을 투하한다.
+        /// 자동 투하 타이머 처리. 예약 시각이 되면 최대 개수 미만일 때 랜덤 보급을 투하하고 다음 주기를 예약한다.
+        /// 최대 개수면 이번 주기는 건너뛴다. 투하에 실패하면 RetryDelay 뒤 다시 시도 (MaxRetries 번 넘으면 다음 주기).
         /// </summary>
         private void Update()
         {
             if (autoDrop == false || Time.time < nextAutoDropTime) return;
-            nextAutoDropTime = Time.time + dropInterval;
-            // 제한 개수에 도달했으면 이번 주기는 건너뛰고 다음 주기에 다시 시도
-            if (IsAtLimit == false) DropRandom();
+
+            if (IsAtLimit || DropRandom() != null || retryCount >= MaxRetries)
+            {
+                retryCount = 0;
+                nextAutoDropTime = Time.time + dropInterval;
+                return;
+            }
+
+            retryCount++;
+            nextAutoDropTime = Time.time + RetryDelay;
         }
 
         /// <summary>
@@ -90,7 +101,7 @@ namespace HybridShooter.Supply
 
         /// <summary>
         /// 지정한 종류의 보급을 투하한다.
-        ///   최대 개수 확인 → 낙하 지점(지면) 탐색 → 프리팹 생성 → 낙하 시작(Launch) → 목록 등록 → 사운드·SupplyDroppedEvent 발행.
+        ///   최대 개수 확인 → 낙하 지점(지면) 탐색 → 프리팹 생성 → 낙하 시작(Launch) → 목록 등록 → SupplyDroppedEvent 발행.
         /// 최대 개수 도달 / 지면 못 찾음 / 프리팹 없음이면 투하하지 않고 null.
         /// </summary>
         public SupplyCrate Drop(SupplyDef def)
@@ -99,13 +110,13 @@ namespace HybridShooter.Supply
 
             if (IsAtLimit)
             {
-                Debug.Log($"[SupplyDropper] 필드의 보급이 최대 {maxActiveSupplies}개라 투하하지 않습니다.");
+                Debug.Log($"[SupplyDropper] 필드의 보급이 최대 {MaxActiveSupplies}개라 투하하지 않습니다.");
                 return null;
             }
 
             if (TryFindGroundPoint(out var groundPoint) == false)
             {
-                Debug.LogWarning("[SupplyDropper] 낙하 지점에서 지면을 찾지 못했습니다. (Ground 콜라이더 / groundMask 확인)");
+                Debug.LogWarning("[SupplyDropper] 낙하 지점을 찾지 못했습니다. (Ground 콜라이더 / groundMask / SupplyMaxTerrainHeight 확인)");
                 return null;
             }
 
@@ -121,8 +132,7 @@ namespace HybridShooter.Supply
             crate.Removed += OnCrateRemoved;
             activeCrates.Add(crate);
 
-            ServiceLocator.Get<ISoundService>()?.PlaySfx(def.DropSfx, crate.LandingPosition); // SupplyTable.DropSfxKey (비우면 없음)
-            EventBus<SupplyDroppedEvent>.Publish(new SupplyDroppedEvent(def, crate.LandingPosition));
+            EventBus<SupplyDroppedEvent>.Publish(new SupplyDroppedEvent(def, crate.LandingPosition, crate.gameObject));
             return crate;
         }
 
@@ -138,7 +148,7 @@ namespace HybridShooter.Supply
         /// <summary>
         /// 보급이 착지할 지면 지점을 찾는다.
         /// ISpawnZoneProvider 에서 후보 XZ 위치를 받아 플레이어 기준 거리 범위(SupplyDropMin~MaxDistance)로 보정한 뒤,
-        /// 위에서 아래로 레이캐스트해 지면에 닿으면 그 지점을 반환한다. maxPositionTries 번 모두 실패하면 false.
+        /// 위에서 아래로 레이캐스트해 지면에 닿고 그 지점의 Terrain 높이가 제한 미만이면 반환한다. maxPositionTries 번 모두 실패하면 false.
         /// </summary>
         private bool TryFindGroundPoint(out Vector3 groundPoint)
         {
@@ -148,6 +158,7 @@ namespace HybridShooter.Supply
             float rayTop = center.y + Mathf.Max(MinDropHeight, DataManager.Config.GetFloat(GameConfig.SupplyDropHeight, 40f)) + 50f;
             float minDistance = DataManager.Config.GetFloat(GameConfig.SupplyDropMinDistance, 30f);
             float maxDistance = Mathf.Max(minDistance, DataManager.Config.GetFloat(GameConfig.SupplyDropMaxDistance, 150f));
+            float maxTerrainHeight = DataManager.Config.GetFloat(GameConfig.SupplyMaxTerrainHeight, 30f);
 
             for (int i = 0; i < Mathf.Max(1, maxPositionTries); i++)
             {
@@ -157,15 +168,32 @@ namespace HybridShooter.Supply
                 if (hasPlayer) candidate = ClampToDropRing(center, candidate, minDistance, maxDistance);
 
                 var origin = new Vector3(candidate.x, rayTop, candidate.z);
-                if (Physics.Raycast(origin, Vector3.down, out var hit, rayTop - center.y + 200f, groundMask, QueryTriggerInteraction.Ignore))
-                {
-                    groundPoint = hit.point;
-                    return true;
-                }
+                if (Physics.Raycast(origin, Vector3.down, out var hit, rayTop - center.y + 200f, groundMask, QueryTriggerInteraction.Ignore) == false)
+                    continue;
+                if (GetTerrainHeight(hit.point) >= maxTerrainHeight) continue;
+
+                groundPoint = hit.point;
+                return true;
             }
 
             groundPoint = default;
             return false;
+        }
+
+        /// <summary>
+        /// point 아래 Terrain 의 높이 (Terrain 원점 기준, Inspector 의 Terrain Height 와 같은 단위).
+        /// 해당 XZ 를 덮는 Terrain 이 없으면 0 (= 제한하지 않음)
+        /// </summary>
+        private static float GetTerrainHeight(Vector3 point)
+        {
+            foreach (var terrain in Terrain.activeTerrains)
+            {
+                Vector3 local = point - terrain.transform.position;
+                Vector3 size = terrain.terrainData.size;
+                if (local.x < 0f || local.z < 0f || local.x > size.x || local.z > size.z) continue;
+                return terrain.SampleHeight(point);
+            }
+            return 0f;
         }
 
         /// <summary>
@@ -213,16 +241,22 @@ namespace HybridShooter.Supply
             StopAutoDropCycle();
             ClearAll();
         }
-        
-        public void StartAutoDropCycle(float interval = -1f)
+
+        /// <summary>
+        /// 자동 투하 시작. 바로 한 번 투하하고 이후 interval 초마다 (RoundSequencer 가 RoundDef 값으로 호출).
+        /// 이미 돌고 있으면 무시.
+        /// </summary>
+        public void StartAutoDropCycle(float interval)
         {
             if (autoDrop) return;
 
-            if (interval > 0f) dropInterval = interval;
+            dropInterval = Mathf.Max(0.1f, interval);
             autoDrop = true;
+            retryCount = 0;
             nextAutoDropTime = Time.time;
         }
-        
+
+        /// <summary>자동 투하 중지 (보스 등장·라운드 종료). 필드의 보급은 그대로</summary>
         public void StopAutoDropCycle()
         {
             autoDrop = false;

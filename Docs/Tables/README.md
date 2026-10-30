@@ -46,10 +46,12 @@
 | FireMode | enum | `Single` / `Auto` |
 | Damage | int | 1발 피해 (일반 몬스터가 1~2발에 죽는 수준) |
 | FireRate | float | RPM. 코드에서는 `FireInterval` |
-| MagazineSize | int | 강화 전 탄창 |
+| MagazineSize | int | 강화 전 탄창 (탄창 하나에 든 탄약 수) |
+| StartMagazines / MaxMagazines | int | 시작 / 최대 예비 탄창 개수 (탄창 단위, MagazineSize 와 별개). 장전이 끝날 때 1개를 써서 탄창을 가득 채운다 (취소 시 소모 없음). 다 쓰면 재장전 불가. 보충은 `IPlayerAmmo.AddMagazines` |
+| SupplyMagazineRatio | float | 보급 1회 예비 탄창 충전 비율. MaxMagazines × 비율을 내림, 최소 1 (0 = 충전 안 함). 일반 총 0.5, 스플래시(로켓·유탄) 0.25 |
 | ReloadTime | float | 강화 전 재장전(초) |
 | Range / SpreadAngle | float | 사거리(m) / 퍼짐 반각(도) |
-| FireSfxKey, ReloadSfxKey, ReloadInsertSfxKey, ReloadEndSfxKey | string | 장전음: 시작 · 탄창·탄 넣기(기본 총 = 장전 55% 시점, 산탄총 = 한 발마다) · 완료(취소 시 없음) |
+| FireSfxKey, ReloadSfxKey, ReloadInsertSfxKey, ReloadEndSfxKey | string | 장전음: 시작 · 탄창·탄 넣기(기본 총 = 장전 55% 시점, 산탄총 = 한 발 시간마다 소리만) · 완료(취소 시 없음) |
 
 ## GrenadeTable — BL-005
 | 컬럼 | 타입 | 설명 |
@@ -77,7 +79,7 @@
 | GradeId | int | MonsterGradeTable |
 | Role | enum | `Melee` / `Air` / `Rusher` / `Infiltrator` / `ZonePressure` / `Boss` (Boss 는 Grade Boss 와 함께) |
 | MaxHp | int | |
-| MoveSpeed / RunSpeed | float | 이동 / 질주 (m/s), RunSpeed >= MoveSpeed |
+| MoveSpeed | float | 이동 속도 (m/s) |
 | DetectRange | float | 탐지 거리(m), -1 = 전장 전체 |
 | BodyScale / Height | float | 프리팹 스케일 / 신장(m) |
 | FlyHeight | float | 비행 고도(m). Air 역할만 0 초과 (`IsFlying` = Role Air) |
@@ -152,9 +154,14 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | SupplyType | enum | `Grenade` / `Heal` |
-| Amount | int | 수류탄 보충 수 / 회복 팩 보충 수 |
+| DisplayName | string | HUD·분석 표시 이름 |
+| AmountMin / AmountMax | int | 수류탄 / 회복 팩 지급 개수 범위 (획득 때 무작위, 양끝 포함) |
 | Weight | int | 투하 종류 가중치 |
+| BeaconColor | string | 빛기둥 색 `#RRGGBB` (안개 무시 빛기둥은 이 색 × HDR 밝기) |
 | PrefabKey / MarkerKey | string | 물자 프리팹 / 낙하 위치 표시 |
+| DropSfxKey / AnnounceSfxKey / CollectSfxKey | string | 투하음(착지 지점) / 투하 안내 방송(2D) / 획득음(랜덤 장전음) |
+
+모든 보급은 획득 시 아이템과 함께 **슬롯의 모든 총에 예비 탄창을 충전**한다 (`WeaponTable.SupplyMagazineRatio`). 아이템·탄약 중 하나라도 실제로 늘면 획득, 둘 다 가득이면 상자가 남는다.
 
 ## UpgradeTable — BL-030·031
 | 컬럼 | 타입 | 설명 |
@@ -181,7 +188,8 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | PlayerInvincibleTime | 피격 후 무적 | BL-006 |
 | LowHpRatio | 플레이어 위험 상태 비율 | BL-007 |
 | MonsterLowHpRatio | 일반 몬스터 저체력 표현 비율 | BL-017 |
-| SupplyLifetime | 보급 유지 시간 | BL-018 |
 | SupplyDropMinDistance / SupplyDropMaxDistance | 보급 낙하 위치: 플레이어 기준 XZ 거리 범위 (30 ~ 150) | BL-018 |
 | SupplyDropHeight / SupplyLandingHeight | 낙하 시작 높이(30 이상) / 감속 착지 시작 높이 (지면 기준) | BL-018 |
+| SupplyMaxTerrainHeight | 보급 낙하 금지 지형 높이 (Terrain 원점 기준 SampleHeight 가 이 값 이상이면 다시 뽑음, 30) | BL-018 |
+| SupplyMaxActive | 필드 동시 보급 최대 개수 (도달하면 그 주기 건너뜀, 5) | BL-018 |
 | CameraTransitionTime | 1인칭→3인칭 전환 시간 | BL-022 |

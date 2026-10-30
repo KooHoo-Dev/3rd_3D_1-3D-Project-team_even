@@ -97,14 +97,14 @@ flowchart TB
 | `PlayerFinalDeathEvent` (최종 사망) | 플레이어 | **코어(게임오버)**, UI |
 | `PlayerLivesChangedEvent(Current, Max)` | 플레이어 | UI (목숨 표시) |
 | `CameraModeChangedEvent(Mode, IsComplete)` | 플레이어 | 보스(전환 완료 후 등장 공격), UI |
-| `AmmoChangedEvent`, `WeaponFiredEvent`, `ReloadStarted/FinishedEvent` | 무기 | UI(HUD) (발사·재장전 소리는 Gun 이 직접 재생) |
+| `AmmoChangedEvent`, `WeaponFiredEvent`, `ReloadStarted/Finished/DeniedEvent` | 무기 | UI(HUD) (발사·재장전 소리는 Gun 이 직접 재생) |
 | `GrenadeCountChangedEvent`, `GrenadeExplodedEvent` | 무기 | UI, 몬스터(돌진형 유인 아이디어) |
 | `HealPackCountChangedEvent` | 플레이어 | UI |
 | `DamageDealtEvent` | 피해를 준 쪽 — **아직 발행처 없음** (발행 위치는 몬스터 담당과 합의 필요) | UI(히트마커), 몬스터 피격 연출, 사운드(타격음·히트마커 — 처치한 발은 히트마커 없음) |
 | `MonsterSpawnedEvent`, `MonsterDiedEvent(GrantReward)` | 몬스터 | 군중 생성(카운트), 보상(재화), UI·사운드 |
 | `MonsterWipeRequestedEvent` | 보스(등장 공격) | 몬스터 |
 | `BossAppearedEvent`, `BossDefeatedEvent` | 보스 | 코어, UI·사운드, 보상 (패턴 단계·타격은 `BossAttack` 지역 이벤트) |
-| `SupplyDroppedEvent`, `SupplyCollectedEvent` | 보급 | UI(낙하 위치 표시) (낙하 소리는 SupplyDropper 가 직접 재생) |
+| `SupplyDroppedEvent`, `SupplyCollectedEvent` | 보급 | UI(낙하 위치·지급량 표시), 사운드(GameSoundRouter: 투하음·안내 방송·랜덤 장전음), 빛기둥, 분석 |
 | `CurrencyChangedEvent`, `UpgradePurchasedEvent` | 보상 | UI, 무기(능력치 갱신) |
 | `RewardSelectionFinishedEvent` | UI(강화 화면) | 코어(다음 라운드) |
 

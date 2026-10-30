@@ -18,6 +18,8 @@ namespace HybridShooter.Monster.Behaviour
         [SerializeField] private Transform markerPrefab;
 
         [Header("발사")]
+        [Tooltip("몸 위치 수평 발사 너비 (m)")]
+        [SerializeField, Min(0f)] private float launchWidth = 1f;
         [Tooltip("몸 위치 위 발사 높이 (m)")]
         [SerializeField, Min(0f)] private float launchHeight = 1f;
         [Tooltip("포물선 최고 높이. 발사점·착탄점을 잇는 직선 위로 올라가는 높이 (m)")]
@@ -35,6 +37,7 @@ namespace HybridShooter.Monster.Behaviour
         [Tooltip("플레이어 Y 와 플레이어 XZ 의 Terrain 높이 차이 허용값 ± (m). 바위·다리 위면 이 값을 넘어 피해가 없다")]
         [SerializeField, Min(0f)] private float zoneHeightTolerance = 0.5f;
 
+        public float LaunchWidth => launchWidth;
         public float LaunchHeight => launchHeight;
         public float ArcHeight => arcHeight;
         public int TickDamage => tickDamage;

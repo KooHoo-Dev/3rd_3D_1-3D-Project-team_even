@@ -101,11 +101,11 @@ namespace HybridShooter.Weapon
             public float Bounciness;
             /// <summary>이 시간이 지나면 폭발. 0 = 시간 폭발 없음</summary>
             public float FuseTime;
-            /// <summary>이 거리만큼 날아가기 전에는 폭발하지 않는다 (근접 자폭 방지)</summary>
+            /// <summary>이 거리만큼 날아가기 전에 터지면 피해가 줄어든다 (근접 남용 방지). 0 = 감소 없음</summary>
             public float ArmDistance;
-            /// <summary>무장 전 적에게 직격했을 때의 충격 피해 (폭발 없이 사라짐)</summary>
-            public int ImpactDamage;
-            /// <summary>무장 후 적에게 직격했을 때 폭발 피해에 더하는 피해</summary>
+            /// <summary>날아간 거리 0 에서 터졌을 때의 피해 비율. ArmDistance 까지 1 로 올라간다</summary>
+            public float UnarmedDamageRatio;
+            /// <summary>적에게 직격했을 때 폭발 피해에 더하는 피해</summary>
             public int DirectHitBonus;
             public float MaxLifetime;
             public ExplosionSettings Explosion;
@@ -199,31 +199,20 @@ namespace HybridShooter.Weapon
 
         private void HandleHit(in RaycastHit hit)
         {
-            bool armed = traveled >= settings.ArmDistance;
             bool enemy = hit.collider.TryGetDamageable(out var target) && target.CanBeHitBy(context.Faction);
-            Vector3 direction = velocity.normalized;
 
             if (enemy)
             {
-                if (armed)
-                {
-                    if (settings.DirectHitBonus > 0)
-                        target.TakeDamage(new DamageInfo(settings.DirectHitBonus, DamageKind.Explosion, context.Faction, context.Attacker, hit.point, direction, context.SourceDefId));
-                    Explode(hit.point);
-                }
-                else
-                {
-                    if (settings.ImpactDamage > 0)
-                        target.TakeDamage(new DamageInfo(settings.ImpactDamage, DamageKind.Bullet, context.Faction, context.Attacker, hit.point, direction, context.SourceDefId));
-                    Despawn();
-                }
+                int bonus = Mathf.RoundToInt(settings.DirectHitBonus * DamageScale());
+                if (bonus > 0)
+                    target.TakeDamage(new DamageInfo(bonus, DamageKind.Explosion, context.Faction, context.Attacker, hit.point, velocity.normalized, context.SourceDefId));
+                Explode(hit.point);
                 return;
             }
 
             if (settings.ExplodeOnSurface)
             {
-                if (armed) Explode(hit.point + hit.normal * 0.05f);
-                else Despawn(); // 무장 전 벽에 닿은 로켓은 불발
+                Explode(hit.point + hit.normal * 0.05f);
                 return;
             }
 
@@ -245,17 +234,39 @@ namespace HybridShooter.Weapon
             for (int i = 0; i < count; i++)
             {
                 if (context.IsOwn(hits[i].collider) || hits[i].distance >= best) continue;
-                // 시작부터 겹친 경우(distance 0) 는 point 가 비어 있어 현재 위치로 대신한다
-                if (hits[i].distance <= 0f) hits[i].point = origin;
+                // 시작부터 겹친 경우(distance 0) 는 point 가 비어 있고 normal 이 진행 반대 방향이라 직접 채운다
+                if (hits[i].distance <= 0f)
+                {
+                    hits[i].point = origin;
+                    hits[i].normal = OverlapNormal(hits[i].collider, origin);
+                }
                 best = hits[i].distance;
                 closest = hits[i];
             }
             return best < float.MaxValue;
         }
 
+        /// <summary>겹친 콜라이더에서 밀려나는 방향. 구할 수 없으면 위쪽 (바닥에 묻힌 경우가 대부분)</summary>
+        private static Vector3 OverlapNormal(Collider col, Vector3 origin)
+        {
+            // 오목 MeshCollider 는 ClosestPoint 를 지원하지 않는다
+            if (col is MeshCollider mesh && mesh.convex == false) return Vector3.up;
+            Vector3 away = origin - col.ClosestPoint(origin);
+            return away.sqrMagnitude > 0.000001f ? away.normalized : Vector3.up;
+        }
+
+        /// <summary>무장 거리 전에 터지면 UnarmedDamageRatio → 1 로 피해가 오른다</summary>
+        private float DamageScale()
+        {
+            if (settings.ArmDistance <= 0f) return 1f;
+            return Mathf.Lerp(settings.UnarmedDamageRatio, 1f, Mathf.Clamp01(traveled / settings.ArmDistance));
+        }
+
         private void Explode(Vector3 position)
         {
-            GunExplosion.Explode(position, settings.Explosion, context);
+            ExplosionSettings explosion = settings.Explosion;
+            explosion.damage = Mathf.Max(1, Mathf.RoundToInt(explosion.damage * DamageScale()));
+            GunExplosion.Explode(position, explosion, context);
             Despawn();
         }
     }
