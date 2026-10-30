@@ -1,5 +1,6 @@
 ﻿using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
+using HybridShooter.Core.Events;
 using UnityEngine;
 
 namespace HybridShooter.Boss.Clypeosaurus
@@ -8,6 +9,9 @@ namespace HybridShooter.Boss.Clypeosaurus
     {
         private static readonly float[] HitHpRatios = { 0.75f, 0.50f, 0.25f };
         [SerializeField] private MonoBehaviour playerSource;
+        
+        [SerializeField] private CameraShakeSettings footstepShake = CameraShakePresets.BossFootstep.WithIntensity(0.25f);
+        [SerializeField, Min(0.1f)] private float footstepShakeRadius = 40f;
         
         private BossController boss;
         private int nextHitIndex;
@@ -72,6 +76,34 @@ namespace HybridShooter.Boss.Clypeosaurus
             {
                 boss.StartHitReaction();
             }
+        }
+        
+        public void LeftFoot()
+        {
+            Debug.Log(
+                $"[DEBUG-boss-footstep] LeftFoot | frame: {Time.frameCount}",
+                this);
+
+            ShakeFootstep();
+        }
+
+        public void RightFoot()
+        {
+            Debug.Log(
+                $"[DEBUG-boss-footstep] RightFoot | frame: {Time.frameCount}",
+                this);
+
+            ShakeFootstep();
+        }
+        
+        private void ShakeFootstep()
+        {
+            if (isActiveAndEnabled == false || boss == null) return;
+            if (boss.IsAlive == false || boss.IsAttacking || boss.IsReacting) return;
+
+            var settings = footstepShake.At(transform.position, footstepShakeRadius);
+
+            EventBus<CameraShakeRequestedEvent>.Publish(new CameraShakeRequestedEvent(settings));
         }
         
         private void OnEnable()
