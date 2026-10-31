@@ -82,7 +82,7 @@
 - **보급 낙하**: `SupplyDropper`는 플레이어 기준 XZ 30~150m 거리에 떨어진다. 위치는 아래로 레이캐스트해 지면을 찾는다(groundMask).
   - → **넓은 지붕 구조물은 최소화**한다. 보급이 지붕 위에 떨어질 수 있기 때문이다.
 - **라운드 흐름**: `RunDirector`는 1라운드 데이터를 계속 반복할 뿐이고, 스테이지 개념은 없다. 2차 설계는 구역 구분이 없으므로 이 부분과 충돌하지 않는다.
-- 팀의 맵 작업 방식은 **에디터 빌더 스크립트**로 조립하는 것이다. 예시: `Assets/Scenes/GU/Map/Editor/CrashedShipBuilder.cs`(`Tools/Map/Build Crashed Ship`), `ObstacleColliderBuilder.cs`.
+- 팀의 맵 작업 방식은 **에디터 빌더 스크립트**로 조립하는 것이다. 빌더는 `Assets/Scenes/GU/Map/Editor/`에 있다. (예전의 `CrashedShipBuilder`·`ObstacleColliderBuilder`는 결과물이 `Spaceship_Broken.prefab`과 `SciFiMapBuilder`의 콜라이더 정리로 대체되어 제거함)
 - 이미 있는 추락선 프리팹: `Assets/Scenes/GU/Prefabs/Spaceship_Broken.prefab`, `Spaceship_01.prefab`, `EngineSmoke.prefab`
 
 ---
@@ -219,10 +219,10 @@ Sci-Fi Base는 콘크리트, 파이프, 탱크, 드릴 같은 **인공 시설 �
 ## 6. 구현 계획
 
 ### 6-1. 방식
-- 에디터 빌더 스크립트를 새로 만든다. `CrashedShipBuilder.cs`와 같은 스타일이며, 위치는 `Assets/Scenes/GU/Map/Editor/`.
+- 에디터 빌더 스크립트를 새로 만든다. 위치는 `Assets/Scenes/GU/Map/Editor/`.
   - 인게임: `Tools/Map/Build Sci-Fi Map` (가칭 `SciFiMapBuilder.cs`)
   - 튜토리얼: `Tools/Map/Build Tutorial Map` (가칭 `TutorialMapBuilder.cs`)
-- 프리팹 크기는 미리 알 수 없다. 그래서 `CrashedShipBuilder`처럼 **Renderer Bounds로 크기를 재서** 맞춰 배치한다.
+- 프리팹 크기는 미리 알 수 없다. 그래서 **Renderer Bounds로 크기를 재서** 맞춰 배치한다.
 - 배치 랜덤성은 `Random.InitState(고정 seed)`로 재현 가능하게 만든다.
 - 결과물:
   - 새 프리팹 (예: `Assets/Scenes/GU/Map/SciFiMap.prefab`)
@@ -236,7 +236,7 @@ Sci-Fi Base는 콘크리트, 파이프, 탱크, 드릴 같은 **인공 시설 �
 2. [x] 지점별 소품 배치: 착륙장 + 엄폐물 링 → 추락 지점 → 외곽 방어선 → 정제 플랜트 → 굴착 분화구 → 암석 황무지 (+ 지점별 회피용 엄폐물 2~5개)
 3. [x] 외곽 경계 벽·바위 배치, 조명·안개 설정
 4. [x] NavMesh 굽기, `BossSpawnPoint`·`Player` 위치 조정 (`Tools/Map/Place Sci-Fi Spawn Points`)
-5. [x] 콜라이더 정리 — `ObstacleColliderBuilder` 대신 소품 방향 상자(BoxCollider + NavMesh 제외 볼륨)로 처리
+5. [x] 콜라이더 정리 — 볼록 메시 콜라이더 대신 소품 방향 상자(BoxCollider + NavMesh 제외 볼륨)로 처리
 6. [x] `TutorialMapBuilder.cs` + `TutorialMap.unity` 작성
 7. [x] 스크린샷(`Tools/Map/Capture Map Review Shots`)으로 확인하며 밀도·배치 다듬기 — 인게임 맵. 4-4 참고
 
@@ -270,5 +270,6 @@ Sci-Fi Base는 콘크리트, 파이프, 탱크, 드릴 같은 **인공 시설 �
   - `Save Sci-Fi Map Edits`: 씬에서 손으로 옮기기·지우기·추가한 것을 `SciFiMapEdits.json`에 기록한다. 다음 빌드부터 다시 적용된다.
     - 지점 그룹(`Props/<지점>`)을 옮기면 지점 중심이 바뀌고, 지형 조각과 자동 배치도 따라간다.
   - `Place Sci-Fi Spawn Points`: Player를 추락선 옆으로, BossSpawnPoint를 분화구 남쪽 바닥으로 옮긴다. 한 번만 실행하면 된다.
+  - `Rebake Sci-Fi Map NavMesh`: 맵을 다시 빌드하지 않고 `SciFiMap.prefab`의 NavMesh만 다시 굽는다.
   - `Build Tutorial Map`: 튜토리얼 씬을 생성하거나 다시 만든다.
   - `Capture Map Review Shots`: 현재 씬 맵을 여러 시점에서 찍어 `Temp/MapReview/`에 저장한다.

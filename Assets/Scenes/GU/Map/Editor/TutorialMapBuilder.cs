@@ -79,7 +79,7 @@ public static class TutorialMapBuilder
         TerrainData data = GetOrCreateTerrainData();
         SculptTerrain(data);
         PaintTerrain(data);
-        Terrain terrain = CreateTerrainObject(data, source, root.transform);
+        Terrain terrain = SciFiMapBuilder.CreateTerrainObject(data, source, Vector3.zero, root.transform);
 
         // 2) 단계별 소품 + 마커
         SciFiMapBuilder.BeginPlacement(terrain, false, InsideCorridorOffLane);
@@ -189,10 +189,7 @@ public static class TutorialMapBuilder
 
     private static void PaintTerrain(TerrainData data)
     {
-        TerrainLayer[] layers = new TerrainLayer[LayerNames.Length];
-        for (int k = 0; k < LayerNames.Length; k++)
-            layers[k] = AssetDatabase.LoadAssetAtPath<TerrainLayer>(SciFiMapBuilder.LayerDir + LayerNames[k] + ".terrainlayer");
-        data.terrainLayers = layers;
+        TerrainLayer[] layers = SciFiMapBuilder.LoadTerrainLayers(data, LayerNames);
 
         int res = data.alphamapResolution;
         float[,,] alpha = new float[res, res, layers.Length];
@@ -213,18 +210,6 @@ public static class TutorialMapBuilder
         }
         data.SetAlphamaps(0, 0, alpha);
         EditorUtility.SetDirty(data);
-    }
-
-    private static Terrain CreateTerrainObject(TerrainData data, Terrain source, Transform parent)
-    {
-        GameObject go = Terrain.CreateTerrainGameObject(data);
-        go.name = "Terrain";
-        go.layer = source.gameObject.layer;
-        go.transform.SetParent(parent, false);
-        Terrain terrain = go.GetComponent<Terrain>();
-        terrain.materialTemplate = source.materialTemplate;
-        terrain.heightmapPixelError = source.heightmapPixelError;
-        return terrain;
     }
 
     // ───────────────────────── 단계 ─────────────────────────
@@ -251,7 +236,7 @@ public static class TutorialMapBuilder
 
         for (float z = 14f; z <= 40f; z += 13f)
             SciFiMapBuilder.Scatter(parent, new[] { "Rock_01", "Stone_med1", "Stone_med2", "Prop_Barrel1 gray", "Prop3", "Prop5" },
-                4, OnCenter(z), 0f, 16f, 1.5f, 0.8f, 1.2f, 0.15f, 0f);
+                4, OnCenter(z), 0f, 16f, 1.5f, 0.8f, 1.2f, 0.15f);
     }
 
     /// <summary>② 잔해 협곡: 좁은 길 양쪽 벽 아래 잔해와 바위. 첫 무기("동력 공급 재개")와 사격을 익힌다.</summary>
@@ -262,10 +247,10 @@ public static class TutorialMapBuilder
 
         for (float z = 48f; z <= 88f; z += 10f)
             SciFiMapBuilder.Scatter(parent, new[] { "Rock_Shales_02", "Rock_Shales_05", "Stone_med3", "Stone_med4", "Prop7", "Cover Panel2D", "Barrier_01_Corner" },
-                4, OnCenter(z), 0f, 12f, 1f, 0.8f, 1.3f, 0.15f, 0f);
+                4, OnCenter(z), 0f, 12f, 1f, 0.8f, 1.3f, 0.15f);
 
         // 사격 표적 삼아 길가에 세워 둔 통 몇 개
-        SciFiMapBuilder.Scatter(parent, new[] { "Prop_Barrel1", "Prop_Barrel1 yellow" }, 4, OnCenter(WeaponZ + 12f), 0f, 9f, 1f, 1f, 1f, 0f, 0f);
+        SciFiMapBuilder.Scatter(parent, new[] { "Prop_Barrel1", "Prop_Barrel1 yellow" }, 4, OnCenter(WeaponZ + 12f), 0f, 9f, 1f, 1f, 1f, 0f);
     }
 
     /// <summary>③ 첫 항체 조우: 넓어진 공간에 회피용 엄폐물 2~5개. 소수 몬스터와 전투, 바이오매스 회수를 익힌다.</summary>
@@ -279,7 +264,7 @@ public static class TutorialMapBuilder
         SciFiMapBuilder.PlaceCover(parent, new[] { "Container_01", "Barrier_Solid_01", "Concrete_wall2_Barrier1", "Stone_Big1" },
             OnCenter(EncounterZ), 4f, hw, SciFiMapBuilder.MaxPropSlope, null);
         SciFiMapBuilder.Scatter(parent, new[] { "Rock_Shales_06", "Rock_Shales_09", "Stone_med5", "Stone_small1" },
-            6, OnCenter(EncounterZ), 0f, hw, 1.5f, 0.8f, 1.3f, 0.2f, 0f);
+            6, OnCenter(EncounterZ), 0f, hw, 1.5f, 0.8f, 1.3f, 0.2f);
     }
 
     /// <summary>④ 보급 포드 공터: 넓은 공터 가운데 착륙판과 붉은 유도등. 궤도 보급 포드와 업그레이드를 익힌다.</summary>
@@ -301,8 +286,7 @@ public static class TutorialMapBuilder
                 {
                     GameObject plate = SciFiMapBuilder.Spawn("Hangar_Ground_Plate1", parent);
                     Vector2 xz = c + new Vector2((ix - 0.5f) * tile.x, (iz - 0.5f) * tile.z);
-                    Bounds b = SciFiMapBuilder.GetBounds(plate);
-                    plate.transform.position += new Vector3(xz.x - b.center.x, SciFiMapBuilder.GroundY(xz) + 0.1f - b.max.y, xz.y - b.center.z);
+                    SciFiMapBuilder.PlaceTile(plate, xz, SciFiMapBuilder.GroundY(xz) + 0.1f);
                 }
             }
             float padR = Mathf.Max(tile.x, tile.z);
@@ -310,16 +294,12 @@ public static class TutorialMapBuilder
             for (int k = 0; k < 4; k++)
             {
                 float a = (45f + k * 90f) * Mathf.Deg2Rad;
-                GameObject lamp = SciFiMapBuilder.Spawn("Lamp_Position", parent);
-                if (lamp == null) continue;
-                SciFiMapBuilder.SetOnGround(lamp, c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (padR + 0.6f), 0f);
-                Bounds lb = SciFiMapBuilder.GetBounds(lamp);
-                SciFiMapBuilder.AddPointLight(lamp.transform, "GuideLight", new Vector3(lb.center.x, lb.max.y + 0.3f, lb.center.z), SciFiMapBuilder.GuideLightColor, 6f, 2f);
+                SciFiMapBuilder.PlaceGuideLamp(parent, c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (padR + 0.6f), 6f, 2f);
             }
         }
 
         SciFiMapBuilder.Scatter(parent, new[] { "Container_01", "Prop_Cylinder1", "Powerbox_03", "Prop_Barrel1 gray" },
-            5, c, 8f, HalfWidth(SupplyZ), 2f, 1f, 1f, 0f, 0f);
+            5, c, 8f, HalfWidth(SupplyZ), 2f, 1f, 1f, 0f);
     }
 
     /// <summary>⑤ 전초기지 게이트: 협곡을 가로막는 기지 외벽과 가운데 게이트. 통과하면 인게임 씬으로 넘어간다.</summary>

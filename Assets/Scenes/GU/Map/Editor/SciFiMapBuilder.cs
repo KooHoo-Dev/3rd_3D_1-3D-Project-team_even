@@ -24,7 +24,7 @@ public static class SciFiMapBuilder
     private const string SourceTerrainName = "ReductedTerrain";
     private const string TerrainDataPath = "Assets/Scenes/GU/Map/SciFiTerrain.asset";
     private const string SavePath = "Assets/Scenes/GU/Map/SciFiMap.prefab";
-    internal const string LayerDir = "Assets/Sci-Fi Base/Terrain/Layers/";
+    private const string LayerDir = "Assets/Sci-Fi Base/Terrain/Layers/";
     private const string PrefabDir = "Assets/Sci-Fi Base/Prefabs/";
     private const string RockDir = "Assets/Sci-Fi Base/Rocks/";
     private const string GUPrefabDir = "Assets/Scenes/GU/Prefabs/";
@@ -116,6 +116,7 @@ public static class SciFiMapBuilder
     // CrashSite 그룹이 옮겨지면 같은 만큼 따라간다.
     private static readonly Vector3 ShipPosition = new Vector3(-49.43f, -0.19f, -90.27f);
     private static readonly Quaternion ShipRotation = new Quaternion(0.07769645f, -0.95590156f, 0.17838787f, -0.21998493f);
+    private const string ShipEditPath = "Props/CrashSite/Spaceship_Broken"; // 손으로 맞춘 추락선 자세의 편집 기록 경로
 
     // 추락 지점 소품: 선체 가장자리(Bounds 반경)에서 떨어진 거리 범위(m)
     private const float CrashCoverGapMin = 10f, CrashCoverGapMax = 26f;   // 회피용 엄폐물 (생존자가 끌어다 놓은 느낌, 선체와 떨어짐)
@@ -341,7 +342,7 @@ public static class SciFiMapBuilder
         float minZ = terrainPos.z, maxZ = terrainPos.z + data.size.z;
 
         // 언덕을 넣지 않을 추락선 자리: 손으로 맞춘 자세가 있으면 그 위치, 없으면 추락 지점 중심
-        MovedEdit ship = _edits?.moved.Find(m => m.path == "Props/CrashSite/Spaceship_Broken");
+        MovedEdit ship = _edits?.moved.Find(m => m.path == ShipEditPath);
         Vector2 shipKeep = ship != null ? new Vector2(ship.position.x, ship.position.z) : CrashCenter;
 
         for (int j = 0; j < res; j++)
@@ -397,10 +398,7 @@ public static class SciFiMapBuilder
 
     private static void PaintTerrain(TerrainData data, Vector3 terrainPos)
     {
-        TerrainLayer[] layers = new TerrainLayer[LayerNames.Length];
-        for (int k = 0; k < LayerNames.Length; k++)
-            layers[k] = AssetDatabase.LoadAssetAtPath<TerrainLayer>(LayerDir + LayerNames[k] + ".terrainlayer");
-        data.terrainLayers = layers;
+        TerrainLayer[] layers = LoadTerrainLayers(data, LayerNames);
 
         int res = data.alphamapResolution;
         float[,,] alpha = new float[res, res, layers.Length];
@@ -449,7 +447,18 @@ public static class SciFiMapBuilder
         EditorUtility.SetDirty(data);
     }
 
-    private static Terrain CreateTerrainObject(TerrainData data, Terrain source, Vector3 position, Transform parent)
+    /// <summary>Sci-Fi Base 지형 레이어(LayerDir 안의 이름들)를 불러와 data에 지정하고 돌려준다.</summary>
+    internal static TerrainLayer[] LoadTerrainLayers(TerrainData data, string[] names)
+    {
+        TerrainLayer[] layers = new TerrainLayer[names.Length];
+        for (int k = 0; k < names.Length; k++)
+            layers[k] = AssetDatabase.LoadAssetAtPath<TerrainLayer>(LayerDir + names[k] + ".terrainlayer");
+        data.terrainLayers = layers;
+        return layers;
+    }
+
+    /// <summary>data로 지형 오브젝트를 만들고, 레이어·머티리얼·그림자 같은 렌더 설정은 원본 지형(source)을 따른다.</summary>
+    internal static Terrain CreateTerrainObject(TerrainData data, Terrain source, Vector3 position, Transform parent)
     {
         GameObject go = Terrain.CreateTerrainGameObject(data);
         go.name = "Terrain";
@@ -552,8 +561,7 @@ public static class SciFiMapBuilder
                 GameObject go = Spawn(plates[Random.Range(0, plates.Count)], parent);
                 // 정사각형 타일일 때만 90도 단위로 돌려 반복 무늬를 줄인다.
                 if (Mathf.Abs(tile.x - tile.z) < 0.1f) go.transform.rotation = Quaternion.Euler(0f, 90f * Random.Range(0, 4), 0f) * go.transform.rotation;
-                Bounds b = GetBounds(go);
-                go.transform.position += new Vector3(xz.x - b.center.x, GroundY(xz) + PadTopOffset - b.max.y, xz.y - b.center.z);
+                PlaceTile(go, xz, GroundY(xz) + PadTopOffset);
             }
         }
         Occupy(Center, PadRadius);
@@ -562,11 +570,7 @@ public static class SciFiMapBuilder
         for (int k = 0; k < PadLampCount; k++)
         {
             float a = k * Mathf.PI * 2f / PadLampCount;
-            GameObject lamp = Spawn("Lamp_Position", parent);
-            if (lamp == null) continue;
-            SetOnGround(lamp, Center + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (PadRadius + 0.6f), 0f);
-            Bounds lb = GetBounds(lamp);
-            AddPointLight(lamp.transform, "GuideLight", new Vector3(lb.center.x, lb.max.y + 0.3f, lb.center.z), GuideLightColor, 6f, 2f);
+            PlaceGuideLamp(parent, Center + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (PadRadius + 0.6f), 6f, 2f);
         }
 
         // 회피용 엄폐물: 엄폐물 링 띠 안, 동서남북 진입 통로 밖
@@ -623,7 +627,7 @@ public static class SciFiMapBuilder
 
             // 손으로 맞춘 추락선 자세가 저장돼 있으면 주변 소품을 배치하기 전에 먼저 적용한다.
             // (나중에 적용하면 소품은 옛 자리 기준으로 흩어지고 추락선만 옮겨진다)
-            MovedEdit manual = _edits?.moved.Find(m => m.path == "Props/CrashSite/Spaceship_Broken");
+            MovedEdit manual = _edits?.moved.Find(m => m.path == ShipEditPath);
             if (manual != null) SetRootPose(parent.root, ship.transform, manual.position, manual.rotation, manual.scale);
 
             shipRadius = Footprint(ship);
@@ -636,9 +640,9 @@ public static class SciFiMapBuilder
         PlaceCover(parent, new[] { "Container_01", "Concrete_wall2_Shield", "Stone_Big1", "Rock_01" },
             shipXZ, shipRadius + CrashCoverGapMin, shipRadius + CrashCoverGapMax, MaxPropSlope, null);
         Scatter(parent, new[] { "Rock_01", "Stone_med1", "Stone_med2", "Stone_med3", "Rock_Shales_01", "Rock_Shales_03" },
-            10, shipXZ, shipRadius + CrashRockGapMin, shipRadius + CrashRockGapMax, 2f, 0.8f, 1.3f, 0.2f, 0f);
+            10, shipXZ, shipRadius + CrashRockGapMin, shipRadius + CrashRockGapMax, 2f, 0.8f, 1.3f, 0.2f);
         Scatter(parent, new[] { "Prop_Barrel1 gray", "Prop3", "Prop5", "Prop7", "Cover Panel2D" },
-            6, shipXZ, shipRadius + CrashDebrisGapMin, shipRadius + CrashDebrisGapMax, 1.5f, 1f, 1f, 0.1f, 0f);
+            6, shipXZ, shipRadius + CrashDebrisGapMin, shipRadius + CrashDebrisGapMax, 1.5f, 1f, 1f, 0.1f);
     }
 
     /// <summary>외곽 방어선(동): 군데군데 무너진 남북 방향 울타리 + 안테나·태양광 패널 + 낮은 방벽</summary>
@@ -671,22 +675,22 @@ public static class SciFiMapBuilder
         PlaceCover(parent, new[] { "Concrete_wall2_Barrier2", "Wall3_Barrier1", "Barrier_Solid_01", "Container_01" },
             DefenseCenter + new Vector2(-12f, 0f), 4f, 30f, MaxPropSlope, null);
         Scatter(parent, new[] { "Antenna_01", "Antenna_03", "Antenna_05", "Solar_Panel1", "Solar_Panel2", "Solar_Panel3", "Solar_Panel4" },
-            5, DefenseCenter, 6f, 45f, 3f, 1f, 1f, 0f, 0f);
+            5, DefenseCenter, 6f, 45f, 3f, 1f, 1f, 0f);
         Scatter(parent, new[] { "Barrier_2m", "Barrier_4m", "Barrier_01_A", "Barrier_Edge_2m", "Concrete_wall2_Barrier3", "Cover Panel6A" },
-            8, DefenseCenter + new Vector2(-12f, 0f), 4f, 32f, 3f, 1f, 1f, 0.05f, 0f);
+            8, DefenseCenter + new Vector2(-12f, 0f), 4f, 32f, 3f, 1f, 1f, 0.05f);
     }
 
     /// <summary>정제 플랜트(북동): 크레인 + 탱크·발전기 군집(사이 통로 4m 이상) + 작은 설비</summary>
     private static void BuildRefinery(Transform parent)
     {
-        Scatter(parent, new[] { "Crane_01" }, 1, RefineryCenter, 0f, 4f, 4f, 1f, 1f, 0f, 0f);
+        Scatter(parent, new[] { "Crane_01" }, 1, RefineryCenter, 0f, 4f, 4f, 1f, 1f, 0f);
         PlaceCover(parent, new[] { "Container_01", "Barrier_Solid_01", "Concrete_wall2_Barrier1" },
             RefineryCenter, 6f, 30f, MaxPropSlope, null);
         Scatter(parent, new[] { "Tank_01", "Tank_02", "Tank_03", "Tank_04", "Tank_Stack_01", "Tank_Stack_02",
                 "Generator_Set_01", "Generator_Set_02", "Generator_Set_03", "Radiator_Big" },
-            10, RefineryCenter, 6f, 30f, 4f, 1f, 1f, 0f, 0f);
+            10, RefineryCenter, 6f, 30f, 4f, 1f, 1f, 0f);
         Scatter(parent, new[] { "Powerbox_01", "Powerbox_05", "Prop_Barrel1", "Prop_Cylinder1", "Prop_vents_03" }, // 작은 잡동사니는 적게
-            4, RefineryCenter, 4f, 34f, 2f, 1f, 1f, 0f, 0f);
+            4, RefineryCenter, 4f, 34f, 2f, 1f, 1f, 0f);
     }
 
     /// <summary>굴착 분화구(북서): 비스듬히 박힌 거대 드릴 탑(참고 씬 조립) + 회피용 엄폐물 + 테두리 바위</summary>
@@ -723,19 +727,19 @@ public static class SciFiMapBuilder
             CraterCenter, CraterRadius + CraterCoverRimMin, CraterRadius + CraterCoverRimMax, CraterMaxSlope,
             xz => DistanceToSegment(xz, CraterCenter, Center) > BossCorridorHalf);
         Scatter(parent, new[] { "Rock_Shales_02", "Rock_Shales_05", "Rock_Shales_07", "Stone_med4", "Stone_med5", "Stone_Big1" },
-            12, CraterCenter, CraterRadius - 4f, CraterRadius + 10f, 2f, 0.8f, 1.5f, 0.2f, 0f, CraterMaxSlope);
+            12, CraterCenter, CraterRadius - 4f, CraterRadius + 10f, 2f, 0.8f, 1.5f, 0.2f, CraterMaxSlope);
     }
 
     /// <summary>암석 황무지(서): 큰 바위 사이로 우회로가 생기게 간격을 넉넉히 둔 바위 지대</summary>
     private static void BuildWasteland(Transform parent)
     {
         PlaceCover(parent, new[] { "Stone_Big1", "Rock_01", "Rock_Group1", "Barrier_Solid_01" }, WastelandCenter, 0f, 30f, MaxPropSlope, null);
-        Scatter(parent, new[] { "Rock_Group1" }, 3, WastelandCenter, 0f, 30f, 5f, 1f, 1.6f, 0.15f, 0f);
-        Scatter(parent, new[] { "Stone_Big1" }, 4, WastelandCenter, 0f, 32f, 4f, 1f, 1.5f, 0.15f, 0f);
+        Scatter(parent, new[] { "Rock_Group1" }, 3, WastelandCenter, 0f, 30f, 5f, 1f, 1.6f, 0.15f);
+        Scatter(parent, new[] { "Stone_Big1" }, 4, WastelandCenter, 0f, 32f, 4f, 1f, 1.5f, 0.15f);
         Scatter(parent, new[] { "Rock_Shales_01", "Rock_Shales_04", "Rock_Shales_06", "Rock_Shales_08", "Rock_Shales_09", "Rock_Shales_10" },
-            10, WastelandCenter, 0f, 34f, 3f, 0.8f, 1.4f, 0.2f, 0f);
+            10, WastelandCenter, 0f, 34f, 3f, 0.8f, 1.4f, 0.2f);
         Scatter(parent, new[] { "Stone_med1", "Stone_med2", "Stone_med3", "Stone_med6", "Stone_small1", "Stone_small3" },
-            10, WastelandCenter, 0f, 36f, 2f, 0.8f, 1.3f, 0.2f, 0f);
+            10, WastelandCenter, 0f, 36f, 2f, 0.8f, 1.3f, 0.2f);
     }
 
     /// <summary>
@@ -862,8 +866,7 @@ public static class SciFiMapBuilder
                 if (go == null) continue;
                 go.transform.rotation = yaw * go.transform.rotation;
                 Vector2 xz = center + u * ((ix + 0.5f) * tile.x - width * 0.5f) + v * ((iz + 0.5f) * tile.z - depth * 0.5f);
-                Bounds b = GetBounds(go);
-                go.transform.position += new Vector3(xz.x - b.center.x, groundY + 0.05f - b.max.y, xz.y - b.center.z);
+                PlaceTile(go, xz, groundY + 0.05f);
             }
         }
 
@@ -947,7 +950,7 @@ public static class SciFiMapBuilder
         }
 
         // ⑦ 안쪽 소품 + 모서리 조명
-        Scatter(parent, spec.InsideNames, Random.Range(spec.InsideMin, spec.InsideMax + 1), center, 0f, Mathf.Min(width, depth) * 0.5f - 1.5f, 1f, 1f, 1f, 0f, 0f);
+        Scatter(parent, spec.InsideNames, Random.Range(spec.InsideMin, spec.InsideMax + 1), center, 0f, Mathf.Min(width, depth) * 0.5f - 1.5f, 1f, 1f, 1f, 0f);
         GameObject lamp = Spawn(spec.LampName, parent);
         if (lamp != null)
         {
@@ -983,12 +986,10 @@ public static class SciFiMapBuilder
 
     /// <summary>
     /// a에서 b까지 names 조각을 긴 변이 선을 따르게 이어 놓는다. entranceT(0~1)가 0 이상이면 그 위치에 입구를 비운다.
-    /// brokenChance 확률로 조각을 빼 무너진 틈을 만든다. 놓은 조각들을 돌려준다.
+    /// brokenChance 확률로 조각을 빼 무너진 틈을 만든다.
     /// </summary>
-    private static List<GameObject> BuildWallLine(Transform parent, Vector2 a, Vector2 b, string[] names, float entranceT, float brokenChance,
-        float entranceHalf = RuinEntranceHalf)
+    private static void BuildWallLine(Transform parent, Vector2 a, Vector2 b, string[] names, float entranceT, float brokenChance)
     {
-        List<GameObject> placed = new List<GameObject>();
         float len = Vector2.Distance(a, b);
         Vector2 dir = (b - a) / Mathf.Max(len, 0.001f);
         float entrance = entranceT * len;
@@ -998,17 +999,13 @@ public static class SciFiMapBuilder
             GameObject go = Spawn(names[k % names.Length], parent);
             if (go == null) break;
             float piece = AlignLongAxis(go, dir);
-            bool inEntrance = entranceT >= 0f && pos < entrance + entranceHalf && pos + piece > entrance - entranceHalf;
+            bool inEntrance = entranceT >= 0f && pos < entrance + RuinEntranceHalf && pos + piece > entrance - RuinEntranceHalf;
             if (inEntrance || pos + piece > len + piece * 0.5f || Random.value < brokenChance)
                 Object.DestroyImmediate(go);
             else
-            {
                 SetOnGround(go, a + dir * (pos + piece * 0.5f), 0.05f);
-                placed.Add(go);
-            }
             pos += piece;
         }
-        return placed;
     }
 
     /// <summary>
@@ -1054,21 +1051,14 @@ public static class SciFiMapBuilder
 
     /// <summary>
     /// 구역 옆에 콘크리트 블록 건물을 붙인다. side=±1은 구역의 오른쪽(+u)/왼쪽(-u), 0은 뒤쪽(+v).
-    /// side가 null이면 좌우 중 지면이 낮은(산비탈이 아닌) 쪽을 고른다.
     /// </summary>
-    private static void AttachBuilding(Transform parent, string label, CompoundFrame frame, int? side, int cols, int rows)
+    private static void AttachBuilding(Transform parent, string label, CompoundFrame frame, int side, int cols, int rows)
     {
         Vector2 cell = TowerBlockSize(parent);
         float width = cols * cell.x, depth = rows * cell.y;
-        Vector2 spot;
-        if (side == 0)
-            spot = frame.Center + frame.V * (frame.Depth * 0.5f + BuildingGap + depth * 0.5f);
-        else
-        {
-            Vector2 right = frame.Center + frame.U * (frame.Width * 0.5f + BuildingGap + width * 0.5f);
-            Vector2 left = frame.Center - frame.U * (frame.Width * 0.5f + BuildingGap + width * 0.5f);
-            spot = side.HasValue ? (side.Value > 0 ? right : left) : (GroundY(right) <= GroundY(left) ? right : left);
-        }
+        Vector2 spot = side == 0
+            ? frame.Center + frame.V * (frame.Depth * 0.5f + BuildingGap + depth * 0.5f)
+            : frame.Center + frame.U * (side * (frame.Width * 0.5f + BuildingGap + width * 0.5f));
         BuildBlockBuilding(parent, label, spot, frame.U, frame.V, cols, rows);
     }
 
@@ -1155,7 +1145,7 @@ public static class SciFiMapBuilder
 
                 // 둘레에 작은 바위를 붙여 땅에서 솟은 느낌을 낸다. 그다음 둘레까지 차지한 것으로 기록해 다음 엄폐물과 간격을 지킨다.
                 if (reach >= 1f)
-                    Scatter(parent, FieldCompanionNames, Random.Range(1, 4), xz, r + 0.5f, r + reach - 0.5f, 0.3f, 0.8f, 1.5f, 0.25f, 0f);
+                    Scatter(parent, FieldCompanionNames, Random.Range(1, 4), xz, r + 0.5f, r + reach - 0.5f, 0.3f, 0.8f, 1.5f, 0.25f);
                 OccupyBig(xz, r + reach);
             }
             if (ok) placed++;
@@ -1175,7 +1165,7 @@ public static class SciFiMapBuilder
         for (int k = 0; k < MediumRockCount; k++)
         {
             Vector2 c = new Vector2(Random.Range(tp.x + 10f, tp.x + size.x - 10f), Random.Range(tp.z + 10f, tp.z + size.z - 10f));
-            Scatter(parent, MediumRockNames, 1, c, 0f, 6f, 2f, 0.7f, 1.4f, 0.25f, 0f);
+            Scatter(parent, MediumRockNames, 1, c, 0f, 6f, 2f, 0.7f, 1.4f, 0.25f);
         }
         _extraFilter = null;
     }
@@ -1234,13 +1224,7 @@ public static class SciFiMapBuilder
         for (float t = TaxiwayLampSpacing * 0.5f; t < len; t += TaxiwayLampSpacing)
         {
             foreach (float s in new[] { -1f, 1f })
-            {
-                GameObject lamp = Spawn("Lamp_Position", parent);
-                if (lamp == null) continue;
-                SetOnGround(lamp, start + dir * t + side * (s * TaxiwayLampSide), 0f);
-                Bounds lb = GetBounds(lamp);
-                AddPointLight(lamp.transform, "GuideLight", new Vector3(lb.center.x, lb.max.y + 0.3f, lb.center.z), GuideLightColor, 4f, 1.5f);
-            }
+                PlaceGuideLamp(parent, start + dir * t + side * (s * TaxiwayLampSide), 4f, 1.5f);
         }
     }
 
@@ -1318,7 +1302,7 @@ public static class SciFiMapBuilder
         float lean = Random.value < 0.2f ? Random.Range(-12f, 12f) : 0f;
         go.transform.rotation = Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(lean, 0f, 0f) * go.transform.rotation;
 
-        Vector2 xz = start + dir * (len * 0.5f);
+        Vector2 xz = PullInsideTerrain(start + dir * (len * 0.5f), len * 0.5f);
         if (Overlaps(xz, len * 0.5f))
         {
             Object.DestroyImmediate(go);
@@ -1339,6 +1323,7 @@ public static class SciFiMapBuilder
             if (go == null) continue;
             go.transform.localScale *= Random.Range(1.2f, 2.2f);
             go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f) * go.transform.rotation;
+            p = PullInsideTerrain(p, Footprint(go));
             if (Overlaps(p, Footprint(go)))
             {
                 Object.DestroyImmediate(go);
@@ -1347,6 +1332,17 @@ public static class SciFiMapBuilder
             SetOnGround(go, p, 0.25f);
         }
         return BoundaryRockStep;
+    }
+
+    /// <summary>
+    /// 반경 r 소품이 지형 경계(EdgeMargin 포함) 밖으로 삐져나오면 맵 중심 쪽으로 끌어들인다.
+    /// 경계 지점이 지형 끝에 닿은 방향(산기슭이 없는 쪽)에서 크게 키운 바위가 지형 밖에 떠 있던 문제를 막는다.
+    /// </summary>
+    private static Vector2 PullInsideTerrain(Vector2 xz, float r)
+    {
+        for (int step = 0; step < 100 && !InsideTerrain(xz, r + EdgeMargin); step++)
+            xz = Vector2.MoveTowards(xz, Center, 0.5f);
+        return xz;
     }
 
     private static bool InsideTerrain(Vector2 xz, float margin)
@@ -1361,6 +1357,23 @@ public static class SciFiMapBuilder
         foreach (Vector3 o in Occupied)
             if (Vector2.Distance(xz, new Vector2(o.x, o.y)) < r + o.z) return true;
         return false;
+    }
+
+    /// <summary>바닥 유도등(Lamp_Position)을 xz에 세우고 꼭대기에 붉은 점광원을 단다.</summary>
+    internal static void PlaceGuideLamp(Transform parent, Vector2 xz, float range, float intensity)
+    {
+        GameObject lamp = Spawn("Lamp_Position", parent);
+        if (lamp == null) return;
+        SetOnGround(lamp, xz, 0f);
+        Bounds lb = GetBounds(lamp);
+        AddPointLight(lamp.transform, "GuideLight", new Vector3(lb.center.x, lb.max.y + 0.3f, lb.center.z), GuideLightColor, range, intensity);
+    }
+
+    /// <summary>바닥판의 Bounds 중심을 xz에 맞추고 윗면을 topY 높이에 둔다.</summary>
+    internal static void PlaceTile(GameObject go, Vector2 xz, float topY)
+    {
+        Bounds b = GetBounds(go);
+        go.transform.position += new Vector3(xz.x - b.center.x, topY - b.max.y, xz.y - b.center.z);
     }
 
     internal static void AddPointLight(Transform parent, string name, Vector3 position, Color color, float range, float intensity)
@@ -1381,14 +1394,14 @@ public static class SciFiMapBuilder
     /// 자리마다 최대 PlaceTries번 시도하며, IsFree를 통과하지 못하면 그 개체는 버린다.
     /// </summary>
     internal static void Scatter(Transform parent, string[] names, int count, Vector2 center, float rMin, float rMax,
-        float clearance, float scaleMin, float scaleMax, float sinkRatio, float maxTilt, float maxSlope = MaxPropSlope)
+        float clearance, float scaleMin, float scaleMax, float sinkRatio, float maxSlope = MaxPropSlope)
     {
         for (int k = 0; k < count; k++)
         {
             GameObject go = Spawn(names[Random.Range(0, names.Length)], parent);
             if (go == null) continue;
             go.transform.localScale *= Random.Range(scaleMin, scaleMax);
-            go.transform.rotation = Quaternion.Euler(Random.Range(-maxTilt, maxTilt), Random.Range(0f, 360f), Random.Range(-maxTilt, maxTilt)) * go.transform.rotation;
+            go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f) * go.transform.rotation;
             float r = Footprint(go);
 
             bool placed = false;
@@ -1570,18 +1583,21 @@ public static class SciFiMapBuilder
     private static readonly Regex ClimbablePattern = new Regex("stair|ladder|catwalk|platform|ramp|elevator", RegexOptions.IgnoreCase);
     private static readonly Dictionary<GameObject, bool> ClimbableCache = new Dictionary<GameObject, bool>();
 
-    /// <summary>메시 Renderer들의 Bounds. 파티클(연기 등)은 수십 m로 부풀어 있어 뺀다.</summary>
-    internal static Bounds GetBounds(GameObject go)
+    /// <summary>메시 Renderer들의 Bounds. 파티클(연기 등)은 수십 m로 부풀어 있어 뺀다. 메시가 없으면 피벗의 0.5m 상자.</summary>
+    internal static Bounds GetBounds(GameObject go) =>
+        TryGetBounds(go, out Bounds b) ? b : new Bounds(go.transform.position, Vector3.one * 0.5f);
+
+    internal static bool TryGetBounds(GameObject go, out Bounds bounds)
     {
+        bounds = default;
         bool found = false;
-        Bounds b = new Bounds(go.transform.position, Vector3.one * 0.5f);
         foreach (Renderer r in go.GetComponentsInChildren<Renderer>())
         {
             if (r is ParticleSystemRenderer || r is TrailRenderer || r is LineRenderer) continue;
-            if (found) b.Encapsulate(r.bounds);
-            else { b = r.bounds; found = true; }
+            if (found) bounds.Encapsulate(r.bounds);
+            else { bounds = r.bounds; found = true; }
         }
-        return b;
+        return found;
     }
 
     internal static float Footprint(GameObject go)
@@ -1642,7 +1658,7 @@ public static class SciFiMapBuilder
     /// - 콜라이더가 하나도 없으면 BoxCollider를 붙인다. (Rock_01 등은 원본에 콜라이더가 없어 몬스터·플레이어가 통과함)
     /// - NavMeshModifierVolume(Not Walkable)을 붙인다. 소품 윗면이나 땅에 박힌 소품 속 지면이 NavMesh 섬으로 남아
     ///   몬스터가 그 위로 소환(SnapToNavMesh)되는 것을 막는다.
-    /// 착륙장 바닥판·유도등은 밟고 다니는 바닥이라 뺀다. ObstacleColliderBuilder처럼 볼록 메시로 감싸지 않는 이유는
+    /// 착륙장 바닥판·유도등은 밟고 다니는 바닥이라 뺀다. 소품마다 볼록 메시 콜라이더로 감싸지 않는 이유는
     /// 크레인·기울어진 드릴 탑 같은 소품이 큰 덩어리가 되어 통로를 막고, 소품 수백 개마다 메시 에셋이 생기기 때문이다.
     /// </summary>
     internal static void CleanupColliders(Transform root)
@@ -1723,11 +1739,28 @@ public static class SciFiMapBuilder
                 result.Add(t); // 건물 부품은 바닥판 프리펩이라도(콘크리트 슬래브 지붕) 장애물: 지붕 위 NavMesh·몬스터 소환을 막는다
                 continue;
             }
-            GameObject source = PrefabUtility.GetCorrespondingObjectFromSource(t.gameObject);
-            string sourceName = source != null ? source.name : t.name;
-            if (sourceName.StartsWith("Hangar_Ground_Plate") || sourceName.StartsWith("Concrete_Ground") || sourceName.StartsWith("Concrete_Road")
-                || sourceName.StartsWith("Ground_Plate") || sourceName.StartsWith("Lamp_")) continue; // 밟는 바닥·가는 조명
+            if (IsWalkFloor(t)) continue;
             result.Add(t);
+        }
+    }
+
+    /// <summary>땅에 깔린 밟는 바닥판·가는 조명인지 본다. 건물 부품(슬래브 지붕)은 호출자가 먼저 걸러야 한다.</summary>
+    private static bool IsWalkFloor(Transform prefabRoot)
+    {
+        GameObject source = PrefabUtility.GetCorrespondingObjectFromSource(prefabRoot.gameObject);
+        string sourceName = source != null ? source.name : prefabRoot.name;
+        return sourceName.StartsWith("Hangar_Ground_Plate") || sourceName.StartsWith("Concrete_Ground") || sourceName.StartsWith("Concrete_Road")
+            || sourceName.StartsWith("Ground_Plate") || sourceName.StartsWith("Lamp_");
+    }
+
+    /// <summary>Building_ 밖의 밟는 바닥판 프리펩 인스턴스를 모은다. (CollectObstacles가 빼는 것과 같은 기준)</summary>
+    private static void CollectWalkFloors(Transform parent, List<Transform> result)
+    {
+        foreach (Transform t in parent)
+        {
+            if (t.name.StartsWith("Building_")) continue;
+            if (!PrefabUtility.IsAnyPrefabInstanceRoot(t.gameObject)) CollectWalkFloors(t, result);
+            else if (IsWalkFloor(t) && !t.name.StartsWith("Lamp_")) result.Add(t);
         }
     }
 
@@ -1755,11 +1788,15 @@ public static class SciFiMapBuilder
     /// <summary>
     /// 기존 Map의 NavMeshSurface 설정(에이전트·레이어·콜라이더 기준)을 그대로 써서 SciFiMap 자식만 대상으로 굽는다.
     /// 구운 데이터는 에셋으로 저장해 프리펩이 참조하게 한다. 씬에 인스턴스가 켜질 때 NavMesh가 등록된다.
+    /// 걷는 면은 지형(과 땅에 깔린 바닥판)뿐이다. 나머지는 NavMeshModifier(Not Walkable)로 장애물로만 남겨,
+    /// 소품·건물·바위 윗면에 NavMesh 섬이 생기고 몬스터가 그 위로 소환(SnapToNavMesh)되는 것을 막는다.
     /// </summary>
     internal static void BakeNavMesh(GameObject root, Terrain source, string dataPath)
     {
-        NavMeshSurface surface = root.AddComponent<NavMeshSurface>();
-        NavMeshSurface template = source.GetComponent<NavMeshSurface>();
+        ApplyWalkableRule(root);
+        NavMeshSurface surface = root.GetComponent<NavMeshSurface>();
+        if (surface == null) surface = root.AddComponent<NavMeshSurface>();
+        NavMeshSurface template = source != null ? source.GetComponent<NavMeshSurface>() : surface;
         if (template != null)
         {
             surface.agentTypeID = template.agentTypeID;
@@ -1776,6 +1813,55 @@ public static class SciFiMapBuilder
 
         AssetDatabase.DeleteAsset(dataPath);
         AssetDatabase.CreateAsset(surface.navMeshData, dataPath);
+    }
+
+    /// <summary>
+    /// 루트에 Not Walkable 모디파이어(자식까지)를 달고, 지형과 밟는 바닥판에는 Walkable 모디파이어를 달아 덮어쓴다.
+    /// (자식의 모디파이어가 부모 것보다 우선한다)
+    /// </summary>
+    private static void ApplyWalkableRule(GameObject root)
+    {
+        int walkable = UnityEngine.AI.NavMesh.GetAreaFromName("Walkable");
+        SetAreaModifier(root, UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable"));
+
+        List<Transform> floors = new List<Transform>();
+        foreach (Terrain t in root.GetComponentsInChildren<Terrain>(true)) floors.Add(t.transform);
+        int terrains = floors.Count;
+        Transform props = root.transform.Find("Props");
+        if (props != null) CollectWalkFloors(props, floors);
+        foreach (Transform floor in floors) SetAreaModifier(floor.gameObject, walkable);
+        Debug.Log($"[SciFiMapBuilder] NavMesh 걷는 면: 지형 {terrains}개, 바닥판 {floors.Count - terrains}개. 나머지는 장애물(Not Walkable)");
+    }
+
+    private static void SetAreaModifier(GameObject go, int area)
+    {
+        NavMeshModifier modifier = go.GetComponent<NavMeshModifier>();
+        if (modifier == null) modifier = go.AddComponent<NavMeshModifier>();
+        modifier.overrideArea = true;
+        modifier.area = area;
+        modifier.applyToChildren = true;
+    }
+
+    /// <summary>
+    /// 맵 전체를 다시 빌드하지 않고 SciFiMap.prefab의 NavMesh만 현재 규칙으로 다시 굽는다.
+    /// 프리펩을 열어 고치므로 이 프리펩을 쓰는 모든 씬에 반영된다.
+    /// </summary>
+    [MenuItem("Tools/Map/Rebake Sci-Fi Map NavMesh")]
+    private static void RebakeNavMesh()
+    {
+        Terrain source = FindSourceTerrain();
+        GameObject root = PrefabUtility.LoadPrefabContents(SavePath);
+        try
+        {
+            BakeNavMesh(root, source, NavMeshDataPath);
+            PrefabUtility.SaveAsPrefabAsset(root, SavePath);
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+        AssetDatabase.SaveAssets();
+        Debug.Log($"[SciFiMapBuilder] NavMesh 다시 굽기 완료: {NavMeshDataPath}");
     }
 
     /// <summary>
