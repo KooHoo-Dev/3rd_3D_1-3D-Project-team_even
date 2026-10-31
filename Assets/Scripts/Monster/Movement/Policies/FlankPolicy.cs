@@ -3,8 +3,8 @@ using UnityEngine;
 namespace HybridShooter.Monster.Movement
 {
     /// <summary>
-    /// 측면 침투형: 멀리 있으면(원거리 모드) 플레이어 카메라 시야 밖의 측면 링 지점으로 접근하고,
-    /// 전환 거리 안이면(근거리 모드) 배율 속도로 목표(또는 슬롯)로 돌입(rush)한다. Wait 는 근접형과 동일.
+    /// 측면 침투형: 멀리 있으면(원거리 모드) 배율 속도(FlankSpeedMultiplier)로 플레이어 카메라 시야 밖의 측면 링 지점으로 접근하고,
+    /// 전환 거리 안이면(근거리 모드) 기본 이동 속도로 목표(또는 슬롯)로 돌입(rush)한다. Wait 는 근접형과 동일.
     /// 시야는 카메라 위치·정면·FOV 수평 반각으로만 판정하고 가림은 보지 않는다.
     /// </summary>
     public sealed class FlankPolicy : IMovementPolicy
@@ -28,6 +28,10 @@ namespace HybridShooter.Monster.Movement
         private FlankMode mode;              // 전환 거리 이하에서 Near, 전환 거리 + 폭 초과에서 Far
         private bool hasFlankDestination;    // false = 다음 원거리 판단에서 목적지를 새로 고른다
         private float flankAngleDeg;         // 도, 목표 중심 측면 링 위 목적지의 방위각. 지점은 매 판단 현재 목표 위치로 다시 계산
+        private bool isApproachingOutOfView; // 마지막 판단이 시야 밖 목적지로 접근하는 의도였는가
+
+        // 마지막 판단이 시야 밖 목적지로 접근하는 의도였는가. MonsterController 가 원거리 이동 클립 배율을 고를 때 읽는다
+        public bool IsApproachingOutOfView => isApproachingOutOfView;
 
         /// <summary>개체별 난수를 준비한다. MovementPolicyFactory 가 개체마다 하나씩 만든다</summary>
         /// <param name="seed">난수 시드 (개체 InstanceID)</param>
@@ -38,13 +42,14 @@ namespace HybridShooter.Monster.Movement
 
         /// <summary>
         /// 목표 무효 → 정지. 슬롯 대기 → 제자리 대기. Wait 지시 → 근접형과 같은 대기/선회.
-        /// 그 외 → 거리 모드를 갱신하고, 원거리면 시야 밖 목적지로 접근, 근거리면 배율 속도로 돌입
+        /// 그 외 → 거리 모드를 갱신하고, 원거리면 배율 속도로 시야 밖 목적지로 접근, 근거리면 기본 속도로 돌입
         /// </summary>
         /// <param name="ctx">자기·목표 위치, 카메라 시야, 군중 지시, 유형별 수치를 담은 판단 입력</param>
         /// <returns>이번 판단의 이동 의도</returns>
         public MoveIntent Evaluate(in MovementContext ctx)
         {
             var dir = ctx.Directive;
+            isApproachingOutOfView = false; // ApproachOutOfView 가 시야 밖 목적지 의도를 낼 때만 true
 
             if (ctx.TargetValid == false)
             {
@@ -90,7 +95,7 @@ namespace HybridShooter.Monster.Movement
         /// </summary>
         /// <param name="ctx">판단 입력. 목표 위치, 카메라 시야, 유형별 수치를 쓴다</param>
         /// <param name="distanceToTarget">목표까지 수평 거리 (m). 고를 목적지가 없어 돌입할 때 넘긴다</param>
-        /// <returns>시야 밖 목적지로 향하는 Approach 의도. 고를 목적지가 없으면 RushToTarget 의 의도</returns>
+        /// <returns>시야 밖 목적지로 배율 속도(MoveSpeed × FlankSpeedMultiplier)로 향하는 Approach 의도. 고를 목적지가 없으면 RushToTarget 의 의도</returns>
         private MoveIntent ApproachOutOfView(in MovementContext ctx, float distanceToTarget)
         {
             Vector3 flankDestination = WaitOrbit.PointOnRing(ctx.TargetPosition, flankAngleDeg, ctx.Tuning.FlankRadius);
@@ -104,7 +109,9 @@ namespace HybridShooter.Monster.Movement
             if (hasFlankDestination == false)
                 return RushToTarget(in ctx, distanceToTarget);
 
-            return new MoveIntent(MovementState.Approach, flankDestination, ctx.Tuning.MoveSpeed, 0.5f);
+            isApproachingOutOfView = true;
+            float approachSpeed = ctx.Tuning.MoveSpeed * ctx.Tuning.FlankSpeedMultiplier;
+            return new MoveIntent(MovementState.Approach, flankDestination, approachSpeed, 0.5f);
         }
 
         /// <summary>
@@ -153,7 +160,7 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 돌입: 배율 속도로 슬롯(또는 목표)으로 이동하는 의도를 만든다.
+        /// 돌입: 기본 이동 속도로 슬롯(또는 목표)으로 이동하는 의도를 만든다.
         /// Evaluate 가 근거리 모드일 때, ApproachOutOfView 가 시야 밖 목적지를 못 찾았을 때 호출한다.
         /// 저장한 시야 밖 목적지는 지워서 다시 원거리가 되면 새로 고르게 한다.
         /// </summary>
@@ -181,7 +188,7 @@ namespace HybridShooter.Monster.Movement
             bool arrived = dir.HasSlotPosition
                 ? WaitOrbit.HorizontalDistance(ctx.SelfPosition, dest) <= dir.SlotArrivalDistance : distanceToTarget <= t.AttackRange;
             return new MoveIntent(arrived ? MovementState.Engaged : MovementState.Approach,
-                                  dest, t.MoveSpeed * t.FlankSpeedMultiplier, stop);
+                                  dest, t.MoveSpeed, stop);
         }
 
         /// <summary>저장한 시야 밖 목적지를 지운다. 목표 상실·Wait 지시·돌입 때 호출해 다음 원거리 판단에서 새로 고르게 한다</summary>
