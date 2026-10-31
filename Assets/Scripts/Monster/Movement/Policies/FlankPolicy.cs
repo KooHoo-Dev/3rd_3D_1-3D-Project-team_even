@@ -163,6 +163,7 @@ namespace HybridShooter.Monster.Movement
         /// 돌입: 기본 이동 속도로 슬롯(또는 목표)으로 이동하는 의도를 만든다.
         /// Evaluate 가 근거리 모드일 때, ApproachOutOfView 가 시야 밖 목적지를 못 찾았을 때 호출한다.
         /// 저장한 시야 밖 목적지는 지워서 다시 원거리가 되면 새로 고르게 한다.
+        /// 슬롯이 없으면 정지 거리 0 으로 목표 자체를 향한다. 사거리 앞에서 미리 감속하지 않고 전속으로 다가가 Attack 진입 때 선다.
         /// </summary>
         /// <param name="ctx">판단 입력. 군중 지시와 유형별 수치를 쓴다</param>
         /// <param name="distanceToTarget">목표까지 수평 거리 (m). 슬롯이 없을 때 도착 판정에 쓴다</param>
@@ -183,7 +184,7 @@ namespace HybridShooter.Monster.Movement
             else
             {
                 dest = ctx.TargetPosition;
-                stop = t.AttackRange * 0.9f;
+                stop = 0f;
             }
             bool arrived = dir.HasSlotPosition
                 ? WaitOrbit.HorizontalDistance(ctx.SelfPosition, dest) <= dir.SlotArrivalDistance : distanceToTarget <= t.AttackRange;
