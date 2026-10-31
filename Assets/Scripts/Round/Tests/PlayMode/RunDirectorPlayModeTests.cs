@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using HybridShooter.Core.Battlefield;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
@@ -22,6 +23,7 @@ namespace HybridShooter.Round.Tests
     public sealed class RunDirectorPlayModeTests
     {
         private GameObject root;
+        private TerrainData terrainData;
         private Component director;
         private Component sequencer;
         private Component encounter;
@@ -98,6 +100,8 @@ namespace HybridShooter.Round.Tests
             bossPrefab.GetComponent<NavMeshAgent>().enabled = false;
             ((Behaviour)bossPrefab.GetComponent(RuntimeType("HybridShooter.Boss.BossMovement"))).enabled = false;
             SetField(encounter, "bossPrefab", boss);
+            bossPrefab.AddComponent<BoxCollider>();
+            SetField(encounter, "spawnPointFinder", CreateSpawnPointFinder());
 
             root.AddComponent(RuntimeType("HybridShooter.Reward.KillRewardCollector"));
             upgrades = root.AddComponent(RuntimeType("HybridShooter.Reward.UpgradeManager"));
@@ -119,6 +123,7 @@ namespace HybridShooter.Round.Tests
             EventBus<GameStateChangedEvent>.Unsubscribe(OnStateChanged);
             EventBus<StageClearedEvent>.Unsubscribe(OnStageCleared);
             if (root != null) UnityEngine.Object.Destroy(root);
+            if (terrainData != null) UnityEngine.Object.Destroy(terrainData);
             yield return null;
             SetData("rounds", previousRounds);
             SetData("waveStages", previousStages);
@@ -172,6 +177,30 @@ namespace HybridShooter.Round.Tests
             EventBus<CameraModeChangedEvent>.Publish(new CameraModeChangedEvent(CameraMode.ThirdPerson, true));
             yield return WaitForState(GameState.BossBattle);
             Assert.IsNotNull(GetField<Component>(encounter, "boss"));
+        }
+
+        [UnityTest]
+        public IEnumerator BossIntro_PlacesBossInsideMapFacingPlayer()
+        {
+            Call(director, "StartRun");
+            yield return WaitForState(GameState.BossBattle);
+
+            Transform bossTransform = GetField<Component>(encounter, "boss").transform;
+            Vector3 flatPosition = new Vector3(bossTransform.position.x, 0f, bossTransform.position.z);
+            Vector3 flatDirectionToPlayer = -flatPosition.normalized;
+            Assert.That(flatPosition.magnitude, Is.GreaterThan(0.1f), "생성 위치(원점) 그대로가 아니라 탐색기가 고른 위치");
+            Assert.That(flatPosition.magnitude, Is.LessThanOrEqualTo(20f), "맵 반지름 20 안");
+            Assert.That(Vector3.Dot(bossTransform.forward, flatDirectionToPlayer), Is.GreaterThan(0.99f), "플레이어를 바라봄");
+        }
+
+        [UnityTest]
+        public IEnumerator Prepare_WithoutSpawnPointFinder_ReturnsFalse()
+        {
+            SetField(encounter, "spawnPointFinder", null);
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("SpawnPointFinder"));
+
+            Assert.IsFalse((bool)Call(encounter, "Prepare"));
+            yield return null;
         }
 
         [UnityTest]
@@ -338,6 +367,22 @@ namespace HybridShooter.Round.Tests
         {
             public bool Holds;
             public bool HoldsStart => Holds;
+        }
+
+        // 평평한 64m 지형 위에 원점 중심 맵(반지름 20m)을 만드는 탐색기. 플레이어는 원점에 있다
+        private SpawnPointFinder CreateSpawnPointFinder()
+        {
+            terrainData = new TerrainData { heightmapResolution = 65 };
+            terrainData.size = new Vector3(64f, 20f, 64f);
+            GameObject terrainObject = Terrain.CreateTerrainGameObject(terrainData);
+            terrainObject.transform.SetParent(root.transform);
+            terrainObject.transform.position = new Vector3(-32f, 0f, -32f);
+
+            var finder = root.AddComponent<SpawnPointFinder>();
+            SetField(finder, "terrain", terrainObject.GetComponent<Terrain>());
+            SetField(finder, "mapCenter", root.transform);
+            SetField(finder, "mapRadius", 20f);
+            return finder;
         }
 
         private IEnumerator DefeatBoss()
