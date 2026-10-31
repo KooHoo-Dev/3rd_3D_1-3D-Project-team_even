@@ -23,5 +23,5 @@ MonoBehaviour:
   keepDistanceMin: 12
   keepDistanceMax: 18
   flankRadius: 20
-  flankSwitchDistance: 22
-  flankSwitchBand: 2
+  flankSwitchDistance: 23
+  flankSwitchBand: 3

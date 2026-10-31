@@ -1945,6 +1945,7 @@ MonoBehaviour:
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
+  destinationFollowRate: 5
 --- !u!114 &-5282420452375643821
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1982,6 +1983,7 @@ MonoBehaviour:
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
   hitTimeRatio: 0.5
+  hitRangeRatio: 2.2
   windupTurnSpeed: 360
 --- !u!114 &3673681119355232943
 MonoBehaviour:

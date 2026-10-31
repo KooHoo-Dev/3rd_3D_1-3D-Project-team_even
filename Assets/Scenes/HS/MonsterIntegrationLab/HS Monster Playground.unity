@@ -647,7 +647,7 @@ MonoBehaviour:
   isDebug: 1
   monsterPool: {fileID: 782320108}
   monsterIds: eb030000ec030000d2070000
-  spawnCount: 30
+  spawnCount: 2
   spawnRadius: 35
   spawnSampleDistance: 3
 --- !u!1 &790174624
