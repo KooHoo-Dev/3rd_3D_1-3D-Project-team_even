@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/GU/Test_MainMenu.unity
+    guid: 96ae35b8eb3704fafbe62dc624990cc7
+  - enabled: 1
     path: Assets/Scenes/TestScenes/Monster Player Integration.unity
     guid: cb25acd403109f14380dfc648ea7863c
   m_configObjects:
