@@ -4,6 +4,12 @@
     {
         public int BossId;
         
+        // 등장 공격
+        public int EntranceDamage;
+        public float EntranceRadius;
+        public float EntranceTelegraphTime;
+        public float EntranceRecoveryTime;
+        
         // 짓밟기
         public int StompDamage;
         public float StompTelegraphTime;

@@ -432,7 +432,7 @@ public class KillCounter : MonoBehaviour
 > **`RoundCleanupEvent` 는 모두가 꼭 처리해야 합니다.**
 > 받으면 내 몬스터·투사체·보급·코루틴/타이머를 전부 정리합니다.
 > - `FullReset == true` → 처음부터 다시 (플레이어 위치·체력, 강화, 재화까지 초기화)
-> - `FullReset == false` → 다음 라운드 (강화·재화·수류탄 수는 유지)
+> - `FullReset == false` → 다음 라운드 (강화·재화·수류탄 수는 유지. 총 탄약은 시작값으로, 보급 무기는 사라짐)
 
 #### 🧍 플레이어 (발행: 플레이어)
 

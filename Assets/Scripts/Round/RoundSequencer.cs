@@ -1,10 +1,15 @@
 using System;
+using System.Collections.Generic;
+using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
 using HybridShooter.Monster.Behaviour;
 using HybridShooter.Supply;
 using UnityEngine;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+using UnityEngine.InputSystem;
+#endif
 
 namespace HybridShooter.Round
 {
@@ -24,6 +29,7 @@ namespace HybridShooter.Round
         private float bossSpawnTime;
         private bool isRoundRunning;
         private bool cameraReady;
+        private bool bossStarted;
         private bool bossDefeated;
         private bool rewardFinished;
         private bool supplyStarted;
@@ -57,7 +63,13 @@ namespace HybridShooter.Round
             return bossEncounter.Prepare();
         }
 
-        public void StartRound(RoundDef def)
+        /// <summary>
+        /// 한 라운드를 군중전부터 시작한다. RunDirector 가 라운드마다 부른다.
+        /// 웨이브는 진행 라운드 번호를 웨이브 데이터의 라운드 번호로 돌려 쓴다 (GetWaveRoundNumber).
+        /// </summary>
+        /// <param name="def">보스·보급 시각을 정하는 라운드 데이터. null 이면 시작하지 않는다</param>
+        /// <param name="roundNumber">RunDirector 의 진행 라운드 번호 (1부터, 계속 늘어남)</param>
+        public void StartRound(RoundDef def, int roundNumber)
         {
             if (isRoundRunning || def == null) return;
 
@@ -67,6 +79,7 @@ namespace HybridShooter.Round
             elapsedSeconds = 0f;
             bossSpawnTime = def.RollBossSpawnTime(UnityEngine.Random.value);
             cameraReady = false;
+            bossStarted = false;
             bossDefeated = false;
             rewardFinished = false;
             supplyStarted = false;
@@ -74,14 +87,38 @@ namespace HybridShooter.Round
             ChangePhase(GameState.CrowdBattle);
             if (isRoundRunning == false) return;
 
-            monsterWaveDirector.StartRound(1);
+            int waveRoundNumber = GetWaveRoundNumber(roundNumber);
+            Debug.Log($"[RoundSequencer] 진행 {roundNumber}라운드 → 웨이브 라운드 {waveRoundNumber}", this);
+            monsterWaveDirector.StartRound(waveRoundNumber);
             UpdateSupplyStart();
+        }
+
+        /// <summary>
+        /// 진행 라운드 번호를 웨이브 라운드 번호로 바꾼다. WaveStageTable 에 있는 RoundNo 를 작은 순서로 돌려 쓴다 (모듈러 순환).
+        /// 예: 웨이브 라운드가 1~5 이면 진행 1~5 → 1~5, 6 → 1, 7 → 2.
+        /// </summary>
+        /// <param name="roundNumber">진행 라운드 번호 (1부터)</param>
+        /// <returns>MonsterWaveDirector.StartRound 에 넘길 RoundNo</returns>
+        /// <exception cref="DivideByZeroException">WaveStageTable 에 스테이지가 하나도 없을 때</exception>
+        private static int GetWaveRoundNumber(int roundNumber)
+        {
+            var waveRoundNumbers = new List<int>();
+            foreach (WaveStageDef stage in DataManager.WaveStages)
+            {
+                if (waveRoundNumbers.Contains(stage.RoundNo)) continue;
+                waveRoundNumbers.Add(stage.RoundNo);
+            }
+            waveRoundNumbers.Sort();
+
+            int cycleIndex = (roundNumber - 1) % waveRoundNumbers.Count;
+            return waveRoundNumbers[cycleIndex];
         }
 
         public void StopRound()
         {
             isRoundRunning = false;
             cameraReady = false;
+            bossStarted = false;
             bossDefeated = false;
             rewardFinished = false;
             if (monsterWaveDirector != null) monsterWaveDirector.StopRound();
@@ -93,6 +130,11 @@ namespace HybridShooter.Round
         {
             if (isRoundRunning == false) return;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            var keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.f12Key.wasPressedThisFrame && phase == GameState.CrowdBattle) BeginBossIntro();
+#endif
+
             switch (phase)
             {
                 case GameState.CrowdBattle:
@@ -102,8 +144,14 @@ namespace HybridShooter.Round
                     break;
                 case GameState.BossIntro:
                     if (cameraReady == false) return;
-                    ChangePhase(GameState.BossBattle);
-                    if (isRoundRunning) bossEncounter.Begin(roundDef.Boss);
+                    if (bossStarted == false)
+                    {
+                        bossStarted = true;
+                        bossEncounter.Begin(roundDef.Boss);
+                    }
+                    if (isRoundRunning == false) return;
+                    if (bossDefeated) ChangePhase(GameState.Reward);
+                    else if (bossEncounter.IsEntranceComplete) ChangePhase(GameState.BossBattle);
                     break;
                 case GameState.BossBattle:
                     if (bossDefeated) ChangePhase(GameState.Reward);
@@ -139,7 +187,7 @@ namespace HybridShooter.Round
 
         private void OnBossDefeated()
         {
-            if (isRoundRunning && phase == GameState.BossBattle) bossDefeated = true;
+            if (isRoundRunning && (phase == GameState.BossIntro || phase == GameState.BossBattle)) bossDefeated = true;
         }
 
         private void OnRewardSelectionFinished(RewardSelectionFinishedEvent e)

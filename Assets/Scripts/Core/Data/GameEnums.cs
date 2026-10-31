@@ -40,4 +40,7 @@ namespace HybridShooter.Core.Data
 
     /// <summary>믹서 그룹·볼륨 단위. Monster 는 보스 포효 때 따로 줄이기(덕킹) 위해 Sfx 에서 분리</summary>
     public enum SoundCategory { Bgm, Sfx, Monster, Ui }
+
+    /// <summary>무기 슬롯 분류. Sidearm = 1번 칸 고정 권총 · Loadout = 출발 전 2·3번 칸 선택 · Supply = 4번 보급 칸 전용(1회용)</summary>
+    public enum WeaponCategory { Sidearm, Loadout, Supply }
 }

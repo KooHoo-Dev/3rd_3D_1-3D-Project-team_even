@@ -22,6 +22,10 @@ namespace HybridShooter.Core.Services
             ServiceLocator.SetFallback<ISpawnZoneProvider>(new RingSpawnZoneProvider());
             ServiceLocator.SetFallback<ICurrencyWallet>(new CurrencyWallet());
             ServiceLocator.SetFallback<IUpgradeState>(new UpgradeLedger());
+
+            var weaponUnlocks = new WeaponUnlockLedger();
+            weaponUnlocks.BindEvents();
+            ServiceLocator.SetFallback<IWeaponUnlocks>(weaponUnlocks);
         }
     }
 
@@ -35,6 +39,7 @@ namespace HybridShooter.Core.Services
         public void StopLoop(SoundHandle handle) { }
         public void PlayBgm(string key) { }
         public void StopBgm() { }
+        public float MasterVolume { get => 1f; set { } }
         public float GetVolume(SoundCategory category) => 1f;
         public void SetVolume(SoundCategory category, float volume) { }
         public void Duck(SoundCategory category, float level, float holdTime) { }

@@ -8,11 +8,24 @@ namespace HybridShooter.Player
     public partial class PlayerController
     {
         private bool flowInputBlocked;
-        public bool IsGameplayInputBlocked => flowInputBlocked;
+        private bool menuInputBlocked;
+        /// <summary>게임 흐름(Ready·Reward·GameOver·Paused) 또는 메뉴(출발 전 무기 선택 등) 때문에 입력이 막힘</summary>
+        public bool IsGameplayInputBlocked => flowInputBlocked || menuInputBlocked;
+
+        /// <summary>
+        /// 메뉴 화면(출발 전 무기 선택 등)이 이동·사격·시선 입력을 막고 커서를 보인다.
+        /// 게임 흐름 차단(GameStateChangedEvent)과 별도 플래그라 서로 덮어쓰지 않는다
+        /// </summary>
+        public void SetMenuInputBlocked(bool blocked)
+        {
+            if (menuInputBlocked == blocked) return;
+            menuInputBlocked = blocked;
+            ApplyInputBlock();
+        }
 
         private void InputHandle()
         {
-            if (flowInputBlocked) return;
+            if (IsGameplayInputBlocked) return;
             // 마우스 → 시선 회전.
             UpdateLook();
             SyncRigRotationNow();
@@ -53,6 +66,14 @@ namespace HybridShooter.Player
 
             WeaponInputHandle();
             ItemInputHandle();
+            InteractInputHandle();
+        }
+
+        /// <summary>상호작용 입력 → PlayerInteractor (F). 대상 판정·상태 조건은 PlayerInteractor 가 한다</summary>
+        private void InteractInputHandle()
+        {
+            if (interactor == null || Cursor.lockState != CursorLockMode.Locked) return;
+            if (SimpleInput.GetKeyDown(keySettings.interactKey)) interactor.TryInteract();
         }
 
         /// <summary>소모품 입력 → PlayerItems. G 수류탄, V 회복 팩. 커서가 풀려 있으면 무시</summary>
@@ -89,7 +110,7 @@ namespace HybridShooter.Player
 
             for (int i = 0; i < keySettings.slotKeys.Length; i++)
                 if (SimpleInput.GetKeyDown(keySettings.slotKeys[i])) gunSlot.Select(i);
-            if (SimpleInput.GetKeyDown(keySettings.debugSwapPrimaryKey)) gunSlot.ReplacePrimaryWithNextReserve();
+            if (SimpleInput.GetKeyDown(keySettings.debugSwapPrimaryKey)) gunSlot.DebugCycleSupplyWeapon();
 
             float scroll = SimpleInput.GetMouseScrollDeltaRaw();
             if (scroll > 0f) gunSlot.SelectNext(-1);
@@ -128,6 +149,13 @@ namespace HybridShooter.Player
         private void SetFlowInputBlocked(bool blocked)
         {
             flowInputBlocked = blocked;
+            ApplyInputBlock();
+        }
+
+        /// <summary>막히면 이동·총 동작을 멈추고 커서를 푼다. 둘 다 풀려야 커서를 다시 잠근다</summary>
+        private void ApplyInputBlock()
+        {
+            bool blocked = IsGameplayInputBlocked;
             if (blocked)
             {
                 SetMoveInput(Vector3.zero, false);

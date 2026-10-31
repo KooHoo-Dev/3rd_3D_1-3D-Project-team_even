@@ -22,14 +22,16 @@ namespace HybridShooter.Monster.Movement
         [Tooltip("목적지가 NavMesh 밖이면 이 반경 안에서 가장 가까운 점으로 보정 (m)")]
         [SerializeField, Min(0f)] private float sampleRadius = 4f;
         [Header("회피 우선순위")]
-        [Tooltip("Engaged 상태 회피 우선순위 (낮을수록 우선)")]
-        [SerializeField, Range(0, 99)] private int engagedPriority = 30;
-        [SerializeField, Range(0, 99)] private int defaultPriority = 60; // Engaged 외 상태 기본 우선순위. 개체별 분산값(0~15)을 더한다
+        [Tooltip("슬롯 몬스터의 Engaged 상태 회피 우선순위 (낮을수록 우선). 30대는 돌진형(ChargeSettings) 고정값 전용이라 40부터 쓴다")]
+        [SerializeField, Range(0, 99)] private int engagedPriority = 40;
+        [SerializeField, Range(0, 99)] private int defaultPriority = 50; // Engaged 외 상태 기본 우선순위. 개체별 분산값(0~10)을 더해 50~60
 
         // ════════ 컴포넌트·재사용 객체 ════════
         private NavMeshAgent agent;
         private NavMeshPath path;         // CalculatePath 결과를 담는 재사용 버퍼 (매번 할당 방지)
-        private int priorityOffset;       // 개체별 회피 우선순위 분산값 (0~15)
+        private int priorityOffset;       // 개체별 회피 우선순위 분산값 (0~10)
+        private bool hasFixedPriority;    // 돌진형처럼 상태와 무관하게 우선순위를 고정했는가
+        private int fixedPriority;        // hasFixedPriority 일 때 쓰는 회피 우선순위
 
         // ════════ 재경로 추적 ════════
         private bool hasDestination;      // 현재 유효한 경로를 따라가는 중인가
@@ -139,7 +141,31 @@ namespace HybridShooter.Monster.Movement
             agent.updateRotation = false; // 이동 방향 자동 회전 끔. 시선은 MonsterMovement.ApplyLookRotation 이 담당
             path = new NavMeshPath();
             // 같은 우선순위의 정면 대치가 반복되지 않게 개체별 우선순위를 분산한다.
-            priorityOffset = GetInstanceID() & 15;
+            priorityOffset = Mathf.Abs(GetInstanceID() % 11);
+        }
+
+        /// <summary>
+        /// 상태와 무관하게 회피 우선순위를 고정한다. 돌진형처럼 슬롯 규칙(40~60)과 따로 관리하는 몬스터용.
+        /// MonsterController.AssembleStateMachine 이 ChargeSettings 가 있을 때 호출한다.
+        /// </summary>
+        /// <param name="priority">NavMeshAgent.avoidancePriority 값 (0~99, 낮을수록 우선)</param>
+        public void FixAvoidancePriority(int priority)
+        {
+            hasFixedPriority = true;
+            fixedPriority = priority;
+        }
+
+        /// <summary>
+        /// 이번 의도에 쓸 회피 우선순위를 정한다. Apply 가 호출한다.
+        /// 고정값이 있으면 그 값, 없으면 Engaged 는 engagedPriority, 그 외는 defaultPriority + 개체별 분산값.
+        /// </summary>
+        /// <param name="intent">이번 이동 의도. State 가 Engaged 인지 본다</param>
+        /// <returns>agent.avoidancePriority 에 넣을 값 (최대 99)</returns>
+        private int ResolveAvoidancePriority(in MoveIntent intent)
+        {
+            if (hasFixedPriority) return fixedPriority;
+            if (intent.State == MovementState.Engaged) return engagedPriority;
+            return Mathf.Min(99, defaultPriority + priorityOffset);
         }
 
         /// <summary>비활성화 시 경로 추적 상태 초기화</summary>
@@ -183,8 +209,7 @@ namespace HybridShooter.Monster.Movement
             agent.isStopped = false;
             agent.speed = intent.Speed;
             agent.stoppingDistance = intent.StopDistance;
-            agent.avoidancePriority = intent.State == MovementState.Engaged
-                ? engagedPriority : Mathf.Min(99, defaultPriority + priorityOffset);
+            agent.avoidancePriority = ResolveAvoidancePriority(intent);
             agent.autoBraking = intent.State != MovementState.Orbiting;
 
             // 3) 재경로 제한: 목적지가 거의 안 변했으면 유지, 직전 재경로가 너무 최근이면 보류

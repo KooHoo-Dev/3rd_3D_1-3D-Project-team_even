@@ -52,6 +52,9 @@
 | ReloadTime | float | 강화 전 재장전(초) |
 | Range / SpreadAngle | float | 사거리(m) / 퍼짐 반각(도) |
 | FireSfxKey, ReloadSfxKey, ReloadInsertSfxKey, ReloadEndSfxKey | string | 장전음: 시작 · 탄창·탄 넣기(기본 총 = 장전 55% 시점, 산탄총 = 한 발 시간마다 소리만) · 완료(취소 시 없음) |
+| Category | enum | `Sidearm`(1번 칸 고정 권총, 정확히 1행) / `Loadout`(출발 전 2·3번 칸 선택) / `Supply`(4번 보급 칸 전용, 1회용 — 보급 상자로 탄 충전 안 됨) |
+| IconKey | string | `Resources/UI/WeaponIcons/{IconKey}` 스프라이트. 비우면 무기 슬롯 HUD 가 이름 텍스트로 대체 |
+| UnlockOrder | int | 해금 순서. `0` = 처음부터 해금(권총·돌격소총) · `1~` = 스테이지(보스) 클리어마다 작은 수부터 하나씩 영구 해금 (PlayerPrefs `Unlock.Weapons`). Supply 는 `0` |
 
 ## GrenadeTable — BL-005
 | 컬럼 | 타입 | 설명 |
@@ -79,7 +82,7 @@
 | GradeId | int | MonsterGradeTable |
 | Role | enum | `Melee` / `Air` / `Rusher` / `Infiltrator` / `ZonePressure` / `Boss` / `SelfDestruct` (Boss 는 Grade Boss 와 함께). SelfDestruct는 접근 후 예고·폭발하고 보상 없이 사망하며, 먼저 처치하면 정상 보상을 지급한다. 공격 Range는 접근 거리, Radius는 자기 중심 폭발 반경 |
 | MaxHp | int | |
-| MoveSpeed / RunSpeed | float | 이동 / 질주 (m/s), RunSpeed >= MoveSpeed |
+| MoveSpeed | float | 이동 속도 (m/s) |
 | DetectRange | float | 탐지 거리(m), -1 = 전장 전체 |
 | BodyScale / Height | float | 프리팹 스케일 / 신장(m) |
 | FlyHeight | float | 비행 고도(m). Air 역할만 0 초과 (`IsFlying` = Role Air) |
