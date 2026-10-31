@@ -128,9 +128,17 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
-      propertyPath: 'attacks.Array.data[1]'
+      propertyPath: attacks.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+      propertyPath: 'attacks.Array.data[0]'
       value: 
       objectReference: {fileID: 1194398169}
+    - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+      propertyPath: 'attacks.Array.data[1]'
+      value: 
+      objectReference: {fileID: 1194398171}
     - target: {fileID: 1601464397953940699, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: playerSource
       value: 
@@ -438,7 +446,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -30.015984
+      value: -16.03978
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.y
@@ -446,7 +454,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 182.47725
+      value: 130.31725
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalRotation.w
@@ -625,6 +633,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e4b5d9c5c2a42ed8ca18ad43469c215, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.MagmaBarrageAttack
+--- !u!114 &1194398171 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7764257687145243604, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+  m_PrefabInstance: {fileID: 67786932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1194398158}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d35876806dd64aa2a5ae2bc8ae16d1a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.SuctionAttack
 --- !u!1 &1333617409
 GameObject:
   m_ObjectHideFlags: 0
@@ -1145,8 +1164,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   maxPositionTries: 10
-  dropInterval: 25
-  maxActiveSupplies: 10
 --- !u!4 &2048632274
 Transform:
   m_ObjectHideFlags: 0

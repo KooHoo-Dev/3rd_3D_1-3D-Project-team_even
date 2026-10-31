@@ -32,14 +32,7 @@ namespace HybridShooter.Core.Data.Defs
         // public float BarrageCooldown { get; }
         public float BarrageSpreadRadius { get; }
         public float BarrageFlightTime { get; }
-
-        // 안테나 전격
-        public int ElectricDamage { get; }
-        public float ElectricRange { get; }
-        public float ElectricWidth { get; }
-        public float ElectricChargeTime { get; }
-        public float ElectricRecoveryTime { get; }
-        // public float ElectricCooldown { get; }
+        public int BarrageVolleyCount { get; }
 
         // 본체 HP에 따른 안테나 개방 기준
         public float FourOpenHpRatio { get; }
@@ -79,13 +72,7 @@ namespace HybridShooter.Core.Data.Defs
             // BarrageCooldown = dto.BarrageCooldown;
             BarrageSpreadRadius = dto.BarrageSpreadRadius;
             BarrageFlightTime = dto.BarrageFlightTime;
-
-            ElectricDamage = dto.ElectricDamage;
-            ElectricRange = dto.ElectricRange;
-            ElectricWidth = dto.ElectricWidth;
-            ElectricChargeTime = dto.ElectricChargeTime;
-            ElectricRecoveryTime = dto.ElectricRecoveryTime;
-            // ElectricCooldown = dto.ElectricCooldown;
+            BarrageVolleyCount = dto.BarrageVolleyCount;
 
             FourOpenHpRatio = dto.FourOpenHpRatio;
             SixOpenHpRatio = dto.SixOpenHpRatio;
@@ -124,14 +111,7 @@ namespace HybridShooter.Core.Data.Defs
             // report.Check(BarrageCooldown >= 0f, Table, "Barrage", "Cooldown은 0 이상이어야 합니다.");
             report.Check(BarrageSpreadRadius > 0f, Table, "Barrage", "BarrageSpreadRadius는 0보다 커야 합니다.");
             report.Check(BarrageFlightTime > 0f, Table, "Barrage", "BarrageFlightTime은 0보다 커야 합니다.");
-            // 안테나 전격 검증
-            report.Check(ElectricDamage >= 0, Table, "Electric", "Damage는 0 이상이어야 합니다.");
-            report.Check(ElectricRange > 0f, Table, "Electric", "Range는 0보다 커야 합니다.");
-            report.Check(ElectricWidth > 0f, Table, "Electric", "Width는 0보다 커야 합니다.");
-            report.Check(ElectricChargeTime >= 0f, Table, "Electric", "ChargeTime은 0 이상이어야 합니다.");
-            report.Check(ElectricRecoveryTime >= 0f, Table, "Electric", "RecoveryTime은 0 이상이어야 합니다.");
-            // report.Check(ElectricCooldown >= 0f, Table, "Electric", "Cooldown은 0 이상이어야 합니다.");
-
+            report.Check(BarrageVolleyCount > 0, Table, "Barrage", "VolleyCount는 1 이상이어야 합니다.");
             // 안테나 개방 기준 검증
             report.Check(SixOpenHpRatio > 0f && SixOpenHpRatio < FourOpenHpRatio && FourOpenHpRatio < 1f, Table, "Antenna", "체력 기준은 0 < SixOpenHpRatio < FourOpenHpRatio < 1이어야 합니다.");
             
