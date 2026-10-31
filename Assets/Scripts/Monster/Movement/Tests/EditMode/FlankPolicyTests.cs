@@ -39,7 +39,8 @@ namespace HybridShooter.Monster.Movement.Tests
             Assert.AreEqual(MovementState.Approach, intent.State);
             Assert.AreEqual(FlankRadius, intent.Destination.magnitude, Tolerance);
             Assert.That(ViewAngle(Vector3.forward, intent.Destination), Is.GreaterThanOrEqualTo(HalfAngle + 30f - Tolerance));
-            Assert.AreEqual(MoveSpeed, intent.Speed, Tolerance);
+            Assert.AreEqual(MoveSpeed * SpeedMultiplier, intent.Speed, Tolerance);
+            Assert.IsTrue(policy.IsApproachingOutOfView);
         }
 
         [Test]
@@ -92,13 +93,14 @@ namespace HybridShooter.Monster.Movement.Tests
         }
 
         [Test]
-        public void WithinSwitchDistanceRushesToTargetWithMultiplier()
+        public void WithinSwitchDistanceRushesToTargetAtBaseSpeed()
         {
             var policy = new FlankPolicy(1);
             MoveIntent intent = policy.Evaluate(Context(new Vector3(0f, 0f, SwitchDistance - 1f), Vector3.forward));
 
             Assert.That(intent.Destination.magnitude, Is.LessThan(Tolerance));
-            Assert.AreEqual(MoveSpeed * SpeedMultiplier, intent.Speed, Tolerance);
+            Assert.AreEqual(MoveSpeed, intent.Speed, Tolerance);
+            Assert.IsFalse(policy.IsApproachingOutOfView);
         }
 
         [Test]
@@ -121,7 +123,8 @@ namespace HybridShooter.Monster.Movement.Tests
             MoveIntent intent = policy.Evaluate(Context(new Vector3(0f, 0f, 30f), Vector3.forward, 179f));
 
             Assert.That(intent.Destination.magnitude, Is.LessThan(Tolerance));
-            Assert.AreEqual(MoveSpeed * SpeedMultiplier, intent.Speed, Tolerance);
+            Assert.AreEqual(MoveSpeed, intent.Speed, Tolerance);
+            Assert.IsFalse(policy.IsApproachingOutOfView);
         }
 
         [Test]

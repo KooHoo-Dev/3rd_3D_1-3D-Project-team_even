@@ -69,6 +69,7 @@ namespace HybridShooter.Monster.Movement
         private bool hasCombatTuning;         // SetCombatTuning 으로 개체별 속도·사거리를 받았는가
         private float combatSpeed;            // 개체별 이동 속도 (m/s)
         private float combatRange;            // 개체별 공격 사거리 (m)
+        private float flankApproachSpeedMultiplier = 1f; // 원거리 시야 밖 접근 속도 배율 (SetFlankApproachSpeedMultiplier, 기본 1)
 
         // ════════ 판단 주기 ════════
         private bool hasThought;              // 한 번이라도 Think 했는가 (첫 dt 를 0 으로 만들기 위함)
@@ -123,6 +124,10 @@ namespace HybridShooter.Monster.Movement
         // 마지막으로 받은 군중 지시 (디버그용)
         public CrowdDirective Directive => directive;
         public MoveIntent LastIntent => lastIntent;
+        // 정책에 넘기는 수치 (profile + 개체별 속도·사거리·원거리 배율). 디버그 시각화용
+        public MovementTuning Tuning => tuning;
+        // 마지막 판단이 원거리 시야 밖 접근이었는가 (측면 침투형만 true 가능). MonsterController 가 이동 클립 배율을 고를 때 읽는다
+        public bool IsApproachingOutOfView => policy is FlankPolicy flank && flank.IsApproachingOutOfView;
         public MoveExecutionState ExecutionState => executor != null ? executor.ExecutionState : MoveExecutionState.Idle;
         public float Radius => executor.Radius;
 
@@ -193,8 +198,7 @@ namespace HybridShooter.Monster.Movement
             }
 
             // 2) 정책·수치 준비 (정책은 개체 하나당 인스턴스 하나, 재활성화 시 재사용)
-            tuning = profile.ToTuning();
-            if (hasCombatTuning) ApplyCombatTuning();
+            ApplyCombatTuning();
             if (policy == null) policy = MovementPolicyFactory.Create(profile.PolicyKind, GetInstanceID());
 
             // 3) 이전 활성화 때 남은 상태 초기화
@@ -397,13 +401,25 @@ namespace HybridShooter.Monster.Movement
             ValidateCombatSlots();
         }
 
-        /// <summary>profile 수치 복사본에서 이동 속도·공격 사거리만 개체별 수치로 바꿔 tuning 에 넣는다. Activate 와 SetCombatTuning 이 호출한다</summary>
+        /// <summary>
+        /// 원거리 시야 밖 접근 속도 배율을 개체별로 정한다. MonsterController 가 SetCombatTuning 직후 PounceSettings 값으로 호출한다.
+        /// 부르지 않으면 1 (기본 속도).
+        /// </summary>
+        /// <param name="multiplier">테이블 이동 속도에 곱할 배율</param>
+        public void SetFlankApproachSpeedMultiplier(float multiplier)
+        {
+            flankApproachSpeedMultiplier = multiplier;
+            if (profile != null) ApplyCombatTuning();
+        }
+
+        /// <summary>
+        /// profile 수치에 개체별 이동 속도·공격 사거리·원거리 접근 배율을 합쳐 tuning 에 넣는다.
+        /// Activate, SetCombatTuning, SetFlankApproachSpeedMultiplier 가 호출한다.
+        /// </summary>
+        /// <remarks>SetCombatTuning 전에 Activate 되면 속도·사거리가 0 인 채로 들어간다. Think 가 SetCombatTuning 누락을 예외로 드러낸다.</remarks>
         private void ApplyCombatTuning()
         {
-            var source = profile.ToTuning();
-            tuning = new MovementTuning(combatSpeed, combatRange, source.OrbitChance, source.OrbitAngularSpeedDeg,
-                source.KeepDistanceMin, source.KeepDistanceMax,
-                source.FlankRadius, source.FlankSpeedMultiplier, source.FlankSwitchDistance, source.FlankSwitchBand);
+            tuning = profile.ToTuning(combatSpeed, combatRange, flankApproachSpeedMultiplier);
         }
 
         /// <summary>
@@ -558,9 +574,12 @@ namespace HybridShooter.Monster.Movement
         /// </summary>
         /// <param name="target">추적 목표. null = 목표 무효 (정책이 Idle 정지를 낸다)</param>
         /// <param name="now">현재 시각 (s, Time.time 기준)</param>
+        /// <exception cref="InvalidOperationException">SetCombatTuning 으로 이동 속도·사거리를 받기 전에 판단할 때</exception>
         internal void Think(IPlayerTarget target, float now)
         {
             if (suspended) return;
+            if (hasCombatTuning == false)
+                throw new InvalidOperationException("SetCombatTuning 으로 이동 속도·사거리를 먼저 넣어야 한다");
 
             // 1) 슬롯 모드: 도달 불가였던 슬롯은 거절하고, 군중 관리자에게 최신 지시(슬롯)를 받는다
             if (IsSlotMode())
