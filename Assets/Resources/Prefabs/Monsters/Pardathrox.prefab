@@ -422,6 +422,7 @@ MonoBehaviour:
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
+  destinationFollowRate: 5
 --- !u!114 &7657703144553812332
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -453,7 +454,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterController
   monsterId: 2002
   despawnDelay: 2
-  moveClipSpeed: 3
+  moveClipSpeed: 1
   idleSpeedThreshold: 0.1
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1

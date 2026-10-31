@@ -259,6 +259,7 @@ MonoBehaviour:
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
+  destinationFollowRate: 5
 --- !u!114 &6933845040553831818
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -311,7 +312,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.ChargeSettings
   chargeSpeed: 16
-  chargeTurnSpeed: 12
+  chargeTurnSpeed: 25
   brakeDeceleration: 15
   maxChargeDistance: 60
   chargeClipSpeed: 18
