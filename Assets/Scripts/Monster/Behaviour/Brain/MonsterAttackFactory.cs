@@ -31,7 +31,7 @@ namespace HybridShooter.Monster.Behaviour
             switch (role)
             {
                 case MonsterRole.Melee: return new StrikeAttack(spec, body, findDamageable);
-                case MonsterRole.SelfDestruct: return new SelfDestructAttack(spec, body, findDamageable);
+                case MonsterRole.SelfDestruct: return new SelfDestructAttack(spec, body, findDamageable, settings.SelfDestruct);
                 case MonsterRole.Infiltrator: return new PounceAttack(spec, body, findDamageable, settings.Pounce);
                 case MonsterRole.ZonePressure: return new PoisonAreaAttack(spec, body, findDamageable, settings.PoisonArea);
                 case MonsterRole.Rusher: return new ChargeAttack(spec, body, findDamageable, movement, settings.Charge);

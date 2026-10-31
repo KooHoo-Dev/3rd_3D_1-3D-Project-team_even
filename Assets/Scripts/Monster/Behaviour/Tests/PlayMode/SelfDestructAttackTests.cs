@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Reflection;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.GameFlow;
@@ -14,6 +15,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
     public sealed class SelfDestructAttackTests
     {
         private GameObject monster;
+        private GameObject effectPrefab;
         private MovementProfile profile;
         private FakeTarget target;
         private SelfDestructAttack attack;
@@ -40,13 +42,17 @@ namespace HybridShooter.Monster.Behaviour.Tests
             yield return null;
 
             var body = new MonsterBody(monster.transform);
+            effectPrefab = new GameObject("TestExplosionEffect");
+            var settings = monster.AddComponent<SelfDestructSettings>();
+            typeof(SelfDestructSettings).GetField("explosionEffectPrefab", BindingFlags.NonPublic | BindingFlags.Instance)
+                                        .SetValue(settings, effectPrefab);
             var spec = new AttackSpec(AttackShape.Circle, 25, 1, 2f, 1.2f, 0f, 2.2f,
                                       radius: 3.5f, sourceDefId: 100501);
             attack = new SelfDestructAttack(spec, body, t =>
             {
                 onFindDamageable?.Invoke();
                 return (IDamageable)t;
-            }) { ActiveSeconds = 0.5f, HitTimeRatio = 0f };
+            }, settings) { ActiveSeconds = 0.5f, HitTimeRatio = 0f };
             brain = new MonsterStateMachine(movement, body, attack);
             brain.Died += reward => { deathCount++; grantReward = reward; };
             brain.SetTarget(target);
@@ -59,6 +65,9 @@ namespace HybridShooter.Monster.Behaviour.Tests
         {
             UnityEngine.Object.DestroyImmediate(monster);
             UnityEngine.Object.DestroyImmediate(profile);
+            UnityEngine.Object.DestroyImmediate(effectPrefab);
+            GameObject spawnedEffect = GameObject.Find("TestExplosionEffect(Clone)");
+            if (spawnedEffect != null) UnityEngine.Object.DestroyImmediate(spawnedEffect);
         }
 
         private void Detonate()
@@ -83,6 +92,25 @@ namespace HybridShooter.Monster.Behaviour.Tests
             brain.Update(3f, 1.6f);
             Assert.AreEqual(1, target.Received.Count);
             Assert.AreEqual(1, deathCount);
+        }
+
+        [Test]
+        public void ExplosionSpawnsEffectAtBodyPosition()
+        {
+            monster.transform.position = new Vector3(2f, 0f, 5f);
+            target.Position = monster.transform.position + Vector3.forward;
+            Detonate();
+            GameObject spawnedEffect = GameObject.Find("TestExplosionEffect(Clone)");
+            Assert.IsNotNull(spawnedEffect);
+            Assert.AreEqual(monster.transform.position, spawnedEffect.transform.position);
+        }
+
+        [Test]
+        public void TelegraphCancelSpawnsNoEffect()
+        {
+            brain.Die(true);
+            Detonate();
+            Assert.IsNull(GameObject.Find("TestExplosionEffect(Clone)"));
         }
 
         [Test]

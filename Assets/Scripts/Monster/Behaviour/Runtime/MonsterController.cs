@@ -129,7 +129,8 @@ namespace HybridShooter.Monster.Behaviour
             var attackSettings = new MonsterAttackSettings(GetComponent<PoisonAreaSettings>(),
                                                           GetComponent<PounceSettings>(),
                                                           GetComponent<ChargeSettings>(),
-                                                          GetComponent<DiveSettings>());
+                                                          GetComponent<DiveSettings>(),
+                                                          GetComponent<SelfDestructSettings>());
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
             var attacks = new List<MonsterAttack>();
             foreach (MonsterAttackDef attackDef in BasicAttackDefs(Def))
