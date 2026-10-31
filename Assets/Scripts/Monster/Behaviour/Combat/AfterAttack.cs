@@ -9,5 +9,6 @@ namespace HybridShooter.Monster.Behaviour
         RestInIdle,         // Idle 에서 준비 동작 후 다시 공격 (돌진)
         RepositionInChase,  // Chase 에서 재정비가 끝날 때까지 공격하지 않음 (공중)
         ChaseUntilReady,    // 쿨다운 동안 Chase 로 슬롯 예약을 지킨 채 이동하고, 쿨다운이 끝나면 다시 공격 (기본)
+        Die,                // 자폭 판정 직후 보상 없이 사망
     }
 }

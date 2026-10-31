@@ -3,7 +3,7 @@ using UnityEngine;
 namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>추격형 도약의 높이·지면·장애물 조건. 비행 시간은 테이블에서 계산한 Active 전체 길이를 쓴다.</summary>
-    public sealed class PounceSettings : MonoBehaviour
+    public sealed class PounceSettings : MonsterAttackSettingsComponent
     {
         [SerializeField, Min(0f)] private float arcHeight = 1.5f;
         [SerializeField, Min(0f)] private float hitHeightTolerance = 0.75f;

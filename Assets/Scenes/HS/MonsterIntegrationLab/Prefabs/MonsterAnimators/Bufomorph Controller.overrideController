@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Bufomorph Controller
+  m_Controller: {fileID: 9100000, guid: c2b0f71f214c1cb468afb27679698451, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: 7400000, guid: 55440a8f12d832444ae5c07cba8fba74, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: bcee58500ce52de4ea8b18776aa6ef29, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: d62d5ee68de81f842a58145b00413744, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 0126b36460f91344c8167b56f8e48d74, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: d2734a7e90b3cef4a8fd8dc2265304f6, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 9c920edd7f838fd429259f9b8c35a5ee, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: 456dcfcfbc771c24da4c0807b1e7c878, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 1fd1a970ac46ddf4689f5bf3bb11c39e, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: 45bfc908198d89d4aa22ca23d3927fed, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 9c920edd7f838fd429259f9b8c35a5ee, type: 3}
