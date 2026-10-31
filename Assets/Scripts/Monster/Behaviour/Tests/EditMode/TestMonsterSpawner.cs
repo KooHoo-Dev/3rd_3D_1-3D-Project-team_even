@@ -1,8 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
+using HybridShooter.Core.Data.Dtos;
+using HybridShooter.Core.Data.Loading;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -11,13 +15,13 @@ namespace HybridShooter.Monster.Behaviour.Tests
 {
     /// <summary>
     /// MonsterSpawner 의 소환 시각·횟수·위치 재시도·중단·Finished 발행을 확인한다 (B3 완료 기준 1~6, B5 보정 1·3).
-    /// 스포너 행은 실제 WaveSpawnerTable(DataManager)에서 읽고, 팩토리·위치 구현은 이 클래스가 대신한다 (소환 기록만, 몬스터는 안 만든다).
+    /// 스포너 행은 이 클래스가 직접 만든다 (실제 WaveSpawnerTable 수치 조정과 무관). 팩토리·위치 구현도 대신한다 (소환 기록만, 몬스터는 안 만든다).
     /// </summary>
     public sealed class TestMonsterSpawner : IMonsterFactory, ISpawnZoneProvider
     {
-        private const int SurroundDelay0Interval1 = 201;  // Count 6, StartDelay 0, SpawnInterval 1
-        private const int SurroundDelay2Interval1 = 204;  // Count 8, StartDelay 2, SpawnInterval 1
-        private const int HerdAllAtOnce = 212;            // Count 12, StartDelay 0, SpawnInterval 0, Herd
+        private static readonly WaveSpawnerDef SurroundDelay0Interval1 = CreateSpawnerDef(201, 6, 0f, 1f, "Surround");
+        private static readonly WaveSpawnerDef SurroundDelay2Interval1 = CreateSpawnerDef(204, 8, 2f, 1f, "Surround");
+        private static readonly WaveSpawnerDef HerdAllAtOnce = CreateSpawnerDef(212, 12, 0f, 0f, "Herd");
 
         private int spawnCount;
         private int poseFailuresLeft;
@@ -31,12 +35,17 @@ namespace HybridShooter.Monster.Behaviour.Tests
             requestedSeeds.Clear();
         }
 
-        private MonsterSpawner CreateSpawner(int spawnerId)
+        private MonsterSpawner CreateSpawner(WaveSpawnerDef spawnerDef)
         {
-            // DataManager 첫 로드 때 프리팹 없음(Weapon·Monster 1001·1004) 오류 로그가 난다. 이 테스트와 무관.
-            // SetUp 에서 켜면 테스트 본문에서 다시 꺼지므로 로드하는 이 자리에서 켠다
-            LogAssert.ignoreFailingMessages = true;
-            return new MonsterSpawner(DataManager.WaveSpawners.Get(spawnerId), this, this);
+            return new MonsterSpawner(spawnerDef, this, this);
+        }
+
+        // Def 생성자가 internal 이라 리플렉션으로 DataManager Build 단계와 같은 생성자를 부른다. Monster 는 Link 하지 않는다 (대역 팩토리는 안 씀)
+        private static WaveSpawnerDef CreateSpawnerDef(int id, int count, float startDelay, float spawnInterval, string spawnPattern)
+        {
+            var dto = new WaveSpawnerDto { Id = id, MonsterId = 1002, Count = count, StartDelay = startDelay, SpawnInterval = spawnInterval, SpawnPattern = spawnPattern };
+            return (WaveSpawnerDef)Activator.CreateInstance(typeof(WaveSpawnerDef), BindingFlags.NonPublic | BindingFlags.Instance,
+                null, new object[] { dto, new DataLoadReport() }, null);
         }
 
         [Test]

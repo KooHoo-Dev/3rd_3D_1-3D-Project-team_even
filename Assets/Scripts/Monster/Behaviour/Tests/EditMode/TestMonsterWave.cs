@@ -1,19 +1,26 @@
+using System;
+using System.Linq;
+using System.Reflection;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
+using HybridShooter.Core.Data.Dtos;
+using HybridShooter.Core.Data.Loading;
 using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.TestTools;
 
 namespace HybridShooter.Monster.Behaviour.Tests
 {
     /// <summary>
     /// MonsterWave 의 스포너 동시 시작·StartDelay 시차·완료·중단·Finished 발행을 확인한다 (B4 완료 기준 2·5, B5 보정 2·3).
-    /// 웨이브 행은 실제 WaveTable(DataManager)에서 읽고, 팩토리·위치 구현은 이 클래스가 대신한다 (소환 수만 센다).
+    /// 웨이브·스포너 행은 이 클래스가 직접 만든다 (실제 WaveTable 수치 조정과 무관). 팩토리·위치 구현도 대신한다 (소환 수만 센다).
     /// </summary>
     public sealed class TestMonsterWave : IMonsterFactory, ISpawnZoneProvider
     {
-        private const int Wave103 = 103;  // 203 (1마리, StartDelay 0) + 204 (8마리, StartDelay 2, 1초 간격)
+        // 203 (1마리, StartDelay 0) + 204 (8마리, StartDelay 2, 1초 간격)
+        private static readonly WaveDef Wave103 = CreateWaveDef(103, 0f,
+            CreateSpawnerDef(203, 1, 0f, 0f),
+            CreateSpawnerDef(204, 8, 2f, 1f));
 
         private int spawnCount;
 
@@ -23,12 +30,27 @@ namespace HybridShooter.Monster.Behaviour.Tests
             spawnCount = 0;
         }
 
-        private MonsterWave CreateWave(int waveId)
+        private MonsterWave CreateWave(WaveDef waveDef)
         {
-            // DataManager 첫 로드 때 프리팹 없음(Weapon·Monster 1001·1004) 오류 로그가 난다. 이 테스트와 무관.
-            // SetUp 에서 켜면 테스트 본문에서 다시 꺼지므로 로드하는 이 자리에서 켠다
-            LogAssert.ignoreFailingMessages = true;
-            return new MonsterWave(DataManager.Waves.Get(waveId), this, this);
+            return new MonsterWave(waveDef, this, this);
+        }
+
+        // Def 생성자가 internal 이라 리플렉션으로 DataManager Build 단계와 같은 생성자를 부른다. Monster 는 Link 하지 않는다 (대역 팩토리는 안 씀)
+        private static WaveSpawnerDef CreateSpawnerDef(int id, int count, float startDelay, float spawnInterval)
+        {
+            var dto = new WaveSpawnerDto { Id = id, MonsterId = 1002, Count = count, StartDelay = startDelay, SpawnInterval = spawnInterval, SpawnPattern = "Surround" };
+            return (WaveSpawnerDef)Activator.CreateInstance(typeof(WaveSpawnerDef), BindingFlags.NonPublic | BindingFlags.Instance,
+                null, new object[] { dto, new DataLoadReport() }, null);
+        }
+
+        // LinkWaves 대신 Spawners 를 직접 채운다 (internal set)
+        private static WaveDef CreateWaveDef(int id, float startTime, params WaveSpawnerDef[] spawners)
+        {
+            var dto = new WaveDto { Id = id, StartTime = startTime, SpawnList = string.Join(";", spawners.Select(spawner => spawner.Id)) };
+            var wave = (WaveDef)Activator.CreateInstance(typeof(WaveDef), BindingFlags.NonPublic | BindingFlags.Instance,
+                null, new object[] { dto, new DataLoadReport() }, null);
+            typeof(WaveDef).GetProperty(nameof(WaveDef.Spawners)).SetValue(wave, spawners);
+            return wave;
         }
 
         [Test]

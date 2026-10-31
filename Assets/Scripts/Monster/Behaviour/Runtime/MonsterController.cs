@@ -61,6 +61,7 @@ namespace HybridShooter.Monster.Behaviour
         private const string BaseAttackClipName = "Placeholder_Attack";
 
         private MonsterMovement movement;
+        private PounceSettings pounceSettings; // 측면 침투형(도약)만 있음. null = 원거리 접근 배율 없음
         private bool playerDead;
         private float despawnTime = -1f;   // 회수 예정 시각 (s, Time.time 기준). -1 = 아직 처치 안 됨
         private bool despawned;
@@ -135,14 +136,14 @@ namespace HybridShooter.Monster.Behaviour
         private void AssembleStateMachine()
         {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
+            var body = new MonsterBody(transform, GetComponent<NavMeshMoveExecutor>());
+            var attackSettings = GetComponents<MonsterAttackSettingsComponent>(); // 붙은 공격 설정 전부. 공격마다 필요한 타입만 꺼내 쓴다
+            
+            // 돌진형 개체 navmeshagent 우선순위 조정
             var navMeshExecutor = GetComponent<NavMeshMoveExecutor>();
             var chargeSettings = GetComponent<ChargeSettings>();
-            var body = new MonsterBody(transform, navMeshExecutor);
-            var attackSettings = new MonsterAttackSettings(GetComponent<PoisonAreaSettings>(),
-                                                          GetComponent<PounceSettings>(),
-                                                          chargeSettings,
-                                                          GetComponent<DiveSettings>());
             if (chargeSettings != null) navMeshExecutor.FixAvoidancePriority(chargeSettings.AvoidancePriority); // 돌진형은 슬롯 규칙 대신 고정 우선순위
+            
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
             var attacks = new List<MonsterAttack>();
             foreach (MonsterAttackDef attackDef in BasicAttackDefs(Def))
@@ -152,6 +153,8 @@ namespace HybridShooter.Monster.Behaviour
                                                               attackSettings, movement, flyingExecutor));
             }
             movement.SetCombatTuning(Def.MoveSpeed, attacks[0].Range); // 이동의 전투 사거리는 첫 공격 기준
+            pounceSettings = GetComponent<PounceSettings>();
+            if (pounceSettings != null) movement.SetFlankApproachSpeedMultiplier(pounceSettings.FarApproachSpeedMultiplier);
             StateMachine = new MonsterStateMachine(movement, body, attacks);
 
             StateMachine.Died += OnStateMachineDied;
@@ -312,6 +315,7 @@ namespace HybridShooter.Monster.Behaviour
         /// 이동 자체가 공격인 몬스터(돌진)는 Attack 중과 Idle 준비 동작 중에도 공격이 알려준 몸 이동 속도로 같은 일을 한다.
         /// Move 면 재생 배율을 (속도 ÷ 클립 기준 속도) 로 맞춰 발 미끄러짐을 줄인다.
         /// 클립 기준 속도는 Chase 면 moveClipSpeed, 공격 이동 중이면 공격의 MoveClipSpeedFor (돌진 = ChargeSettings.ChargeClipSpeed).
+        /// 측면 침투형이 Chase 중 원거리 시야 밖 접근이면 재생 배율에 PounceSettings.FarApproachClipSpeedMultiplier 를 더 곱한다.
         /// </summary>
         private void UpdateMoveAnimation()
         {
@@ -330,9 +334,13 @@ namespace HybridShooter.Monster.Behaviour
                 clipSpeed = currentAttack.MoveClipSpeedFor(moveClipSpeed);
             }
             bool shouldMove = speed >= idleSpeedThreshold;
+            bool isApproachingOutOfView = isChasing && pounceSettings != null && movement.IsApproachingOutOfView;
             animator.SetBool("IsMoving", shouldMove);
 
-            if (shouldMove) animator.speed = speed / clipSpeed;
+            float playbackRate = speed / clipSpeed;
+            if (isApproachingOutOfView) playbackRate *= pounceSettings.FarApproachClipSpeedMultiplier;
+
+            if (shouldMove) animator.speed = playbackRate;
             else animator.speed = 1f;
         }
 
@@ -412,6 +420,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="grantReward">true = 처치 보상 지급. MonsterDiedEvent 로 그대로 전달한다</param>
         private void OnStateMachineDied(bool grantReward)
         {
+            CurrentHp = 0; // 자폭처럼 체력 피해 없이 Dead 로 들어오는 경우에도 IsAlive 를 일치시킨다.
             StateMachine.SetTarget(null);
             foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = false; // 시체는 피격 판정 없음
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null

@@ -3,7 +3,7 @@ using HybridShooter.Core.Data.Loading;
 
 namespace HybridShooter.Core.Data.Defs
 {
-    /// <summary>라이플 정의 (BL-003, BL-004). 강화 적용 값은 IUpgradeState 와 조합해서 계산한다.</summary>
+    /// <summary>총기 정의 (BL-003, BL-004). 강화 적용 값은 IUpgradeState 와 조합해서 계산한다.</summary>
     public sealed class WeaponDef
     {
         public const string Table = "WeaponTable";
@@ -27,6 +27,12 @@ namespace HybridShooter.Core.Data.Defs
         public float SpreadAngle { get; }
         /// <summary>보급 1회에 채우는 예비 탄창 비율. MaxMagazines × 비율을 내림, 최소 1 (0 = 충전 안 함). 스플래시 무기는 작게</summary>
         public float SupplyMagazineRatio { get; }
+        /// <summary>슬롯 분류. Sidearm = 1번 칸 고정 · Loadout = 출발 전 선택 · Supply = 보급 칸 전용(1회용)</summary>
+        public WeaponCategory Category { get; }
+        /// <summary>Resources/UI/WeaponIcons/{IconKey} 스프라이트 이름. 비었으면 HUD 가 이름 텍스트로 대체</summary>
+        public string IconKey { get; }
+        /// <summary>해금 순서. 0 = 처음부터 해금 · 1~ = 스테이지 클리어마다 작은 수부터 하나씩 (Supply 는 무시하고 항상 해금)</summary>
+        public int UnlockOrder { get; }
         /// <summary>Link 단계에서 채워짐 (키가 비었으면 null)</summary>
         public SoundDef FireSfx { get; internal set; }
         /// <summary>장전 시작</summary>
@@ -64,6 +70,9 @@ namespace HybridShooter.Core.Data.Defs
             Range = d.Range;
             SpreadAngle = d.SpreadAngle;
             SupplyMagazineRatio = d.SupplyMagazineRatio;
+            Category = ParseUtil.Enum<WeaponCategory>(d.Category, r, Table, Id, nameof(d.Category));
+            IconKey = d.IconKey ?? "";
+            UnlockOrder = d.UnlockOrder;
             FireSfxKey = d.FireSfxKey;
             ReloadSfxKey = d.ReloadSfxKey;
             ReloadInsertSfxKey = d.ReloadInsertSfxKey;
@@ -79,6 +88,7 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(ReloadTime > 0f, Table, Id, "ReloadTime 은 0 초과");
             r.Check(Range > 0f, Table, Id, "Range 는 0 초과");
             r.Check(SupplyMagazineRatio >= 0f && SupplyMagazineRatio <= 1f, Table, Id, "SupplyMagazineRatio 는 0 ~ 1");
+            r.Check(UnlockOrder >= 0, Table, Id, "UnlockOrder 는 0 이상");
         }
     }
 }

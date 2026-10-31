@@ -117,6 +117,19 @@ namespace HybridShooter.Monster.Behaviour
             }
         }
 
+        // Attack 유지 판정용 (수평 거리 ≤ 사거리 × HitRangeRatio, 대상 없으면 false). 진입은 IsTargetInAttackRange
+        public bool IsTargetInAttackHoldRange
+        {
+            get
+            {
+                if (HasTarget == false) return false;
+                Vector3 toTarget = Target.PlayerTrackingInfo.Position - body.Position;
+                toTarget.y = 0f;
+                float holdRange = CurrentAttack.Range * CurrentAttack.HitRangeRatio;
+                return toTarget.magnitude <= holdRange;
+            }
+        }
+
         /// <summary>
         /// 공격 대상을 바꾼다. MonsterController 가 대상 확보·상실 때 호출한다.
         /// 대상이 바뀌면 진행 중 공격을 취소하고, 대상이 없어지면 휴식·재정비를 해제하고 Attack/Chase 에서 Idle 로 돌아간다.

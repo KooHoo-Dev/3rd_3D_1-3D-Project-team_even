@@ -48,7 +48,7 @@ namespace HybridShooter.Monster.MovementLab
             if (ownedProfile == null) return;
             if (Time.time < nextPoll) return;
             nextPoll = Time.time + PollInterval;
-            if (ownedProfile.PolicyKind != appliedKind || !ownedProfile.ToTuning().Equals(appliedTuning))
+            if (ownedProfile.PolicyKind != appliedKind || !ProfileTuning().Equals(appliedTuning))
                 Reapply();
         }
 
@@ -64,8 +64,15 @@ namespace HybridShooter.Monster.MovementLab
             if (coordinator != null) movement.Configure(ownedProfile, coordinator);
             else movement.ConfigureDirect(ownedProfile, directTarget);
             appliedKind = ownedProfile.PolicyKind;
-            appliedTuning = ownedProfile.ToTuning();
+            appliedTuning = ProfileTuning();
         }
+
+        /// <summary>
+        /// profile 수치만 담은 비교용 복사본. Update 가 Inspector 수정 감지에, Configure 가 적용값 기록에 쓴다.
+        /// 개체별 수치(속도·사거리·원거리 배율)는 MonsterController 가 넣으므로 비교에서 빼려고 0·0·1 로 고정한다.
+        /// </summary>
+        /// <returns>개체별 수치를 고정값으로 둔 MovementTuning</returns>
+        private MovementTuning ProfileTuning() => ownedProfile.ToTuning(0f, 0f, 1f);
 
         private void OnDestroy()
         {
