@@ -129,14 +129,18 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: attacks.Array.size
-      value: 1
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: 'attacks.Array.data[0]'
       value: 
-      objectReference: {fileID: 1194398169}
+      objectReference: {fileID: 1194398173}
     - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: 'attacks.Array.data[1]'
+      value: 
+      objectReference: {fileID: 1194398169}
+    - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+      propertyPath: 'attacks.Array.data[2]'
       value: 
       objectReference: {fileID: 1194398171}
     - target: {fileID: 1601464397953940699, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
@@ -644,6 +648,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d35876806dd64aa2a5ae2bc8ae16d1a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.SuctionAttack
+--- !u!114 &1194398173 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 534779049517218803, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+  m_PrefabInstance: {fileID: 67786932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1194398158}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 374c4e5b40204bd2a514e0b19a1b7faf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.StompAttack
 --- !u!1 &1333617409
 GameObject:
   m_ObjectHideFlags: 0
