@@ -21,7 +21,6 @@ namespace HybridShooter.Player
     public class PlayerGunRecoil : MonoBehaviour
     {
         private const int Pitch = 0, Back = 1, Yaw = 2, Roll = 3;
-        private const int TrailSize = 48;
 
         [SerializeField] private PlayerAnimationDriver driver;
         [SerializeField] private PlayerBodyIK bodyIK;
@@ -42,20 +41,12 @@ namespace HybridShooter.Player
         private float tpWeight;
         private Quaternion gunDelta = Quaternion.identity;
         private Quaternion rightBefore = Quaternion.identity, leftBefore = Quaternion.identity;
-        private readonly Vector3[] trail = new Vector3[TrailSize];
-        private int trailCount;
 
         /// <summary>반동이 남아 있는지</summary>
         public bool Active { get; private set; }
         /// <summary>지금 총구가 튄 각도(도)·밀린 거리(m)</summary>
         public float CurrentPitch => x[Pitch];
         public float CurrentBack => x[Back];
-        /// <summary>이번 반동(연사 포함) 동안 가장 크게 튄 값 (IK Pose Lab 표시)</summary>
-        public float PeakPitch { get; private set; }
-        public float PeakBack { get; private set; }
-        /// <summary>이번 반동 동안의 총구 위치 (프레임 끝 기준, IK Pose Lab 씬 뷰 표시)</summary>
-        public int TrailCount => trailCount;
-        public Vector3 TrailPoint(int i) => trail[i];
 
         private void Awake()
         {
@@ -102,11 +93,6 @@ namespace HybridShooter.Player
             WeaponGripTable.RecoilSettings s = table != null ? table.RecoilFor(gun) : WeaponGripTable.DefaultRecoil(gun != null ? WeaponGripTable.Key(gun) : null);
             float profileScale = driver != null && driver.Profile != null ? driver.Profile.recoilMagnitude : 1f;
             float m = scale * profileScale * (1f + Random.Range(-magnitudeRandom, magnitudeRandom));
-            if (Active == false)
-            {
-                trailCount = 0;
-                PeakPitch = PeakBack = 0f;
-            }
 
             omega = 1f / Mathf.Max(0.01f, s.kickTime);
             float stack = Mathf.Max(1f, s.maxStack);
@@ -144,8 +130,6 @@ namespace HybridShooter.Player
                 }
                 if (Mathf.Abs(x[i]) > 1e-4f || Mathf.Abs(v[i]) > 1e-3f) active = true;
             }
-            PeakPitch = Mathf.Max(PeakPitch, x[Pitch]);
-            PeakBack = Mathf.Max(PeakBack, x[Back]);
             if (active) return;
             Active = false;
             for (int i = 0; i < 4; i++) x[i] = v[i] = 0f;
@@ -214,14 +198,6 @@ namespace HybridShooter.Player
             Transform right = bodyIK.RightHandBone, left = bodyIK.LeftHandBone;
             right.rotation = Quaternion.Slerp(right.rotation, gunDelta * rightBefore, tpWeight);
             left.rotation = Quaternion.Slerp(left.rotation, gunDelta * leftBefore, tpWeight);
-        }
-
-        /// <summary>프레임 끝 총구 자리 기록 (IK Pose Lab 의 총구 궤적)</summary>
-        private void LateUpdate()
-        {
-            Gun gun = bodyIK != null ? bodyIK.GripGun : null;
-            if (Active == false || gun == null || gun.Muzzle == null) return;
-            if (trailCount < TrailSize) trail[trailCount++] = gun.Muzzle.position;
         }
     }
 }

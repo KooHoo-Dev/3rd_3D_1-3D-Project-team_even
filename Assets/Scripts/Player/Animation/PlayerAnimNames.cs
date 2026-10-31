@@ -3,7 +3,7 @@
 namespace HybridShooter.Player
 {
     /// <summary>
-    /// Player_AC 의 레이어·상태·파라미터 이름. 빌더(에디터)와 드라이버·디버그 HUD(런타임)가 같은 이름을 쓰도록 한곳에 둔다.
+    /// Player_AC 의 레이어·상태·파라미터 이름. 드라이버가 쓰는 이름을 한곳에 둔다.
     /// 설계: Assets/Scenes/MS/Docs/AnimationDesign.md
     /// </summary>
     public static class PlayerAnimNames

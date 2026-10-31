@@ -24,7 +24,7 @@ namespace HybridShooter.Player
         [SerializeField] private PlayerAnimationDriver driver;
         [Tooltip("비워 두면 같은 오브젝트에서 찾는다")]
         [SerializeField] private GunSlot gunSlot;
-        [Tooltip("몸(Body)의 AimIK. 빌더 메뉴가 붙이고 연결한다")]
+        [Tooltip("몸(Body)의 AimIK")]
         [SerializeField] private AimIK aimIK;
         [Tooltip("조준점을 찾을 때 광선이 닿는 레이어")]
         [SerializeField] private LayerMask aimMask = ~0;
@@ -48,16 +48,8 @@ namespace HybridShooter.Player
         private Transform body;
         private bool aimByChest;
 
-        /// <summary>마지막으로 계산한 조준점 (디버그용)</summary>
+        /// <summary>마지막으로 계산한 조준점</summary>
         public Vector3 AimPoint { get; private set; }
-        /// <summary>조준 중일 때 총구 정면과 (총구 → 조준점) 사이 각도(도). 조준 중이 아니면 0 (디버그용)</summary>
-        public float MuzzleError { get; private set; }
-        /// <summary>디버그(1인칭 목 측정): null 이 아니면 firstPersonSpineWeightDown 대신 이 값</summary>
-        public float? DebugSpineWeightDownOverride { get; set; }
-        /// <summary>디버그(1인칭 조준 측정): null 이 아니면 firstPersonSpineWeightUp 대신 이 값</summary>
-        public float? DebugSpineWeightUpOverride { get; set; }
-        /// <summary>이번 프레임 AimIK 에 넘긴 가중치 (디버그용)</summary>
-        public float SpineWeight { get; private set; }
 
         private void Awake()
         {
@@ -86,16 +78,6 @@ namespace HybridShooter.Player
             chestAim.SetParent(chest, false);
         }
 
-        private void OnEnable()
-        {
-            if (aimIK != null) aimIK.solver.OnPostUpdate += MeasureMuzzleError;
-        }
-
-        private void OnDisable()
-        {
-            if (aimIK != null) aimIK.solver.OnPostUpdate -= MeasureMuzzleError;
-        }
-
         private void LateUpdate()
         {
             if (aimIK == null || player == null || driver == null) return;
@@ -105,12 +87,9 @@ namespace HybridShooter.Player
 
             float aim = Mathf.Lerp(driver.AimWeight, FirstPersonSpineWeight(), player.FirstPersonBlend);
             float weight = aim * driver.UpperPoseWeight * driver.ActionBlend;
-            SpineWeight = weight;
             if (player.CurrentCameraTransform == null || weight <= 0f)
             {
-                SpineWeight = 0f;
                 aimIK.solver.IKPositionWeight = 0f;
-                MuzzleError = 0f;
                 return;
             }
 
@@ -125,20 +104,8 @@ namespace HybridShooter.Player
         {
             float pitch = player.LookPitch;
             if (pitch < 0f)
-            {
-                float up = DebugSpineWeightUpOverride ?? firstPersonSpineWeightUp;
-                return Mathf.Lerp(firstPersonSpineWeight, up, Mathf.InverseLerp(0f, firstPersonUpPitch, -pitch));
-            }
-            float down = DebugSpineWeightDownOverride ?? firstPersonSpineWeightDown;
-            return Mathf.Lerp(firstPersonSpineWeight, down, Mathf.InverseLerp(0f, firstPersonDownPitch, pitch));
-        }
-
-        /// <summary>AimIK 가 풀린 직후 총구가 조준점에서 얼마나 벗어났는지 (1인칭은 총구 기준이 아니라 0)</summary>
-        private void MeasureMuzzleError()
-        {
-            if (aimIK.solver.IKPositionWeight <= 0f || aimByChest) { MuzzleError = 0f; return; }
-            Transform aim = aimIK.solver.transform;
-            MuzzleError = Vector3.Angle(aim.rotation * aimIK.solver.axis, AimPoint - aim.position);
+                return Mathf.Lerp(firstPersonSpineWeight, firstPersonSpineWeightUp, Mathf.InverseLerp(0f, firstPersonUpPitch, -pitch));
+            return Mathf.Lerp(firstPersonSpineWeight, firstPersonSpineWeightDown, Mathf.InverseLerp(0f, firstPersonDownPitch, pitch));
         }
 
         /// <summary>AimIK 기준: 1인칭이면 가슴 정면, 아니면 지금 든 총의 총구 (총구 축 = 총의 정면)</summary>

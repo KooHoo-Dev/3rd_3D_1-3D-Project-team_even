@@ -48,6 +48,9 @@ namespace HybridShooter.Core.Events
         public GameOverEvent(int reachedRound) { ReachedRound = reachedRound; }
     }
 
+    /// <summary>[최종 보스 최후 연출(Tyranopode)] → 게임 클리어. 클리어 화면은 연출이 직접 띄운다 (다른 파트가 기록·사운드 등에 쓸 수 있게 알림만)</summary>
+    public readonly struct GameClearedEvent { }
+
     /// <summary>[코어(RunDirector)] → 무기 해금 등. 보스를 처치하고 보상 단계(Reward)에 들어감 = 스테이지 클리어. 라운드마다 한 번</summary>
     public readonly struct StageClearedEvent
     {

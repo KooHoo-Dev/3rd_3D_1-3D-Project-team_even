@@ -6,5 +6,6 @@
         public int MaxHp;
         public float MoveSpeed;
         public float PatternCooldown;
+        public string Prefab;
     }
 }
