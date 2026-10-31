@@ -1,7 +1,7 @@
 Key	Value	Desc
 # 전역 상수. 코드에서는 GameConfig 상수 키로 접근
 SpawnSafeRadius	15	라운드 시작 직후 플레이어 주변 생성 금지 반경(m) - BL-015
-SpawnRingRadius	50	기본 스폰 링 반경(m) - 전장 스폰 구역이 없을 때 사용
+SpawnRingRadius	42	기본 스폰 링 반경(m) - 전장 스폰 구역이 없을 때 사용
 CrowdRadius	4	근접 과밀 판정 반경(m) - BL-016
 CrowdMaxMelee	6	과밀 판정 근접 몬스터 수 - BL-016
 StationaryRadius	3	정지 판정 반경(m) - 독안개 트리거

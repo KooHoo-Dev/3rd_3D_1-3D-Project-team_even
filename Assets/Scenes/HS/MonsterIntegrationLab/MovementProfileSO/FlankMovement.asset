@@ -24,7 +24,7 @@ MonoBehaviour:
   minWaitSeconds: 1
   keepDistanceMin: 12
   keepDistanceMax: 18
-  flankRadius: 10
-  flankSpeedMultiplier: 1.6
-  flankSwitchDistance: 15
+  flankRadius: 20
+  flankSpeedMultiplier: 1.2
+  flankSwitchDistance: 22
   flankSwitchBand: 2

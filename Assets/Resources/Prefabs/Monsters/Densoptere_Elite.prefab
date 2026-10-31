@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &5658297394961962687
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 5680596531327945821, guid: cef6afe5881e41ff935ab0e0c4a892b0, type: 3}
+      propertyPath: m_Name
+      value: Densoptere_Elite
+      objectReference: {fileID: 0}
+    - target: {fileID: 8857605372768615403, guid: cef6afe5881e41ff935ab0e0c4a892b0, type: 3}
+      propertyPath: monsterId
+      value: 1104
+      objectReference: {fileID: 0}
+    - target: {fileID: 5680596531327652285, guid: cef6afe5881e41ff935ab0e0c4a892b0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5680596531327652285, guid: cef6afe5881e41ff935ab0e0c4a892b0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5680596531327652285, guid: cef6afe5881e41ff935ab0e0c4a892b0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5680596531339509997, guid: cef6afe5881e41ff935ab0e0c4a892b0, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5680596531339509997, guid: cef6afe5881e41ff935ab0e0c4a892b0, type: 3}
+      propertyPath: m_Materials.Array.data[1]
+      value: 
+      objectReference: {fileID: 2100000, guid: 708bd9fc5fb64a7c9670b3b07d8dfe9b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: cef6afe5881e41ff935ab0e0c4a892b0, type: 3}

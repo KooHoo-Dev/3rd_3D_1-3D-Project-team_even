@@ -127,14 +127,14 @@ namespace HybridShooter.Monster.Behaviour
         private void AssembleStateMachine()
         {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
+            var body = new MonsterBody(transform, GetComponent<NavMeshMoveExecutor>());
+            var attackSettings = GetComponents<MonsterAttackSettingsComponent>(); // 붙은 공격 설정 전부. 공격마다 필요한 타입만 꺼내 쓴다
+            
+            // 돌진형 개체 navmeshagent 우선순위 조정
             var navMeshExecutor = GetComponent<NavMeshMoveExecutor>();
             var chargeSettings = GetComponent<ChargeSettings>();
-            var body = new MonsterBody(transform, navMeshExecutor);
-            var attackSettings = new MonsterAttackSettings(GetComponent<PoisonAreaSettings>(),
-                                                          GetComponent<PounceSettings>(),
-                                                          chargeSettings,
-                                                          GetComponent<DiveSettings>());
             if (chargeSettings != null) navMeshExecutor.FixAvoidancePriority(chargeSettings.AvoidancePriority); // 돌진형은 슬롯 규칙 대신 고정 우선순위
+            
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
             var attacks = new List<MonsterAttack>();
             foreach (MonsterAttackDef attackDef in BasicAttackDefs(Def))
@@ -400,6 +400,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="grantReward">true = 처치 보상 지급. MonsterDiedEvent 로 그대로 전달한다</param>
         private void OnStateMachineDied(bool grantReward)
         {
+            CurrentHp = 0; // 자폭처럼 체력 피해 없이 Dead 로 들어오는 경우에도 IsAlive 를 일치시킨다.
             StateMachine.SetTarget(null);
             foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = false; // 시체는 피격 판정 없음
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null

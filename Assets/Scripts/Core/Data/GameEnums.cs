@@ -8,7 +8,7 @@ namespace HybridShooter.Core.Data
     public enum MonsterGrade { Weak, Mid, Boss }
 
     /// <summary>몬스터 AI 역할. Boss 는 Grade 가 Boss 인 몬스터에만 쓴다</summary>
-    public enum MonsterRole { Melee, Air, Rusher, Infiltrator, ZonePressure, Boss }
+    public enum MonsterRole { Melee, Air, Rusher, Infiltrator, ZonePressure, Boss, SelfDestruct }
 
     /// <summary>같은 프리팹의 메시 변종 (무스코모프 날개 ON/OFF)</summary>
     public enum MeshVariant { Default, WingsOff, WingsOn }
@@ -43,4 +43,7 @@ namespace HybridShooter.Core.Data
 
     /// <summary>무기 슬롯 분류. Sidearm = 1번 칸 고정 권총 · Loadout = 출발 전 2·3번 칸 선택 · Supply = 4번 보급 칸 전용(1회용)</summary>
     public enum WeaponCategory { Sidearm, Loadout, Supply }
+
+    /// <summary>군중전 스테이지 종류. Normal = StartTime 에 시작 · ClearBonus = EndTime 전에 본 웨이브를 전멸시키면 1번 시작하는 특수 웨이브</summary>
+    public enum WaveStageKind { Normal, ClearBonus }
 }

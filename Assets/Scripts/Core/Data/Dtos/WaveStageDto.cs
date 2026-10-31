@@ -11,5 +11,6 @@ namespace HybridShooter.Core.Data.Dtos
         public float StartTime;  // 초, 라운드 시작 기준
         public float EndTime;  // 초, 라운드 시작 기준
         public string WaveList = "";  // WaveTable.Id 를 ';' 로 구분
+        public string Kind = "Normal";  // WaveStageKind (Normal/ClearBonus)
     }
 }
