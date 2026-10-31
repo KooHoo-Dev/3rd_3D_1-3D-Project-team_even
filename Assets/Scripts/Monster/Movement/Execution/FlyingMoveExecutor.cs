@@ -21,6 +21,8 @@ namespace HybridShooter.Monster.Movement
         [Header("순항 고도")]
         [Tooltip("지면 평균 높이 위로 유지할 높이 (m)")]
         [SerializeField, Min(0f)] private float cruiseHeight = 4f;
+        [Tooltip("개체마다 순항 높이에 더할 랜덤 범위 (m). ±이 값 안에서 켜질 때 1회 뽑는다. 무리가 한 높이에 겹치지 않게 한다")]
+        [SerializeField, Min(0f)] private float cruiseHeightRandomRange = 1f;
         [Tooltip("순항 고도로 올라가거나 내려가는 속도 (m/s)")]
         [SerializeField, Min(0.1f)] private float climbSpeed = 3f;
         [Tooltip("지면 평균을 구할 때 자기 XZ 중심에서 둘레 4점까지의 반경 (m)")]
@@ -44,12 +46,13 @@ namespace HybridShooter.Monster.Movement
         private Vector3 velocity;         // m/s, 지난 Update 이후 실제 이동량으로 계산 (MoveBy 이동 포함)
         private Vector3 lastPosition;     // 직전 Update 끝의 위치 (월드). velocity 계산용
         private Vector3 fallVelocity;     // m/s, 낙하 중 속도. StartFalling 이 velocity 로 시작한다
+        private float cruiseHeightOffset; // m, 이 개체의 순항 높이 랜덤 보정. OnEnable 에서 뽑는다
 
         // ════════ 외부 공개 ════════
         public Vector3 Velocity => velocity;
         public float Radius => radius;
         // 지금 위치에서 맞출 순항 고도 (월드 y, m). DiveAttack 의 재정비 판정도 읽는다
-        public float CruiseAltitude => GroundAverageY() + cruiseHeight;
+        public float CruiseAltitude => GroundAverageY() + cruiseHeight + cruiseHeightOffset;
 
         // 목적지 없음 Idle, 수평 거리 arrivalDistance 이하 Arrived, 그 외 Moving
         public MoveExecutionState ExecutionState
@@ -63,10 +66,14 @@ namespace HybridShooter.Monster.Movement
             }
         }
 
-        /// <summary>켜질 때 속도 기준 위치를 지금 위치로 맞춘다. 풀 재사용 뒤 첫 프레임 속도가 튀지 않게 한다</summary>
+        /// <summary>
+        /// 켜질 때 속도 기준 위치를 지금 위치로 맞추고, 이 개체의 순항 높이 보정을 새로 뽑는다.
+        /// 풀 재사용 뒤 첫 프레임 속도가 튀지 않게 하고, 재사용할 때마다 다른 높이로 날게 한다.
+        /// </summary>
         private void OnEnable()
         {
             lastPosition = transform.position;
+            cruiseHeightOffset = Random.Range(-cruiseHeightRandomRange, cruiseHeightRandomRange);
         }
 
         /// <summary>

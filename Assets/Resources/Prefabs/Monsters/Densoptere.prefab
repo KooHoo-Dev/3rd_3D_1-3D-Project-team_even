@@ -332,7 +332,7 @@ MonoBehaviour:
   profile: {fileID: 11400000, guid: 7728c90c77b872042bf50c9a4800d3dc, type: 2}
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
-  turnSpeed: 8
+  turnSpeed: 2.5
 --- !u!114 &8857605372768615403
 MonoBehaviour:
   m_ObjectHideFlags: 0
