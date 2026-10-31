@@ -1,11 +1,11 @@
 namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
-    /// 사거리 안에서 공격. 공격이 진행 중(예고·공격·회복)이면 사거리를 벗어나도 끝까지 진행한다.
+    /// 사거리 안에서 공격. 진입 뒤에는 유지 사거리(사거리 × HitRangeRatio) 안이면 머문다. 공격이 진행 중(예고·공격·회복)이면 사거리를 벗어나도 끝까지 진행한다.
     /// 예고 중 피하기와 회복 중 반격이 명세의 대응 수단이기 때문이다.
     /// 공격이 끝나면 FinishAttackCycle 이 행선지를 정한다. 기본(After = ChaseUntilReady)은 쿨다운 동안 Chase 로 가서
     /// 슬롯 예약을 지킨 채 슬롯까지 이동하고, 쿨다운이 끝나면 ChaseState 가 다시 Attack 으로 보낸다.
-    /// StayInAttack 은 Attack 에 머물고 다음 틱에 아래 분기가 판단한다 (대상 없음 → Idle, 사거리 밖·공격 불허 → Chase, 그 외 → 다시 Begin).
+    /// StayInAttack 은 Attack 에 머물고 다음 틱에 아래 분기가 판단한다 (대상 없음 → Idle, 유지 사거리 밖·공격 불허 → Chase, 그 외 → 다시 Begin).
     /// </summary>
     public sealed class AttackState : MonsterState
     {
@@ -32,7 +32,7 @@ namespace HybridShooter.Monster.Behaviour
 
             if (Owner.HasTarget == false)
                 Owner.ChangeState(Owner.Idle);
-            else if (Owner.IsTargetInAttackRange == false || Owner.CanAttack == false)
+            else if (Owner.IsTargetInAttackHoldRange == false || Owner.CanAttack == false)
                 Owner.ChaseAgain();
             else
             {

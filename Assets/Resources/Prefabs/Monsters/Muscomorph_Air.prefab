@@ -1765,6 +1765,7 @@ MonoBehaviour:
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
+  destinationFollowRate: 5
 --- !u!114 &8857605372768615403
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1785,6 +1786,7 @@ MonoBehaviour:
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
   hitTimeRatio: 0
+  hitRangeRatio: 1.1
   windupTurnSpeed: 360
 --- !u!114 &4756636726016961627
 MonoBehaviour:
@@ -1799,6 +1801,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.FlyingMoveExecutor
   cruiseHeight: 5
+  cruiseHeightRandomRange: 2
   climbSpeed: 3
   groundSampleRadius: 2
   radius: 0.5
@@ -1818,11 +1821,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.DiveSettings
   entryDistance: 8
+  entryDistanceRandomRange: 1.5
   minHeight: 1
   diveSpeed: 10
   leaveDistance: 12
   turnAwayTime: 1
   altitudeTolerance: 0.5
+  levelOutSpeed: 4
 --- !u!136 &3168750531067842310
 CapsuleCollider:
   m_ObjectHideFlags: 0

@@ -335,8 +335,8 @@ GameObject:
   - component: {fileID: -1811153841818227808}
   - component: {fileID: 7657703144553812332}
   - component: {fileID: -716610186761490424}
-  - component: {fileID: 3967654826282314174}
   - component: {fileID: 81547760911233001}
+  - component: {fileID: 3967654826282314174}
   - component: {fileID: 1401033444075153407}
   m_Layer: 15
   m_Name: Pardathrox
@@ -422,6 +422,7 @@ MonoBehaviour:
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
+  destinationFollowRate: 5
 --- !u!114 &7657703144553812332
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -453,7 +454,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterController
   monsterId: 2002
   despawnDelay: 2
-  moveClipSpeed: 3
+  moveClipSpeed: 4.5
   idleSpeedThreshold: 0.1
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
@@ -461,6 +462,31 @@ MonoBehaviour:
   hitTimeRatio: 0
   hitRangeRatio: 2
   windupTurnSpeed: 360
+--- !u!114 &81547760911233001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1716452437149150959}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e577295b05814bc5a9d7ed723fad6bf0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.PounceSettings
+  farApproachSpeedMultiplier: 1.2
+  farApproachClipSpeedMultiplier: 1.1
+  arcHeight: 3
+  hitHeightTolerance: 0.75
+  groundProbeHeight: 2
+  groundProbeDepth: 10
+  navMeshTolerance: 0.5
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 969
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 969
 --- !u!114 &3967654826282314174
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -488,29 +514,6 @@ MonoBehaviour:
   boundaryColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   viewConeColor: {r: 1, g: 1, b: 1, a: 1}
   attackRangeColor: {r: 0, g: 1, b: 0, a: 1}
---- !u!114 &81547760911233001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1716452437149150959}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e577295b05814bc5a9d7ed723fad6bf0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.PounceSettings
-  arcHeight: 3
-  hitHeightTolerance: 0.75
-  groundProbeHeight: 2
-  groundProbeDepth: 10
-  navMeshTolerance: 0.5
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 969
-  obstacleMask:
-    serializedVersion: 2
-    m_Bits: 969
 --- !u!136 &1401033444075153407
 CapsuleCollider:
   m_ObjectHideFlags: 0

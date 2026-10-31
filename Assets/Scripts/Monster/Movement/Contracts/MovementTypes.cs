@@ -143,7 +143,7 @@ namespace HybridShooter.Monster.Movement
     }
 
     /// <summary>
-    /// MovementProfile 의 값 복사본. 정책이 ScriptableObject 에 의존하지 않게 해서
+    /// MovementProfile 의 값과 개체별 수치(이동 속도·사거리·원거리 접근 배율)를 합친 복사본. 정책이 ScriptableObject 에 의존하지 않게 해서
     /// Unity 밖(EditMode/순수 NUnit)에서도 정책을 테스트할 수 있게 한다.
     /// </summary>
     public readonly struct MovementTuning
@@ -155,11 +155,11 @@ namespace HybridShooter.Monster.Movement
         public readonly float KeepDistanceMin;      // m
         public readonly float KeepDistanceMax;      // m
         public readonly float FlankRadius;          // m, 측면 경유점 반경
-        public readonly float FlankSpeedMultiplier; // 시야 밖 돌입 속도 배율
+        public readonly float FlankSpeedMultiplier; // 원거리 시야 밖 접근 속도 배율 (PounceSettings, 없으면 1)
         public readonly float FlankSwitchDistance;  // m, 이 거리 이하면 근거리 돌입 모드로 전환
         public readonly float FlankSwitchBand;      // m, 근거리 → 원거리 복귀는 전환 거리 + 이 폭을 넘을 때
 
-        /// <summary>수치 복사본 생성. MovementProfile.ToTuning 과 MonsterMovement(개체별 속도·사거리 반영)가 호출한다</summary>
+        /// <summary>수치 복사본 생성. MovementProfile.ToTuning 이 호출한다 (MonsterMovement 가 개체별 수치를 넘긴다)</summary>
         /// <param name="moveSpeed">이동 속도 (m/s)</param>
         /// <param name="attackRange">공격 사거리 (m)</param>
         /// <param name="orbitChance">대기 진입 시 선회를 고를 확률 (0~1)</param>
@@ -167,7 +167,7 @@ namespace HybridShooter.Monster.Movement
         /// <param name="keepDistanceMin">거리 유지 밴드 최소 (m)</param>
         /// <param name="keepDistanceMax">거리 유지 밴드 최대 (m)</param>
         /// <param name="flankRadius">측면 경유점 반경 (m)</param>
-        /// <param name="flankSpeedMultiplier">시야 밖 돌입 속도 배율</param>
+        /// <param name="flankSpeedMultiplier">원거리 시야 밖 접근 속도 배율 (1 = 기본 속도)</param>
         /// <param name="flankSwitchDistance">근거리 돌입 모드로 바꾸는 거리 (m). flankRadius 보다 커야 한다</param>
         /// <param name="flankSwitchBand">근거리 → 원거리 복귀 여유 폭 (m)</param>
         public MovementTuning(float moveSpeed, float attackRange, float orbitChance, float orbitAngularSpeedDeg,

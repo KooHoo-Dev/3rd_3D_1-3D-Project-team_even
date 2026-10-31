@@ -44,7 +44,7 @@ namespace HybridShooter.Monster.Behaviour
         [SerializeField, Min(0.01f)] private float activeSeconds = 0.5f;
         [Tooltip("Active 구간 중 판정 시점 비율. 0 = Active 시작, 1 = Active 끝. 다음 공격 시작부터 반영")]
         [SerializeField, Range(0f, 1f)] private float hitTimeRatio = 0.5f;
-        [Tooltip("근접 판정 거리 = 테이블 Range × 이 비율. 1 = 진입 거리와 같음. 예고 동안 같은 방향으로 도망가는 플레이어를 맞히려면 (Range + 플레이어 속도 × 판정 시각 + 0.2) ÷ Range. 다음 판정부터 반영")]
+        [Tooltip("근접 판정 거리 = 테이블 Range × 이 비율. 1 = 진입 거리와 같음. 예고 동안 같은 방향으로 도망가는 플레이어를 맞히려면 (Range + 플레이어 속도 × 판정 시각 + 0.2) ÷ Range. Attack 진입 뒤 머무는 거리도 Range × 이 비율. 1 = 진입 거리와 같음(경계에서 바로 이탈할 수 있음). 다음 판정부터 반영")]
         [SerializeField, Min(1f)] private float hitRangeRatio = 1f;
         [Tooltip("예고 중 바라볼 지점으로 도는 속도 (도/초). 0 = 돌지 않는다. 다음 프레임부터 반영")]
         [SerializeField, Min(0f)] private float windupTurnSpeed = 360f;
@@ -53,6 +53,7 @@ namespace HybridShooter.Monster.Behaviour
         private const string BaseAttackClipName = "Placeholder_Attack";
 
         private MonsterMovement movement;
+        private PounceSettings pounceSettings; // 측면 침투형(도약)만 있음. null = 원거리 접근 배율 없음
         private bool playerDead;
         private float despawnTime = -1f;   // 회수 예정 시각 (s, Time.time 기준). -1 = 아직 처치 안 됨
         private bool despawned;
@@ -144,6 +145,8 @@ namespace HybridShooter.Monster.Behaviour
                                                               attackSettings, movement, flyingExecutor));
             }
             movement.SetCombatTuning(Def.MoveSpeed, attacks[0].Range); // 이동의 전투 사거리는 첫 공격 기준
+            pounceSettings = GetComponent<PounceSettings>();
+            if (pounceSettings != null) movement.SetFlankApproachSpeedMultiplier(pounceSettings.FarApproachSpeedMultiplier);
             StateMachine = new MonsterStateMachine(movement, body, attacks);
 
             StateMachine.Died += OnStateMachineDied;
@@ -300,6 +303,7 @@ namespace HybridShooter.Monster.Behaviour
         /// 이동 자체가 공격인 몬스터(돌진)는 Attack 중과 Idle 준비 동작 중에도 공격이 알려준 몸 이동 속도로 같은 일을 한다.
         /// Move 면 재생 배율을 (속도 ÷ 클립 기준 속도) 로 맞춰 발 미끄러짐을 줄인다.
         /// 클립 기준 속도는 Chase 면 moveClipSpeed, 공격 이동 중이면 공격의 MoveClipSpeedFor (돌진 = ChargeSettings.ChargeClipSpeed).
+        /// 측면 침투형이 Chase 중 원거리 시야 밖 접근이면 재생 배율에 PounceSettings.FarApproachClipSpeedMultiplier 를 더 곱한다.
         /// </summary>
         private void UpdateMoveAnimation()
         {
@@ -318,9 +322,13 @@ namespace HybridShooter.Monster.Behaviour
                 clipSpeed = currentAttack.MoveClipSpeedFor(moveClipSpeed);
             }
             bool shouldMove = speed >= idleSpeedThreshold;
+            bool isApproachingOutOfView = isChasing && pounceSettings != null && movement.IsApproachingOutOfView;
             animator.SetBool("IsMoving", shouldMove);
 
-            if (shouldMove) animator.speed = speed / clipSpeed;
+            float playbackRate = speed / clipSpeed;
+            if (isApproachingOutOfView) playbackRate *= pounceSettings.FarApproachClipSpeedMultiplier;
+
+            if (shouldMove) animator.speed = playbackRate;
             else animator.speed = 1f;
         }
 

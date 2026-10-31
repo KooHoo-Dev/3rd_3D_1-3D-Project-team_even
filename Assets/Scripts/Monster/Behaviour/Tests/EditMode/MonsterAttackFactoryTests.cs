@@ -84,11 +84,11 @@ namespace HybridShooter.Monster.Behaviour.Tests
         public void AirGetsDiveAttack()
         {
             var movement = monsterObject.AddComponent<MonsterMovement>();
-            monsterObject.AddComponent<DiveSettings>();
+            var settings = monsterObject.AddComponent<DiveSettings>();
             var flyer = monsterObject.AddComponent<FlyingMoveExecutor>();
             var attack = MonsterAttackFactory.CreateAttack(MonsterRole.Air, Bite, body, t => (IDamageable)t, AttachedSettings(), movement, flyer);
             Assert.IsInstanceOf<DiveAttack>(attack);
-            Assert.AreEqual(8f, attack.Range);
+            Assert.AreEqual(8f, attack.Range, settings.EntryDistanceRandomRange);
             Assert.AreEqual(AfterAttack.RepositionInChase, attack.After);
         }
 

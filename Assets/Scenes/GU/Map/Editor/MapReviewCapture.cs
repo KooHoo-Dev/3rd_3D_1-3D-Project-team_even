@@ -68,7 +68,7 @@ public static class MapReviewCapture
             {
                 foreach (Transform site in props)
                 {
-                    if (!TryGetGroupBounds(site, out Bounds b)) continue;
+                    if (!SciFiMapBuilder.TryGetBounds(site.gameObject, out Bounds b)) continue;
                     if (Mathf.Max(b.extents.x, b.extents.z) > MaxSiteExtent) continue;
                     float dist = Mathf.Max(b.extents.x, b.extents.z) * 1.6f + 15f;
                     Vector3 target = b.center;
@@ -110,19 +110,6 @@ public static class MapReviewCapture
         if (forward.sqrMagnitude < 1e-4f) forward = Vector3.forward;
         cam.transform.SetPositionAndRotation(at.position + Vector3.up * EyeHeight, Quaternion.LookRotation(forward.normalized));
         Save(cam, scene, ref index, name, Width, Height);
-    }
-
-    private static bool TryGetGroupBounds(Transform group, out Bounds bounds)
-    {
-        bounds = default;
-        bool found = false;
-        foreach (Renderer r in group.GetComponentsInChildren<Renderer>())
-        {
-            if (r is ParticleSystemRenderer || r is TrailRenderer || r is LineRenderer) continue;
-            if (found) bounds.Encapsulate(r.bounds);
-            else { bounds = r.bounds; found = true; }
-        }
-        return found;
     }
 
     private static void Save(Camera cam, Scene scene, ref int index, string name, int width, int height)
