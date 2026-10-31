@@ -91,8 +91,10 @@ namespace HybridShooter.Core.Contracts
 
         /// <summary>지금 든 총에 예비 탄창 amount 개 보충 (최대까지). 이미 최대·무한 탄창·총 없음·보급 무기면 false</summary>
         bool AddMagazines(int amount);
-        /// <summary>슬롯의 모든 총(보급 칸 제외 — 보급 무기는 1회용)에 예비 탄창 amount 개씩 보충. 하나라도 보충됐으면 true</summary>
-        bool AddMagazinesToAll(int amount);
+        /// <summary>슬롯의 모든 총(보급 칸 제외 — 보급 무기는 1회용)에 예비 탄창 amount 개씩 보충. 반환: 실제로 늘어난 예비 탄창 합</summary>
+        int AddMagazinesToAll(int amount);
+        /// <summary>AddSupplyMagazines 로 한 개라도 늘어날 총이 있는지 (보급 상자 프롬프트의 가득 참 경고용)</summary>
+        bool CanAddSupplyMagazines { get; }
         /// <summary>
         /// 보급 1회분 충전. 슬롯의 모든 총(보급 칸 제외)에 각자 MaxMagazines × WeaponDef.SupplyMagazineRatio (내림·최소 1)개씩 최대까지 보충.
         /// 반환: 실제로 늘어난 예비 탄창 합 (0 = 모두 가득·무한 탄창)

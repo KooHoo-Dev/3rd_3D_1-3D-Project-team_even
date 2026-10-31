@@ -10,9 +10,12 @@ PlayerInvincibleTime	0.3	피격 후 무적 시간(초)
 LowHpRatio	0.3	플레이어 위험 상태 체력 비율 - BL-007
 MonsterLowHpRatio	0.4	일반 몬스터 저체력 표현 비율 - BL-017
 SupplyDropMinDistance	20	보급 낙하 위치 - 플레이어 기준 최소 거리(m, XZ) - BL-018
-SupplyDropMaxDistance	100	보급 낙하 위치 - 플레이어 기준 최대 거리(m, XZ) - BL-018
+SupplyDropMaxDistance	60	보급 낙하 위치 - 플레이어 기준 최대 거리(m, XZ) - BL-018
 SupplyDropHeight	40	보급 낙하 시작 높이(m, 지면 기준, 30 이상) - BL-018
 SupplyLandingHeight	3	감속 착지 시작 높이(m, 지면 기준) - BL-018
-SupplyMaxTerrainHeight	15	보급 낙하 금지 지형 높이(m, Terrain 기준 높이 이 값 이상이면 다시 뽑음)
+SupplyMaxTerrainHeight	5	보급 낙하 허용 높이(m, 플레이어 발 높이 기준. 지면이 플레이어보다 이 값을 넘게 높으면 다시 뽑음 = 언덕·산 위 제외). 착지면은 Ground 레이어여야 함
 SupplyMaxActive	5	필드에 동시에 존재할 수 있는 보급 최대 개수(도달하면 투하 건너뜀)
 CameraTransitionTime	1.2	1인칭→3인칭 전환 시간(초) - BL-022
+RoundStartGrenades	2	보스 클리어 후 다음 라운드 시작 때 지급하는 수류탄 개수(최대 보유량까지)
+RoundStartHealPacks	2	보스 클리어 후 다음 라운드 시작 때 지급하는 회복 팩 개수(최대 보유량까지)
+RoundStartMagazines	2	보스 클리어 후 다음 라운드 시작 때 1~3번 칸 모든 총에 지급하는 예비 탄창 개수(무기별 최대까지)

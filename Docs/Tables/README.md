@@ -212,8 +212,9 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | PlayerInvincibleTime | 피격 후 무적 | BL-006 |
 | LowHpRatio | 플레이어 위험 상태 비율 | BL-007 |
 | MonsterLowHpRatio | 일반 몬스터 저체력 표현 비율 | BL-017 |
-| SupplyDropMinDistance / SupplyDropMaxDistance | 보급 낙하 위치: 플레이어 기준 XZ 거리 범위 (30 ~ 150) | BL-018 |
+| SupplyDropMinDistance / SupplyDropMaxDistance | 보급 낙하 위치: 플레이어 기준 XZ 거리 범위 (20 ~ 60) | BL-018 |
 | SupplyDropHeight / SupplyLandingHeight | 낙하 시작 높이(30 이상) / 감속 착지 시작 높이 (지면 기준) | BL-018 |
-| SupplyMaxTerrainHeight | 보급 낙하 금지 지형 높이 (Terrain 원점 기준 SampleHeight 가 이 값 이상이면 다시 뽑음, 30) | BL-018 |
+| SupplyMaxTerrainHeight | 보급 낙하 허용 높이 (플레이어 발 높이 + 이 값 이하의 지면만, 5. 맵 원점·보스 아레나 높이와 무관). 착지면은 Ground 레이어여야 함 (SupplyDropper.dropGroundLayers) | BL-018 |
 | SupplyMaxActive | 필드 동시 보급 최대 개수 (도달하면 그 주기 건너뜀, 5) | BL-018 |
+| RoundStartGrenades / RoundStartHealPacks / RoundStartMagazines | 보스 클리어 후 다음 라운드 시작 지급: 수류탄 / 회복 팩 / 1~3번 칸 모든 총 예비 탄창 (각 2, 최대치까지) | |
 | CameraTransitionTime | 1인칭→3인칭 전환 시간 | BL-022 |

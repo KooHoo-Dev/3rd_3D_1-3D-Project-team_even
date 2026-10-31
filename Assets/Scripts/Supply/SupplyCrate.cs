@@ -12,13 +12,14 @@ namespace HybridShooter.Supply
     ///
     ///  - 하늘(지면 + SupplyDropHeight)에서 일정 속도로 떨어지다가, 지면 SupplyLandingHeight 이내로 들어오면
     ///    착지 속도(landingSpeed)까지 등감속하며 서서히 내려앉는다.
-    ///  - Kinematic Rigidbody + Trigger Collider. 플레이어 콜라이더가 닿으면 키 입력 없이 자동 획득.
-    ///  - 획득 대상은 구체 클래스가 아닌 계약(IItemUser)으로 찾는다.
+    ///  - Kinematic Rigidbody + Trigger Collider. 착지한 뒤 플레이어가 조준하고 상호작용 키(F)를 누르면 획득 (IInteractable).
+    ///    조준하는 동안의 정보(종류·지급량·가득 참 경고)는 GetPrompt → PlayerInteractor → InteractPromptHud 로 표시된다.
+    ///  - 획득 대상은 구체 클래스가 아닌 계약(IItemUser, IPlayerAmmo)으로 찾는다.
     ///    가득 차서 못 먹으면(false) 물자는 그대로 남는다.
     ///  - 착지 후에는 시간이 지나도 사라지지 않는다. (획득 또는 라운드 정리 때만 제거)
     /// </summary>
     [RequireComponent(typeof(Rigidbody), typeof(BoxCollider))]
-    public sealed class SupplyCrate : MonoBehaviour
+    public sealed class SupplyCrate : MonoBehaviour, IInteractable
     {
         /// <summary>Idle = Launch 전, Falling = 낙하 중, Landed = 착지 완료</summary>
         public enum State { Idle, Falling, Landed }
@@ -138,31 +139,64 @@ namespace HybridShooter.Supply
         /// <summary>착지 완료 처리. 이후 FixedUpdate 에서 더 이상 움직이지 않는다</summary>
         private void Land() => CurrentState = State.Landed;
 
-        /// <summary>콜라이더가 트리거에 들어오는 순간 획득 시도 (키 입력 없이 자동 획득)</summary>
-        private void OnTriggerEnter(Collider other) => TryCollect(other);
+        // ── 상호작용 (IInteractable) ──
 
-        /// <summary>트리거 안에 머무는 동안 계속 획득 시도. 가득 차서 못 먹은 뒤, 자리를 벗어나지 않고 수량이 줄어든 경우 대비</summary>
-        private void OnTriggerStay(Collider other) => TryCollect(other);
+        public Transform InteractTransform => transform;
+
+        /// <summary>착지한 뒤에만 (낙하 중에는 프롬프트도 뜨지 않는다). 가득 찬 경우는 프롬프트 경고로 알리고 Interact 가 실패한다</summary>
+        public bool CanInteract(GameObject user) => removed == false && Def != null && CurrentState == State.Landed;
+
+        /// <summary>조준 중 표시 정보. 매 프레임 불릴 수 있어 계산은 가볍게 (지급은 하지 않음)</summary>
+        public InteractPrompt GetPrompt(GameObject user)
+        {
+            string amount = Def.AmountMin == Def.AmountMax ? $"{Def.AmountMin}" : $"{Def.AmountMin}~{Def.AmountMax}";
+            string warning = CanReceiveAny(user) ? "" : "수류탄·회복 팩·예비 탄창이 모두 가득 차 있습니다";
+            return new InteractPrompt($"{Def.DisplayName} 보급 상자", $"{ItemName(Def.SupplyType)} {amount}개 · 예비 탄창 충전", "획득", "", warning);
+        }
 
         /// <summary>
-        /// 닿은 콜라이더(또는 부모)가 플레이어(IItemUser)면 보급을 지급한다.
+        /// user(플레이어 루트)에게 보급을 지급한다.
         ///   아이템: 종류별 AmountMin~AmountMax 개 무작위 / 탄약: 슬롯의 모든 총에 무기별 비율만큼 (IPlayerAmmo.AddSupplyMagazines)
-        /// 둘 중 하나라도 실제로 늘었으면 SupplyCollectedEvent(실제 지급량) 발행 후 물자를 제거한다. 하나도 못 받으면 그대로 남는다.
-        /// 이미 제거됐거나 Launch 전이면 무시.
+        /// 둘 중 하나라도 실제로 늘었으면 SupplyCollectedEvent(실제 지급량) 발행 후 물자를 제거하고 true. 하나도 못 받으면 그대로 남고 false.
         /// </summary>
-        private void TryCollect(Collider other)
+        public bool Interact(GameObject user)
         {
-            if (removed || Def == null) return;
-            var itemUser = other.GetComponentInParent<IItemUser>();
-            if (itemUser == null) return;
+            if (user == null || CanInteract(user) == false) return false;
+            var itemUser = user.GetComponentInParent<IItemUser>();
+            var ammo = user.GetComponentInParent<IPlayerAmmo>();
+            if (itemUser == null && ammo == null) return false;
 
-            int items = GrantItems(itemUser, Def.RollAmount(UnityEngine.Random.value));
-            var ammo = other.GetComponentInParent<IPlayerAmmo>();
+            int items = itemUser != null ? GrantItems(itemUser, Def.RollAmount(UnityEngine.Random.value)) : 0;
             int magazines = ammo != null ? ammo.AddSupplyMagazines() : 0;
-            if (items == 0 && magazines == 0) return;
+            if (items == 0 && magazines == 0) return false;
 
             EventBus<SupplyCollectedEvent>.Publish(new SupplyCollectedEvent(Def, items, magazines, transform.position));
             Remove();
+            return true;
+        }
+
+        /// <summary>아이템이나 예비 탄창 중 하나라도 더 받을 수 있는지 (프롬프트 경고용)</summary>
+        private bool CanReceiveAny(GameObject user)
+        {
+            if (user == null) return false;
+            var itemUser = user.GetComponentInParent<IItemUser>();
+            if (itemUser != null)
+            {
+                if (Def.SupplyType == SupplyType.Grenade && itemUser.Grenades < itemUser.MaxGrenades) return true;
+                if (Def.SupplyType == SupplyType.Heal && itemUser.HealPacks < itemUser.MaxHealPacks) return true;
+            }
+            var ammo = user.GetComponentInParent<IPlayerAmmo>();
+            return ammo != null && ammo.CanAddSupplyMagazines;
+        }
+
+        private static string ItemName(SupplyType type)
+        {
+            switch (type)
+            {
+                case SupplyType.Grenade: return "수류탄";
+                case SupplyType.Heal: return "회복 팩";
+                default: return type.ToString();
+            }
         }
 
         /// <summary>종류에 맞는 아이템을 amount 개 보충하고, 최대치에 막히지 않고 실제로 늘어난 개수를 돌려준다</summary>

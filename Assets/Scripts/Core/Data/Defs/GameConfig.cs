@@ -30,8 +30,11 @@ namespace HybridShooter.Core.Data.Defs
         public const string SupplyDropMaxDistance = "SupplyDropMaxDistance"; // BL-018 플레이어 기준 최대 낙하 거리(XZ)
         public const string SupplyDropHeight = "SupplyDropHeight";           // BL-018 낙하 시작 높이(지면 기준)
         public const string SupplyLandingHeight = "SupplyLandingHeight";     // BL-018 감속 착지 시작 높이(지면 기준)
-        public const string SupplyMaxTerrainHeight = "SupplyMaxTerrainHeight"; // 이 Terrain 높이 이상이면 낙하 금지
+        public const string SupplyMaxTerrainHeight = "SupplyMaxTerrainHeight"; // 플레이어 발 높이 + 이 값 이하의 지면에만 낙하 (넘으면 다시 뽑음)
         public const string SupplyMaxActive = "SupplyMaxActive";               // 필드 동시 보급 최대 개수
+        public const string RoundStartGrenades = "RoundStartGrenades";         // 보스 클리어 후 다음 라운드 시작 지급: 수류탄
+        public const string RoundStartHealPacks = "RoundStartHealPacks";       // 〃 회복 팩
+        public const string RoundStartMagazines = "RoundStartMagazines";       // 〃 1~3번 칸 모든 총 예비 탄창
         public const string CameraTransitionTime = "CameraTransitionTime";   // BL-022
 
         private readonly Dictionary<string, string> values = new Dictionary<string, string>();

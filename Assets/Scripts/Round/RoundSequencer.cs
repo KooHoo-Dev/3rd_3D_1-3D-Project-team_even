@@ -34,6 +34,8 @@ namespace HybridShooter.Round
         private bool bossDefeated;
         private bool rewardFinished;
         private bool supplyStarted;
+        /// <summary>최종 보스 최후 연출이 시작됨 → 처치해도 보상 단계로 가지 않는다 (게임 클리어)</summary>
+        private bool finaleStarted;
 
         public bool IsRunning => isRoundRunning;
         public float ElapsedSeconds => elapsedSeconds;
@@ -52,6 +54,7 @@ namespace HybridShooter.Round
             bossEncounter.Defeated += OnBossDefeated;
             EventBus<CameraModeChangedEvent>.Subscribe(OnCameraModeChanged);
             EventBus<RewardSelectionFinishedEvent>.Subscribe(OnRewardSelectionFinished);
+            EventBus<BossFinaleStartedEvent>.Subscribe(OnBossFinaleStarted);
         }
 
         public bool CanStartRound()
@@ -85,6 +88,7 @@ namespace HybridShooter.Round
             bossDefeated = false;
             rewardFinished = false;
             supplyStarted = false;
+            finaleStarted = false;
             isRoundRunning = true;
             ChangePhase(GameState.CrowdBattle);
             if (isRoundRunning == false) return;
@@ -123,6 +127,7 @@ namespace HybridShooter.Round
             bossStarted = false;
             bossDefeated = false;
             rewardFinished = false;
+            finaleStarted = false;
             if (monsterWaveDirector != null) monsterWaveDirector.StopRound();
             if (supplyDropper != null) supplyDropper.StopAutoDropCycle();
             if (bossEncounter != null) bossEncounter.Stop();
@@ -153,11 +158,11 @@ namespace HybridShooter.Round
                         bossEncounter.Begin(roundDef.Boss, DataManager.GetRound(roundNumber)?.BossId ?? roundDef.BossId);
                     }
                     if (isRoundRunning == false) return;
-                    if (bossDefeated) ChangePhase(GameState.Reward);
-                    else if (bossEncounter.IsEntranceComplete) ChangePhase(GameState.BossBattle);
+                    if (bossDefeated) BeginReward();
+                    else if (bossEncounter.IsEntranceComplete) BeginBossBattle();
                     break;
                 case GameState.BossBattle:
-                    if (bossDefeated) ChangePhase(GameState.Reward);
+                    if (bossDefeated) BeginReward();
                     break;
                 case GameState.Reward:
                     if (rewardFinished == false) return;
@@ -177,6 +182,20 @@ namespace HybridShooter.Round
             if (isRoundRunning) EventBus<BossWarningEvent>.Publish(new BossWarningEvent(roundDef.Boss));
         }
 
+        /// <summary>보스 등장 연출이 끝나면 보스전. 인트로 동안 멈췄던 보급을 한 간격 뒤부터 다시 투하한다</summary>
+        private void BeginBossBattle()
+        {
+            ChangePhase(GameState.BossBattle);
+            if (isRoundRunning && supplyDropper != null) supplyDropper.StartAutoDropCycle(roundDef.SupplyInterval, dropImmediately: false);
+        }
+
+        /// <summary>보스 처치 → 보상 단계. 보급 투하를 멈춘다 (필드의 보급은 라운드 정리 때 제거)</summary>
+        private void BeginReward()
+        {
+            if (supplyDropper != null) supplyDropper.StopAutoDropCycle();
+            ChangePhase(GameState.Reward);
+        }
+
         private void ChangePhase(GameState next)
         {
             phase = next;
@@ -188,9 +207,19 @@ namespace HybridShooter.Round
             if (isRoundRunning && phase == GameState.BossIntro && e.Mode == CameraMode.ThirdPerson && e.IsComplete) cameraReady = true;
         }
 
+        /// <summary>보스 처치 → 다음 Update 에서 보상 단계. 최종 보스 최후 연출 중이면 보상 없이 연출이 게임 클리어로 끝낸다</summary>
         private void OnBossDefeated()
         {
+            if (finaleStarted) return;
             if (isRoundRunning && (phase == GameState.BossIntro || phase == GameState.BossBattle)) bossDefeated = true;
+        }
+
+        /// <summary>최종 보스 최후 연출 시작 → 보급 투하를 멈추고, 처치해도 보상 단계로 가지 않게 표시</summary>
+        private void OnBossFinaleStarted(BossFinaleStartedEvent e)
+        {
+            if (isRoundRunning == false) return;
+            finaleStarted = true;
+            if (supplyDropper != null) supplyDropper.StopAutoDropCycle();
         }
 
         private void OnRewardSelectionFinished(RewardSelectionFinishedEvent e)
@@ -215,6 +244,7 @@ namespace HybridShooter.Round
             bossEncounter.Defeated -= OnBossDefeated;
             EventBus<CameraModeChangedEvent>.Unsubscribe(OnCameraModeChanged);
             EventBus<RewardSelectionFinishedEvent>.Unsubscribe(OnRewardSelectionFinished);
+            EventBus<BossFinaleStartedEvent>.Unsubscribe(OnBossFinaleStarted);
             StopRound();
         }
     }

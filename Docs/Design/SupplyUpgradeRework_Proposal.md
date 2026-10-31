@@ -1,8 +1,54 @@
 # 보급 시스템 · 라운드 종료 업그레이드 개편 — 설계 검토안
 
-> 상태: **검토 요청 (구현 전)**  ·  작성일 2026-10-31  ·  브랜치 `chore/SupplySystemFix`
+> 상태: **A·C 구현 완료 (Unity 플레이 확인 전) · B 설계만 (보류)**  ·  작성일 2026-10-31 · 갱신 2026-11-01  ·  브랜치 `chore/SupplySystemFix`
 > 기준 문서: 「이벤트 버스와 외부 데이터 적용 기준」 v0.1
-> 이 문서의 **5장 확인 항목**에 답을 받은 뒤 구현을 시작한다.
+
+## 0. 결정 사항과 구현 결과 (2026-11-01)
+
+| Q | 결정 | 구현 |
+|---|---|---|
+| Q1 | Terrain 로컬 높이 → **플레이 피드백으로 플레이어 발 높이 기준으로 변경** (0-1 참고) | `SupplyMaxTerrainHeight = 5`, 지면 y > 플레이어 y + 5 면 버림 |
+| Q2 | 권장안 (첫 충돌이 Ground). Props → Obstacle 레이어 지정안과 비교: 비용은 둘 다 레이캐스트 1회 + 레이어 비교로 같고, 허용 목록(Ground) 방식은 맵의 소품 레이어를 바꾸지 않아도 되며 레이어를 빠뜨린 소품·새로 추가되는 오브젝트 위에도 떨어지지 않아 더 안전 | `SupplyDropper.dropGroundLayers`(Inspector, 비우면 Ground) · 레이캐스트는 `groundMask`(Everything) |
+| Q3 | 권장안 | `RoundSequencer.BeginBossBattle` → `StartAutoDropCycle(interval, dropImmediately: false)`, 보상 단계에서 정지 |
+| Q4 | 권장안 | `SupplyCrate : IInteractable` — 착지 후만 상호작용, 가득 차면 `Warning` 표시 후 F 실패. 접촉 자동 획득 삭제 |
+| Q5 | 스킨 에셋 | `UpgradeUiSkin`(SO) + `Resources/UI/UpgradeUiSkin.asset`(원본 씬 연결값). `UpgradeScreen` 은 비어 있는 칸만 스킨으로 채움 |
+| Q6 | 권장안 | `RoundStartSupply` — `RoundStartedEvent(Round ≥ 2)` 에서 수류탄·회복 팩 +2, `IPlayerAmmo.AddMagazinesToAll(2)`. 라운드마다 탄약 리셋 규칙 유지 |
+| Q7 | **알림 + 소리 추가** | `RoundSupplyGrantedEvent`(실제 지급량) → `RoundSupplyToastHud`(배너, GameFlowUiBootstrap 자동 부착) · `GameSoundRouter`(`roundSupplyKey = sfx_supply_reload`) · `SupplyHud`(테스트 씬 문구). 독립 구독자 3개라 전역 이벤트 사용 |
+| Q8 | 권장안 | `UpgradeManager` 1회 구매 제한 삭제(`PurchaseCount`), `CanFinish = IsOpen`. 화면 카드 잠금 삭제 |
+| Q9 | 설계만, 구현 보류 | B 장 그대로 유지 |
+
+### 문서와 달라진 점
+- **낙하 후보 탐색 횟수**: Inspector 필드(씬 11곳에 10 으로 저장돼 코드 값을 덮던 것) → 코드 상수 `MaxPositionTries = 30` (기준 문서: 내부 탐색 재시도 제한 = 코드 상수). 씬 수정 없음
+- **SupplyTable `IconKey` 열**: 보급 아이콘 리소스가 아직 없어 추가하지 않음 (프롬프트 IconKey 는 빈 값)
+- **`RoundStartSupply` 배치**: 씬마다 두지 않고 `SupplyDropper.Awake` 가 같은 오브젝트에 붙임 (RoundSequencer → RoundBossEncounter 와 같은 방식)
+- **계약 변경**: `IPlayerAmmo.AddMagazinesToAll` 반환 bool → int(실제 증가량, 사용처 없었음), `IPlayerAmmo.CanAddSupplyMagazines` 추가(가득 참 경고용)
+- 메인 씬에는 `SupplyHud` 가 없어 지급 알림은 새 배너(`RoundSupplyToastHud`)가 담당
+
+### 플레이 확인 항목
+- [ ] 착지한 상자를 조준하면 `[F] 획득` 프롬프트(이름·지급량), 가득 차면 경고 표시, F 로 획득
+- [ ] 낙하 중인 상자는 프롬프트가 뜨지 않음 / 닿기만 해서는 획득되지 않음
+- [ ] 상자가 건물 지붕·바위·나무 위·건물 안에 떨어지지 않음, 플레이어보다 5m 넘게 높은 곳에 떨어지지 않음, 플레이어와 20~60m
+- [ ] 투하 실패 경고가 잦지 않은지. 실패하면 경고의 탈락 사유(지면 없음 / 레이어 / 높이) 확인
+- [ ] 보스 인트로 중 투하 없음 → 보스전 시작 후 25초부터 다시 투하, 3인칭에서도 F 획득
+- [ ] 보스 처치 → 강화 화면이 스프라이트로 그려짐 (단색 박스 아님), 재화가 있으면 여러 번 구매, 0회면 "건너뛰기"
+- [ ] 다음 라운드 시작 시 배너 "라운드 N 보급" + 소리, 수류탄·회복 팩 +2(최대치까지), 탄약 = 시작값 + 2탄창
+- [ ] 게임오버 → 재시작(Round 1) 때는 지급 없음
+- [ ] SupplyPackTestscene: F 키로 주변 상자 획득
+- [ ] 부활 직후 1~3번 총 탄창 가득, 예비 탄창이 시작값 이상 (더 모아 둔 탄창은 유지)
+- [ ] Tyranopode 처치 → 최후 연출 → 클리어 화면 (강화 화면이 뜨지 않음)
+- [ ] 강화 화면이 넓은 창·좁은 창 모두에서 제목·보유 재화·다음 라운드 버튼까지 보임
+
+### 0-1. 1차 플레이 피드백 반영 (2026-11-01, `Monster Player Integration`)
+
+| 증상 | 원인 | 수정 |
+|---|---|---|
+| 보급이 투하되지 않음 | `SciFiMap` Terrain 원점이 y = -20 이라 전장 지면이 Terrain 로컬 높이 약 18 → "로컬 높이 5 이하" 조건에 거의 전 지역이 탈락 | 높이 기준을 **플레이어 발 높이 + `SupplyMaxTerrainHeight`(5)** 로 변경 (맵 원점·보스 아레나 높이와 무관). 실패 시 탈락 사유별 횟수를 경고에 표시 |
+| 강화 UI 가 화면에 다 안 들어옴 | Tyranopode 처치 → 보상 단계(시간 정지)로 넘어가 최후 연출이 검은 띠·문구를 띄운 채 멈춤. 연출 캔버스(1000)가 강화 화면(100) 위를 덮음. 강화 배치도 1080 중 40~1040 을 써 여백이 없었음 | 아래 "최종 보스" 수정 + `UpgradeScreen` CanvasScaler `Expand`(어떤 비율에서도 1920×1080 영역 전체 표시), 패널 0.9배(`PanelScale`) |
+| 부활 시 탄창 부족 | 탄약은 라운드 정리 때만 시작값으로, 부활에는 처리 없음 | `GunSlot` 이 `PlayerRevivedEvent` 수신 → 보급 칸 제외 총 `Gun.RestoreAmmoForRevive()`: 탄창 가득 + 예비 탄창 = max(현재, 시작값) |
+| (추가) 최종 보스 처치 후 진행 불가 | 최후 연출은 클리어 화면 → 메인 메뉴로 끝나는데, 라운드 흐름이 강화 화면을 열고 다음 라운드를 시작 → 시네마틱(입력 차단·무적·검은 띠)이 풀리지 않음 | `BossFinaleStartedEvent`(최후 연출 시작 시 발행) → `RoundSequencer` 가 보급을 멈추고 보스가 죽어도 보상 단계로 가지 않음. 강화 화면은 일반 보스 처치 후에만 |
+| (추가) 상자가 건물 안에 떨어질 수 있음 | 통합 씬 `Supply.groundMask` 가 Ground 하나라 레이캐스트가 지붕을 통과 | 씬 값을 Everything 으로 복원 |
+
+- 결과: 다음 라운드 지급(배너·소리)은 **라운드 1(Clypeosaurus) → 2** 에서 확인. Tyranopode(라운드 2) 처치 = 게임 클리어라 RoundTable 3라운드 행은 현재 쓰이지 않음
 
 ---
 

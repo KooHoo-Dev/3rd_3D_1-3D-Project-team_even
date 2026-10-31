@@ -48,6 +48,12 @@ namespace HybridShooter.Core.Events
         public GameOverEvent(int reachedRound) { ReachedRound = reachedRound; }
     }
 
+    /// <summary>
+    /// [최종 보스 최후 연출(Tyranopode)] → 코어(RoundSequencer). 최후 연출이 시작됨 = 이 보스를 처치하면 게임 클리어.
+    /// 코어는 보급 투하를 멈추고, 보스가 죽어도 보상 단계(Reward)로 가지 않는다 (연출이 클리어 화면 → 메인 메뉴로 이끈다)
+    /// </summary>
+    public readonly struct BossFinaleStartedEvent { }
+
     /// <summary>[최종 보스 최후 연출(Tyranopode)] → 게임 클리어. 클리어 화면은 연출이 직접 띄운다 (다른 파트가 기록·사운드 등에 쓸 수 있게 알림만)</summary>
     public readonly struct GameClearedEvent { }
 
@@ -267,6 +273,17 @@ namespace HybridShooter.Core.Events
         public SupplyCollectedEvent(SupplyDef def, int itemAmount, int magazinesAdded, Vector3 position)
         {
             Def = def; ItemAmount = itemAmount; MagazinesAdded = magazinesAdded; Position = position;
+        }
+    }
+
+    /// <summary>[보급(RoundStartSupply)] → UI(지급 알림)·사운드. 보스 클리어 후 다음 라운드 시작 지급. 값은 실제로 늘어난 양 (하나도 안 늘면 발행 안 함)</summary>
+    public readonly struct RoundSupplyGrantedEvent
+    {
+        public readonly int Round;
+        public readonly int Grenades, HealPacks, MagazinesAdded;
+        public RoundSupplyGrantedEvent(int round, int grenades, int healPacks, int magazinesAdded)
+        {
+            Round = round; Grenades = grenades; HealPacks = healPacks; MagazinesAdded = magazinesAdded;
         }
     }
 

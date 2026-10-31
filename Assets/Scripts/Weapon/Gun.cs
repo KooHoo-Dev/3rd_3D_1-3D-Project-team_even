@@ -210,6 +210,8 @@ namespace HybridShooter.Weapon
         public int MaxMagazines => Stats.maxMagazines;
         public bool InfiniteMagazines => infiniteMagazines;
         public bool HasSpareMagazine => infiniteMagazines || SpareMagazines > 0;
+        /// <summary>AddSupplyMagazines 로 예비 탄창이 늘어나는지 (무한 탄창·비율 0·이미 최대면 false)</summary>
+        public bool CanAddSupplyMagazines => infiniteMagazines == false && SupplyMagazineRatio > 0f && SpareMagazines < Stats.maxMagazines;
         /// <summary>지금 재장전을 시작할 수 있는지 (장전 중 아님 + 탄창이 가득 차지 않음 + 예비 탄창 있음)</summary>
         public bool CanReload => IsReloading == false && Ammo < Stats.magazineSize && HasSpareMagazine;
         /// <summary>탄창도 예비 탄창도 비었다 (더 쏠 수 없음)</summary>
@@ -364,7 +366,7 @@ namespace HybridShooter.Weapon
         /// </summary>
         public int AddSupplyMagazines()
         {
-            float ratio = Def != null ? Def.SupplyMagazineRatio : FallbackSupplyMagazineRatio;
+            float ratio = SupplyMagazineRatio;
             if (ratio <= 0f) return 0;
             int before = SpareMagazines;
             AddMagazines(Mathf.Max(1, Mathf.FloorToInt(Stats.maxMagazines * ratio)));
@@ -377,6 +379,17 @@ namespace HybridShooter.Weapon
             CancelReload();
             ResetAmmo();
             OnInitialized();
+        }
+
+        /// <summary>
+        /// 부활: 장전 취소 + 탄창 가득 + 예비 탄창을 최소 시작값까지 (시작값보다 많이 모아 둔 탄창은 그대로).
+        /// 탄이 바닥난 채 부활해 바로 죽는 일을 막는다
+        /// </summary>
+        public void RestoreAmmoForRevive()
+        {
+            CancelReload();
+            SpareMagazines = Mathf.Max(SpareMagazines, Mathf.Clamp(Stats.startMagazines, 0, Stats.maxMagazines));
+            SetAmmo(Stats.magazineSize);
         }
 
         /// <summary>재장전 동작 없이 탄창과 예비 탄창을 바로 가득 채운다 (디버그 무한 탄약 등)</summary>
@@ -429,6 +442,8 @@ namespace HybridShooter.Weapon
         protected virtual float MagazineUpgradeRate => 1f;
         /// <summary>WeaponTable 행이 없을 때(fallbackStats) 보급 1회 예비 탄창 충전 비율</summary>
         protected virtual float FallbackSupplyMagazineRatio => 0.5f;
+        /// <summary>보급 1회 예비 탄창 충전 비율 (테이블 값, 행이 없으면 FallbackSupplyMagazineRatio)</summary>
+        private float SupplyMagazineRatio => Def != null ? Def.SupplyMagazineRatio : FallbackSupplyMagazineRatio;
         /// <summary>장전 중에 쏘면 장전을 끊고 쏠 수 있는지 (산탄총 한 발씩 장전)</summary>
         protected virtual bool CanInterruptReload => false;
         /// <summary>지금 화면 확대를 걸지. 저격총은 노리쇠 당기는 동안 끈다</summary>
