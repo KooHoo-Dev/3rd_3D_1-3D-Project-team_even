@@ -83,8 +83,13 @@ namespace HybridShooter.Monster.Movement
 
         // ════════ 슬롯 모드 (UseSlots = true) ════════
         private SlotRegistry slots;                                                   // 목표 둘레 슬롯 배정 관리
+        private NavMeshSlotNavigation slotNavigation;                                 // slots 와 함께 만든 투영·경로 판단 (추적 지점 투영에도 재사용)
         private bool slotsRefreshed;                                                  // 현재 목표 기준으로 슬롯을 갱신했나
         private readonly List<SlotObstacle> slotObstacles = new List<SlotObstacle>(); // 혼잡 판정용 몬스터 위치 목록 (재사용)
+
+        // ════════ 추적 지점 (슬롯 링 중심) ════════
+        private Vector3 chasePosition;              // 슬롯 링 중심. 플레이어를 NavMesh 에 투영한 지점, 투영 실패 시 마지막 성공 지점
+        private bool hasProjectedChasePosition;     // 지금 목표로 투영에 한 번이라도 성공했나 (false = 이력 없음, 실제 위치 사용)
 
         // ════════ 토큰 모드 (UseSlots = false) 배분 버퍼 ════════
         private AllocationAgent[] agentBuffer = new AllocationAgent[16];              // EngageAllocator 입력 (매번 할당하지 않도록 재사용)
@@ -202,6 +207,7 @@ namespace HybridShooter.Monster.Movement
         {
             target = newTarget;
             targetSource = newTarget as MonoBehaviour;
+            hasProjectedChasePosition = false;
             ClearSlotReservations();
             slotsRefreshed = false;
             nextAllocationTime = 0f;
@@ -266,14 +272,15 @@ namespace HybridShooter.Monster.Movement
                 lastEngagedInsideNear = 0;
                 return;
             }
-            // 2) 몬스터 위치를 장애물로 넘겨 슬롯 후보·점유 상태 갱신
+            // 2) 추적 지점을 정하고, 몬스터 위치를 장애물로 넘겨 그 둘레의 슬롯 후보·점유 상태 갱신
+            UpdateChasePosition(currentTarget.PlayerTrackingInfo.Position);
             slotObstacles.Clear();
             for (int i = 0; i < agents.Count; i++)
             {
                 MonsterMovement agent = agents[i];
                 slotObstacles.Add(new SlotObstacle(agent.GetInstanceID(), agent.transform.position, agent.Radius));
             }
-            slots.Refresh(currentTarget.PlayerTrackingInfo.Position, Time.time, slotObstacles);
+            slots.Refresh(chasePosition, Time.time, slotObstacles);
             slotsRefreshed = true;
             // 3) 동시 접근 허용 수(EngageCapacity)를 넘은 접근 링 예약은 번호가 큰 쪽부터 회수
             int maxApproach = Mathf.Min(settings.EngageCapacity, slots.ApproachCount);
@@ -287,7 +294,7 @@ namespace HybridShooter.Monster.Movement
             for (int i = 0; i < agents.Count; i++)
             {
                 MonsterMovement agent = agents[i];
-                Vector3 delta = agent.transform.position - currentTarget.PlayerTrackingInfo.Position;
+                Vector3 delta = agent.transform.position - chasePosition;
                 float horizontalDistance = new Vector2(delta.x, delta.z).magnitude;
                 bool inside = horizontalDistance <= settings.NearRadius;
                 bool usesToken = agent.Profile.UsesEngageToken;
@@ -309,6 +316,24 @@ namespace HybridShooter.Monster.Movement
                 FreeCapacity = Mathf.Max(0, maxApproach - slots.ApproachReservations)
             };
             lastEngagedInsideNear = engagedNear;
+        }
+
+        /// <summary>
+        /// 슬롯 링 중심이 될 추적 지점(chasePosition)을 갱신한다. RefreshSlots 가 슬롯을 다시 계산하기 전에 부른다.
+        /// 플레이어가 지붕 등 NavMesh 밖에 있으면 마지막으로 투영에 성공한 지점을 유지해, 몬스터가 그곳까지 와서 대기·선회하게 한다.
+        /// </summary>
+        /// <param name="playerPosition">플레이어 실제 위치 (월드)</param>
+        /// <remarks>투영 이력이 없으면 실제 위치를 쓴다 (이전 동작). SetTarget 이 이력을 비운다.</remarks>
+        private void UpdateChasePosition(Vector3 playerPosition)
+        {
+            if (slotNavigation.TryProject(playerPosition, out Vector3 projectedPosition))
+            {
+                chasePosition = projectedPosition;
+                hasProjectedChasePosition = true;
+                return;
+            }
+            if (hasProjectedChasePosition) return;
+            chasePosition = playerPosition;
         }
 
         /// <summary>
@@ -394,7 +419,8 @@ namespace HybridShooter.Monster.Movement
         private void EnsureSlots()
         {
             if (slots != null && HasSameRingGeometry()) return;
-            slots = new SlotRegistry(settings.Slots, new NavMeshSlotNavigation(settings.Slots));
+            slotNavigation = new NavMeshSlotNavigation(settings.Slots);
+            slots = new SlotRegistry(settings.Slots, slotNavigation);
             slotsRefreshed = false;
         }
 
