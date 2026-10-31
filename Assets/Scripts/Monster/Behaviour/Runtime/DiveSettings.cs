@@ -9,8 +9,10 @@ namespace HybridShooter.Monster.Behaviour
     public sealed class DiveSettings : MonsterAttackSettingsComponent
     {
         [Header("급강하")]
-        [Tooltip("플레이어와 수평 거리가 이 안이면 급강하를 시작한다 (m). DiveAttack.Range")]
+        [Tooltip("플레이어와 수평 거리가 이 안이면 급강하를 시작한다 (m). 기준값이고, DiveAttack.Range 는 여기에 개체별 랜덤 보정을 더한다")]
         [SerializeField, Min(0.5f)] private float entryDistance = 8f;
+        [Tooltip("개체마다 급강하 시작 거리에 더할 랜덤 범위 (m). ±이 값 안에서 공격을 만들 때 1회 뽑는다. 결과는 최소 0.5m")]
+        [SerializeField, Min(0f)] private float entryDistanceRandomRange = 1.5f;
         [Tooltip("급강하 최저점의 플레이어 발 위 높이 (m)")]
         [SerializeField, Min(0f)] private float minHeight = 1f;
         [Tooltip("급강하·이탈 수평 속도 (m/s)")]
@@ -23,12 +25,16 @@ namespace HybridShooter.Monster.Behaviour
         [SerializeField, Min(0f)] private float turnAwayTime = 1f;
         [Tooltip("순항 고도와 높이 차가 이 이하면 고도를 회복한 것으로 본다 (m)")]
         [SerializeField, Min(0f)] private float altitudeTolerance = 0.5f;
+        [Tooltip("이탈 중 몸을 수평으로 되돌리는 빠르기 (1/s, 지수 보간 계수). 클수록 빨리 수평이 된다")]
+        [SerializeField, Min(0.1f)] private float levelOutSpeed = 4f;
 
         public float EntryDistance => entryDistance;
+        public float EntryDistanceRandomRange => entryDistanceRandomRange;
         public float MinHeight => minHeight;
         public float DiveSpeed => diveSpeed;
         public float LeaveDistance => leaveDistance;
         public float TurnAwayTime => turnAwayTime;
         public float AltitudeTolerance => altitudeTolerance;
+        public float LevelOutSpeed => levelOutSpeed;
     }
 }

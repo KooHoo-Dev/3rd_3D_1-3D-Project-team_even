@@ -38,6 +38,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             var movement = monster.AddComponent<MonsterMovement>();
             profile = ScriptableObject.CreateInstance<MovementProfile>();
             movement.ConfigureDirect(profile, target);
+            movement.SetCombatTuning(3.5f, 1.8f); // 이전 MovementProfile 기본 속도·사거리
             monster.SetActive(true);
             yield return null;
 

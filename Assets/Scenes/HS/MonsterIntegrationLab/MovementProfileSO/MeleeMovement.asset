@@ -14,8 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MovementProfile
   policyKind: 0
   usesEngageToken: 1
-  moveSpeed: 3.5
-  attackRange: 1.8
   reactionDelayMin: 0.1
   reactionDelayMax: 0.4
   reactionChangeDistance: 0.5
@@ -24,6 +22,4 @@ MonoBehaviour:
   minWaitSeconds: 1
   keepDistanceMin: 12
   keepDistanceMax: 18
-  flankViewHalfAngleDeg: 50
   flankRadius: 10
-  flankSpeedMultiplier: 1.6

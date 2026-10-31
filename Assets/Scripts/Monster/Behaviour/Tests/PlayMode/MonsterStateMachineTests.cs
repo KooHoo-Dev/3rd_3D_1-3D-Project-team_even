@@ -51,6 +51,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             movement = monsterObject.AddComponent<MonsterMovement>();
             profile = ScriptableObject.CreateInstance<MovementProfile>();
             movement.ConfigureDirect(profile, target);
+            movement.SetCombatTuning(3.5f, 1.8f); // 이전 MovementProfile 기본 속도·사거리
             monsterObject.SetActive(true);
             yield return null;
         }
@@ -219,6 +220,39 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Step(); // 다음 틱에 사거리 밖 → Chase
             Assert.AreSame(_stateMachine.Chase, _stateMachine.Current);
             Assert.IsFalse(movement.IsSuspended);
+        }
+
+        [Test]
+        public void AttackBeginsWhenTargetBacksOffWithinHoldRange()
+        {
+            attack.HitRangeRatio = 2f; // 유지 사거리 3m
+            EnterAttack();
+            target.Position = new Vector3(0f, 0f, 2f); // 진입 사거리(1.5m) 밖, 유지 사거리 안
+            Step();
+            Assert.AreSame(_stateMachine.Attack, _stateMachine.Current, "진입 뒤에는 유지 사거리로 판정한다");
+            Assert.AreEqual(1, beginCount);
+        }
+
+        [Test]
+        public void AttackOutsideHoldRangeReturnsToChase()
+        {
+            attack.HitRangeRatio = 2f; // 유지 사거리 3m
+            EnterAttack();
+            target.Position = new Vector3(0f, 0f, 3.5f);
+            Step();
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current);
+            Assert.AreEqual(0, beginCount);
+        }
+
+        [Test]
+        public void ChaseEntersAttackOnlyWithinRangeEvenWithHoldRatio()
+        {
+            attack.HitRangeRatio = 2f; // 유지 사거리 3m
+            _stateMachine.SetTarget(target);
+            Step(); // Idle → Chase
+            target.Position = new Vector3(0f, 0f, 2f);
+            Step();
+            Assert.AreSame(_stateMachine.Chase, _stateMachine.Current, "진입은 Range(1.5m)로 판정한다");
         }
 
         [Test]
