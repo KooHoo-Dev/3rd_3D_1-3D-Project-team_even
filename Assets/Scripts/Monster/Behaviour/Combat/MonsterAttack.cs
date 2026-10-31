@@ -38,7 +38,7 @@ namespace HybridShooter.Monster.Behaviour
         // Active 시작부터 판정까지의 비율 (0~1). 0 = Active 첫 틱에 판정
         public float HitTimeRatio { get; set; } = 0.5f;
 
-        // 근접 판정 거리 ÷ 진입 거리(Spec.Range). 1 = 같음. StrikeAttack 의 Melee 판정만 쓴다. MonsterController 가 인스펙터 값을 넣는다
+        // 근접 판정 거리 ÷ 진입 거리(Spec.Range). 1 = 같음. AttackState 의 Attack 유지 거리(진입 뒤)와 StrikeAttack 의 Melee 판정이 쓴다. MonsterController 가 인스펙터 값을 넣는다
         public float HitRangeRatio { get; set; } = 1f;
 
         // 예고 중 WindupLookPoint 쪽으로 도는 속도 (도/초). 0 = 돌지 않는다. MonsterController 가 인스펙터 값을 넣는다
@@ -123,7 +123,7 @@ namespace HybridShooter.Monster.Behaviour
         public virtual bool CanStart(float now) => IsAttacking == false && now >= nextReadyTime;
 
         /// <summary>
-        /// 공격 한 주기를 시작한다 (예고 진입). AttackState 가 사거리 안·공격 허가·CanStart 일 때 부른다.
+        /// 공격 한 주기를 시작한다 (예고 진입). AttackState 가 유지 사거리(Range × HitRangeRatio) 안·공격 허가·CanStart 일 때 부른다.
         /// 이 주기의 쿨다운·Active 길이·판정 비율을 여기서 고정하므로
         /// 진행 중에 Cooldown / ActiveSeconds / HitTimeRatio 가 바뀌어도 다음 Begin 부터 반영된다.
         /// </summary>

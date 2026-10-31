@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
@@ -22,6 +24,7 @@ namespace HybridShooter.Round
         [SerializeField] private RoundBossEncounter bossEncounter;
 
         private RoundDef roundDef;
+        private int roundNumber;
         private GameState phase;
         private float elapsedSeconds;
         private float bossSpawnTime;
@@ -61,13 +64,20 @@ namespace HybridShooter.Round
             return bossEncounter.Prepare();
         }
 
-        public void StartRound(RoundDef def)
+        /// <summary>
+        /// 한 라운드를 군중전부터 시작한다. RunDirector 가 라운드마다 부른다.
+        /// 웨이브는 진행 라운드 번호를 웨이브 데이터의 라운드 번호로 돌려 쓴다 (GetWaveRoundNumber).
+        /// </summary>
+        /// <param name="def">보스·보급 시각을 정하는 라운드 데이터. null 이면 시작하지 않는다</param>
+        /// <param name="roundNumber">RunDirector 의 진행 라운드 번호 (1부터, 계속 늘어남)</param>
+        public void StartRound(RoundDef def, int roundNumber)
         {
             if (isRoundRunning || def == null) return;
 
             if (supplyDropper != null) supplyDropper.StopAutoDropCycle();
 
             roundDef = def;
+            this.roundNumber = roundNumber;
             elapsedSeconds = 0f;
             bossSpawnTime = def.RollBossSpawnTime(UnityEngine.Random.value);
             cameraReady = false;
@@ -79,8 +89,31 @@ namespace HybridShooter.Round
             ChangePhase(GameState.CrowdBattle);
             if (isRoundRunning == false) return;
 
-            monsterWaveDirector.StartRound(1);
+            int waveRoundNumber = GetWaveRoundNumber(roundNumber);
+            Debug.Log($"[RoundSequencer] 진행 {roundNumber}라운드 → 웨이브 라운드 {waveRoundNumber}", this);
+            monsterWaveDirector.StartRound(waveRoundNumber);
             UpdateSupplyStart();
+        }
+
+        /// <summary>
+        /// 진행 라운드 번호를 웨이브 라운드 번호로 바꾼다. WaveStageTable 에 있는 RoundNo 를 작은 순서로 돌려 쓴다 (모듈러 순환).
+        /// 예: 웨이브 라운드가 1~5 이면 진행 1~5 → 1~5, 6 → 1, 7 → 2.
+        /// </summary>
+        /// <param name="roundNumber">진행 라운드 번호 (1부터)</param>
+        /// <returns>MonsterWaveDirector.StartRound 에 넘길 RoundNo</returns>
+        /// <exception cref="DivideByZeroException">WaveStageTable 에 스테이지가 하나도 없을 때</exception>
+        private static int GetWaveRoundNumber(int roundNumber)
+        {
+            var waveRoundNumbers = new List<int>();
+            foreach (WaveStageDef stage in DataManager.WaveStages)
+            {
+                if (waveRoundNumbers.Contains(stage.RoundNo)) continue;
+                waveRoundNumbers.Add(stage.RoundNo);
+            }
+            waveRoundNumbers.Sort();
+
+            int cycleIndex = (roundNumber - 1) % waveRoundNumbers.Count;
+            return waveRoundNumbers[cycleIndex];
         }
 
         public void StopRound()
@@ -116,7 +149,8 @@ namespace HybridShooter.Round
                     if (bossStarted == false)
                     {
                         bossStarted = true;
-                        bossEncounter.Begin(roundDef.Boss);
+                        // 보스는 진행 라운드 번호의 RoundTable 행으로 고른다 (roundDef 는 항상 1 라운드 행)
+                        bossEncounter.Begin(roundDef.Boss, DataManager.GetRound(roundNumber)?.BossId ?? roundDef.BossId);
                     }
                     if (isRoundRunning == false) return;
                     if (bossDefeated) ChangePhase(GameState.Reward);

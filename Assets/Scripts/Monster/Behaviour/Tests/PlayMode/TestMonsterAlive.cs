@@ -51,6 +51,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             movement = monsterObject.AddComponent<MonsterMovement>();
             profile = ScriptableObject.CreateInstance<MovementProfile>();
             movement.ConfigureDirect(profile, target);
+            movement.SetCombatTuning(3.5f, 1.8f); // 이전 MovementProfile 기본 속도·사거리
             monsterObject.SetActive(true);
             yield return null;
         }
@@ -112,6 +113,29 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
             Assert.AreSame(_stateMachine.Idle, _stateMachine.Current);
             Assert.AreEqual(0, target.Received.Count);
+        }
+
+        // 플레이어 사망 중(군중 목표 null) 스포너가 새 몬스터를 만들면 Activate 가 ViewPoint 에 접근해 NRE 가 났다 (MonsterMovement.cs:210)
+        [UnityTest]
+        public IEnumerator ActivatingCrowdMonsterWhileCoordinatorHasNoTargetThrowsNothing()
+        {
+            var coordinatorObject = new GameObject("TestCrowdCoordinator");
+            var crowdCoordinator = coordinatorObject.AddComponent<CrowdCoordinator>();
+            var crowdMonsterObject = new GameObject("TestCrowdMonster");
+            crowdMonsterObject.SetActive(false);
+            crowdMonsterObject.AddComponent<NavMeshAgent>();
+            crowdMonsterObject.AddComponent<NavMeshMoveExecutor>();
+            var crowdMovement = crowdMonsterObject.AddComponent<MonsterMovement>();
+            crowdMovement.Configure(profile, crowdCoordinator);
+
+            crowdMonsterObject.SetActive(true);
+            yield return null;   // Start → Activate
+            yield return null;   // CrowdCoordinator.Update → Think (목표 없음)
+
+            Assert.IsNull(crowdCoordinator.Target);
+            Assert.IsTrue(crowdMovement.enabled);
+            Object.DestroyImmediate(crowdMonsterObject);
+            Object.DestroyImmediate(coordinatorObject);
         }
     }
 }

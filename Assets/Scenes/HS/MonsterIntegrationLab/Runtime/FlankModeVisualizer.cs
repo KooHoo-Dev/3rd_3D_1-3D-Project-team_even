@@ -115,7 +115,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
         /// </summary>
         private void UpdateEstimatedMode()
         {
-            MovementTuning tuning = movement.Profile.ToTuning();
+            MovementTuning tuning = movement.Tuning;
             float distance = HorizontalDistanceToTarget();
 
             if (distance <= tuning.FlankSwitchDistance)
@@ -142,7 +142,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
             if (showFlankRing == false) return;
 
             Gizmos.color = flankRingColor;
-            DrawRing(movement.Target.PlayerTrackingInfo.Position, movement.Profile.ToTuning().FlankRadius);
+            DrawRing(movement.Target.PlayerTrackingInfo.Position, movement.Tuning.FlankRadius);
         }
 
         /// <summary>2. Near 진입 원(전환 거리)과 Far 복귀 원(전환 거리 + 폭)</summary>
@@ -150,7 +150,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
         {
             if (showSwitchBoundary == false) return;
 
-            MovementTuning tuning = movement.Profile.ToTuning();
+            MovementTuning tuning = movement.Tuning;
             Vector3 center = movement.Target.PlayerTrackingInfo.Position;
             Gizmos.color = boundaryColor;
             DrawRing(center, tuning.FlankSwitchDistance);
@@ -176,7 +176,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
         {
             if (showViewCone == false) return;
 
-            MovementTuning tuning = movement.Profile.ToTuning();
+            MovementTuning tuning = movement.Tuning;
             Transform viewPoint = movement.Target.ViewPoint;
             float halfAngleDeg = HorizontalHalfFovDeg(viewPoint.GetComponent<Camera>());
             float length = tuning.FlankSwitchDistance + tuning.FlankSwitchBand;

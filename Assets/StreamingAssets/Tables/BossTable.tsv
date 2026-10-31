@@ -1,2 +1,5 @@
-Id	MaxHp	MoveSpeed	PatternCooldown
-1	3000	3	10
+Id	MaxHp	MoveSpeed	PatternCooldown	Prefab
+# Prefab: Resources 경로 (확장자 없음). 라운드 보스는 RoundTable.BossId 로 고른다
+1	3000	3	10	Boss/Clypeosaurus/Prefab/Clypeosaurus
+# 2 Tyranopode: 공격 간격은 TyranopodeTable(CircleTime·Combo·Assist)이 정하므로 PatternCooldown 0
+2	6000	6	0	Boss/Tyranopode/Tyranopode

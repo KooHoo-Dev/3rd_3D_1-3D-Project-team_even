@@ -9,7 +9,11 @@ namespace HybridShooter.Monster.MovementLab
     {
         private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
 
-        /// <summary>기본값 + 정책별 대표 값</summary>
+        /// <summary>
+        /// 기본값 + 정책별 대표 값. 이동 속도·사거리는 프로필에 없다 (Lab 몬스터 프리팹의 MonsterController 가 SetCombatTuning 으로 테이블 값을 넣는다).
+        /// </summary>
+        /// <param name="kind">만들 이동 정책 종류</param>
+        /// <returns>런타임 생성 profile. 호출자가 파괴한다</returns>
         public static MovementProfile CreateRuntime(MovementPolicyKind kind)
         {
             var p = ScriptableObject.CreateInstance<MovementProfile>();
@@ -20,12 +24,9 @@ namespace HybridShooter.Monster.MovementLab
                 case MovementPolicyKind.Melee:
                     break;
                 case MovementPolicyKind.Flank:
-                    Set(p, "moveSpeed", 5f);
                     break;
                 case MovementPolicyKind.KeepDistance:
                     Set(p, "usesEngageToken", false);
-                    Set(p, "moveSpeed", 2.5f);
-                    Set(p, "attackRange", 18f);
                     break;
             }
             return p;

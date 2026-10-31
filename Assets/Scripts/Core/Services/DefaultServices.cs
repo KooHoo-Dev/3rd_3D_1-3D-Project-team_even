@@ -22,6 +22,10 @@ namespace HybridShooter.Core.Services
             ServiceLocator.SetFallback<ISpawnZoneProvider>(new RingSpawnZoneProvider());
             ServiceLocator.SetFallback<ICurrencyWallet>(new CurrencyWallet());
             ServiceLocator.SetFallback<IUpgradeState>(new UpgradeLedger());
+
+            var weaponUnlocks = new WeaponUnlockLedger();
+            weaponUnlocks.BindEvents();
+            ServiceLocator.SetFallback<IWeaponUnlocks>(weaponUnlocks);
         }
     }
 

@@ -259,6 +259,7 @@ MonoBehaviour:
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
+  destinationFollowRate: 5
 --- !u!114 &6933845040553831818
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -296,7 +297,7 @@ MonoBehaviour:
   cooldownOverrideSeconds: 3
   activeSeconds: 0.5
   hitTimeRatio: 0.5
-  hitRangeRatio: 1
+  hitRangeRatio: 1.05
   windupTurnSpeed: 360
 --- !u!114 &4691132091533479145
 MonoBehaviour:
@@ -310,13 +311,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae35386ff291046488f8124707f8d7d4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.ChargeSettings
-  chargeSpeed: 12
-  chargeTurnSpeed: 10
-  brakeDeceleration: 5
+  chargeSpeed: 16
+  chargeTurnSpeed: 25
+  brakeDeceleration: 15
   maxChargeDistance: 60
   chargeClipSpeed: 18
   prepTurnSpeed: 90
-  prepMoveSpeed: 1.5
+  prepMoveSpeed: 2.5
   avoidancePriority: 30
 --- !u!136 &517540784849940430
 CapsuleCollider:

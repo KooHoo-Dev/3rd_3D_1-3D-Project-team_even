@@ -27,6 +27,10 @@ namespace HybridShooter.Monster.Movement
         [Tooltip("플레이어 방향으로 돌아보는 속도. 클수록 빠르게 따라붙는다 (지수 보간 계수, 1/s)")]
         [SerializeField, Min(0f)] private float turnSpeed = 8f;
 
+        [Header("목적지 보간")]
+        [Tooltip("실행기에 넘기는 추적 목적지가 새 목적지를 따라잡는 빠르기 (지수 보간 계수, 1/s). 클수록 빨리 따라붙는다. 0 = 보간 끔(새 목적지로 즉시 점프)")]
+        [SerializeField, Min(0f)] private float destinationFollowRate = 5f;
+
         // ════════ 협력 객체 (Awake/OnEnable 에서 연결) ════════
         // 실행기: "어떻게 움직일지"를 NavMeshAgent 로 실제 수행 (정책이 낸 MoveIntent 를 받는다)
         // 나중에 NavMesh 만으로
@@ -45,7 +49,11 @@ namespace HybridShooter.Monster.Movement
         private MovementState state = MovementState.Idle;
         private bool suspended;         // 공격·경직 등으로 이동 정지 중
         private bool isInAttackRange;   // 목표 유효 + 수평 거리 ≤ AttackRange
-        private MoveIntent lastIntent;  // 마지막으로 실행기에 전달한 의도 (디버그용)
+        private MoveIntent lastIntent;  // 마지막으로 확정한 의도. 목적지는 보간 전 원래 값 (FollowDestination 이 따라갈 목표)
+
+        // ── 추적 목적지 (Think 사이 목적지 점프를 매 프레임 보간) ──
+        private Vector3 followDestination;  // 실행기에 실제로 넘기는 목적지 (월드)
+        private bool hasFollowDestination;  // false = 다음 의도의 목적지로 바로 놓는다 (첫 이동·정지 뒤)
 
         // ════════ 군중 배분 결과 (CrowdCoordinator 가 채워 넣고 정책이 읽는다) ════════
         private CrowdDirective directive;
@@ -61,6 +69,7 @@ namespace HybridShooter.Monster.Movement
         private bool hasCombatTuning;         // SetCombatTuning 으로 개체별 속도·사거리를 받았는가
         private float combatSpeed;            // 개체별 이동 속도 (m/s)
         private float combatRange;            // 개체별 공격 사거리 (m)
+        private float flankApproachSpeedMultiplier = 1f; // 원거리 시야 밖 접근 속도 배율 (SetFlankApproachSpeedMultiplier, 기본 1)
 
         // ════════ 판단 주기 ════════
         private bool hasThought;              // 한 번이라도 Think 했는가 (첫 dt 를 0 으로 만들기 위함)
@@ -115,6 +124,10 @@ namespace HybridShooter.Monster.Movement
         // 마지막으로 받은 군중 지시 (디버그용)
         public CrowdDirective Directive => directive;
         public MoveIntent LastIntent => lastIntent;
+        // 정책에 넘기는 수치 (profile + 개체별 속도·사거리·원거리 배율). 디버그 시각화용
+        public MovementTuning Tuning => tuning;
+        // 마지막 판단이 원거리 시야 밖 접근이었는가 (측면 침투형만 true 가능). MonsterController 가 이동 클립 배율을 고를 때 읽는다
+        public bool IsApproachingOutOfView => policy is FlankPolicy flank && flank.IsApproachingOutOfView;
         public MoveExecutionState ExecutionState => executor != null ? executor.ExecutionState : MoveExecutionState.Idle;
         public float Radius => executor.Radius;
 
@@ -185,8 +198,7 @@ namespace HybridShooter.Monster.Movement
             }
 
             // 2) 정책·수치 준비 (정책은 개체 하나당 인스턴스 하나, 재활성화 시 재사용)
-            tuning = profile.ToTuning();
-            if (hasCombatTuning) ApplyCombatTuning();
+            ApplyCombatTuning();
             if (policy == null) policy = MovementPolicyFactory.Create(profile.PolicyKind, GetInstanceID());
 
             // 3) 이전 활성화 때 남은 상태 초기화
@@ -204,10 +216,6 @@ namespace HybridShooter.Monster.Movement
             }
             else
                 directive = new CrowdDirective(DirectiveKind.Unrestricted, default, 0, false, 0f);
-            
-            // 5) 카메라 시야각 정보 캐싱
-            IPlayerTarget target = targetInfo ?? Target;
-            viewHalfAngleDeg = HorizontalHalfFovDeg(target.ViewPoint.GetComponent<Camera>());
         }
 
         /// <summary>
@@ -245,7 +253,8 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 프레임 갱신: 슬롯 예약이 사라졌으면 정지하고, 반응 지연이 끝난 의도를 실행기에 적용한다.
+        /// 프레임 갱신: 슬롯 예약이 사라졌으면 정지하고, 반응 지연이 끝난 의도를 실행기에 적용한 뒤,
+        /// 추적 목적지를 최신 목적지 쪽으로 당겨 실행기에 다시 넘긴다.
         /// 군중 모드는 CrowdCoordinator 가 Think 직후 호출, 직접 모드는 Update 가 호출.
         /// </summary>
         internal void TickMovement()
@@ -261,6 +270,39 @@ namespace HybridShooter.Monster.Movement
                     CommitIntent(in pendingIntent);
                 }
             }
+            FollowDestination();
+        }
+
+        /// <summary>
+        /// 추적 목적지를 마지막 의도의 목적지 쪽으로 한 프레임만큼 당기고, 그 목적지로 실행기를 갱신한다. TickMovement 가 매 프레임 호출한다.
+        /// Think(0.5초)마다 계단식으로 점프하는 목적지를 연속으로 움직이는 점으로 바꿔, 빠른 몬스터가 낡은 목적지에 먼저 닿아 멈칫하지 않게 한다.
+        /// </summary>
+        /// <remarks>상태·실행 슬롯은 CommitIntent 에서만 정하므로 Apply 결과는 쓰지 않는다. 슬롯 거절은 Think 가 executor.ExecutionState 로 판단한다.</remarks>
+        private void FollowDestination()
+        {
+            if (suspended) return;
+            if (lastIntent.HasDestination == false) return;
+            if (hasFollowDestination == false) return;
+
+            followDestination = StepTowardDestination(followDestination, lastIntent.Destination, destinationFollowRate, Time.deltaTime);
+            executor.Apply(new MoveIntent(lastIntent.State, followDestination, lastIntent.Speed, lastIntent.StopDistance));
+        }
+
+        /// <summary>
+        /// 지수 감쇠 보간 한 걸음. 남은 거리의 일정 비율만 따라가므로 도중에 목표가 바뀌어도 지금 위치에서 새 목표 쪽으로 이어서 움직인다.
+        /// FollowDestination 이 매 프레임 호출한다. 비율은 1 − e^(−rate·Δt) 라 프레임레이트와 무관하고 target 을 넘지 않는다.
+        /// </summary>
+        /// <param name="current">지금 추적 목적지 (월드)</param>
+        /// <param name="target">따라갈 목적지 (월드)</param>
+        /// <param name="rate">따라잡는 빠르기 (1/s). 0 = 보간 끔</param>
+        /// <param name="deltaTime">경과 시간 (s)</param>
+        /// <returns>한 걸음 옮긴 추적 목적지 (월드). rate 가 0 이면 target 그대로</returns>
+        private static Vector3 StepTowardDestination(Vector3 current, Vector3 target, float rate, float deltaTime)
+        {
+            if (rate == 0f) return target;
+
+            float t = 1f - Mathf.Exp(-rate * deltaTime);
+            return Vector3.Lerp(current, target, t);
         }
 
         /// <summary>
@@ -290,6 +332,7 @@ namespace HybridShooter.Monster.Movement
                 crowdCoordinator = null;
             }
             if (executor != null) executor.Stop();
+            hasFollowDestination = false;
             suspended = false;
             retainReservation = false;
             SetState(MovementState.Idle);
@@ -354,13 +397,25 @@ namespace HybridShooter.Monster.Movement
             ValidateCombatSlots();
         }
 
-        /// <summary>profile 수치 복사본에서 이동 속도·공격 사거리만 개체별 수치로 바꿔 tuning 에 넣는다. Activate 와 SetCombatTuning 이 호출한다</summary>
+        /// <summary>
+        /// 원거리 시야 밖 접근 속도 배율을 개체별로 정한다. MonsterController 가 SetCombatTuning 직후 PounceSettings 값으로 호출한다.
+        /// 부르지 않으면 1 (기본 속도).
+        /// </summary>
+        /// <param name="multiplier">테이블 이동 속도에 곱할 배율</param>
+        public void SetFlankApproachSpeedMultiplier(float multiplier)
+        {
+            flankApproachSpeedMultiplier = multiplier;
+            if (profile != null) ApplyCombatTuning();
+        }
+
+        /// <summary>
+        /// profile 수치에 개체별 이동 속도·공격 사거리·원거리 접근 배율을 합쳐 tuning 에 넣는다.
+        /// Activate, SetCombatTuning, SetFlankApproachSpeedMultiplier 가 호출한다.
+        /// </summary>
+        /// <remarks>SetCombatTuning 전에 Activate 되면 속도·사거리가 0 인 채로 들어간다. Think 가 SetCombatTuning 누락을 예외로 드러낸다.</remarks>
         private void ApplyCombatTuning()
         {
-            var source = profile.ToTuning();
-            tuning = new MovementTuning(combatSpeed, combatRange, source.OrbitChance, source.OrbitAngularSpeedDeg,
-                source.KeepDistanceMin, source.KeepDistanceMax,
-                source.FlankRadius, source.FlankSpeedMultiplier, source.FlankSwitchDistance, source.FlankSwitchBand);
+            tuning = profile.ToTuning(combatSpeed, combatRange, flankApproachSpeedMultiplier);
         }
 
         /// <summary>
@@ -465,6 +520,7 @@ namespace HybridShooter.Monster.Movement
             executingSlotId = -1;
             if (retainReservation == false) UnregisterCrowd();
             executor.Stop();
+            hasFollowDestination = false;
             lastIntent = MoveIntent.Stop(MovementState.Suspended);
             SetState(MovementState.Suspended);
         }
@@ -514,9 +570,12 @@ namespace HybridShooter.Monster.Movement
         /// </summary>
         /// <param name="target">추적 목표. null = 목표 무효 (정책이 Idle 정지를 낸다)</param>
         /// <param name="now">현재 시각 (s, Time.time 기준)</param>
+        /// <exception cref="InvalidOperationException">SetCombatTuning 으로 이동 속도·사거리를 받기 전에 판단할 때</exception>
         internal void Think(IPlayerTarget target, float now)
         {
             if (suspended) return;
+            if (hasCombatTuning == false)
+                throw new InvalidOperationException("SetCombatTuning 으로 이동 속도·사거리를 먼저 넣어야 한다");
 
             // 1) 슬롯 모드: 도달 불가였던 슬롯은 거절하고, 군중 관리자에게 최신 지시(슬롯)를 받는다
             if (IsSlotMode())
@@ -546,7 +605,7 @@ namespace HybridShooter.Monster.Movement
                 Transform viewPoint = target.ViewPoint;
                 viewForward = viewPoint.forward;
                 viewPosition = viewPoint.position;
-                // viewHalfAngleDeg = HorizontalHalfFovDeg(viewPoint.GetComponent<Camera>());
+                viewHalfAngleDeg = HorizontalHalfFovDeg(viewPoint.GetComponent<Camera>());
             }
             lookTarget = targetPosition;   // 시선 갱신 (실제 회전은 LateUpdate 의 ApplyLookRotation)
             hasLookTarget = targetValid;
@@ -634,6 +693,7 @@ namespace HybridShooter.Monster.Movement
                 if (hasReactionReference && slotChanged)
                 {
                     executor.Stop();
+                    hasFollowDestination = false;
                     executingSlotId = -1;
                 }
                 reactionTargetInfo = target;
@@ -692,17 +752,42 @@ namespace HybridShooter.Monster.Movement
             return HasCurrentReservation(directive.SlotId);
         }
 
-        /// <summary>의도를 실행기에 적용하고, 결과에 따라 "실행 중인 슬롯"과 상태를 갱신한다. SubmitIntent 와 TickMovement(지연 의도)가 호출한다</summary>
-        /// <param name="intent">실행기에 넘길 이동 의도</param>
+        /// <summary>
+        /// 의도를 확정해 실행기에 적용하고, 결과에 따라 "실행 중인 슬롯"과 상태를 갱신한다. SubmitIntent 와 TickMovement(지연 의도)가 호출한다.
+        /// 실행기에는 원래 목적지 대신 추적 목적지를 넘긴다. 추적 목적지가 없으면(첫 이동·정지 뒤) 이번 목적지로 바로 놓는다.
+        /// </summary>
+        /// <param name="intent">확정할 이동 의도 (목적지는 보간 전 원래 값)</param>
         private void CommitIntent(in MoveIntent intent)
         {
             lastIntent = intent;
-            MoveApplyResult result = executor.Apply(in intent);
+            MoveIntent appliedIntent = ToFollowIntent(in intent);
+            MoveApplyResult result = executor.Apply(in appliedIntent);
             if (result == MoveApplyResult.PathSet || result == MoveApplyResult.Unreachable)
                 executingSlotId = directive.HasSlotPosition ? directive.SlotId : -1;
             else if (result == MoveApplyResult.Stopped)
                 executingSlotId = -1;
             SetState(intent.State);
+        }
+
+        /// <summary>
+        /// 확정한 의도를 실행기에 넘길 의도로 바꾼다. CommitIntent 가 호출한다.
+        /// 목적지 없는 의도면 추적 목적지를 비우고 그대로 넘긴다. 추적 목적지가 없으면 이번 목적지로 바로 놓는다.
+        /// </summary>
+        /// <param name="intent">확정한 이동 의도</param>
+        /// <returns>목적지만 추적 목적지로 바꾼 의도. 목적지 없는 의도면 intent 그대로</returns>
+        private MoveIntent ToFollowIntent(in MoveIntent intent)
+        {
+            if (intent.HasDestination == false)
+            {
+                hasFollowDestination = false;
+                return intent;
+            }
+            if (hasFollowDestination == false)
+            {
+                followDestination = intent.Destination;
+                hasFollowDestination = true;
+            }
+            return new MoveIntent(intent.State, followDestination, intent.Speed, intent.StopDistance);
         }
 
         /// <summary>
@@ -721,6 +806,7 @@ namespace HybridShooter.Monster.Movement
             hasReactionReference = false;
             executingSlotId = -1;
             executor.Stop();
+            hasFollowDestination = false;
             lastIntent = MoveIntent.Stop(MovementState.Idle);
             SetState(MovementState.Idle);
         }

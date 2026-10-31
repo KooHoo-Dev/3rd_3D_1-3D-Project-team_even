@@ -47,6 +47,7 @@ namespace HybridShooter.UI.Options
             yield return ("무기 교체", $"{Name(k.slotKeys[0])}~{Name(k.slotKeys[k.slotKeys.Length - 1])} / 휠");
             yield return ("수류탄", Name(k.grenadeKey));
             yield return ("회복", Name(k.healKey));
+            yield return ("상호작용", Name(k.interactKey));
             yield return ("시점 전환", Name(k.viewToggleKey));
             yield return ("커서 풀기", Name(k.cursorToggleKey));
         }

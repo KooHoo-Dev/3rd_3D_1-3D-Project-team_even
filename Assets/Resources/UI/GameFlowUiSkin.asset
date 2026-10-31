@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa5fc901260a4c40929e9d6c17836a46, type: 3}
+  m_Name: GameFlowUiSkin
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.UI.GameFlowUiSkin
+  textFont: {fileID: 11400000, guid: 659ceb8947c683b4a9e1216df0a67515, type: 2}
+  numberFont: {fileID: 11400000, guid: 4d0bb7337f597634b94b9005947e8e28, type: 2}
+  window: {fileID: 21300000, guid: 0956c5043c88e4d4693b8246c55158a3, type: 3}
+  banner: {fileID: 21300000, guid: 30fba3ebe42a4c840b316724e0a1fdb6, type: 3}
+  bannerTitle: {fileID: 21300000, guid: 32077c95b0860d946b3a5d80f16ab986, type: 3}
+  slot: {fileID: 21300000, guid: d68040e45d9384145bf132a90979f1e3, type: 3}
+  slotSelected: {fileID: 21300000, guid: 07c33b137d27c18429717433383d7e2b, type: 3}
+  slotPressed: {fileID: 21300000, guid: c8733c88202fc1147802b816f533026b, type: 3}
+  locked: {fileID: 21300000, guid: a621aee6fbf235c49920fe440b460889, type: 3}
+  lockIcon: {fileID: 21300000, guid: 2b8b856c3c9d2194c8407f88509869e7, type: 3}
+  primaryButton: {fileID: 21300000, guid: 2820080ef74ae054b845ecb01dc20a86, type: 3}
+  primaryButtonPressed: {fileID: 21300000, guid: e0ccbe9d644c6c3499e2148bfe9201fd, type: 3}
+  disabledButton: {fileID: 21300000, guid: 4957102ca1f69054fb9b823e1cc0acf2, type: 3}
+  menuButton: {fileID: 21300000, guid: 67eeffbe1f68e004ab3591e2dc394955, type: 3}
+  menuButtonPressed: {fileID: 21300000, guid: f82a4f6d73ea18d4b97c048d6ce4fa41, type: 3}
+  gameOverBackground: {fileID: 21300000, guid: a9bf065cb9eb3a444b460a3f3af2c6bf, type: 3}
+  gameOverTitle: {fileID: 21300000, guid: 10220fc7d1ddc42448d979f756b2c9cf, type: 3}

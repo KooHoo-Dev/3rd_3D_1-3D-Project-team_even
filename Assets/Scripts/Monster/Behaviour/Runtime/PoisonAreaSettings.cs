@@ -7,7 +7,7 @@ namespace HybridShooter.Monster.Behaviour
     /// MonsterController.Start 가 찾아 MonsterAttackFactory 로 넘기고, PoisonAreaAttack·투사체·장판이 읽는다.
     /// </summary>
     /// <remarks>풀은 Awake 에서 만든다. MonsterController.Start 보다 먼저 준비된다.</remarks>
-    public sealed class PoisonAreaSettings : MonoBehaviour
+    public sealed class PoisonAreaSettings : MonsterAttackSettingsComponent
     {
         [Header("프리팹")]
         [Tooltip("독 포탄")]
