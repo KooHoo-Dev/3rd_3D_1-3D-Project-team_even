@@ -15,28 +15,33 @@ using UnityEngine.TestTools;
 namespace HybridShooter.Monster.Behaviour.Tests
 {
     /// <summary>
-    /// MonsterWaveDirector 의 스테이지 시작 시각·남은 소환 유지·중단·라운드 번호·timeScale 0 을 확인한다 (B5 완료 기준 5~11).
+    /// MonsterWaveDirector 의 스테이지 시작 시각·남은 소환 유지·중단·라운드 번호·timeScale 0·마감 전 전멸 특수 웨이브를 확인한다 (B5 완료 기준 5~11).
     /// 실제 MonsterPool·실제 테이블(DataManager)을 쓰고, 소환 위치만 이 클래스가 대신한다 (원점). 소환 수는 MonsterSpawnedEvent 로 센다.
     /// </summary>
     /// <remarks>
-    /// Time.captureDeltaTime = 0.5 라서 1프레임 = 라운드 0.5초다. 라운드 1 = 스테이지 1 (0초, 41마리) · 2 (60초, 40마리) · 3 (120초, 57마리) · 4 (150초, 보스 대기 24마리).
-    /// 스테이지 1 은 약 39초, 2 는 약 103초, 3 은 약 151초, 4 는 약 201초에 소환이 끝난다.
+    /// Time.captureDeltaTime = 0.5 라서 1프레임 = 라운드 0.5초다. 라운드 1 = 스테이지 1 (0초, 29마리) · 2 (48초, 23마리) · 3 (96초, 32마리) · 4 (150초, 보스 대기 16마리)
+    /// · 9 (ClearBonus, 135초 전 전멸 시 5마리). 스테이지 1 은 약 31초, 2 는 약 80초, 3 은 약 114초, 4 는 약 178초에 소환이 끝난다.
+    /// 몬스터는 스스로 죽지 않으므로, 전멸은 이 클래스가 소환된 몬스터마다 MonsterDiedEvent 를 발행해 흉내 낸다.
     /// </remarks>
     public sealed class TestMonsterWaveDirector : ISpawnZoneProvider
     {
         private const float SecondsPerFrame = 0.5f;
-        private const int Stage1Count = 10 + 12 + 3 + 12 + 4;
-        private const int Stage2Count = 3 + 4 + 16 + 3 + 3 + 1 + 10;
-        private const int Stage3Count = 2 + 12 + 14 + 4 + 2 + 12 + 2 + 8 + 1;
-        private const int Stage4Count = 18 + 6;
+        private const int Stage1Count = 7 + 8 + 3 + 8 + 3;
+        private const int Stage2Count = 2 + 3 + 9 + 2 + 1 + 1 + 5;
+        private const int Stage3Count = 2 + 6 + 8 + 3 + 1 + 6 + 1 + 1 + 4;
+        private const int Stage4Count = 8 + 3 + 1 + 2 + 2;
+        private const int ClearBonusCount = 4 + 1;
+        private const int MainStagesCount = Stage1Count + Stage2Count + Stage3Count;
 
         private MonsterWaveDirector director;
         private readonly List<GameObject> spawnedMonsters = new List<GameObject>();
+        private readonly List<MonsterSpawnedEvent> spawnEvents = new List<MonsterSpawnedEvent>();
 
         [SetUp]
         public void SetUp()
         {
             spawnedMonsters.Clear();
+            spawnEvents.Clear();
             EventBus<MonsterSpawnedEvent>.Subscribe(OnMonsterSpawned);
             ServiceLocator.Register<ISpawnZoneProvider>(this);
             Time.captureDeltaTime = SecondsPerFrame;
@@ -55,7 +60,18 @@ namespace HybridShooter.Monster.Behaviour.Tests
             if (director != null) Object.DestroyImmediate(director.gameObject);
         }
 
-        private void OnMonsterSpawned(MonsterSpawnedEvent e) => spawnedMonsters.Add(e.Instance);
+        private void OnMonsterSpawned(MonsterSpawnedEvent e)
+        {
+            spawnedMonsters.Add(e.Instance);
+            spawnEvents.Add(e);
+        }
+
+        // 지금까지 소환된 몬스터 전부의 사망을 알린다 (플레이어가 전멸시킨 상황)
+        private void KillAllSpawned()
+        {
+            foreach (MonsterSpawnedEvent spawned in spawnEvents)
+                EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(spawned.Def, Vector3.zero, spawned.Instance));
+        }
 
         private int SpawnCount => spawnedMonsters.Count;
 
@@ -91,20 +107,23 @@ namespace HybridShooter.Monster.Behaviour.Tests
             LogAssert.Expect(LogType.Log, new Regex("군중전 소환 끝"));
 
             director.StartRound(1);
-            yield return WaitRoundSeconds(55f);
-            Assert.AreEqual(Stage1Count, SpawnCount, "60초 전엔 스테이지 1 몫만");
+            yield return WaitRoundSeconds(45f);
+            Assert.AreEqual(Stage1Count, SpawnCount, "48초 전엔 스테이지 1 몫만");
 
-            yield return WaitRoundSeconds(10f);   // 65초
+            yield return WaitRoundSeconds(10f);   // 55초
             Assert.Greater(SpawnCount, Stage1Count, "스테이지 2 시작");
 
-            yield return WaitRoundSeconds(50f);   // 115초
-            Assert.AreEqual(Stage1Count + Stage2Count, SpawnCount, "120초 전엔 스테이지 2 몫까지");
+            yield return WaitRoundSeconds(38f);   // 93초
+            Assert.AreEqual(Stage1Count + Stage2Count, SpawnCount, "96초 전엔 스테이지 2 몫까지");
 
-            yield return WaitRoundSeconds(10f);   // 125초
+            yield return WaitRoundSeconds(7f);    // 100초
             Assert.Greater(SpawnCount, Stage1Count + Stage2Count, "스테이지 3 시작");
 
-            yield return WaitRoundSeconds(80f);   // 205초
-            Assert.AreEqual(Stage1Count + Stage2Count + Stage3Count + Stage4Count, SpawnCount, "모든 스테이지가 남은 소환을 끝까지 냄");
+            yield return WaitRoundSeconds(45f);   // 145초
+            Assert.AreEqual(MainStagesCount, SpawnCount, "120초 안에 본 웨이브 끝, 살아 있는 몬스터가 있어 특수 웨이브 없음");
+
+            yield return WaitRoundSeconds(40f);   // 185초
+            Assert.AreEqual(MainStagesCount + Stage4Count, SpawnCount, "모든 스테이지가 남은 소환을 끝까지 냄");
         }
 
         // ── 완료 기준 8 ──
@@ -122,7 +141,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreEqual(countAtStop, SpawnCount, "Stop 뒤 소환 없음 (스테이지 2·3 도 시작 안 함)");
 
             director.StartRound(1);
-            yield return WaitRoundSeconds(55f);
+            yield return WaitRoundSeconds(45f);
             Assert.AreEqual(countAtStop + Stage1Count, SpawnCount, "재시작은 0초부터 스테이지 1 전체");
         }
 
@@ -194,8 +213,52 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreEqual(countAtPause, SpawnCount, "timeScale 0 동안 소환 없음");
 
             Time.timeScale = 1f;
-            yield return WaitRoundSeconds(53f);   // 라운드 55초
+            yield return WaitRoundSeconds(43f);   // 라운드 45초
             Assert.AreEqual(Stage1Count, SpawnCount, "멈춘 동안 라운드 시간도 멈춰 스테이지 2 는 아직");
+        }
+
+        // ── 마감 전 전멸 특수 웨이브 ──
+
+        [UnityTest]
+        public IEnumerator AllKilledBeforeDeadline_StartsClearBonusOnce()
+        {
+            yield return CreateDirector();
+            LogAssert.Expect(LogType.Log, new Regex("특수 웨이브"));
+            director.StartRound(1);
+            yield return WaitRoundSeconds(118f);
+            Assert.AreEqual(MainStagesCount, SpawnCount, "본 웨이브 소환 끝");
+
+            KillAllSpawned();
+            yield return WaitRoundSeconds(5f);    // 123초
+            Assert.AreEqual(MainStagesCount + ClearBonusCount, SpawnCount, "전멸 → 특수 웨이브 5마리");
+
+            KillAllSpawned();
+            yield return WaitRoundSeconds(10f);   // 133초
+            Assert.AreEqual(MainStagesCount + ClearBonusCount, SpawnCount, "특수 웨이브는 라운드당 1번");
+        }
+
+        [UnityTest]
+        public IEnumerator AllKilledAfterDeadline_NoClearBonus()
+        {
+            yield return CreateDirector();
+            director.StartRound(1);
+            yield return WaitRoundSeconds(136f);
+
+            KillAllSpawned();
+            yield return WaitRoundSeconds(10f);   // 146초
+            Assert.AreEqual(MainStagesCount, SpawnCount, "135초 마감 뒤 전멸은 특수 웨이브 없음");
+        }
+
+        [UnityTest]
+        public IEnumerator AllKilledBetweenStages_DoesNotStartClearBonus()
+        {
+            yield return CreateDirector();
+            director.StartRound(1);
+            yield return WaitRoundSeconds(40f);   // 스테이지 1 소환 끝, 스테이지 2 는 48초
+
+            KillAllSpawned();
+            yield return WaitRoundSeconds(5f);    // 45초
+            Assert.AreEqual(Stage1Count, SpawnCount, "마감 전 시작할 스테이지가 남아 있으면 특수 웨이브 없음");
         }
 
         // ── ISpawnZoneProvider 대역 ──
