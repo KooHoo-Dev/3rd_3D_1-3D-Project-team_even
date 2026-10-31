@@ -24,10 +24,10 @@ namespace HybridShooter.Boss
         public int CurrentHp => health?.CurrentHp ?? 0;
         public float HpRatio => health?.HpRatio ?? 0f;
         public bool IsAttacking => currentAttack != null;
+        public bool CanAct => isActiveAndEnabled && IsAlive && IsAttacking == false && IsReacting == false;
+        public bool CanStartAttack => CanAct && Time.time >= nextAttackTime;
         public bool IsInvulnerable { get; private set; }
         public bool IsReacting { get; private set; }
-        
-        public bool CanStartAttack => isActiveAndEnabled && IsAlive && IsAttacking == false && IsReacting == false && Time.time >= nextAttackTime;
         
         public event Action<DamageInfo> Damaged;
         public event Action Died;
@@ -109,22 +109,29 @@ namespace HybridShooter.Boss
             view.PlayHit();
         }
         
+        internal bool CanStartAttackFor(BossAttack attack)
+        {
+            return attack != null && CanAct && (attack.UsesPatternCooldown == false || Time.time >= nextAttackTime);
+        }
+        
         internal bool TryBeginAttack(BossAttack attack)
         {
-            if (CanStartAttack == false) return false;
+            if (CanStartAttackFor(attack) == false) return false;
 
             currentAttack = attack;
             movement.Pause();
 
             return true;
         }
-        
+
         internal void EndAttack(BossAttack attack, bool completed = false)
         {
             if (currentAttack != attack) return;
+
             currentAttack = null;
 
-            if (completed) nextAttackTime = Time.time + Def.PatternCooldown;
+            // 일반 공격은 패턴 쿨타임과 별개로 동작한다.
+            if (completed && attack.UsesPatternCooldown) nextAttackTime = Time.time + Def.PatternCooldown;
 
             if (IsAlive == false || isActiveAndEnabled == false)
             {
@@ -135,7 +142,7 @@ namespace HybridShooter.Boss
                 movement.Resume();
             }
         }
-        
+
         public void SetInvulnerable(bool value)
         {
             IsInvulnerable = value;

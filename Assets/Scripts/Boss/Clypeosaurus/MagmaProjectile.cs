@@ -10,169 +10,166 @@ namespace HybridShooter.Boss.Clypeosaurus
     [RequireComponent(typeof(Rigidbody))]
     public class MagmaProjectile : MonoBehaviour
     {
-        [SerializeField] private LayerMask damageMask;
         [SerializeField] private LayerMask coverMask;
-        [SerializeField, Min(0.1f)] private float maxLifetime = 10f;
+        [SerializeField] private Transform rangePrefab;
         [Tooltip("착탄 폭발음 (SoundTable.Key). 비우면 소리 없음. 취소·수명 초과로 사라질 때는 나지 않는다")]
         [SerializeField] private string explodeSfxKey = "mon_clypeosaurus_magma_impact";
 
-        private Rigidbody body;
         private SphereCollider sphere;
         private BossController owner;
         private ClypeosaurusDef data;
-        private float age;
+        
+        private Transform targetRoot;
+        private IDamageable target;
+        private readonly BossAttackRange range = new();
+        
+        private Vector3 startPoint;
+        private Vector3 landingPoint;
+        private Vector3 initialVelocity;
+        private Vector3 gravity;
+        
+        private float elapsed;
         
         public bool IsFinished { get; private set; } = true;
 
         private void Awake()
         {
-            body = GetComponent<Rigidbody>();
+            var body = GetComponent<Rigidbody>();
+            body.isKinematic = true;
+            body.useGravity = false;
+
             sphere = GetComponentInChildren<SphereCollider>(true);
+
+            // 공의 직접 충돌과 피해 판정을 분리한다.
+            foreach (var col in GetComponentsInChildren<Collider>(true))
+            {
+                col.enabled = false;
+            }
         }
 
-        public void Launch(BossController owner, ClypeosaurusDef def, Vector3 destination)
+        public void Launch(BossController owner, ClypeosaurusDef def, Vector3 destination, Transform targetRoot, IDamageable target)
         {
             this.owner = owner;
             data = def;
-            age = 0f;
+            this.targetRoot = targetRoot;
+            this.target = target;
 
-            foreach (var ownCollider in owner.GetComponentsInChildren<Collider>())
-            {
-                Physics.IgnoreCollision(sphere, ownCollider);
-            }
-
-            Vector3 scale = sphere.transform.lossyScale;
-
-            float worldRadius = sphere.radius * Mathf.Max(
-                Mathf.Abs(scale.x),
-                Mathf.Abs(scale.y),
-                Mathf.Abs(scale.z));
-
-            Vector3 arrival = destination + Vector3.up * worldRadius;
+            startPoint = transform.position;
+            landingPoint = destination;
+            gravity = Physics.gravity;
+            elapsed = 0f;
             
-            float time = data.BarrageFlightTime;
-            // arrival - body.position : 거리, 방향
-            // - (0.5f * Physics.gravity * time * time) : 중력이 아래로 잡아당기는 양을 빼서 위쪽으로 다시 보정
-            // / time : 이동량을 초당 이동속도로 변환
-            body.linearVelocity = (arrival - body.position - (0.5f * Physics.gravity * time * time)) / time;
+            Vector3 scale = sphere.transform.lossyScale;
+            
+            float worldRadius = sphere.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
+
+            Vector3 arrival = landingPoint + Vector3.up * worldRadius;
+            float duration = data.BarrageFlightTime;
+            
+            initialVelocity = (arrival - startPoint - 0.5f * gravity * duration * duration) / duration;
             
             IsFinished = false;
+            
+            range.Show(rangePrefab, landingPoint, data.BarrageRadius);
         }
 
         private void Update()
         {
-            if (StopIfInvalid()) return;
+            if (IsFinished) return;
 
-            age += Time.deltaTime;
+            if (owner == null || owner.IsAlive == false || owner.isActiveAndEnabled == false || targetRoot == null)
+            {
+                Cancel();
+                return;
+            }
 
-            if (age >= maxLifetime) Cancel();
+            float duration = data.BarrageFlightTime;
+            elapsed = Mathf.Min(elapsed + Time.deltaTime, duration);
+
+            transform.position = startPoint + initialVelocity * elapsed + 0.5f * gravity * elapsed * elapsed;
+
+            if (elapsed >= duration) Impact();
         }
-
-        private void OnCollisionEnter(Collision collision)
+        
+        private void Impact()
         {
-            if (StopIfInvalid()) return;
-
-            ContactPoint contact = collision.GetContact(0);
-            // 0.03f : 중심이 표면에 박히지 않도록 하기 위한 임시 보정 값.
-            Vector3 center = contact.point + contact.normal * 0.03f;
-
-            StopFlight();
+            IsFinished = true;
+            range.Clear();
 
             try
             {
-                if (string.IsNullOrEmpty(explodeSfxKey) == false && ServiceLocator.TryGet<ISoundService>(out var sound))
-                    sound.PlaySfx(explodeSfxKey, center);
-                ApplyExplosion(center);
+                if ((string.IsNullOrEmpty(explodeSfxKey) == false) && ServiceLocator.TryGet<ISoundService>(out var sound))
+                {
+                    sound.PlaySfx(explodeSfxKey, landingPoint);
+                }
+
+                ApplyGroundDamage();
             }
             finally
             {
                 Destroy(gameObject);
             }
         }
-
-        private void ApplyExplosion(Vector3 center)
+        
+        private void ApplyGroundDamage()
         {
-            var damaged = new HashSet<IDamageable>();
+            if (owner == null || owner.IsAlive == false || owner.isActiveAndEnabled == false || targetRoot == null 
+                || target == null)
+                return;
 
-            Collider[] overlaps = Physics.OverlapSphere(center, data.BarrageRadius, damageMask, QueryTriggerInteraction.Ignore);
+            if (target.CanBeHitBy(owner.Faction) == false) return;
 
-            // 폭발 범위 내의 모든 대상에게 피해 적용
-            foreach (var col in overlaps)
-            {
-                if (owner == null || owner.IsAlive == false || owner.isActiveAndEnabled == false) break;
-                if (col.TryGetDamageable(out var target) == false 
-                    || target.CanBeHitBy(owner.Faction) == false 
-                    || damaged.Contains(target)) continue;
+            // 플레이어의 수평 위치가 바닥 원 안인지 검사한다.
+            Vector3 offset = targetRoot.position - landingPoint;
+            offset.y = 0f;
 
-                Vector3 hitPoint = col.bounds.center;
-                
-                if (HasCover(center, hitPoint, target)) continue;
+            float radius = data.BarrageRadius;
 
-                damaged.Add(target);
+            if (offset.sqrMagnitude > radius * radius) return;
 
-                Vector3 direction = hitPoint - center;
-                direction = direction.sqrMagnitude > 0.001f
-                    ? direction.normalized
-                    : Vector3.up;
+            if (HasCover(landingPoint + Vector3.up * 0.03f, targetRoot.position))
+                return;
 
-                var damage = new DamageInfo(data.BarrageDamage, DamageKind.MonsterSkill, owner.Faction, owner.gameObject, hitPoint, direction);
-                
-                target.TakeDamage(damage);
-            }
+            Vector3 direction = offset.sqrMagnitude > 0.001f
+                ? offset.normalized
+                : Vector3.up;
+
+            target.TakeDamage(new DamageInfo(data.BarrageDamage, DamageKind.MonsterSkill, owner.Faction, owner.gameObject,
+                targetRoot.position, direction));
         }
-
-        /// <summary>
-        /// 폭발 지점과 피해 대상 사이의 엄폐물 검사
-        /// </summary>
-        private bool HasCover(Vector3 origin, Vector3 destination, IDamageable target)
+        
+        private bool HasCover(Vector3 origin, Vector3 destination)
         {
             Vector3 difference = destination - origin;
             float distance = difference.magnitude;
 
             if (distance < 0.001f) return false;
-            
-            foreach(var hit in Physics.RaycastAll(origin, (difference / distance), distance, coverMask, QueryTriggerInteraction.Ignore))
+
+            foreach (var hit in Physics.RaycastAll(origin, difference / distance, distance, coverMask, QueryTriggerInteraction.Ignore))
             {
                 if (hit.collider.transform.IsChildOf(owner.transform)) continue;
-                if (hit.collider.TryGetDamageable(out var blocker) && object.ReferenceEquals(blocker, target)) continue;
+
+                if (hit.collider.TryGetDamageable(out var blocker) && object.ReferenceEquals(blocker, target))
+                    continue;
 
                 return true;
             }
 
             return false;
-        }
-
-        private bool StopIfInvalid()
-        {
-            if (IsFinished)
-                return true;
-
-            if (owner == null ||
-                owner.IsAlive == false ||
-                owner.isActiveAndEnabled == false)
-            {
-                Cancel();
-                return true;
-            }
-
-            return false;
-        }
-
-        public void Cancel()
-        {
-            if (IsFinished) return;
-
-            StopFlight();
-            Destroy(gameObject);
         }
         
-        private void StopFlight()
+        public void Cancel()
         {
-            IsFinished = true;
-            body.linearVelocity = Vector3.zero;
+            range.Clear();
 
-            // Destroy 처리 전 추가 충돌 차단.
-            sphere.enabled = false;
+            if (IsFinished) return;
+
+            IsFinished = true;
+            Destroy(gameObject);
+        }
+        private void OnDestroy()
+        {
+            range.Clear();
         }
     }
 }

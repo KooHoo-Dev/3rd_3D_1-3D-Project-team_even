@@ -1697,6 +1697,7 @@ GameObject:
   - component: {fileID: 823172667169261941}
   - component: {fileID: 1601464397953940699}
   - component: {fileID: 7874530854670405339}
+  - component: {fileID: 4265325948370636209}
   - component: {fileID: 534779049517218803}
   - component: {fileID: 2158953421807436580}
   - component: {fileID: 7764257687145243604}
@@ -1869,6 +1870,7 @@ MonoBehaviour:
   - {fileID: 534779049517218803}
   - {fileID: 2158953421807436580}
   - {fileID: 7764257687145243604}
+  basicAttack: {fileID: 4265325948370636209}
 --- !u!114 &1601464397953940699
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1882,6 +1884,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.ClypeosaurusController
   playerSource: {fileID: 0}
+  footstepShake:
+    Intensity: 0.25
+    Duration: 0.35
+    Frequency: 9
+    FadeIn: 0.02
+    FadeOut: 0.25
+    Source: {x: 0, y: 0, z: 0}
+    Radius: 0
+  footstepShakeRadius: 40
 --- !u!114 &7874530854670405339
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1898,6 +1909,22 @@ MonoBehaviour:
   fallDuration: 0.8
   shadowPrefab: {fileID: 7329057322042179811, guid: 9234d485a63c9644595cbf8d4efdef78, type: 3}
   shockwavePrefab: {fileID: 8892443149770637752, guid: 23c12557ae01ab44099ab5dda922d953, type: 3}
+--- !u!114 &4265325948370636209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcba8ba5478747b492c849ac05086f4e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.ClypeosaurusBasicAttack
+  attackArea: {fileID: 1291459922485108814}
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &534779049517218803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1911,6 +1938,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.StompAttack
   stompCenter: {fileID: 5811802235873161716}
+  rangePrefab: {fileID: 7329057322042179811, guid: 9234d485a63c9644595cbf8d4efdef78, type: 3}
 --- !u!114 &2158953421807436580
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1951,6 +1979,7 @@ MonoBehaviour:
   inhaleCenter: {fileID: 2970032289995159653}
   stopRadius: 2.5
   fadeIn: 0.3
+  rangePrefab: {fileID: 7329057322042179811, guid: 9234d485a63c9644595cbf8d4efdef78, type: 3}
 --- !u!114 &6979829063793508743
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3677,6 +3706,59 @@ Transform:
   - {fileID: 5523472075302277084}
   m_Father: {fileID: 5523472075302277072}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6159023505612723858
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8644402684171599648}
+  - component: {fileID: 1291459922485108814}
+  m_Layer: 0
+  m_Name: BasicAttack
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8644402684171599648
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6159023505612723858}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6740981237224775707}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &1291459922485108814
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6159023505612723858}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Size: {x: 20, y: 3, z: 25}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &6935939059413818699
 GameObject:
   m_ObjectHideFlags: 0
@@ -3737,6 +3819,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 8644402684171599648}
   - {fileID: 5811802235873161716}
   - {fileID: 8789709156523701077}
   - {fileID: 5646746949905929239}

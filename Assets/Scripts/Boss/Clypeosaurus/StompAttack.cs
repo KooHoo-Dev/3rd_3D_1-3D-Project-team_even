@@ -14,7 +14,8 @@ namespace HybridShooter.Boss.Clypeosaurus
         private const string IdleState = "Base Layer.IdleBreathe";
         
         [SerializeField] private Transform stompCenter;
-
+        [SerializeField] private Transform rangePrefab;
+        
         private BossView view;
         private ClypeosaurusDef data;
         private Vector3 lockedCenter;
@@ -47,10 +48,11 @@ namespace HybridShooter.Boss.Clypeosaurus
 
         protected override void OnWindup()
         {
-            // 준비 시작 시 공격 중심을 고정한다.
             lockedCenter = stompCenter.position;
             hitApplied = false;
-            
+
+            Range.Show(rangePrefab, lockedCenter, data.StompRadius);
+
             view.PlayState(WindupState);
         }
         
@@ -75,8 +77,9 @@ namespace HybridShooter.Boss.Clypeosaurus
         {
             if (isActiveAndEnabled == false || Phase != SkillPhase.Active || hitApplied
                 || Boss.IsAlive == false || TargetRoot == null) return;
-
+            
             hitApplied = true;
+            Range.Clear();
             RaiseImpacted(lockedCenter);
             ApplyHit();
         }
@@ -108,23 +111,5 @@ namespace HybridShooter.Boss.Clypeosaurus
 
             TargetDamageable.TakeDamage(damage);
         }
-        
-        #if UNITY_EDITOR
-        private void OnDrawGizmosSelected()
-        {
-            if (Application.isPlaying == false ||
-                data == null ||
-                stompCenter == null)
-                return;
-
-            Vector3 center = IsRunning
-                ? lockedCenter
-                : stompCenter.position;
-
-            UnityEditor.Handles.color = Color.red;
-            UnityEditor.Handles.DrawWireDisc(
-                center, Vector3.up, data.StompRadius);
-        }
-        #endif
     }
 }
