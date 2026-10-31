@@ -16,8 +16,9 @@ namespace HybridShooter.Core.Data.Defs
         public int Id { get; }
         public int RoundNo { get; }  // RoundTable.Round
         public float StartTime { get; }  // 초, 라운드 시작 기준
-        public float EndTime { get; }  // 초, 라운드 시작 기준
+        public float EndTime { get; }  // 초, 라운드 시작 기준. ClearBonus 는 발동 마감 시각
         public IReadOnlyList<int> WaveIds { get; }
+        public WaveStageKind Kind { get; }  // Normal = StartTime 에 시작 · ClearBonus = EndTime 전 전멸 시 1번
 
         // ── Link 단계에서 채워짐 ──
         public IReadOnlyList<WaveDef> Waves { get; internal set; } = Array.Empty<WaveDef>();  // 웨이브 StartTime 순
@@ -34,6 +35,7 @@ namespace HybridShooter.Core.Data.Defs
             StartTime = d.StartTime;
             EndTime = d.EndTime;
             WaveIds = ParseUtil.IntList(d.WaveList, r, Table, Id, nameof(d.WaveList));
+            Kind = ParseUtil.Enum<WaveStageKind>(d.Kind, r, Table, Id, nameof(d.Kind));
 
             r.Check(StartTime >= 0f, Table, Id, "StartTime 은 0 이상");
             r.Check(EndTime > StartTime, Table, Id, "EndTime 은 StartTime 보다 커야 합니다");

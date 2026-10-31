@@ -13,7 +13,6 @@ namespace HybridShooter.Player
     ///  - 총별 손 위치(WeaponGripTable, 프로필에 연결)가 있으면 총을 꺼낼 때 총 위치를 맞추고 "LeftHandGrip"·"Sight"·"RightHandGrip" 자식을 만든다.
     ///    (총은 오른손 뼈 아래 WeaponSocket 에 붙어 있어 어느 자세에서든 손을 따라간다)
     ///    왼손은 LeftHandGrip 위치·회전을 우선 쓴다 (데이터가 없으면 기존 LeftHandGrip 자식, 그것도 없으면 애니메이션 자리)
-    ///    → 값은 IK Pose Lab 창(Tools/HybridShooter)에서 Play 중에 고친다
     ///  - 가중치 = 상체 자세 레이어 × 팔 동작 없음 (재장전·꺼내기 중에는 애니메이션 그대로)
     ///  - 아이템 사용(PlayerItemIK): 왼손 목표를 아이템 자리로 잠깐 옮긴다 (SetLeftHandOverride, 1인칭도 같은 값을 쓴다)
     /// 발 (GrounderFBBIK): 경사·계단에서 발을 땅에 맞춘다. 공중·구르기·사망 중에는 끈다. 설정은 프로필 footIK (시작할 때 입힘)
@@ -35,9 +34,9 @@ namespace HybridShooter.Player
         [SerializeField] private GunSlot gunSlot;
         [Tooltip("몸(Body)의 AimIK. 이 IK 가 풀린 직후 왼손을 맞춘다")]
         [SerializeField] private AimIK aimIK;
-        [Tooltip("왼팔 LimbIK (컴포넌트는 꺼 두고 이 스크립트가 직접 푼다). 빌더 메뉴가 붙인다")]
+        [Tooltip("왼팔 LimbIK (컴포넌트는 꺼 두고 이 스크립트가 직접 푼다)")]
         [SerializeField] private LimbIK leftArmIK;
-        [Tooltip("발 IK. 빌더 메뉴가 붙인다")]
+        [Tooltip("발 IK")]
         [SerializeField] private GrounderFBBIK grounder;
         [Tooltip("왼손 IK 를 켜고 끄는 시간(초)")]
         [SerializeField] private float leftHandBlendTime = 0.15f;
@@ -61,7 +60,7 @@ namespace HybridShooter.Player
         public float LeftHandWeight => leftHandWeight;
         public float FootWeight => grounder != null ? grounder.weight : 0f;
         public GrounderFBBIK Grounder => grounder;
-        /// <summary>지금 손 위치를 맞춘 총 (IK Pose Lab 용)</summary>
+        /// <summary>지금 손 위치를 맞춘 총</summary>
         public Gun GripGun => gripGun;
         public Transform LeftHandGrip => grip;
         public Transform Sight => sight;
@@ -69,14 +68,7 @@ namespace HybridShooter.Player
         public Transform RightHandGrip => rightGrip;
         public Transform LeftHandBone => leftHand;
         public Transform RightHandBone => rightHand;
-        /// <summary>IK 전 애니메이션의 왼손 자리 (오른손 기준). 자동 맞춤이 쓴다</summary>
-        public Vector3 AnimLeftPosInRight => leftPosInRight;
-        public Quaternion AnimLeftRotInRight => leftRotInRight;
-        /// <summary>왼손 IK 목표 (마지막으로 푼 값)</summary>
-        public Vector3 LeftHandTarget => leftArmIK != null ? leftArmIK.solver.IKPosition : Vector3.zero;
         public WeaponGripTable GripTable => driver != null && driver.Profile != null ? driver.Profile.gripTable : null;
-        /// <summary>디버그(애니메이션 떨림 측정): 3인칭 왼손 LimbIK 를 풀지 않는다</summary>
-        public bool DebugDisableLeftHand { get; set; }
 
         private void Awake()
         {
@@ -99,8 +91,8 @@ namespace HybridShooter.Player
             ApplyFootSettings();
         }
 
-        /// <summary>프로필의 발 IK 설정을 Grounder 에 입힌다 (Lab 에서 값을 바꾸면 다시 부른다)</summary>
-        public void ApplyFootSettings()
+        /// <summary>프로필의 발 IK 설정을 Grounder 에 입힌다</summary>
+        private void ApplyFootSettings()
         {
             if (grounder == null) return;
             // 발 IK 레이캐스트도 이동 판정과 같은 땅을 보게 한다 (씬마다 터레인 레이어가 달라도 어긋나지 않게)
@@ -130,7 +122,7 @@ namespace HybridShooter.Player
                 IKSolver solver = ik.GetIKSolver();
                 if (solver == null || solver.executedInEditor == false) continue;
                 solver.executedInEditor = false;
-                Debug.LogWarning($"{ik.GetType().Name}({ik.name}): 편집 모드 실행 표시(executedInEditor)가 남아 있어 껐습니다. 씬의 값도 꺼 두세요 (IK Pose Lab)", ik);
+                Debug.LogWarning($"{ik.GetType().Name}({ik.name}): 편집 모드 실행 표시(executedInEditor)가 남아 있어 껐습니다. 씬의 값도 꺼 두세요", ik);
             }
         }
 
@@ -191,7 +183,7 @@ namespace HybridShooter.Player
         /// <summary>왼손을 총 손잡이(있으면) 또는 기록해 둔 오른손 기준 자리로</summary>
         private void SolveLeftHand()
         {
-            if (leftArmIK == null || leftHand == null || rightHand == null || leftHandWeight <= 0f || DebugDisableLeftHand) return;
+            if (leftArmIK == null || leftHand == null || rightHand == null || leftHandWeight <= 0f) return;
 
             Vector3 position = grip != null ? grip.position : rightHand.TransformPoint(leftPosInRight);
             Quaternion rotation = grip != null ? grip.rotation : rightHand.rotation * leftRotInRight;
@@ -217,7 +209,7 @@ namespace HybridShooter.Player
         /// 지금 든 총에 손 위치 데이터를 입힌다: 총 위치(소켓 기준), LeftHandGrip·Sight·RightHandGrip 자식 (없으면 만든다).
         /// 데이터가 없는 총은 이미 있는 자식을 그대로 쓴다
         /// </summary>
-        public void ApplyGrip()
+        private void ApplyGrip()
         {
             grip = null;
             sight = null;

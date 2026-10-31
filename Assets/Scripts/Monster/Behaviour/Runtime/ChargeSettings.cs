@@ -6,7 +6,7 @@ namespace HybridShooter.Monster.Behaviour
     /// 돌진형(Rusher) 몬스터 프리팹에 붙이는 돌진 튜닝 값. Play 에서 자주 바꾸는 값을 한곳에 모은다.
     /// MonsterController.Start 가 찾아 MonsterAttackFactory 로 넘기고, ChargeAttack 이 읽는다.
     /// </summary>
-    public sealed class ChargeSettings : MonoBehaviour
+    public sealed class ChargeSettings : MonsterAttackSettingsComponent
     {
         [Header("돌진")]
         [Tooltip("돌진 속도 (m/s)")]

@@ -905,7 +905,6 @@ GameObject:
   - component: {fileID: 8891840968360981808}
   - component: {fileID: 1009040220543551216}
   - component: {fileID: 5722214406937038087}
-  - component: {fileID: 8518368807540353148}
   - component: {fileID: 6036386106333663396}
   - component: {fileID: 4034804946924796211}
   - component: {fileID: 3468810814700002718}
@@ -915,6 +914,9 @@ GameObject:
   - component: {fileID: 5609610942888054601}
   - component: {fileID: 4815162342108153829}
   - component: {fileID: 6180339887498948482}
+  - component: {fileID: 4410688721398837743}
+  - component: {fileID: 7651834859522776489}
+  - component: {fileID: 1761413600349868233}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1017,7 +1019,7 @@ MonoBehaviour:
     FadeOut: 0.8
     Source: {x: 0, y: 0, z: 0}
     Radius: 0
-  walkSpeed: 3
+  walkSpeed: 5
   sprintMultiplier: 1.6
   maxWalkSpeed: 10
   groundAcceleration: 45
@@ -1210,21 +1212,6 @@ MonoBehaviour:
   animator: {fileID: 8844872386174927466}
   profile: {fileID: 11400000, guid: f905602ad0f7b7f459c60f4bdb84cdc0, type: 2}
   gunSlot: {fileID: 0}
---- !u!114 &8518368807540353148
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5753637828753184512}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 175a3dcb802044fca9dac28fc7eb7fd2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerAnimationDebugHUD
-  visible: 1
-  toggleKey: 96
-  fontSize: 16
 --- !u!114 &6036386106333663396
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1386,6 +1373,61 @@ MonoBehaviour:
   blinkRate: 2.5
   livesFlashTime: 1.2
   staminaFadeTime: 0.5
+--- !u!114 &4410688721398837743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5753637828753184512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87cb65cabe2945d6a93e362bd8544f05, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerInteractor
+  interactRange: 3
+  bodyCenterHeight: 1
+  rayPadding: 2
+  mask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!114 &7651834859522776489
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5753637828753184512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37a1ca076e50410f84313bff0a5b464c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.UI.WeaponSlotHud
+  gunSlot: {fileID: 8891840968360981808}
+  player: {fileID: 7219419144724798672}
+  aimView: {fileID: 5994095664501175038}
+  numberFont: {fileID: 11400000, guid: 4d0bb7337f597634b94b9005947e8e28, type: 2}
+  textFont: {fileID: 11400000, guid: 659ceb8947c683b4a9e1216df0a67515, type: 2}
+  position: {x: -416, y: 238}
+  cellSize: {x: 84, y: 58}
+  spacing: 8
+  emptyAmmoAlpha: 0.35
+--- !u!114 &1761413600349868233
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5753637828753184512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 256c43bbe3ef4d6a812f13bd67666d83, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.UI.InteractPromptHud
+  numberFont: {fileID: 11400000, guid: 4d0bb7337f597634b94b9005947e8e28, type: 2}
+  textFont: {fileID: 11400000, guid: 659ceb8947c683b4a9e1216df0a67515, type: 2}
+  position: {x: 0, y: -70}
+  fadeTime: 0.08
 --- !u!114 &4815162342108153829
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,0 +1,75 @@
+using HybridShooter.Core.Contracts;
+using UnityEngine;
+
+namespace HybridShooter.Boss.Tyranopode
+{
+    /// <summary>
+    /// 점프 내려찍기 (중·원거리 → 가까이, 강공격). 예고 시작 때 플레이어 자리를 착지점으로 고정하고 원으로 표시 → 뛰어올라 내려찍는다.
+    /// 착지 원 안의 알도 깨진다. 다리 촉수 파괴: 덜 고른다. 페이즈 2: 반경 증가
+    /// </summary>
+    public sealed class JumpSmashAttack : TyranopodeAttack
+    {
+        [Header("진행도 (애니메이션 0~1)")]
+        [SerializeField, Range(0f, 1f)] private float jumpStartTime = 0.1f;
+        [SerializeField, Range(0f, 1f)] private float impactTime = 0.47f;
+        [Tooltip("최대 도약 거리(m). 플레이어가 더 멀면 이 거리만큼만 뛴다")]
+        [SerializeField, Min(1f)] private float maxLeap = 30f;
+
+        private Vector3 from;
+        private Vector3 landing;
+        private GroundTelegraph telegraph;
+        private bool impacted;
+
+        protected override float WindupTime => Data.SmashWindup;
+        protected override float RecoveryTime => Data.SmashRecovery;
+
+        private float Radius => Data.SmashRadius * (Owner.IsPhase2 ? Data.Phase2SmashRadiusMultiplier : 1f);
+
+        protected override float WeightMultiplier()
+            => Owner.IsBroken(TyranopodePartType.LegTentacle) ? Data.LegBrokenJumpWeightMultiplier : 1f;
+
+        protected override bool MeetsStartCondition() => DistanceToTarget >= Data.MeleeRange * 0.6f;
+
+        protected override void StartWindup()
+        {
+            impacted = false;
+            float leap = Mathf.Min(DistanceToTarget, maxLeap);
+            landing = Move.ClampToBounds(transform.position + DirectionToTarget * leap);
+            View.Play(TyranopodeView.Idle, 1.6f);
+            // 예고 + 공중 시간까지 채운다
+            telegraph = Telegraph();
+            telegraph.ShowCircle(landing, Radius, Data.SmashWindup * Owner.WindupScale + 0.4f, DangerColor);
+        }
+
+        protected override void WindupTick(float deltaTime) => Move.Face(landing, 1.5f);
+
+        protected override void OnActiveStarted()
+        {
+            from = transform.position;
+            Move.FaceInstant(landing);
+            View.Play(TyranopodeView.JumpSmash, Owner.SpeedScale);
+        }
+
+        protected override void OnActiveTick(float deltaTime)
+        {
+            float n = View.NormalizedTime(TyranopodeView.JumpSmash);
+            if (impacted == false && n >= jumpStartTime)
+            {
+                float t = Mathf.InverseLerp(jumpStartTime, impactTime, n);
+                Move.MoveDelta(Vector3.Lerp(from, landing, t) - transform.position);
+            }
+
+            if (impacted == false && n >= impactTime)
+            {
+                impacted = true;
+                Detonate(telegraph);
+                if (PlayerInCircle(landing, Radius)) HitPlayer(Data.SmashDamage, landing);
+                Owner.BreakEggsNear(landing, Radius);
+                Owner.PlayShockwave(landing, Radius);
+                Shake(CameraShakePresets.Impact, landing, 50f);
+            }
+
+            if (n >= 1f) Finish();
+        }
+    }
+}

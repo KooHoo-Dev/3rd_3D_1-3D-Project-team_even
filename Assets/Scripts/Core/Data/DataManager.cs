@@ -49,6 +49,7 @@ namespace HybridShooter.Core.Data
         private static GameConfig config;
         private static DefTable<int, BossDef> bosses;
         private static ClypeosaurusDef clypeosaurus;
+        private static TyranopodeDef tyranopode;
         
 
         public static DefTable<int, PlayerDef> Players { get { EnsureLoaded(); return players; } }
@@ -74,6 +75,7 @@ namespace HybridShooter.Core.Data
 
         public static DefTable<int, BossDef> Bosses { get { EnsureLoaded(); return bosses; } }
         public static ClypeosaurusDef Clypeosaurus { get { EnsureLoaded(); return clypeosaurus; } }
+        public static TyranopodeDef Tyranopode { get { EnsureLoaded(); return tyranopode; } }
         
         /// <summary>플레이어 정의 (테이블 첫 행)</summary>
         public static PlayerDef Player => Players.All.Count > 0 ? Players.All[0] : null;
@@ -136,6 +138,7 @@ namespace HybridShooter.Core.Data
             foreach (var dto in TsvTableReader.Read<ConfigDto>(folder, GameConfig.Table, r)) config.Add(dto, r);
             bosses          = Build<BossDto, int, BossDef>(folder, BossDef.Table, r, dto => dto.Id, dto => new BossDef(dto, r));
             clypeosaurus    = ReadSingle<ClypeosaurusDto, ClypeosaurusDef>(folder, ClypeosaurusDef.Table, r, dto => new ClypeosaurusDef(dto, r));
+            tyranopode      = ReadSingle<TyranopodeDto, TyranopodeDef>(folder, TyranopodeDef.Table, r, dto => new TyranopodeDef(dto, r));
             
             // 2) Link + Group : Id 참조 → Def 참조, 여러 행 → 상위 Def
             LinkSounds(r);
@@ -469,6 +472,10 @@ namespace HybridShooter.Core.Data
 
             ValidateMonsters(r);
 
+            int sidearmCount = weapons.Count(w => w.Category == WeaponCategory.Sidearm);
+            if (sidearmCount != 1)
+                r.Warn(WeaponDef.Table, "-", $"Category Sidearm(1번 칸 권총) 행이 {sidearmCount}개입니다 (정확히 1개여야 함)");
+
             foreach (UpgradeType type in Enum.GetValues(typeof(UpgradeType)))
                 if (upgradeTracks.Contains(type) == false) r.Warn(UpgradeDef.Table, type, "이 강화 종류의 데이터가 없습니다");
 
@@ -476,6 +483,18 @@ namespace HybridShooter.Core.Data
             r.Check(reloadTotal < 1f, UpgradeDef.Table, UpgradeType.ReloadSpeed, $"재장전 감소율 합계가 {reloadTotal} 입니다 (1 미만이어야 함)");
     
             if (clypeosaurus != null) r.Check(bosses.Contains(clypeosaurus.BossId), ClypeosaurusDef.Table, clypeosaurus.BossId, $"BossTable에 Id {clypeosaurus.BossId}인 보스가 없습니다.");
+            if (tyranopode != null) r.Check(bosses.Contains(tyranopode.BossId), TyranopodeDef.Table, tyranopode.BossId, $"BossTable에 Id {tyranopode.BossId}인 보스가 없습니다.");
+            if (tyranopode != null)
+            {
+                // 보스가 부르는 잡몹은 MonsterPool 이 프리팹으로 만든다 → 프리팹이 있어야 한다
+                foreach (int id in tyranopode.SummonMinionIds)
+                    r.Check(monsters.TryGet(id, out var minion) && minion.Prefab != null, TyranopodeDef.Table, "SummonMinionIds", $"MonsterTable Id {id} 가 없거나 프리팹이 없습니다.");
+                r.Check(monsters.TryGet(tyranopode.EggMinionId, out var eggMinion) && eggMinion.Prefab != null, TyranopodeDef.Table, "EggMinionId", $"MonsterTable Id {tyranopode.EggMinionId} 가 없거나 프리팹이 없습니다.");
+            }
+            // 라운드 보스는 BossTable 에서 고른다 (RoundBossEncounter). 없으면 인스펙터 보스로 대신하므로 경고만
+            foreach (var round in rounds)
+                if (bosses.Contains(round.BossId) == false)
+                    r.Warn(RoundDef.Table, round.Round, $"BossId {round.BossId} 가 BossTable 에 없습니다 (RoundBossEncounter 인스펙터 보스로 대신함)");
 
             ValidateWaves(r);
         }
@@ -496,8 +515,8 @@ namespace HybridShooter.Core.Data
                         r.Warn(WaveDef.Table, wave.Id, $"StartTime {wave.StartTime} 이 스테이지 {stage.Id} 길이 {stageLength} 이상이라 실행되지 않습니다");
             }
 
-            // V10·V11 같은 라운드 스테이지끼리 시간 구간 겹침·빈틈 (StartTime 순으로 이웃끼리 비교)
-            foreach (var stagesInRound in waveStages.GroupBy(s => s.RoundNo))
+            // V10·V11 같은 라운드 스테이지끼리 시간 구간 겹침·빈틈 (StartTime 순으로 이웃끼리 비교). ClearBonus 는 시간표가 아니라 전멸 조건으로 시작하므로 뺀다
+            foreach (var stagesInRound in waveStages.Where(s => s.Kind == WaveStageKind.Normal).GroupBy(s => s.RoundNo))
             {
                 var orderedStages = stagesInRound.OrderBy(s => s.StartTime).ToList();
                 for (int i = 1; i < orderedStages.Count; i++)

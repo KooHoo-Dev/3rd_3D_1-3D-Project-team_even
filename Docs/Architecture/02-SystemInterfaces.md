@@ -83,12 +83,17 @@ flowchart TB
 | `ISoundService` (PlaySfx·PlayLoop·PlayBgm) | UI·사운드 (`Audio/SoundService`) | 전원 — 같은 소리를 직접 호출과 이벤트 구독 양쪽에서 재생하지 않는다 | 기본: `NullSoundService` |
 | `ICurrencyWallet` | 보상 | 재화 획득, 강화 구매 | 기본: `CurrencyWallet` |
 | `IUpgradeState` | 보상 | 무기(능력치 계산), 강화 화면 | 기본: `UpgradeLedger` |
+| `IInteractable` + `InteractPrompt` | 보급 상자 등 상호작용 대상 | 플레이어(`PlayerInteractor`, 에임 + F) | 컴포넌트 (`GetComponentInParent`) |
+| `ISupplyWeaponUser` (보급 칸 장착) | 플레이어(`GunSlot`) | 보급 무기 상자 | `ServiceLocator.Register` + 플레이어 루트 컴포넌트 |
+| `IWeaponUnlocks` | 코어 `WeaponUnlockLedger` (CoreBootstrap 기본 등록) | 출발 전 무기 선택·`GunSlot` 시작 배치 | WeaponTable.UnlockOrder 순서로 스테이지 클리어마다 1개 영구 해금 (PlayerPrefs `Unlock.Weapons`) |
+| `IRoundStartGate` | UI `LoadoutPanel` (무기 선택 화면) | `RunDirector` | `HoldsStart` 동안 자동 시작·다음 라운드 진행을 미룸. 미등록이면 바로 진행 |
 
 ## 6. 이벤트 (`Scripts/Core/Events/GameEvents.cs`)
 
 | 이벤트 | 발행 | 구독 |
 |---|---|---|
 | `GameStateChangedEvent`, `RoundStartedEvent`, `GameOverEvent` | 코어 | 전원 (입력 잠금, BGM, 화면 전환) |
+| `StageClearedEvent(Round)` | 코어(`RunDirector`, 보스 처치 후 Reward 진입) | 무기 해금 |
 | **`RoundCleanupEvent(FullReset)`** | 코어 | **전원** — 자기 몬스터·투사체·보급·타이머 정리 |
 | `BossWarningEvent` | 코어 | 몬스터(보스 준비), UI·사운드(지진음·조명) |
 | `PlayerHpChangedEvent`, `PlayerDamagedEvent` | 플레이어 | UI·사운드(피격 표현) |
@@ -107,6 +112,9 @@ flowchart TB
 | `SupplyDroppedEvent`, `SupplyCollectedEvent` | 보급 | UI(낙하 위치·지급량 표시), 사운드(GameSoundRouter: 투하음·안내 방송·랜덤 장전음), 빛기둥, 분석 |
 | `CurrencyChangedEvent`, `UpgradePurchasedEvent` | 보상 | UI, 무기(능력치 갱신) |
 | `RewardSelectionFinishedEvent` | UI(강화 화면) | 코어(다음 라운드) |
+| `InteractFocusChangedEvent(HasTarget, Prompt)` | 플레이어(`PlayerInteractor`) | UI(상호작용 프롬프트) |
+| `SupplyWeaponChangedEvent(Previous, New)` | 무기(`GunSlot`) | UI·사운드·분석 |
+| `WeaponUnlockedEvent(Weapon)` | 코어(`WeaponUnlockLedger`) | UI(해금 알림 `UnlockToastHud`) |
 
 구독은 반드시 짝으로:
 

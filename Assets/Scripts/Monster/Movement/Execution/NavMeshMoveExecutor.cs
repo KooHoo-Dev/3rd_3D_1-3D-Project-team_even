@@ -38,6 +38,8 @@ namespace HybridShooter.Monster.Movement
         private Vector3 lastRequestedDest;// 마지막으로 경로를 설정한 목적지
         private float lastRepathTime;     // 마지막 재경로 시각 (s, Time.time 기준)
         private int repathCount;          // 디버그용 누적 SetPath 횟수
+        private Vector3 lastSampledDestination; // 마지막으로 NavMesh 보정에 성공한 목적지 (목적지가 NavMesh 밖일 때 대신 간다)
+        private bool hasSampledDestination;     // lastSampledDestination 이 있는가 (false = 이력 없음, 비활성화 시 초기화)
 
         // ════════ 상태·경고 억제 ════════
         private MoveExecutionState requestedState; // Apply 가 기록한 상태 (Unreachable 보고용)
@@ -173,6 +175,7 @@ namespace HybridShooter.Monster.Movement
         {
             if (attackMotion) EndAttackMotion(resolveAttackInterruption());
             hasDestination = false;
+            hasSampledDestination = false;
             warnedOffMesh = false;
         }
 
@@ -183,7 +186,7 @@ namespace HybridShooter.Monster.Movement
         /// <param name="intent">정책이 낸 이동 의도. HasDestination 이 false 면 정지</param>
         /// <returns>
         /// PathSet/PathKept/Deferred/Unreachable/OffNavMesh/Stopped. MonsterMovement 가 슬롯 추적에 사용한다.
-        /// 목적지 보정·경로 계산·경로 설정 중 하나라도 실패하면 정지 후 Unreachable
+        /// 목적지 보정(이전 보정 지점도 없을 때)·경로 계산·경로 설정 중 하나라도 실패하면 정지 후 Unreachable
         /// </returns>
         public MoveApplyResult Apply(in MoveIntent intent)
         {
@@ -228,7 +231,8 @@ namespace HybridShooter.Monster.Movement
             };
             
             // 4) 목적지를 NavMesh 위로 보정 → 경로 계산 → 설정. 어느 단계든 실패하면 정지 + Unreachable
-            if (NavMesh.SamplePosition(intent.Destination, out NavMeshHit hit, sampleRadius, filter) == false)
+            //    보정만 실패하면(플레이어가 지붕 위 등) 마지막 보정 지점으로 대신 간다
+            if (TryResolveNavMeshDestination(intent.Destination, filter, out Vector3 navMeshDestination) == false)
             {
                 Stop();
                 requestedState = MoveExecutionState.Unreachable;
@@ -240,7 +244,7 @@ namespace HybridShooter.Monster.Movement
                 return MoveApplyResult.Unreachable;
             }
 
-            if (agent.CalculatePath(hit.position, path) == false || path.status != NavMeshPathStatus.PathComplete)
+            if (agent.CalculatePath(navMeshDestination, path) == false || path.status != NavMeshPathStatus.PathComplete)
             {
                 Stop();
                 requestedState = MoveExecutionState.Unreachable;
@@ -258,6 +262,27 @@ namespace HybridShooter.Monster.Movement
             lastRepathTime = Time.time;
             hasDestination = true;
             return MoveApplyResult.PathSet;
+        }
+
+        /// <summary>
+        /// 의도의 목적지를 sampleRadius 안의 NavMesh 지점으로 보정한다. Apply 가 경로 계산 직전에 부른다.
+        /// 보정에 실패하면 마지막으로 보정에 성공한 지점을 대신 돌려줘, 목표가 NavMesh 밖으로 나가도 추적이 멈추지 않게 한다.
+        /// </summary>
+        /// <param name="destination">정책이 낸 목적지 (월드)</param>
+        /// <param name="filter">이 Agent 의 타입·영역 필터</param>
+        /// <param name="navMeshDestination">경로를 계산할 NavMesh 위 지점. 실패하면 의미 없음</param>
+        /// <returns>true = 보정 성공 또는 이전 보정 지점 사용, false = 보정 실패이고 이력도 없음</returns>
+        private bool TryResolveNavMeshDestination(Vector3 destination, NavMeshQueryFilter filter, out Vector3 navMeshDestination)
+        {
+            if (NavMesh.SamplePosition(destination, out NavMeshHit hit, sampleRadius, filter))
+            {
+                lastSampledDestination = hit.position;
+                hasSampledDestination = true;
+                navMeshDestination = hit.position;
+                return true;
+            }
+            navMeshDestination = lastSampledDestination;
+            return hasSampledDestination;
         }
 
         /// <summary>

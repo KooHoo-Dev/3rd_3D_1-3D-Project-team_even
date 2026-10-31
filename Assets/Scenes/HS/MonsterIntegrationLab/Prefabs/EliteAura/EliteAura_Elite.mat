@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: EliteAura_Elite
+  m_Shader: {fileID: 4800000, guid: 2dfef65c9cc04d5bbd3b334c13ec9a9d, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _Darken: 0.35
+    - _PulseRate: 1.1
+    - _PulseStrength: 0.6
+    - _RimPower: 2.5
+    - _ShellThickness: 0.008
+    - _VeinScale: 6
+    - _VeinSpeed: 0.4
+    - _VeinWidth: 0.08
+    m_Colors:
+    - _RimColor: {r: 4, g: 0.25, b: 0.15, a: 1}
+    - _VeinColor: {r: 2.5, g: 0.1, b: 0.6, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

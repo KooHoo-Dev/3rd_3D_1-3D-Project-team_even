@@ -44,7 +44,7 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// 공격 한 주기가 막 끝났을 때 행선지를 정한다. Tick 이 공격 진행 직후 부른다.
-        /// 벽 충돌이면 기절, 정상 완료면 공격의 After 값에 따라 Idle 휴식 / Chase 재정비 / 쿨다운 동안 Chase / Attack 유지.
+        /// 벽 충돌이면 기절, 정상 완료면 공격의 After 값에 따라 Idle 휴식 / Chase 재정비 / Attack 유지 / 자폭 사망.
         /// Attack 유지면 다음 틱에 Tick 의 분기가 판단한다.
         /// </summary>
         /// <param name="attack">방금 끝난 공격. LastResult·After 를 읽는다</param>
@@ -59,6 +59,9 @@ namespace HybridShooter.Monster.Behaviour
 
             switch (attack.After)
             {
+                case AfterAttack.Die:
+                    Owner.Die(false);
+                    return;
                 case AfterAttack.RestInIdle:
                     Owner.RestInIdle();
                     return;

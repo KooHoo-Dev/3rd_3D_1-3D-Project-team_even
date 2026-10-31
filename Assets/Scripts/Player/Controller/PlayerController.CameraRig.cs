@@ -75,9 +75,8 @@ namespace HybridShooter.Player
         private void UpdateEyePosition()
         {
             Vector3 basePos = fpRigHomePos + new Vector3(0f, 0f, eyeForwardOffset);
-            float pivotWeight = DebugNeckPivotOverride ?? neckPivotWeight;
-            if (pivotWeight > 0f && lookPitch > 0f)
-                basePos += (Quaternion.Euler(lookPitch, 0f, 0f) * eyeFromNeck - eyeFromNeck) * pivotWeight;
+            if (neckPivotWeight > 0f && lookPitch > 0f)
+                basePos += (Quaternion.Euler(lookPitch, 0f, 0f) * eyeFromNeck - eyeFromNeck) * neckPivotWeight;
             basePos += NeckGuardOffset(basePos);
 
             if (followHeadBone == false || headBone == null)
