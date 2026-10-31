@@ -1786,6 +1786,10 @@ MonoBehaviour:
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
   hitTimeRatio: 0
+  hitEndRatio: 0.5
+  maxHitsPerAttack: 1
+  hitIntervalSeconds: 0
+  aimOffsetRadius: 3
   hitRangeRatio: 1.1
   windupTurnSpeed: 360
 --- !u!114 &4756636726016961627
