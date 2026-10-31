@@ -3,6 +3,10 @@
     public sealed class ClypeosaurusDto
     {
         public int BossId;
+
+        // 일반 공격
+        public int BasicAttackDamage;
+        public float BasicAttackCooldown;
         
         // 등장 공격
         public int EntranceDamage;

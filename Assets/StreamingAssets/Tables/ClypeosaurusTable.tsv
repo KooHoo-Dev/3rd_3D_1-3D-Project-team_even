@@ -1,5 +1,5 @@
-BossId	StompDamage	StompTelegraphTime	StompRadius	StompRecoveryTime	BarrageDamage	BarrageRadius	BarrageTelegraphTime	BarrageInterval	BarrageRecoveryTime	BarrageSpreadRadius	BarrageFlightTime	BarrageVolleyCount	FourOpenHpRatio	SixOpenHpRatio	SuctionTelegraphTime	SuctionMaxDuration	SuctionRecoveryTime	SuctionNearRadius	SuctionFarExtraSpeed	SuctionNearExtraSpeed	SuctionNearDwellTime	StompStartMaxDistance	SuctionStartMinDistance	EntranceDamage	EntranceRadius	EntranceTelegraphTime	EntranceRecoveryTime
+BossId	StompDamage	StompTelegraphTime	StompRadius	StompRecoveryTime	BarrageDamage	BarrageRadius	BarrageTelegraphTime	BarrageInterval	BarrageRecoveryTime	BarrageSpreadRadius	BarrageFlightTime	BarrageVolleyCount	FourOpenHpRatio	SixOpenHpRatio	SuctionTelegraphTime	SuctionMaxDuration	SuctionRecoveryTime	SuctionNearRadius	SuctionFarExtraSpeed	SuctionNearExtraSpeed	SuctionNearDwellTime	StompStartMaxDistance	SuctionStartMinDistance	EntranceDamage	EntranceRadius	EntranceTelegraphTime	EntranceRecoveryTime	BasicAttackDamage	BasicAttackCooldown
 # 개별 쿨타임 원본 보관. 현재는 BossTable.PatternCooldown 사용.
 # BossId	StompDamage	StompTelegraphTime	StompRadius	StompRecoveryTime	StompCooldown	BarrageDamage	BarrageRadius	BarrageTelegraphTime	BarrageInterval	BarrageRecoveryTime	BarrageCooldown	BarrageSpreadRadius	BarrageFlightTime	FourOpenHpRatio	SixOpenHpRatio
 # 1	38	1.8	10	3	10	25	4	1.5	0.3	2.5	12	15	2	0.7	0.4
-1	38	1.8	15	3	25	4	1.5	0.6	2.5	6	2	2	0.7	0.4	1.5	10	0.5	19	3	0.5	4	20	30	35	30	0	0
+1	38	1.8	15	3	25	4	1.5	0.6	2.5	6	2	2	0.7	0.4	1.5	10	0.5	19	3	0.5	4	20	30	35	30	0	0	20	2

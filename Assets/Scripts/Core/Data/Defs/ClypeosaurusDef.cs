@@ -8,6 +8,10 @@ namespace HybridShooter.Core.Data.Defs
         public const string Table = "ClypeosaurusTable";
 
         public int BossId { get; }
+
+        // 일반 공격
+        public int BasicAttackDamage { get; }
+        public float BasicAttackCooldown { get; }
         
         // 등장 공격
         public int EntranceDamage { get; }
@@ -51,6 +55,9 @@ namespace HybridShooter.Core.Data.Defs
         public ClypeosaurusDef(ClypeosaurusDto dto, DataLoadReport report)
         {
             BossId = dto.BossId;
+
+            BasicAttackDamage = dto.BasicAttackDamage;
+            BasicAttackCooldown = dto.BasicAttackCooldown;
             
             EntranceDamage = dto.EntranceDamage;
             EntranceRadius = dto.EntranceRadius;
@@ -87,6 +94,10 @@ namespace HybridShooter.Core.Data.Defs
             SuctionStartMinDistance = dto.SuctionStartMinDistance;
 
             report.Check(BossId > 0, Table, BossId, "BossId는 1 이상이어야 합니다.");
+
+            // 일반 공격
+            report.Check(BasicAttackDamage >= 0, Table, "BasicAttack", "Damage는 0 이상이어야 합니다.");
+            report.Check(BasicAttackCooldown > 0f, Table, "BasicAttack", "Cooldown은 0보다 커야 합니다.");
             
             // 등장 공격
             report.Check(EntranceDamage >= 0, Table, "Entrance", "Damage는 0 이상이어야 합니다.");
