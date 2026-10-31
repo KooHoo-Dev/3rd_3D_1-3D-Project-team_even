@@ -500,8 +500,8 @@ namespace HybridShooter.Core.Data
                         r.Warn(WaveDef.Table, wave.Id, $"StartTime {wave.StartTime} 이 스테이지 {stage.Id} 길이 {stageLength} 이상이라 실행되지 않습니다");
             }
 
-            // V10·V11 같은 라운드 스테이지끼리 시간 구간 겹침·빈틈 (StartTime 순으로 이웃끼리 비교)
-            foreach (var stagesInRound in waveStages.GroupBy(s => s.RoundNo))
+            // V10·V11 같은 라운드 스테이지끼리 시간 구간 겹침·빈틈 (StartTime 순으로 이웃끼리 비교). ClearBonus 는 시간표가 아니라 전멸 조건으로 시작하므로 뺀다
+            foreach (var stagesInRound in waveStages.Where(s => s.Kind == WaveStageKind.Normal).GroupBy(s => s.RoundNo))
             {
                 var orderedStages = stagesInRound.OrderBy(s => s.StartTime).ToList();
                 for (int i = 1; i < orderedStages.Count; i++)
