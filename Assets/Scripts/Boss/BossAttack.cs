@@ -14,6 +14,8 @@ namespace HybridShooter.Boss
         
         public SkillPhase Phase { get; private set; } = SkillPhase.Idle;
         public bool IsRunning => Phase != SkillPhase.Idle;
+        
+        public virtual bool UsesPatternCooldown => true;
 
         /// <summary>
         /// 단계 변화 알림 (같은 보스의 BossSoundEmitter 등이 구독). Windup·Active 는 OnWindup·OnActiveStarted 가 끝난 뒤
@@ -59,14 +61,13 @@ namespace HybridShooter.Boss
         public bool CanStart()
         {
             if (initialized == false || isActiveAndEnabled == false || IsRunning) return false;
-            if (Boss == null || Boss.CanStartAttack == false) return false;
-
+            if (Boss == null || Boss.CanStartAttackFor(this) == false) return false;
             if (TargetRoot == null) return false;
-
             if (TargetDamageable.CanBeHitBy(Boss.Faction) == false) return false;
 
             return MeetsStartCondition();
         }
+        
         public bool TryStart()
         {
             if (CanStart() == false) return false;

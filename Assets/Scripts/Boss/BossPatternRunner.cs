@@ -7,6 +7,8 @@ namespace HybridShooter.Boss
     public class BossPatternRunner : MonoBehaviour
     {
         [SerializeField] private BossAttack[] attacks;
+        [SerializeField] private BossAttack basicAttack;
+        
         private BossController boss;
         private readonly List<BossAttack> candidates = new();
         
@@ -17,25 +19,38 @@ namespace HybridShooter.Boss
 
         private void Update()
         {
-            if (boss.CanStartAttack == false || attacks == null) return;
+            if (boss.CanAct == false) return;
             
             candidates.Clear();
 
-            foreach (var attack in attacks)
+            if (attacks != null)
             {
-                if (attack == null || attack.gameObject != gameObject || attack.CanStart() == false || candidates.Contains(attack)) continue;
-                
-                candidates.Add(attack);
+                foreach (var attack in attacks)
+                {
+                    if (attack == null || attack.gameObject != gameObject || attack.UsesPatternCooldown == false 
+                        || attack.CanStart() == false || candidates.Contains(attack)) 
+                        continue;
+
+                    candidates.Add(attack);
+                }
             }
-
-            if (candidates.Count == 0) return;
-
-            int index = Random.Range(0, candidates.Count);
-            BossAttack selected = candidates[index];
-
-            if (selected.TryStart())
+            
+            if (candidates.Count > 0)
             {
-                Debug.Log($"[BossPattern] 시작: {selected.GetType().Name}", this);
+                int index = Random.Range(0, candidates.Count);
+                BossAttack selected = candidates[index];
+
+                if (selected.TryStart())
+                {
+                    Debug.Log($"[BossPattern] 시작: {selected.GetType().Name}", this);
+
+                    return;
+                }
+            }
+            
+            if (basicAttack != null && basicAttack.gameObject == gameObject && basicAttack.UsesPatternCooldown == false)
+            {
+                basicAttack.TryStart();
             }
         }
     }
