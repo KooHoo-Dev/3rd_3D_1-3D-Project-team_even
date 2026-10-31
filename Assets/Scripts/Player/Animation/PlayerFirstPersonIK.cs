@@ -14,17 +14,17 @@ namespace HybridShooter.Player
     ///  - 총 방향 = 눈 정면. 벽이 총 길이보다 가까우면 총을 몸 쪽으로 당기고 총구를 내린다
     ///  - 도달 당김: 오른손 목표가 지금(FBBIK 전) 어깨에서 팔 길이 × maxReachRatio 보다 멀면 총을 시선 축을 따라 그만큼 몸 쪽으로 당긴다.
     ///    눈은 몸 뼈와 따로 고정이라 위를 볼수록 총 자리가 팔 길이 밖으로 나가고, 그러면 FBBIK 가 어깨·목까지 앞으로 끌어낸다.
-    ///    시선 축을 따라 당기므로 조준 중 조준기는 화면 중앙에 남는다 (1인칭 조준 자동 측정 결과)
+    ///    시선 축을 따라 당기므로 조준 중 조준기는 화면 중앙에 남는다
     ///  - 사격 반동(PlayerGunRecoil)은 이 총 자리에 더한다 (조준 중에는 줄여서)
     ///  - 오른손 = 총과 손의 지금 관계 그대로 (총은 오른손 아래 WeaponSocket 에 붙어 있다), 왼손 = 총의 LeftHandGrip
     ///  - 팔꿈치: 손 효과기 회전을 쓰면 FBBIK 는 팔꿈치 방향을 손 회전에서 정한다 → 아래를 보면 손과 함께 돌아 팔이 안쪽으로 꺾인다.
     ///    그래서 어깨에서 몸 기준(좌우 yaw 만, 위아래 시선은 따르지 않음) elbowDirection 쪽에 bend goal 을 두고 그 방향으로 접는다
     ///    (가중치 = elbowWeight × 손 IK 가중치 → 3인칭·반동·재장전·던지기에는 영향 없음)
-    ///  - 총별 값은 WeaponGripTable(fpHipSight, adsDistance), 없으면 여기 기본값. IK Pose Lab 에서 1인칭으로 보며 고친다
+    ///  - 총별 값은 WeaponGripTable(fpHipSight, adsDistance), 없으면 여기 기본값
     ///  - 가중치 = 1인칭 정도(시점 전환 중 부드럽게) × 상체 자세 레이어 × 팔 동작 없음 (재장전·꺼내기는 애니메이션 그대로)
     ///  - 몸 내리기: 점프 동작은 골반을 위로 올리는데(클립 Root Y 가 포즈에 들어감) 눈은 루트 기준 고정이라 목·어깨가 카메라를 가린다.
     ///    그래서 손 목표를 정하기 전에(FBBIK 전) 목이 눈보다 minNeckBelowEye 만큼 아래 오도록 골반째 몸 전체를 내린다 (× 1인칭 정도, 3인칭은 그대로).
-    ///    총이 없어도 한다. 측정: Tools/HybridShooter/First Person Aim Test/Run Jump
+    ///    총이 없어도 한다
     /// 실행 순서: AimIK(9997, 척추가 시선을 따라감) → 이 스크립트(9998, 손 목표) → FullBodyBipedIK(9999)
     /// </summary>
     [DisallowMultipleComponent]
@@ -69,7 +69,7 @@ namespace HybridShooter.Player
 
         [Header("몸 내리기 (점프 등)")]
         [Tooltip("목 뼈가 1인칭 눈보다 최소 이만큼(m) 아래 있게 한다. 모자라면 FBBIK 전에 몸 전체를 그만큼 내린다 (× 1인칭 정도). 0 = 끔.\n" +
-                 "서 있을 때 눈-목 높이 차(점프 측정 summary 의 지상 값)보다 작게 둔다")]
+                 "서 있을 때 눈-목 높이 차보다 작게 둔다")]
         [SerializeField] private float minNeckBelowEye = 0.1f;
 
         private const float MinReachSightDistance = 0.05f; // 도달 당김으로 당겨도 조준기는 눈에서 이만큼 앞에
@@ -83,32 +83,6 @@ namespace HybridShooter.Player
 
         /// <summary>지금 1인칭 손 IK 가중치</summary>
         public float Weight { get; private set; }
-        /// <summary>벽 때문에 당긴 거리(m)</summary>
-        public float WallPull => wallPull;
-        public Vector3 DefaultHipSight => hipSight;
-        public float DefaultAdsDistance => adsDistance;
-        public Vector3 DefaultShoulderSight => shoulderSight;
-        /// <summary>디버그: FBBIK 가 풀린 직후 오른손이 목표에서 벗어난 거리(cm)·각도(도), 총 정면과 시선 사이 각도(도)</summary>
-        public float HandPositionError { get; private set; }
-        public float HandRotationError { get; private set; }
-        public float GunAngleError { get; private set; }
-        /// <summary>디버그: FBBIK 가 지금까지 풀린 횟수 (늘지 않으면 FBBIK 가 돌지 않는 것)</summary>
-        public int FbbikSolveCount { get; private set; }
-        public FullBodyBipedIK FullBodyIK => fbbik;
-        /// <summary>디버그: 조준기가 와야 할 월드 위치 (마지막으로 정한 값, 반동·벽 당김·도달 당김 포함)</summary>
-        public Vector3 SightTarget { get; private set; }
-        /// <summary>도달 당김: 손이 닿게 시선 축을 따라 당긴 거리(m)</summary>
-        public float ReachPull { get; private set; }
-        /// <summary>디버그(1인칭 조준 측정): null 이 아니면 maxReachRatio 대신 이 값 (0 = 도달 당김 끔)</summary>
-        public float? DebugMaxReachRatio { get; set; }
-        /// <summary>몸 내리기: 이번 프레임 몸을 내린 거리(m)</summary>
-        public float BodyDrop { get; private set; }
-        /// <summary>몸 내리기 전 눈 - 목 높이 차(m). 애니메이션·AimIK 까지의 자세</summary>
-        public float NeckBelowEyeBeforeDrop { get; private set; }
-        /// <summary>디버그(점프 측정): null 이 아니면 minNeckBelowEye 대신 이 값 (0 = 몸 내리기 끔)</summary>
-        public float? DebugMinNeckBelowEye { get; set; }
-        /// <summary>지금 쓰는 몸 내리기 기준(m)</summary>
-        public float MinNeckBelowEye => DebugMinNeckBelowEye ?? minNeckBelowEye;
 
         private void Awake()
         {
@@ -124,7 +98,7 @@ namespace HybridShooter.Player
                 neck = animator.GetBoneTransform(HumanBodyBones.Neck);
                 if (neck == null) neck = animator.GetBoneTransform(HumanBodyBones.Head);
             }
-            // bend goal 은 씬에 두지 않고 실행할 때 만든다 (빌더를 다시 돌려도 남지 않게)
+            // bend goal 은 씬에 두지 않고 실행할 때 만든다 (씬·프리팹에 남지 않게)
             rightElbowGoal = new GameObject("FP_RightElbowGoal").transform;
             rightElbowGoal.SetParent(transform, false);
             leftElbowGoal = new GameObject("FP_LeftElbowGoal").transform;
@@ -134,7 +108,6 @@ namespace HybridShooter.Player
         private void OnEnable()
         {
             if (fbbik == null) return;
-            fbbik.solver.OnPostUpdate += MeasureAfterSolve;
             fbbik.solver.rightArmChain.bendConstraint.bendGoal = rightElbowGoal;
             fbbik.solver.leftArmChain.bendConstraint.bendGoal = leftElbowGoal;
         }
@@ -142,7 +115,6 @@ namespace HybridShooter.Player
         private void OnDisable()
         {
             if (fbbik == null) return;
-            fbbik.solver.OnPostUpdate -= MeasureAfterSolve;
             SetElbowWeights(0f, 0f);
             if (fbbik.solver.rightArmChain.bendConstraint.bendGoal == rightElbowGoal) fbbik.solver.rightArmChain.bendConstraint.bendGoal = null;
             if (fbbik.solver.leftArmChain.bendConstraint.bendGoal == leftElbowGoal) fbbik.solver.leftArmChain.bendConstraint.bendGoal = null;
@@ -164,7 +136,6 @@ namespace HybridShooter.Player
                 SetWeights(left, 0f);
                 SetElbowWeights(0f, 0f);
                 wallPull = 0f;
-                ReachPull = 0f;
                 return;
             }
 
@@ -191,11 +162,9 @@ namespace HybridShooter.Player
             sightLocal.z -= wallPull;
 
             Quaternion gunRotation = eye.rotation * Quaternion.Euler(maxWallPull > 0f ? wallPitch * wallPull / maxWallPull : 0f, 0f, 0f);
-            ReachPull = ReachPullFor(eye, sightLocal, gunRotation, sightInGun, toGun * (hand.position - g.position));
-            sightLocal.z -= ReachPull;
+            sightLocal.z -= ReachPullFor(eye, sightLocal, gunRotation, sightInGun, toGun * (hand.position - g.position)); // 도달 당김
             Vector3 gunPosition = eye.position + eye.rotation * sightLocal - gunRotation * sightInGun;
             if (recoil != null) recoil.ApplyFirstPerson(ref gunPosition, ref gunRotation, gun, driver.AimWeight);
-            SightTarget = gunPosition + gunRotation * sightInGun;
 
             // 총이 그 자리에 오려면 손이 어디 있어야 하는지 (총과 손의 관계 그대로)
             right.position = gunPosition + gunRotation * (toGun * (hand.position - g.position));
@@ -224,13 +193,10 @@ namespace HybridShooter.Player
         /// </summary>
         private void LowerBodyBelowEye()
         {
-            BodyDrop = 0f;
-            if (hips == null || neck == null) return;
-            NeckBelowEyeBeforeDrop = player.FirstPersonEyePose.position.y - neck.position.y;
-            float min = MinNeckBelowEye;
-            if (min <= 0f) return;
-            BodyDrop = Mathf.Max(0f, min - NeckBelowEyeBeforeDrop) * player.FirstPersonBlend;
-            if (BodyDrop > 0f) hips.position += Vector3.down * BodyDrop;
+            if (hips == null || neck == null || minNeckBelowEye <= 0f) return;
+            float neckBelowEye = player.FirstPersonEyePose.position.y - neck.position.y;
+            float drop = Mathf.Max(0f, minNeckBelowEye - neckBelowEye) * player.FirstPersonBlend;
+            if (drop > 0f) hips.position += Vector3.down * drop;
         }
 
         /// <summary>
@@ -239,11 +205,10 @@ namespace HybridShooter.Player
         /// </summary>
         private float ReachPullFor(Pose eye, Vector3 sightLocal, Quaternion gunRotation, Vector3 sightInGun, Vector3 handInGun)
         {
-            float ratio = DebugMaxReachRatio ?? maxReachRatio;
-            if (ratio <= 0f) return 0f;
+            if (maxReachRatio <= 0f) return 0f;
             RootMotion.BipedReferences refs = fbbik.references;
             if (refs.rightUpperArm == null || refs.rightForearm == null || refs.rightHand == null) return 0f;
-            float radius = ratio * (Vector3.Distance(refs.rightUpperArm.position, refs.rightForearm.position)
+            float radius = maxReachRatio *(Vector3.Distance(refs.rightUpperArm.position, refs.rightForearm.position)
                                                      + Vector3.Distance(refs.rightForearm.position, refs.rightHand.position));
             Vector3 handTarget = eye.position + eye.rotation * sightLocal + gunRotation * (handInGun - sightInGun);
             Vector3 d = handTarget - refs.rightUpperArm.position;
@@ -288,22 +253,6 @@ namespace HybridShooter.Player
                 Gizmos.DrawLine(refs.leftUpperArm.position, leftElbowGoal.position);
                 Gizmos.DrawWireSphere(leftElbowGoal.position, 0.03f);
             }
-        }
-
-        private void MeasureAfterSolve()
-        {
-            FbbikSolveCount++;
-            Gun gun = bodyIK != null ? bodyIK.GripGun : null;
-            Transform hand = bodyIK != null ? bodyIK.RightHandBone : null;
-            if (Weight <= 0f || gun == null || hand == null)
-            {
-                HandPositionError = HandRotationError = GunAngleError = 0f;
-                return;
-            }
-            IKEffector right = fbbik.solver.rightHandEffector;
-            HandPositionError = Vector3.Distance(hand.position, right.position) * 100f;
-            HandRotationError = Quaternion.Angle(hand.rotation, right.rotation);
-            GunAngleError = Vector3.Angle(gun.transform.forward, player.FirstPersonEyePose.rotation * Vector3.forward);
         }
 
         /// <summary>눈 정면으로 벽까지 거리 (reach 안에 없으면 reach)</summary>

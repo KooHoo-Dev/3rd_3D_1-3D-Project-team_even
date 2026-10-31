@@ -136,10 +136,31 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | Round | int | 1부터. 마지막 행 이후 라운드는 마지막 행 재사용 |
-| BossId | int | MonsterTable.Id (Role=Boss) |
+| BossId | int | BossTable.Id. 진행 라운드 번호의 행으로 보스를 고른다 (`RoundBossEncounter`). 없으면 인스펙터 보스로 대신 |
 | BossSpawnTimeMin / Max | float | 보스 등장 시각 범위(초). 이 사이 무작위, 남은 시간 표시 안 함 |
 | SupplyStartTime / SupplyInterval | float | 첫 보급(초) / 이후 간격 |
 | BossReward | int | 보스 처치 추가 재화 |
+
+## BossTable / TyranopodeTable — 보스
+### BossTable
+| 컬럼 | 타입 | 설명 |
+|---|---|---|
+| Id | int | 1 = Clypeosaurus, 2 = Tyranopode |
+| MaxHp / MoveSpeed / PatternCooldown | int / float / float | 체력 / 이동 속도 / 패턴 사이 최소 간격 (Tyranopode 는 0 — 간격은 TyranopodeTable 이 정함) |
+| Prefab | string | 보스 프리팹 Resources 경로 (확장자 없음). `RoundBossEncounter` 가 불러온다 |
+
+### TyranopodeTable (단일 행, 두 번째 보스 전용)
+열이 많아 묶음만 적는다. 각 열 설명은 tsv 주석과 `TyranopodeDef` 참고. 값은 모두 제안값
+| 묶음 | 열 접두사 | 내용 |
+|---|---|---|
+| 페이즈·거리 | Phase2*, MeleeRange, FarRange, Circle*, Combo* | 페이즈 2 조건(체력 비율 또는 부위 파괴 수, 먼저 오는 쪽), 거리 구간, 공격 사이 맴돌기, 연속 공격 확률 |
+| 부위 | *Hp, *DamageMultiplier, *Broken* | 부위 체력·피해 배율, 파괴 시 약해지는 정도 |
+| 그로기 | Groggy*, WallGroggyTime | 포자 파괴·벽 충돌 그로기 시간, 그로기 중 받는 피해 배율 |
+| 패턴 | Tentacle*, Bite*, Smash*, Charge*, Spit*, Egg*, Tremor*, Summon*, Beacon*, Storm* | 피해·범위·예고(Windup)·경직(Recovery)·쿨타임 |
+| 등장 연출 | Intro* | 남아 있던 웨이브 몬스터를 흡수한 수만큼 보호막을 두르고 시작 (상한 MaxHp×IntroShieldMaxRatio), 두 번째 등장부터 짧은 연출 |
+| 난이도 보정 | Assist* | 플레이어가 힘들수록 공격 간격↑, 연속·강공격↓ (예고·피해량은 그대로) |
+
+`SummonMinionIds` 는 MonsterTable.Id 를 `|` 로 구분한다 (예: `1001|1002`).
 
 ## CrowdSpawnTable — BL-015
 | 컬럼 | 타입 | 설명 |

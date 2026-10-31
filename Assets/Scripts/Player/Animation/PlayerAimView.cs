@@ -105,8 +105,8 @@ namespace HybridShooter.Player
             Mode = gun == null ? WeaponGripTable.AimMode.Sight
                 : table != null ? table.AimModeFor(gun) : WeaponGripTable.DefaultAimMode(WeaponGripTable.Key(gun));
 
-            // 조준 중: 실제 조준(우클릭) 또는 IK Pose Lab 의 조준 고정. 재장전·꺼내기·사망·시점 전환 중에는 아님
-            bool aiming = gun != null && (gun.IsAiming || driver.DebugAimOverride == true)
+            // 조준 중: 실제 조준(우클릭). 재장전·꺼내기·사망·시점 전환 중에는 아님
+            bool aiming = gun != null && gun.IsAiming
                           && driver.ActionBlend > 0.5f && player.IsAlive && player.IsReviving == false && player.CameraChanging == false;
 
             // scopeBlend: 0 평소, 0.5 가장 어두움(화면 교체), 1 스코프

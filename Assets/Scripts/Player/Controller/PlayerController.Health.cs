@@ -29,7 +29,7 @@ namespace HybridShooter.Player
         public void TakeDamage(in DamageInfo info)
         {
             if (flowInputBlocked) return;
-            if (DebugInvincible || isReviving) return; // 부활 연출 중 무적 (PlayerController.Revive)
+            if (DebugInvincible || IsInvulnerable) return; // 부활 연출 중·구르기 직후 무적 (PlayerController.Revive, rollInvulnerableTime)
             if (IsDead) return;                        // 이미 쓰러짐: 부활 대기 중 시체에 들어오는 피해는 무시
 
             // 부활 직후 보호 중이면 줄인 피해. 피격 연출(PlayerDamagedEvent)도 실제로 받은 양으로 보낸다

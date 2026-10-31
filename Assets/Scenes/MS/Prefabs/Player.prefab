@@ -905,7 +905,6 @@ GameObject:
   - component: {fileID: 8891840968360981808}
   - component: {fileID: 1009040220543551216}
   - component: {fileID: 5722214406937038087}
-  - component: {fileID: 8518368807540353148}
   - component: {fileID: 6036386106333663396}
   - component: {fileID: 4034804946924796211}
   - component: {fileID: 3468810814700002718}
@@ -1213,21 +1212,6 @@ MonoBehaviour:
   animator: {fileID: 8844872386174927466}
   profile: {fileID: 11400000, guid: f905602ad0f7b7f459c60f4bdb84cdc0, type: 2}
   gunSlot: {fileID: 0}
---- !u!114 &8518368807540353148
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5753637828753184512}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 175a3dcb802044fca9dac28fc7eb7fd2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerAnimationDebugHUD
-  visible: 1
-  toggleKey: 96
-  fontSize: 16
 --- !u!114 &6036386106333663396
 MonoBehaviour:
   m_ObjectHideFlags: 0

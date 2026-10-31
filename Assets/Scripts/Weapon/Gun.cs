@@ -478,6 +478,7 @@ namespace HybridShooter.Weapon
                 if (Owner == null) return 0f;
                 float spread = moveSpreadPenalty * Owner.MoveRatio;
                 if (Owner.IsGrounded == false) spread += airSpreadPenalty;
+                spread += Owner.TremorSpread; // 땅울림 (조준·스코프에서도 남도록 이동 퍼짐에 넣는다)
                 return spread;
             }
         }

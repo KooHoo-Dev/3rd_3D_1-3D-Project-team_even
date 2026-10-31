@@ -24,6 +24,7 @@ namespace HybridShooter.Round
         [SerializeField] private RoundBossEncounter bossEncounter;
 
         private RoundDef roundDef;
+        private int roundNumber;
         private GameState phase;
         private float elapsedSeconds;
         private float bossSpawnTime;
@@ -76,6 +77,7 @@ namespace HybridShooter.Round
             if (supplyDropper != null) supplyDropper.StopAutoDropCycle();
 
             roundDef = def;
+            this.roundNumber = roundNumber;
             elapsedSeconds = 0f;
             bossSpawnTime = def.RollBossSpawnTime(UnityEngine.Random.value);
             cameraReady = false;
@@ -147,7 +149,8 @@ namespace HybridShooter.Round
                     if (bossStarted == false)
                     {
                         bossStarted = true;
-                        bossEncounter.Begin(roundDef.Boss);
+                        // 보스는 진행 라운드 번호의 RoundTable 행으로 고른다 (roundDef 는 항상 1 라운드 행)
+                        bossEncounter.Begin(roundDef.Boss, DataManager.GetRound(roundNumber)?.BossId ?? roundDef.BossId);
                     }
                     if (isRoundRunning == false) return;
                     if (bossDefeated) ChangePhase(GameState.Reward);

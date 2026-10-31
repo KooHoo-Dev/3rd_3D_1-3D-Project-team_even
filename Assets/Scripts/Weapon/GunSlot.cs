@@ -119,6 +119,8 @@ namespace HybridShooter.Weapon
         public bool IsGrounded => player.IsGrounded;
         /// <summary>0 = 정지, 1 = 달리기 최고 속도</summary>
         public float MoveRatio => Mathf.Clamp01(player.HorizontalSpeed / Mathf.Max(0.01f, player.WalkSpeed * player.SprintMultiplier));
+        /// <summary>땅울림으로 더해진 퍼짐(도). 없으면 0</summary>
+        public float TremorSpread => player.TremorSpread;
         /// <summary>구르는 중, 수류탄을 던지는 중이거나 죽었으면 쏠 수 없다</summary>
         public bool CanUseWeapon => player.IsAlive && player.IsReviving == false && player.IsRolling == false && player.IsExternallyControlled == false && player.IsThrowingGrenade == false && player.IsGameplayInputBlocked == false;
 

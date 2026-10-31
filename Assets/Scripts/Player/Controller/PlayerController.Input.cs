@@ -9,8 +9,8 @@ namespace HybridShooter.Player
     {
         private bool flowInputBlocked;
         private bool menuInputBlocked;
-        /// <summary>게임 흐름(Ready·Reward·GameOver·Paused) 또는 메뉴(출발 전 무기 선택 등) 때문에 입력이 막힘</summary>
-        public bool IsGameplayInputBlocked => flowInputBlocked || menuInputBlocked;
+        /// <summary>게임 흐름(Ready·Reward·GameOver·Paused)·메뉴(출발 전 무기 선택 등)·연출(PlayerController.Cinematic) 때문에 입력이 막힘</summary>
+        public bool IsGameplayInputBlocked => flowInputBlocked || menuInputBlocked || cinematicActive;
 
         /// <summary>
         /// 메뉴 화면(출발 전 무기 선택 등)이 이동·사격·시선 입력을 막고 커서를 보인다.
