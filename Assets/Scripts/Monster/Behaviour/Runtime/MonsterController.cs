@@ -44,7 +44,7 @@ namespace HybridShooter.Monster.Behaviour
         [SerializeField, Min(0.01f)] private float activeSeconds = 0.5f;
         [Tooltip("Active 구간 중 판정 시점 비율. 0 = Active 시작, 1 = Active 끝. 다음 공격 시작부터 반영")]
         [SerializeField, Range(0f, 1f)] private float hitTimeRatio = 0.5f;
-        [Tooltip("근접 판정 거리 = 테이블 Range × 이 비율. 1 = 진입 거리와 같음. 예고 동안 같은 방향으로 도망가는 플레이어를 맞히려면 (Range + 플레이어 속도 × 판정 시각 + 0.2) ÷ Range. 다음 판정부터 반영")]
+        [Tooltip("근접 판정 거리 = 테이블 Range × 이 비율. 1 = 진입 거리와 같음. 예고 동안 같은 방향으로 도망가는 플레이어를 맞히려면 (Range + 플레이어 속도 × 판정 시각 + 0.2) ÷ Range. Attack 진입 뒤 머무는 거리도 Range × 이 비율. 1 = 진입 거리와 같음(경계에서 바로 이탈할 수 있음). 다음 판정부터 반영")]
         [SerializeField, Min(1f)] private float hitRangeRatio = 1f;
         [Tooltip("예고 중 바라볼 지점으로 도는 속도 (도/초). 0 = 돌지 않는다. 다음 프레임부터 반영")]
         [SerializeField, Min(0f)] private float windupTurnSpeed = 360f;
