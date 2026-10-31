@@ -17,6 +17,9 @@ namespace HybridShooter.Monster.Behaviour
     /// 다음 스테이지가 시작돼도 이전 스테이지를 멈추지 않는다. 이전 스테이지는 스스로 Finished 를 낼 때까지 남은 소환을 이어 간다.
     /// 그래서 Normal 스테이지의 EndTime 은 쓰지 않는다. 보스는 다루지 않는다 (보스전 전이 때 군중 소환을 멈추기만 한다).
     /// ClearBonus 스테이지는 StartTime 이 아니라 "EndTime 전에 본 웨이브 전멸" 로 1번 시작한다 (StartClearBonusIfEarned).
+    /// 라운드에 ClearBonus 가 여러 개면 (예: Normal 스테이지마다 하나) 각자 자기 EndTime(마감) 기준으로 따로 판정한다.
+    /// 라운드 진행은 Update 끝에서 "스테이지를 다 시작했고, 실행 중 스테이지가 없고, 특수 웨이브를 기다리는 중이 아님" 일 때 끝난다 (EndHordePhaseIfAllDone).
+    /// 그래서 마지막 소환이 끝난 뒤에도 마감 전까지는 전멸 판정이 계속 돈다.
     /// Time.deltaTime 으로 시간을 재므로 강화 화면(timeScale 0)에서 라운드 시간과 소환이 함께 멈춘다.
     /// </remarks>
     public sealed class MonsterWaveDirector : MonoBehaviour
@@ -34,8 +37,7 @@ namespace HybridShooter.Monster.Behaviour
         private readonly List<MonsterWaveStage> runningStages = new List<MonsterWaveStage>();
 
         // ── 조기 전멸 특수 웨이브 ──
-        private WaveStageDef clearBonusStage;    // 이번 라운드 ClearBonus 스테이지. null = 없음
-        private bool hasStartedClearBonus;
+        private List<WaveStageDef> pendingClearBonusStages = new List<WaveStageDef>();  // 이번 라운드에 아직 시작 안 한 ClearBonus, EndTime 순. 시작하면 뺀다
         private readonly HashSet<GameObject> aliveMonsters = new HashSet<GameObject>();  // 이번 라운드에 나와 아직 안 죽은 몬스터
 
         /// <summary>전체 라운드 정리를 중단 안전망으로 구독한다. 시작·보스 전이는 시퀀서가 직접 호출한다. 소환·사망은 전멸 판정용으로 센다.</summary>
@@ -92,8 +94,7 @@ namespace HybridShooter.Monster.Behaviour
             roundElapsedTime = 0f;
             nextStageIndex = 0;
             isRoundRunning = true;
-            clearBonusStage = FindClearBonusStageOfRound(roundNumber);
-            hasStartedClearBonus = false;
+            pendingClearBonusStages = FindClearBonusStagesOfRound(roundNumber);
             aliveMonsters.Clear();
 
             StartDueStages();
@@ -112,10 +113,11 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// 라운드 시간을 진행하고, 실행 중 스테이지를 Tick 한 뒤 시작 시각이 된 스테이지를 시작한다.
-        /// 마지막으로 마감 전 전멸이면 특수 웨이브를 시작한다.
+        /// 마감 전 전멸이면 특수 웨이브를 시작하고, 마지막으로 라운드 군중전이 끝났는지 본다.
         /// </summary>
         /// <remarks>
         /// Tick → 시작 순서라서 새 스테이지의 첫 Tick 은 다음 프레임이다.
+        /// 종료 판정을 맨 끝에 둬서, 같은 프레임에 시작한 특수 웨이브가 있으면 라운드를 끝내지 않는다.
         /// </remarks>
         private void Update()
         {
@@ -125,6 +127,7 @@ namespace HybridShooter.Monster.Behaviour
             TickRunningStages(Time.deltaTime);
             StartDueStages();
             StartClearBonusIfEarned();
+            EndHordePhaseIfAllDone();
         }
 
         /// <summary>
@@ -150,28 +153,40 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 마감(ClearBonus.EndTime) 전에 본 웨이브를 다 잡았으면 특수 웨이브를 1번 시작한다.
-        /// 전멸 = 마감 전에 시작할 Normal 스테이지를 다 시작했고, 소환 중인 스테이지가 없고, 살아 있는 몬스터가 0.
-        /// 마감을 넘기면 시작하지 않는다 (다음 Normal 스테이지는 원래 StartTime 에 그대로 시작).
+        /// 마감(ClearBonus.EndTime) 전에 본 웨이브를 다 잡았으면 그 마감의 특수 웨이브를 1번 시작한다.
+        /// 전멸 = 소환 중인 스테이지가 없고, 살아 있는 몬스터가 0. 어느 특수 웨이브인지는 FindEarnedClearBonusStage 가 고른다.
+        /// 마감을 넘긴 특수 웨이브는 시작하지 않는다 (다음 Normal 스테이지는 원래 StartTime 에 그대로 시작).
         /// </summary>
         private void StartClearBonusIfEarned()
         {
-            if (clearBonusStage == null) return;
-            if (hasStartedClearBonus) return;
-
-            bool isBeforeDeadline = roundElapsedTime < clearBonusStage.EndTime;
-            bool hasStartedStagesBeforeDeadline = nextStageIndex >= roundStages.Count
-                || roundStages[nextStageIndex].StartTime >= clearBonusStage.EndTime;
             bool hasNoRunningStage = runningStages.Count == 0;
             bool hasNoAliveMonster = aliveMonsters.Count == 0;
-            if (isBeforeDeadline == false) return;
-            if (hasStartedStagesBeforeDeadline == false) return;
             if (hasNoRunningStage == false) return;
             if (hasNoAliveMonster == false) return;
 
-            hasStartedClearBonus = true;
-            Debug.Log($"[MonsterWaveDirector] 라운드 {roundNo} 마감 전 전멸 → 특수 웨이브", this);
-            StartStage(clearBonusStage);
+            WaveStageDef earnedStage = FindEarnedClearBonusStage();
+            if (earnedStage == null) return;
+
+            pendingClearBonusStages.Remove(earnedStage);
+            Debug.Log($"[MonsterWaveDirector] 라운드 {roundNo} 마감 {earnedStage.EndTime:0}초 전 전멸 → 특수 웨이브", this);
+            StartStage(earnedStage);
+        }
+
+        /// <summary>
+        /// 아직 시작 안 한 ClearBonus 중, 마감 전이고 그 마감 전에 시작할 Normal 스테이지를 다 시작한 것을 찾는다.
+        /// 예: 마감 50초 ClearBonus 는 60초 스테이지가 아직이어도 되지만, 0초 스테이지는 시작했어야 한다.
+        /// </summary>
+        /// <returns>지금 시작할 수 있는 ClearBonus (마감이 이른 것 우선). 없으면 null</returns>
+        private WaveStageDef FindEarnedClearBonusStage()
+        {
+            foreach (WaveStageDef bonusStage in pendingClearBonusStages)
+            {
+                bool isBeforeDeadline = roundElapsedTime < bonusStage.EndTime;
+                bool hasStartedStagesBeforeDeadline = nextStageIndex >= roundStages.Count
+                    || roundStages[nextStageIndex].StartTime >= bonusStage.EndTime;
+                if (isBeforeDeadline && hasStartedStagesBeforeDeadline) return bonusStage;
+            }
+            return null;
         }
 
         /// <summary>
@@ -189,31 +204,48 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 스테이지가 스스로 끝나면 목록에서 빼고, 라운드 군중전이 끝났는지 본다. 스테이지 Tick 안에서 불린다.
+        /// 스테이지가 스스로 끝나면 목록에서 뺀다. 스테이지 Tick 안에서 불린다.
+        /// 라운드 종료 판정은 여기서 하지 않고 Update 끝(EndHordePhaseIfAllDone)에서 한다.
         /// </summary>
         /// <param name="stage">방금 끝난 스테이지</param>
         private void OnStageFinished(MonsterWaveStage stage)
         {
             runningStages.Remove(stage);
-            EndHordePhaseIfAllDone();
         }
 
         /// <summary>
-        /// 스테이지를 다 시작했고 실행 중 스테이지가 0개면 라운드 진행을 끝낸다. 이후 Update 는 아무것도 하지 않는다.
+        /// 스테이지를 다 시작했고, 실행 중 스테이지가 0개이고, 특수 웨이브를 기다리는 중이 아니면 라운드 진행을 끝낸다.
+        /// Update 끝에서 매 프레임 불린다. 끝난 뒤 Update 는 아무것도 하지 않는다.
         /// </summary>
         private void EndHordePhaseIfAllDone()
         {
             bool hasStartedAllStages = nextStageIndex >= roundStages.Count;
             bool hasNoRunningStage = runningStages.Count == 0;
+            bool isWaitingClearBonus = IsWaitingClearBonus();
             if (hasStartedAllStages == false) return;
             if (hasNoRunningStage == false) return;
+            if (isWaitingClearBonus) return;
 
             isRoundRunning = false;
             Debug.Log($"[MonsterWaveDirector] 라운드 {roundNo} 군중전 소환 끝", this);
         }
 
         /// <summary>
-        /// 라운드 번호의 Normal 스테이지를 StartTime 순으로 모은다. ClearBonus 는 FindClearBonusStageOfRound 가 따로 찾는다.
+        /// 특수 웨이브가 아직 시작될 수 있는지 본다. EndHordePhaseIfAllDone 이 라운드를 끝내도 되는지 판단할 때 쓴다.
+        /// </summary>
+        /// <returns>아직 시작 안 한 ClearBonus 중 마감 전인 것이 하나라도 있으면 true</returns>
+        private bool IsWaitingClearBonus()
+        {
+            foreach (WaveStageDef bonusStage in pendingClearBonusStages)
+            {
+                bool isBeforeDeadline = roundElapsedTime < bonusStage.EndTime;
+                if (isBeforeDeadline) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 라운드 번호의 Normal 스테이지를 StartTime 순으로 모은다. ClearBonus 는 FindClearBonusStagesOfRound 가 따로 찾는다.
         /// </summary>
         /// <param name="roundNumber">WaveStageDef.RoundNo 와 비교할 라운드 번호</param>
         /// <returns>그 라운드 Normal 스테이지의 새 목록 (StartTime 순). 없으면 빈 목록</returns>
@@ -231,19 +263,21 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 라운드 번호의 ClearBonus 스테이지를 찾는다. 라운드당 하나만 쓴다 (여러 개면 테이블 순서상 첫 번째).
+        /// 라운드 번호의 ClearBonus 스테이지를 마감(EndTime) 순으로 모은다. 각각 자기 마감 전 전멸 시 1번씩 시작한다.
         /// </summary>
         /// <param name="roundNumber">WaveStageDef.RoundNo 와 비교할 라운드 번호</param>
-        /// <returns>그 라운드 ClearBonus 스테이지. 없으면 null</returns>
-        private static WaveStageDef FindClearBonusStageOfRound(int roundNumber)
+        /// <returns>그 라운드 ClearBonus 스테이지의 새 목록 (EndTime 순). 없으면 빈 목록</returns>
+        private static List<WaveStageDef> FindClearBonusStagesOfRound(int roundNumber)
         {
+            var clearBonusStages = new List<WaveStageDef>();
             foreach (WaveStageDef stage in DataManager.WaveStages.All)
             {
                 bool isThisRound = stage.RoundNo == roundNumber;
                 bool isClearBonus = stage.Kind == WaveStageKind.ClearBonus;
-                if (isThisRound && isClearBonus) return stage;
+                if (isThisRound && isClearBonus) clearBonusStages.Add(stage);
             }
-            return null;
+            clearBonusStages.Sort((a, b) => a.EndTime.CompareTo(b.EndTime));
+            return clearBonusStages;
         }
     }
 }
