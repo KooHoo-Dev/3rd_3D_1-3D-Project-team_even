@@ -1854,6 +1854,7 @@ GameObject:
   - component: {fileID: -5282420452375643821}
   - component: {fileID: -6963252850141782799}
   - component: {fileID: 5730098645658161961}
+  - component: {fileID: 8422482836028294784}
   m_Layer: 0
   m_Name: Bufomorph_Suicide
   m_TagString: Untagged
@@ -1999,3 +2000,17 @@ CapsuleCollider:
   m_Height: 0.9
   m_Direction: 1
   m_Center: {x: 0, y: 0.45, z: 0}
+--- !u!114 &8422482836028294784
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6204530840110606686}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74f353be3d699e94588f125ad40a7168, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.SelfDestructSettings
+  explosionEffectPrefab: {fileID: 2727121481953674392, guid: 5b716aa738299ab44b45c1534a569fdf, type: 3}
+  effectLifetime: 4

@@ -126,11 +126,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
             var body = new MonsterBody(transform, GetComponent<NavMeshMoveExecutor>());
-            var attackSettings = new MonsterAttackSettings(GetComponent<PoisonAreaSettings>(),
-                                                          GetComponent<PounceSettings>(),
-                                                          GetComponent<ChargeSettings>(),
-                                                          GetComponent<DiveSettings>(),
-                                                          GetComponent<SelfDestructSettings>());
+            var attackSettings = GetComponents<MonsterAttackSettingsComponent>(); // 붙은 공격 설정 전부. 공격마다 필요한 타입만 꺼내 쓴다
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
             var attacks = new List<MonsterAttack>();
             foreach (MonsterAttackDef attackDef in BasicAttackDefs(Def))

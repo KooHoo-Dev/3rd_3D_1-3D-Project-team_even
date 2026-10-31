@@ -6,7 +6,7 @@ namespace HybridShooter.Monster.Behaviour
     /// 공중(Air) 몬스터 프리팹에 붙이는 급강하 튜닝 값. Play 에서 자주 바꾸는 값을 한곳에 모은다.
     /// MonsterController.Start 가 찾아 MonsterAttackFactory 로 넘기고, DiveAttack 이 읽는다.
     /// </summary>
-    public sealed class DiveSettings : MonoBehaviour
+    public sealed class DiveSettings : MonsterAttackSettingsComponent
     {
         [Header("급강하")]
         [Tooltip("플레이어와 수평 거리가 이 안이면 급강하를 시작한다 (m). DiveAttack.Range")]

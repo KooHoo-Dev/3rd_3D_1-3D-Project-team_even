@@ -552,7 +552,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterPoolLab
   isDebug: 1
   monsterPool: {fileID: 782320108}
-  monsterIds: e9030000ec030000ed030000ee030000
+  monsterIds: ed030000
   spawnCount: 8
   spawnRadius: 12
   spawnSampleDistance: 3
@@ -1439,7 +1439,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 14.1
+      value: 4.41
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1736,6 +1736,100 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2045937246}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &2095941687
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2095941690}
+  - component: {fileID: 2095941689}
+  - component: {fileID: 2095941688}
+  m_Layer: 0
+  m_Name: SoundService
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2095941688
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2095941687}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dfe8fb3f8a637e94fbf82df2f73353e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.GameSoundRouter
+  crowdBgmKey: bgm_crowd
+  bossBgmKey: bgm_boss
+  bossWarningKey: sfx_boss_warning
+  hitImpactKey: sfx_hit_flesh
+  hitMarkerKey: ui_hit_marker
+  gameOverKey: ui_game_over
+  stageClearKey: ui_stage_clear
+  upgradeSelectKey: ui_upgrade_select
+  healthWarningKey: ui_health_warning
+  useAnnouncer: 1
+  announceFightKey: ann_fight
+  announceVictoryKey: ann_victory
+  announceGameOverKey: ann_game_over
+  announcerDelay: 0.8
+  healthWarningInterval: 2
+  monsterNearDistance: 15
+  monsterNearIdleInterval: {x: 1.5, y: 3.5}
+  bossDuckLevel: 0.3
+  bossDuckTime: 3
+--- !u!114 &2095941689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2095941687}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a05c20358bebe940a2539c5f1df36d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.SoundService
+  voiceCount: 40
+  loopRefreshInterval: 0.25
+  loopFadeTime: 0.2
+  minDistance: 2
+  unlimitedDistance: 300
+  bgmFadeTime: 1.5
+  duckFadeTime: 0.3
+  mixer: {fileID: 24100000, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  snapshotFadeTime: 0.5
+  bgmGroup: {fileID: 1916248860737149651, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  sfxGroup: {fileID: -7809499384278224037, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  monsterGroup: {fileID: -2541985567382436315, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  uiGroup: {fileID: -261122123259414772, guid: dae47592c5d654dc3b1c3141313c484d, type: 2}
+  masterVolume: 1
+  bgmVolume: 1
+  sfxVolume: 1
+  monsterVolume: 1
+  uiVolume: 1
+--- !u!4 &2095941690
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2095941687}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &65423161354262232
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18796,3 +18890,4 @@ SceneRoots:
   - {fileID: 3171359749072270106}
   - {fileID: 1685987938}
   - {fileID: 559738288}
+  - {fileID: 2095941690}
