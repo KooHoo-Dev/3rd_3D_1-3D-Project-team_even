@@ -795,6 +795,7 @@ namespace HybridShooter.Boss.Tyranopode
                 var main = ps.main;
                 main.simulationSpeed = VeinsBaseTime / duration;
             }
+            foreach (var ring in veins.GetComponentsInChildren<TyranopodeGroundRing>()) ring.TimeScale = VeinsBaseTime / duration;
             Destroy(veins, duration + 2f);
             introGroundEnergy = Instantiate(finaleAssets.GroundEnergyVfx, transform.position, Quaternion.identity);
             // 혈관이 닿는 순서대로: 가까운 몬스터부터 흡수 시간의 앞 절반에 걸쳐 쓰러진다

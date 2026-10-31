@@ -181,6 +181,37 @@ namespace HybridShooter.Boss.TyranopodeEditor.Tests
         }
 
         [Test]
+        public void 범위_표시는_경사진_바닥을_따라_휜다()
+        {
+            // 터레인과 겹치지 않게 먼 곳에 20도 기운 바닥
+            var center = new Vector3(50000f, 0f, 50000f);
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            ground.transform.SetPositionAndRotation(center, Quaternion.Euler(20f, 0f, 0f));
+            ground.transform.localScale = new Vector3(80f, 1f, 80f);
+            Physics.SyncTransforms();
+            var material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            var telegraph = GroundTelegraph.Create(material);
+            try
+            {
+                telegraph.ShowCircle(center, 12f, 1f, Color.red);
+                telegraph.ShowRect(center, Vector3.forward, 6f, 20f, 1f, Color.red);
+                foreach (var vertex in telegraph.GetComponent<MeshFilter>().sharedMesh.vertices)
+                {
+                    Vector3 world = telegraph.transform.TransformPoint(vertex);
+                    Assert.IsTrue(Physics.Raycast(new Vector3(world.x, 200f, world.z), Vector3.down, out var hit, 400f));
+                    // 모든 꼭짓점이 바닥 위 Lift(0.1m) 근처 — 평평한 판이면 오르막 쪽이 수 m 묻힌다
+                    Assert.AreEqual(hit.point.y + 0.1f, world.y, 0.05f);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(telegraph.gameObject);
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(ground);
+            }
+        }
+
+        [Test]
         public void 경계가_없으면_그대로()
         {
             var go = new GameObject("LocomotionTest");

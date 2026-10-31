@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using HybridShooter.Boss.Tyranopode;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -94,17 +95,8 @@ namespace HybridShooter.Boss.TyranopodeEditor
                     stretch.lengthScale = 8f;
                     stretch.velocityScale = 0.15f;
 
-                    var front = NewSystem(root, "Front", m.Ring, loop: false, duration: 3f);
-                    front.transform.localPosition = Vector3.up * 0.15f;
-                    var frontMain = front.main;
-                    frontMain.startLifetime = 3f;
-                    frontMain.startSpeed = 0f;
-                    frontMain.startSize = 120f;
-                    frontMain.startColor = new Color(1f, 0.5f, 0.15f, 0.8f);
-                    SetBurst(front, 1);
-                    Grow(front, 0.02f, 1f);
-                    Fade(front);
-                    front.GetComponent<ParticleSystemRenderer>().renderMode = ParticleSystemRenderMode.HorizontalBillboard;
+                    // 혈관 끝을 따라가는 링: 수명 내내 일정한 속도로 60m 까지
+                    GroundRing(root, m.Ring, new Color(1f, 0.5f, 0.15f, 0.8f), diameter: 120f, life: 3f, growShare: 1f);
                 }),
                 FinaleGroundEnergy = Save("VFX_FinaleGroundEnergy", root =>
                 {
@@ -307,25 +299,19 @@ namespace HybridShooter.Boss.TyranopodeEditor
             ps.emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)count) });
         }
 
-        /// <summary>바닥에 눕힌 링이 diameter 까지 퍼지며 사라진다</summary>
-        private static ParticleSystem GroundRing(Transform root, Material material, Color color, float diameter, float life)
+        /// <summary>
+        /// 바닥에 눕힌 링이 diameter 까지 퍼지며 사라진다. 지형을 따라 휘는 띠 메시라 경사에서도 묻히지 않는다 (TyranopodeGroundRing).
+        /// growShare: 수명의 이 비율 안에 실제 반지름까지 퍼지고 그 크기에서 사라진다 → 사라지는 링 = 피해 범위 끝 (1 = 수명 내내 일정하게)
+        /// </summary>
+        private static void GroundRing(Transform root, Material material, Color color, float diameter, float life, float growShare = 0.35f)
         {
-            var ps = NewSystem(root, "Ring", material, loop: false, duration: life);
-            ps.transform.localPosition = Vector3.up * 0.15f;
-            var main = ps.main;
-            main.startLifetime = life;
-            main.startSpeed = 0f;
-            main.startSize = diameter;
-            main.startColor = color;
-            SetBurst(ps, 1);
-            // 수명 35% 안에 실제 반지름까지 퍼지고 그 크기에서 사라진다 → 사라지는 링 = 피해 범위 끝
-            var size = ps.sizeOverLifetime;
-            size.enabled = true;
-            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
-                new Keyframe(0f, 0.05f, 0f, 4f), new Keyframe(0.35f, 1f, 0f, 0f), new Keyframe(1f, 1f)));
-            Fade(ps);
-            ps.GetComponent<ParticleSystemRenderer>().renderMode = ParticleSystemRenderMode.HorizontalBillboard;
-            return ps;
+            var go = new GameObject("Ring", typeof(MeshFilter), typeof(MeshRenderer));
+            go.transform.SetParent(root, false);
+            var renderer = go.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            go.AddComponent<TyranopodeGroundRing>().Configure(diameter * 0.5f, life, growShare, color);
         }
 
         /// <summary>카메라를 보는 링 (공중 포자의 파동)</summary>
