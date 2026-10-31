@@ -21,7 +21,7 @@ namespace HybridShooter.Boss.Clypeosaurus
         
         private Transform targetRoot;
         private IDamageable target;
-        private Transform rangeInstance;
+        private readonly BossAttackRange range = new();
         
         private Vector3 startPoint;
         private Vector3 landingPoint;
@@ -70,12 +70,7 @@ namespace HybridShooter.Boss.Clypeosaurus
             
             IsFinished = false;
             
-            if (rangePrefab != null)
-            {
-                rangeInstance = Instantiate(rangePrefab, landingPoint + Vector3.up * 0.03f, Quaternion.identity);
-                float diameter = data.BarrageRadius * 2f;
-                rangeInstance.localScale = new Vector3(diameter, 1f, diameter);
-            }
+            range.Show(rangePrefab, landingPoint, data.BarrageRadius);
         }
 
         private void Update()
@@ -99,7 +94,7 @@ namespace HybridShooter.Boss.Clypeosaurus
         private void Impact()
         {
             IsFinished = true;
-            ClearRange();
+            range.Clear();
 
             try
             {
@@ -165,24 +160,16 @@ namespace HybridShooter.Boss.Clypeosaurus
         
         public void Cancel()
         {
+            range.Clear();
+
             if (IsFinished) return;
 
             IsFinished = true;
-            ClearRange();
             Destroy(gameObject);
         }
-        
-        private void ClearRange()
-        {
-            if (rangeInstance == null) return;
-
-            Destroy(rangeInstance.gameObject);
-            rangeInstance = null;
-        }
-        
         private void OnDestroy()
         {
-            ClearRange();
+            range.Clear();
         }
     }
 }

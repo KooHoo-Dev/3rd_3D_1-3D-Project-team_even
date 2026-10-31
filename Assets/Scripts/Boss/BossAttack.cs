@@ -14,6 +14,7 @@ namespace HybridShooter.Boss
         
         public SkillPhase Phase { get; private set; } = SkillPhase.Idle;
         public bool IsRunning => Phase != SkillPhase.Idle;
+        protected BossAttackRange Range { get; } = new();
         
         public virtual bool UsesPatternCooldown => true;
 
@@ -120,14 +121,21 @@ namespace HybridShooter.Boss
         {
             if (Phase != SkillPhase.Active) return;
 
+            Range.Clear();
+
             Phase = SkillPhase.Recover;
             phaseEndTime = Time.time + recoveryTime;
+
             NotifyPhase();
         }
         
         public void Cancel()
         {
+            // 이미 종료된 상태에서도 남은 표시를 정리한다.
+            Range.Clear();
+
             if (IsRunning == false) return;
+
             Phase = SkillPhase.Idle;
 
             try
@@ -141,6 +149,11 @@ namespace HybridShooter.Boss
             }
         }
 
+        protected virtual void OnDestroy()
+        {
+            Range.Clear();
+        }
+        
         /// <summary>하위 패턴이 타격 순간에 호출 (애니메이션 이벤트 등)</summary>
         protected void RaiseImpacted(Vector3 point) => Impacted?.Invoke(this, point);
 
