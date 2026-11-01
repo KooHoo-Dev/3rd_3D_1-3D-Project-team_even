@@ -37,6 +37,34 @@ namespace HybridShooter.Boss.TyranopodeEditor.Tests
             Assert.Greater(def.SummonMinionIds.Count, 0);
         }
 
+        // 부위 배율·체력을 TyranopodeTable → MonsterPartTable(BossId 2)로 옮기기 전 값. 피해량이 그대로인지 본다
+        [TestCase(TyranopodePartType.Body, 0.8f, 0)]
+        [TestCase(TyranopodePartType.FrontTentacle, 1f, 600)]
+        [TestCase(TyranopodePartType.LegTentacle, 0.9f, 720)]
+        [TestCase(TyranopodePartType.Sac, 1.5f, 420)]
+        [TestCase(TyranopodePartType.Head, 1.3f, 480)]
+        public void 부위_배율과_체력은_이전_전과_같다(TyranopodePartType type, float oldMultiplier, int oldHp)
+        {
+            Assert.IsTrue(DataManager.Bosses.TryGet(DataManager.Tyranopode.BossId, out var bossDef));
+            Assert.IsFalse(DataManager.LastReport.HasError, DataManager.LastReport.BuildSummary());
+
+            var part = bossDef.FindPart(type.ToString());
+            Assert.IsNotNull(part, $"MonsterPartTable 에 BossId {bossDef.Id} / PartKey {type} 행이 없다");
+            Assert.AreEqual(oldMultiplier, part.DamageMultiplier);
+            Assert.AreEqual(oldHp, part.PartHp);
+
+            // ApplyPartDamage 와 같은 계산 (그로기 배율 포함) → 결과 피해량이 같다
+            foreach (int amount in new[] { 1, 7, 25, 100 })
+            {
+                foreach (float groggy in new[] { 1f, DataManager.Tyranopode.GroggyDamageMultiplier })
+                {
+                    int before = Mathf.Max(1, Mathf.RoundToInt(amount * oldMultiplier * groggy));
+                    int after = Mathf.Max(1, Mathf.RoundToInt(amount * part.DamageMultiplier * groggy));
+                    Assert.AreEqual(before, after, $"{type} 피해 {amount} × 그로기 {groggy}");
+                }
+            }
+        }
+
         [Test]
         public void 소환Id는_세로선으로_나눈다()
         {
