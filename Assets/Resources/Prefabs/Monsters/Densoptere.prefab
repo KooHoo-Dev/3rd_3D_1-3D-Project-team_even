@@ -271,6 +271,8 @@ GameObject:
   - component: {fileID: 4756636726016961627}
   - component: {fileID: 3054492622161123645}
   - component: {fileID: 3168750531067842310}
+  - component: {fileID: 2681218946409707793}
+  - component: {fileID: 723708792511279894}
   m_Layer: 0
   m_Name: Densoptere
   m_TagString: Untagged
@@ -333,6 +335,7 @@ MonoBehaviour:
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
+  destinationFollowRate: 5
 --- !u!114 &8857605372768615403
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -353,8 +356,14 @@ MonoBehaviour:
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
   hitTimeRatio: 0
+  hitEndRatio: 0.5
+  maxHitsPerAttack: 1
+  hitIntervalSeconds: 0
+  aimOffsetRadius: 0
   hitRangeRatio: 1.15
   windupTurnSpeed: 360
+  lowHealthRatio: 0.3
+  lowHealthSpeedRatio: 0.6
 --- !u!114 &4756636726016961627
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -373,8 +382,6 @@ MonoBehaviour:
   groundSampleRadius: 2
   radius: 0.5
   arrivalDistance: 0.5
-  fallGravity: 9.81
-  landingHeightOffset: 0
 --- !u!114 &3054492622161123645
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -418,6 +425,42 @@ CapsuleCollider:
   m_Height: 0.6
   m_Direction: 1
   m_Center: {x: 0, y: 0.3, z: 0}
+--- !u!114 &2681218946409707793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5680596531327945821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a8a8c10198544568d8fe4cdeb019dc6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterDamageFeedback
+  hitBloodPrefab: {fileID: 510622085489733283, guid: 665226fbabe43ce498e273ee4bf3bfb7, type: 3}
+  weakPointBloodPrefab: {fileID: 8088368675690151471, guid: 3a6b499a245a26a4c83e35754d05c03e, type: 3}
+  deathBloodPrefab: {fileID: 8886302763132874894, guid: e7b3b17905d1a9d4dbe573130e85bf78, type: 3}
+  hitAnimationCooldown: 0.3
+  hitAnimationBlend: 0.05
+  lowHealthTint: {r: 1, g: 0.55, b: 0.55, a: 1}
+--- !u!114 &723708792511279894
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5680596531327945821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f0f10b5145c43d8bfb3da9fd7887ba0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterCorpse
+  corpseLayerName: MonsterCorpse
+  mass: 60
+  angularDamping: 0.5
+  hitPushSpeed: 3
+  upwardKickSpeed: 1.5
+  randomSpinSpeed: 2
 --- !u!1 &5680596531327945823
 GameObject:
   m_ObjectHideFlags: 0
