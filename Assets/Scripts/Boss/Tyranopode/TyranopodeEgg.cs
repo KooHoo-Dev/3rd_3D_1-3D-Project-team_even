@@ -91,7 +91,7 @@ namespace HybridShooter.Boss.Tyranopode
 
         private void Hatch()
         {
-            owner.Minions.SpawnAround(owner.Def.EggMinionId, transform.position, owner.Def.EggMinionCount);
+            owner.Minions.SpawnAround(owner.Def.EggMinionId, transform.position, owner.Def.EggMinionCount, owner.Target.position);
             Finish(hatchVfx);
         }
 

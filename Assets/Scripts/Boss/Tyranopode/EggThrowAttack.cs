@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.AI;
 
 namespace HybridShooter.Boss.Tyranopode
 {
@@ -11,6 +10,7 @@ namespace HybridShooter.Boss.Tyranopode
     public sealed class EggThrowAttack : TyranopodeAttack
     {
         private const float MinScatter = 3f;
+        private const int LandingTries = 6;
 
         [SerializeField, Range(0f, 1f)] private float throwTime = 0.4f;
 
@@ -56,16 +56,30 @@ namespace HybridShooter.Boss.Tyranopode
             float viewYaw = view.sqrMagnitude > 0.01f ? Mathf.Atan2(view.x, view.z) * Mathf.Rad2Deg : 0f;
             for (int i = 0; i < count; i++)
             {
-                // 시선 앞쪽 부채꼴을 고르게 나누고 조금 흔든다
+                // 시선 앞쪽 부채꼴을 고르게 나누고 조금 흔든다. 구덩이·맵 밖이면(부화한 잡몹이 갇힘) 다른 자리로
                 float slot = count == 1 ? 0.5f : (float)i / (count - 1);
-                float angle = viewYaw + Mathf.Lerp(-Data.EggArcAngle, Data.EggArcAngle, slot) * 0.5f + Random.Range(-10f, 10f);
-                float distance = Random.Range(MinScatter, Mathf.Max(MinScatter, Data.EggScatterRadius));
-                Vector3 point = TargetPosition + Quaternion.Euler(0f, angle, 0f) * Vector3.forward * distance;
-                if (NavMesh.SamplePosition(point, out var hit, 4f, NavMesh.AllAreas)) point = hit.position;
-
+                if (TryLanding(viewYaw, slot, out Vector3 point) == false)
+                {
+                    Debug.LogWarning("[Tyranopode] 알을 떨어뜨릴 자리를 찾지 못했습니다 (주변 NavMesh 가 플레이어와 이어지지 않음).", this);
+                    continue;
+                }
                 var egg = Instantiate(Owner.EggPrefab, origin, Quaternion.identity);
                 egg.Launch(Owner, origin, point, Data.EggFlightTime);
             }
+        }
+
+        private bool TryLanding(float viewYaw, float slot, out Vector3 point)
+        {
+            for (int t = 0; t < LandingTries; t++)
+            {
+                // 다시 고를수록 흔들림을 키운다
+                float angle = viewYaw + Mathf.Lerp(-Data.EggArcAngle, Data.EggArcAngle, slot) * 0.5f + Random.Range(-10f, 10f) * (1 + t);
+                float distance = Random.Range(MinScatter, Mathf.Max(MinScatter, Data.EggScatterRadius));
+                Vector3 candidate = TargetPosition + Quaternion.Euler(0f, angle, 0f) * Vector3.forward * distance;
+                if (Owner.Minions.TryFindSpawnPoint(candidate, TargetPosition, out point)) return true;
+            }
+            point = TargetPosition;
+            return false;
         }
     }
 }

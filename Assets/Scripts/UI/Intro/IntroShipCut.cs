@@ -3,8 +3,8 @@ using UnityEngine;
 namespace HybridShooter.UI.Intro
 {
     /// <summary>
-    /// 인트로 우주선 컷: 카메라 뒤에서 나타난 우주선이 행성으로 내려가다(enter → hit) 지표에서 솟은 생체 대공 포화에 맞고(hit),
-    /// 불꽃 꼬리를 끌며 대기권으로 추락한다(hit → fallEnd). 네러티브의 '대기권 진입 중 격추 → 불시착'.
+    /// 인트로 우주선 컷: 카메라 뒤에서 나타난 우주선이 행성으로 내려가다(진입 → 격추, 시각은 IntroTimeline) 지표에서 솟은 생체 대공 포화에 맞고,
+    /// 불꽃 꼬리를 끌며 대기권으로 추락한다(격추 → 종지). 네러티브의 '대기권 진입 중 격추 → 불시착'.
     /// 모든 상태를 시각 t 하나로 계산한다(Evaluate) → 에디터 미리보기·건너뛰기에서도 같은 화면이 나온다.
     /// 파티클·TrailRenderer 대신 LineRenderer 에 지난 경로를 직접 찍는 것도 같은 이유
     /// 위치·경로 값은 IntroSceneBuilder 가 행성 배치에 맞춰 넣는다
@@ -12,11 +12,6 @@ namespace HybridShooter.UI.Intro
     public sealed class IntroShipCut : MonoBehaviour
     {
         private static readonly int ColorId = Shader.PropertyToID("_Color");
-
-        [Header("타이밍(초) — intro_bgm.py 마디 20(행성)·22(격추)·24(종지)")]
-        [SerializeField] private float enterTime = 64f;
-        [SerializeField] private float hitTime = 70.4f;
-        [SerializeField] private float fallEndTime = 76.8f;
 
         [Header("우주선")]
         [SerializeField] private Transform ship;
@@ -46,8 +41,8 @@ namespace HybridShooter.UI.Intro
         [SerializeField] private LineRenderer[] flak;
         [SerializeField] private Transform planet;
         [SerializeField] private float planetRadius = 200f;
-        [Tooltip("첫 탄이 솟는 시각. 마지막 탄이 hitTime 에 명중")]
-        [SerializeField] private float flakStart = 65.6f;
+        [Tooltip("첫 탄이 격추보다 몇 초 먼저 솟는가. 마지막 탄이 격추 시각(IntroTimeline.Hit)에 명중")]
+        [SerializeField] private float flakLead = 4.8f;
         [SerializeField] private float flakTravel = 1f;
         [SerializeField] private float flakLength = 0.3f;
 
@@ -58,17 +53,14 @@ namespace HybridShooter.UI.Intro
         private MaterialPropertyBlock block;
         private Vector3[] trailPoints;
 
-        public float HitTime => hitTime;
-        public float EnterTime => enterTime;
-
         /// <summary>화면 전체를 하얗게 덮을 정도 (피격 순간 섬광, 0~1)</summary>
-        public float FlashAmount(float t) => t < hitTime ? 0f : 0.55f * Mathf.Exp(-(t - hitTime) / 0.12f);
+        public float FlashAmount(float t) => t < IntroTimeline.Hit ? 0f : 0.55f * Mathf.Exp(-(t - IntroTimeline.Hit) / 0.12f);
 
         /// <summary>피격 뒤 카메라 흔들림 (카메라 회전에 곱한다)</summary>
         public Quaternion Shake(float t)
         {
-            if (t < hitTime) return Quaternion.identity;
-            float amp = shakeAngle * Mathf.Exp(-(t - hitTime) / shakeDecay);
+            if (t < IntroTimeline.Hit) return Quaternion.identity;
+            float amp = shakeAngle * Mathf.Exp(-(t - IntroTimeline.Hit) / shakeDecay);
             float x = (Mathf.PerlinNoise(t * 18f, 0.3f) - 0.5f) * 2f * amp;
             float y = (Mathf.PerlinNoise(0.7f, t * 18f) - 0.5f) * 2f * amp;
             return Quaternion.Euler(x, y, 0f);
@@ -77,7 +69,7 @@ namespace HybridShooter.UI.Intro
         public void Evaluate(float t, Transform viewer)
         {
             block ??= new MaterialPropertyBlock();
-            bool active = t >= enterTime && t <= fallEndTime + 0.5f;
+            bool active = t >= IntroTimeline.ShipEnter && t <= IntroTimeline.End + 0.5f;
             ship.gameObject.SetActive(active);
             if (planet != null) planet.localRotation = Quaternion.Euler(0f, t * 0.4f, 0f); // 아주 느린 자전 — 살아 있는 행성
 
@@ -93,26 +85,26 @@ namespace HybridShooter.UI.Intro
             var position = ShipPosition(t);
             var velocity = ShipPosition(t + 0.02f) - position;
             var look = Quaternion.LookRotation(velocity.sqrMagnitude > 1e-8f ? velocity : Vector3.forward, Vector3.up);
-            if (t >= hitTime)
+            if (t >= IntroTimeline.Hit)
             {
-                float after = t - hitTime;
+                float after = t - IntroTimeline.Hit;
                 look *= Quaternion.Euler(Mathf.Sin(after * 3.1f) * 12f, Mathf.Sin(after * 2.3f) * 9f, after * tumbleSpeed);
             }
             else
             {
                 // 진입 중 약한 뱅크
-                look *= Quaternion.Euler(0f, 0f, Mathf.Sin((t - enterTime) * 0.9f) * 10f);
+                look *= Quaternion.Euler(0f, 0f, Mathf.Sin((t - IntroTimeline.ShipEnter) * 0.9f) * 10f);
             }
             ship.SetPositionAndRotation(position, look);
 
-            engineGlow.enabled = t < hitTime;
+            engineGlow.enabled = t < IntroTimeline.Hit;
             if (engineGlow.enabled)
             {
                 engineGlow.SetPosition(0, position - ship.forward * 0.35f);
                 engineGlow.SetPosition(1, position - ship.forward * (0.35f + engineLength * (0.85f + 0.15f * Mathf.PerlinNoise(t * 20f, 0f))));
             }
 
-            fireTrail.enabled = t >= hitTime;
+            fireTrail.enabled = t >= IntroTimeline.Hit;
             if (fireTrail.enabled) EvaluateTrail(t);
 
             EvaluateExplosion(t, position, viewer);
@@ -122,14 +114,14 @@ namespace HybridShooter.UI.Intro
 
         private Vector3 ShipPosition(float t)
         {
-            if (t < hitTime)
+            if (t < IntroTimeline.Hit)
             {
-                float k = Mathf.Clamp01((t - enterTime) / (hitTime - enterTime));
+                float k = Mathf.Clamp01((t - IntroTimeline.ShipEnter) / (IntroTimeline.Hit - IntroTimeline.ShipEnter));
                 float u = 1f - Mathf.Pow(1f - k, 1.6f); // 멀어질수록 느려 보이게
                 return Bezier(approachPath[0], approachPath[1], approachPath[2], approachPath[3], u);
             }
             // 격추 직후엔 관성으로 앞으로, 점점 아래(행성)로 꺾인다
-            float f = Mathf.Clamp01((t - hitTime) / (fallEndTime - hitTime));
+            float f = Mathf.Clamp01((t - IntroTimeline.Hit) / (IntroTimeline.End - IntroTimeline.Hit));
             var start = approachPath[3];
             var momentum = start + (approachPath[3] - approachPath[2]).normalized * 10f;
             return Bezier(start, momentum, crashPoint, crashPoint, Mathf.Pow(f, 1.3f));
@@ -147,7 +139,7 @@ namespace HybridShooter.UI.Intro
             if (trailPoints == null || trailPoints.Length != count) trailPoints = new Vector3[count];
             for (int i = 0; i < count; i++)
             {
-                float ti = Mathf.Max(hitTime, t - i * trailStep);
+                float ti = Mathf.Max(IntroTimeline.Hit, t - i * trailStep);
                 // 꼬리로 갈수록 흔들리며 퍼지는 연기
                 var wobble = new Vector3(Mathf.PerlinNoise(i * 0.4f, ti) - 0.5f, Mathf.PerlinNoise(ti, i * 0.4f) - 0.5f, 0f) * (i * 0.06f);
                 trailPoints[i] = ShipPosition(ti) + wobble;
@@ -159,8 +151,8 @@ namespace HybridShooter.UI.Intro
 
         private void EvaluateExplosion(float t, Vector3 position, Transform viewer)
         {
-            float amount = Burst(t, hitTime, 1f);
-            foreach (float offset in secondaryBursts) amount = Mathf.Max(amount, Burst(t, hitTime + offset, 0.45f));
+            float amount = Burst(t, IntroTimeline.Hit, 1f);
+            foreach (float offset in secondaryBursts) amount = Mathf.Max(amount, Burst(t, IntroTimeline.Hit + offset, 0.45f));
             SetExplosion(amount, position, viewer);
         }
 
@@ -199,10 +191,10 @@ namespace HybridShooter.UI.Intro
         {
             if (flak == null || planet == null || viewer == null) return;
             int count = flak.Length;
-            float last = hitTime - flakTravel;
+            float last = IntroTimeline.Hit - flakTravel;
             for (int i = 0; i < count; i++)
             {
-                float fire = count > 1 ? Mathf.Lerp(flakStart, last, i / (count - 1f)) : last;
+                float fire = count > 1 ? Mathf.Lerp(IntroTimeline.Hit - flakLead, last, i / (count - 1f)) : last;
                 bool hits = i == count - 1;
                 // 빗나가는 탄은 우주선 근처를 스친다 (카메라가 우주선 가까이에 있어 더 날아가면 화면을 가로지르는 굵은 띠가 된다)
                 var miss = hits ? Vector3.zero : new Vector3(Hash(i, 1) - 0.5f, Hash(i, 2) * 0.6f, Hash(i, 3) - 0.5f) * 9f;

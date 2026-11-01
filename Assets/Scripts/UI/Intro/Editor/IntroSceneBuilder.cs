@@ -41,6 +41,12 @@ namespace HybridShooter.UI.Intro.Editor
 
         private const string SkipLabel = "HOLD TO SKIP";
         private const string SkipHint = "아무 키나 길게 눌러 건너뛰기";
+        /// <summary>진행 바 구간 눈금: (시각, 이름)</summary>
+        private static readonly (float Time, string Label)[] ProgressMarks =
+        {
+            (IntroTimeline.Logo, "기록"), (IntroTimeline.ShipEnter, "행성"), (IntroTimeline.Hit, "격추"),
+        };
+        private const float ProgressWidth = 640f;
 
         // ── 색 ──
         /// <summary>크롤 글자: 따뜻한 금색 (머티리얼에서 HDR 로 조금 더 밝혀 은은하게 번진다)</summary>
@@ -81,7 +87,7 @@ namespace HybridShooter.UI.Intro.Editor
             EnsureFolder(Path.GetDirectoryName(ScenePath));
 
             var text = LoadOrCreateText();
-            var orbit = LoadOrCreateOrbit(text.AllCharacters() + SkipHint);
+            var orbit = LoadOrCreateOrbit(text.AllCharacters() + SkipHint + "작전 기록 0123456789/" + string.Concat(ProgressMarks.Select(m => m.Label)));
             var logoFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(LogoFontPath);
             if (orbit == null || logoFont == null)
             {
@@ -114,6 +120,9 @@ namespace HybridShooter.UI.Intro.Editor
             Set(so, "shipCut", shipCut);
             Set(so, "skipGroup", overlay.SkipGroup);
             Set(so, "skipBar", overlay.SkipBar);
+            Set(so, "progressGroup", overlay.ProgressGroup);
+            Set(so, "progressFill", overlay.ProgressFill);
+            Set(so, "recordText", overlay.RecordText);
             so.FindProperty("tiltAngle").floatValue = TiltAngle;
             so.ApplyModifiedPropertiesWithoutUndo();
             director.Evaluate(0f); // 씬을 열었을 때 첫 화면(검은 화면) 상태로 저장
@@ -525,9 +534,12 @@ namespace HybridShooter.UI.Intro.Editor
             public Graphic Flash;
             public CanvasGroup SkipGroup;
             public RectTransform SkipBar;
+            public CanvasGroup ProgressGroup;
+            public RectTransform ProgressFill;
+            public TMP_Text RecordText;
         }
 
-        /// <summary>순서: 암전 → 도입 문구(암전 위) → 피격 섬광 → 건너뛰기 안내</summary>
+        /// <summary>순서: 암전 → 도입 문구(암전 위) → 피격 섬광 → 진행 표시 → 건너뛰기 안내</summary>
         private static Overlay CreateOverlay(TMP_FontAsset orbit)
         {
             var canvas = CreateCanvas("Overlay");
@@ -545,6 +557,7 @@ namespace HybridShooter.UI.Intro.Editor
             overlay.OpeningGroup.alpha = 0f;
 
             overlay.Flash = FullScreen(canvas, "Flash", new Color(1f, 0.92f, 0.85f, 0f));
+            CreateProgress(canvas, orbit, ref overlay);
 
             var skip = NewRect("Skip", canvas);
             Place(skip.gameObject, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-80f, 60f), new Vector2(420f, 80f), new Vector2(1f, 0f));
@@ -565,6 +578,49 @@ namespace HybridShooter.UI.Intro.Editor
             overlay.SkipBar = fill;
             track.SetAsFirstSibling();
             return overlay;
+        }
+
+        /// <summary>
+        /// 화면 아래 가운데: '작전 기록 n / N' + 얇은 진행 바(0 → IntroTimeline.End) + 구간 눈금·이름.
+        /// 메뉴 UI 와 같은 얇은 선 스타일. 채움은 왼쪽 끝 기준으로 가로 크기를 늘린다
+        /// </summary>
+        private static void CreateProgress(RectTransform canvas, TMP_FontAsset orbit, ref Overlay overlay)
+        {
+            var root = NewRect("Progress", canvas);
+            Place(root.gameObject, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 44f), new Vector2(ProgressWidth, 70f), new Vector2(0.5f, 0f));
+            overlay.ProgressGroup = root.gameObject.AddComponent<CanvasGroup>();
+            overlay.ProgressGroup.alpha = 0f;
+            overlay.ProgressGroup.interactable = false;
+            overlay.ProgressGroup.blocksRaycasts = false;
+
+            var record = CreateText(root, "Record", "", orbit, 20f, CrawlGold, TextAlignmentOptions.Bottom);
+            record.characterSpacing = 6f;
+            Place(record.gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, new Vector2(0f, 30f), new Vector2(0.5f, 1f));
+            overlay.RecordText = record;
+
+            const float barY = 22f;
+            ProgressLine(root, "Track", new Color(Steel.r, Steel.g, Steel.b, 0.35f), -ProgressWidth * 0.5f, barY, ProgressWidth, 2f);
+            overlay.ProgressFill = ProgressLine(root, "Fill", new Color(0.94f, 0.96f, 1f, 0.9f), -ProgressWidth * 0.5f, barY, ProgressWidth, 2f);
+            overlay.ProgressFill.localScale = new Vector3(0f, 1f, 1f);
+
+            foreach (var (time, label) in ProgressMarks)
+            {
+                float x = -ProgressWidth * 0.5f + ProgressWidth * time / IntroTimeline.End;
+                ProgressLine(root, "Mark " + label, Steel, x - 1f, barY, 2f, 10f);
+                var text = CreateText(root, "Mark Label " + label, label, orbit, 14f, Steel, TextAlignmentOptions.Top);
+                Place(text.gameObject, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(x, barY - 8f), new Vector2(80f, 20f), new Vector2(0.5f, 1f));
+            }
+        }
+
+        /// <summary>진행 바 선·눈금 (왼쪽 끝 x 기준, 세로 가운데 y)</summary>
+        private static RectTransform ProgressLine(RectTransform parent, string name, Color color, float x, float y, float width, float height)
+        {
+            var rect = NewRect(name, parent);
+            Place(rect.gameObject, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(x, y), new Vector2(width, height), new Vector2(0f, 0.5f));
+            var image = rect.gameObject.AddComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+            return rect;
         }
 
         private static Image FullScreen(RectTransform parent, string name, Color color)

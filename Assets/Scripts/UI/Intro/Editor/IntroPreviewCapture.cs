@@ -18,7 +18,7 @@ namespace HybridShooter.UI.Intro.Editor
     {
         private const int Width = 1920;
         private const int Height = 1080;
-        private static readonly float[] Times = { 3f, 6.6f, 9f, 16f, 30f, 48f, 60f, 64.8f, 68.2f, 70.45f, 72.5f, 75.4f };
+        private static readonly float[] Times = { 3f, 6.6f, 9f, 14f, 22f, 30f, 38f, 44f, 48f, 52f, 55.5f, 57.65f, 60f, 63f };
 
         [MenuItem("Tools/Intro/Capture Preview")]
         public static void Capture()
