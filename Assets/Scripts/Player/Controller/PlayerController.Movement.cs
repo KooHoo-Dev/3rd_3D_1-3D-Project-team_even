@@ -80,6 +80,8 @@ namespace HybridShooter.Player
             motorTargetVelocity = new Vector3(steer.x, 0f, steer.z); // 미끄러져 내려가는 몫은 조작이 아니다
             Vector3 velocity = Vector3.ProjectOnPlane(rb.linearVelocity, groundNormal);
             rb.linearVelocity = Vector3.MoveTowards(velocity, target, steepSlideAcceleration * dt);
+            appliedSnapDown = 0f;
+            velocityAlongGround = false;
         }
 
         private void UpdateWalk(float dt)
@@ -90,7 +92,10 @@ namespace HybridShooter.Player
             motorTargetVelocity = target;
 
             Vector3 velocity = rb.linearVelocity;
-            Vector3 horizontal = new Vector3(velocity.x, 0f, velocity.z);
+            // 지상: 지난 프레임에 경사를 따라 눕힌 속도를 같은 크기의 수평 속도로 되돌려 읽는다 (스냅 몫은 먼저 뺀다)
+            Vector3 horizontal = isGrounded && velocityAlongGround
+                ? HorizontalFromGround(velocity + Vector3.up * appliedSnapDown)
+                : new Vector3(velocity.x, 0f, velocity.z);
 
             float accel = isGrounded ? (target.sqrMagnitude > 0.0001f ? groundAcceleration : groundDeceleration) : airAcceleration;
             horizontal = Vector3.MoveTowards(horizontal, target, accel * dt);
@@ -100,6 +105,8 @@ namespace HybridShooter.Player
                 rb.linearVelocity = AlongGround(horizontal) + Vector3.down * snapDownSpeed;
             else
                 rb.linearVelocity = new Vector3(horizontal.x, velocity.y, horizontal.z);
+            appliedSnapDown = isGrounded ? snapDownSpeed : 0f;
+            velocityAlongGround = isGrounded;
         }
 
         /// <summary>
@@ -180,6 +187,8 @@ namespace HybridShooter.Player
                 float y = rb.linearVelocity.y;
                 rb.linearVelocity = new Vector3(horizontal.x, y, horizontal.z);
             }
+            appliedSnapDown = isGrounded ? snapDownSpeed : 0f;
+            velocityAlongGround = isGrounded;
         }
 
         /// <summary>최대 하강 속도. 공기 저항처럼 일정 속도 이상으로는 빨라지지 않게</summary>
@@ -223,6 +232,18 @@ namespace HybridShooter.Player
             float magnitude = horizontal.magnitude;
             if (magnitude < 0.0001f) return Vector3.zero;
             return Vector3.ProjectOnPlane(horizontal, groundNormal).normalized * magnitude;
+        }
+
+        /// <summary>
+        /// AlongGround 의 반대: 경사면을 따라 움직이는 속도를 같은 크기의 수평 속도로 되돌린다.
+        /// 수평 성분만 읽으면 매 프레임 cos(경사각)만큼 깎여, 가파르면 가속이 따라잡지 못해 걷기·달리기가 같은 속도로 묶인다
+        /// </summary>
+        private Vector3 HorizontalFromGround(Vector3 velocity)
+        {
+            Vector3 along = Vector3.ProjectOnPlane(velocity, groundNormal);
+            Vector3 flat = new Vector3(along.x, 0f, along.z);
+            if (flat.sqrMagnitude < 0.000001f) return Vector3.zero;
+            return flat.normalized * along.magnitude;
         }
 
         /// <summary>몸 정면과 이동 방향이 어긋날수록 느려짐: 정면/옆 1.0 → 정반대 backwardMultiplier</summary>

@@ -21,7 +21,7 @@ namespace HybridShooter.Boss.Tyranopode
     /// 라운드에서는 RoundBossEncounter 가 Initialize 를 부르고, 씬에 직접 놓으면 Start 에서 스스로 초기화한다
     /// </summary>
     [RequireComponent(typeof(BossController), typeof(TyranopodeView), typeof(TyranopodeLocomotion))]
-    public sealed class TyranopodeController : MonoBehaviour, IBossEncounterInitializer
+    public sealed class TyranopodeController : MonoBehaviour, IBossEncounterInitializer, IBossCameraProfile
     {
         /// <summary>이번 실행에서 등장 연출을 본 적이 있나 (두 번째부터 짧은 연출)</summary>
         private static bool introPlayed;
@@ -86,7 +86,7 @@ namespace HybridShooter.Boss.Tyranopode
         [SerializeField] private GameObject energyAbsorbVfx;
         [Tooltip("화면에 보일 에너지 최대 개수 (잡몹이 더 많아도 보호막 양은 잡몹 수로 정한다)")]
         [SerializeField, Min(1)] private int maxEnergyOrbs = 60;
-        [Tooltip("에너지가 날아오르는 높이(m)")]
+        [Tooltip("에너지가 날아오르는 높이(m, 원본 크기 기준)")]
         [SerializeField, Min(0f)] private float energyArcHeight = 10f;
 
         [Header("포자 파동에 맞은 잡몹")]
@@ -113,7 +113,7 @@ namespace HybridShooter.Boss.Tyranopode
         [SerializeField] private TyranopodeFinaleAssets finaleAssets;
         [Tooltip("힘을 모으는 동안 발광 색 (원래 색에 곱한다)")]
         [SerializeField] private Color finaleEmissionTint = new Color(2f, 1.3f, 0.9f);
-        [Tooltip("궤도 타격 예고 원 반지름(m)")]
+        [Tooltip("궤도 타격 예고 원 반지름(m, 원본 크기 기준)")]
         [SerializeField, Min(1f)] private float finaleThreatRadius = 30f;
 
         [Header("등장 연출 (벽 너머에서 날아와 착지 → 땅으로 웨이브 몬스터의 에너지를 흡수 → 포효)")]
@@ -123,7 +123,7 @@ namespace HybridShooter.Boss.Tyranopode
         [SerializeField] private TyranopodeIntroSettings introBrief = TyranopodeIntroSettings.Brief;
         [Tooltip("보스 발밑에서 경기장 끝까지 퍼지는 빛나는 땅 혈관 (반지름 60m·3초 기준, 맞춰 늘린다)")]
         [SerializeField] private GameObject introVeinsVfx;
-        [Tooltip("착지 충격 반경(m). 이 안의 몬스터는 흡수되지 않고 날아간다")]
+        [Tooltip("착지 충격 반경(m, 원본 크기 기준). 이 안의 몬스터는 흡수되지 않고 날아간다")]
         [SerializeField, Min(1f)] private float introLandRadius = 12f;
         [Tooltip("흡수를 마치면 커지는 배율")]
         [SerializeField, Min(1f)] private float introGrowScale = 1.06f;
@@ -136,6 +136,10 @@ namespace HybridShooter.Boss.Tyranopode
 
         [Header("흐름")]
         [SerializeField, Min(0f)] private float flinchMaxTime = 1.2f;
+
+        [Header("플레이어 보스전 카메라")]
+        [Tooltip("보스전 카메라 거리 배율 (플레이어 인스펙터 값 × 이 값). 몸이 커서 화면에 다 들어오게")]
+        [SerializeField, Min(0.5f)] private float cameraDistanceScale = 1.3f;
 
         [Header("발광")]
         [Tooltip("발광 주머니가 부서진 뒤 남는 발광 세기 (0~1)")]
@@ -232,8 +236,12 @@ namespace HybridShooter.Boss.Tyranopode
 
         /// <summary>등장 연출 중 (라운드는 끝날 때까지 보스전으로 넘어가지 않고 남은 몬스터도 정리하지 않는다)</summary>
         public bool IsEntranceRunning => state == State.Intro;
-        /// <summary>등장 연출 전 크기 (연출 카메라 거리 기준)</summary>
-        public float IntroBaseScale => spawnScale.x;
+        public float CameraDistanceScale => cameraDistanceScale;
+        /// <summary>
+        /// 몸 크기 배율 (원본 모델 = 1, 프리팹 빌더 ModelScale). 인스펙터의 연출 크기·거리 값은 원본 크기 기준이라 이 값을 곱해 쓴다
+        /// (게임 판정 거리는 TyranopodeTable 에 실제 값으로 적는다)
+        /// </summary>
+        public float BodyScale => spawnScale.x;
 
         private void Awake()
         {
@@ -356,6 +364,9 @@ namespace HybridShooter.Boss.Tyranopode
             Vector3 center = arenaCenter != null ? arenaCenter.position : transform.position;
             Minions.SetupArena(center, arenaCenter != null ? arenaRadius : 0f, fallbackArenaRadius);
             locomotion.SetBounds(Minions.Center, Minions.Radius);
+            // 몸이 커질수록 벽 여유가 늘어 움직일 공간이 준다 → 맴돌 공간이 모자라면 알린다 (크기 배율·CircleRadius 조정)
+            if (locomotion.InnerRadius < Def.CircleRadius)
+                Debug.LogWarning($"[Tyranopode] 경기장이 좁습니다: 움직일 수 있는 반지름 {locomotion.InnerRadius:0.#}m < 맴돌기 반경 {Def.CircleRadius:0.#}m", this);
 
             IsPhase2 = false;
             spawnScale = transform.localScale;
@@ -647,7 +658,7 @@ namespace HybridShooter.Boss.Tyranopode
             BrokenCount++;
             foreach (var part in partState.Parts) part.Sever();
 
-            PlayVfx(partBreakVfx, point, 1f);
+            PlayVfx(partBreakVfx, point, BodyScale);
             EventBus<CameraShakeRequestedEvent>.Publish(new CameraShakeRequestedEvent(CameraShakePresets.Impact.At(point, 80f)));
             // 발광은 거의 주머니에서 나온다 → 주머니가 부서지면 빛을 잃는다. 다른 부위는 상처 연출(TyranopodePart.stumpVfx)로
             if (type == TyranopodePartType.Sac) view.SetEmissionLevel(sacBrokenEmission);
@@ -701,7 +712,7 @@ namespace HybridShooter.Boss.Tyranopode
             PlayRoarVfx();
 
             var threat = RentTelegraph();
-            threat.ShowCircle(transform.position, finaleThreatRadius, finale.StrikeTime, new Color(1f, 0.1f, 0.05f, 0.5f));
+            threat.ShowCircle(transform.position, finaleThreatRadius * BodyScale, finale.StrikeTime, new Color(1f, 0.1f, 0.05f, 0.5f));
             new GameObject("TyranopodeFinale").AddComponent<TyranopodeFinale>().Begin(this, finale, finaleAssets, threat);
             Debug.Log("[Tyranopode] 최후 연출 시작", this);
         }
@@ -719,6 +730,7 @@ namespace HybridShooter.Boss.Tyranopode
         // ───────────────────────── 등장 연출 (TyranopodeIntro 가 시간표대로 부른다) ─────────────────────────
 
         private const float VeinsBaseRadius = 60f;
+        private float IntroLandRadius => introLandRadius * BodyScale;
         private const float VeinsBaseTime = 3f;
 
         /// <summary>
@@ -748,7 +760,7 @@ namespace HybridShooter.Boss.Tyranopode
 
             int adopted = Minions.AdoptWaveMonsters(introSettings.TotalTime + 1f);
             introShadow = RentTelegraph();
-            introShadow.ShowCircle(introLanding, introLandRadius, introSettings.LandTime, new Color(1f, 0.3f, 0.05f, 0.45f));
+            introShadow.ShowCircle(introLanding, IntroLandRadius, introSettings.LandTime, new Color(1f, 0.3f, 0.05f, 0.45f));
 
             intro = new GameObject("TyranopodeIntro").AddComponent<TyranopodeIntro>();
             intro.Begin(this, introSettings, introLanding, introLaunch, playerCamera);
@@ -758,7 +770,7 @@ namespace HybridShooter.Boss.Tyranopode
         /// <summary>날아오는 중 (k = 0 뛰어오름 ~ 1 착지): 포물선을 따라 옮기고 점프 자세를 넘긴다</summary>
         public void IntroFly(float k)
         {
-            transform.position = Vector3.Lerp(introLaunch, introLanding, k) + Vector3.up * introSettings.LeapHeight * 4f * k * (1f - k);
+            transform.position = Vector3.Lerp(introLaunch, introLanding, k) + Vector3.up * introSettings.LeapHeight * BodyScale * 4f * k * (1f - k);
             locomotion.FaceInstant(introLanding + (introLanding - introLaunch));
             view.Pose(TyranopodeView.JumpSmash, Mathf.Lerp(introLeapPose.x, introLeapPose.y, k));
         }
@@ -771,9 +783,9 @@ namespace HybridShooter.Boss.Tyranopode
             locomotion.SetAirborne(false);
             view.PlayFrom(TyranopodeView.JumpSmash, introLeapPose.y);
             introShadow.Detonate(new Color(1f, 0.55f, 0.2f, 0.8f));
-            PlayImpactVfx(introLanding, introLandRadius);
-            PlayShockwave(introLanding, introLandRadius * 2.5f);
-            Minions.WaveKill(introLanding, 40f, introLandRadius);
+            PlayImpactVfx(introLanding, IntroLandRadius);
+            PlayShockwave(introLanding, IntroLandRadius * 2.5f);
+            Minions.WaveKill(introLanding, 40f, IntroLandRadius);
         }
 
         /// <summary>
@@ -997,7 +1009,7 @@ namespace HybridShooter.Boss.Tyranopode
                     Vector3 side = Vector3.Cross(Vector3.up, feet - from).normalized * Vector3.Distance(from, feet) * Random.Range(-0.25f, 0.25f);
                     control = Vector3.Lerp(from, feet, 0.5f) + side;
                 }
-                else control = Vector3.Lerp(from, mouth.position, 0.5f) + Vector3.up * Random.Range(energyArcHeight * 0.6f, energyArcHeight);
+                else control = Vector3.Lerp(from, mouth.position, 0.5f) + Vector3.up * Random.Range(energyArcHeight * 0.6f, energyArcHeight) * BodyScale;
 
                 orbs.Add(new EnergyOrb
                 {
@@ -1132,7 +1144,7 @@ namespace HybridShooter.Boss.Tyranopode
         /// <summary>포효: 입에서 가스 + 발밑 충격파</summary>
         public void PlayRoarVfx()
         {
-            PlayVfx(roarVfx, mouth.position, 1f);
+            PlayVfx(roarVfx, mouth.position, BodyScale);
             PlayShockwave(transform.position, RoarShockwaveRadius);
         }
 

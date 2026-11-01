@@ -204,7 +204,8 @@ namespace HybridShooter.Boss.Tyranopode
         private (Vector3, Quaternion) Desired(Shot which, float t)
         {
             Transform body = boss.transform;
-            float scale = body.localScale.x / boss.IntroBaseScale;
+            // 카메라 거리는 원본 크기 기준 → 몸 크기(흡수로 커진 만큼 포함)를 곱한다
+            float scale = body.localScale.x;
             Vector3 center = body.position + Vector3.up * 4f * scale;
 
             switch (which)
@@ -213,8 +214,9 @@ namespace HybridShooter.Boss.Tyranopode
                 {
                     // 보스가 날아오는 방향을 마주 보는 자리 (착지점 너머, 옆으로 비껴서)
                     Vector3 side = Vector3.Cross(Vector3.up, launchDir);
-                    Vector3 position = landing - launchDir * 26f + side * 9f + Vector3.up * 3f;
-                    Vector3 look = landed ? center : Vector3.Lerp(landing + Vector3.up * 6f, body.position, 0.7f);
+                    float s = boss.BodyScale;
+                    Vector3 position = landing - launchDir * 26f * s + side * 9f * s + Vector3.up * 3f * s;
+                    Vector3 look = landed ? center : Vector3.Lerp(landing + Vector3.up * 6f * s, body.position, 0.7f);
                     return (position, Quaternion.LookRotation(look - position));
                 }
                 case Shot.Drain:
@@ -223,7 +225,7 @@ namespace HybridShooter.Boss.Tyranopode
                     float yaw = Mathf.Lerp(35f, 80f, k);
                     float distance = Mathf.Lerp(28f, 20f, k) * scale;
                     Vector3 around = Quaternion.LookRotation(body.forward) * (Quaternion.Euler(0f, yaw, 0f) * Vector3.forward);
-                    Vector3 position = center + around * distance + Vector3.up * Mathf.Lerp(4f, 7f, k);
+                    Vector3 position = center + around * distance + Vector3.up * Mathf.Lerp(4f, 7f, k) * scale;
                     return (position, Quaternion.LookRotation(center - position));
                 }
                 default:
@@ -231,7 +233,7 @@ namespace HybridShooter.Boss.Tyranopode
                     Vector3 head = boss.Mouth.position;
                     float k = Mathf.Clamp01((t - settings.RoarStart) / settings.RoarTime);
                     Vector3 position = head + body.forward * Mathf.Lerp(16f, 10f, k) * scale + body.right * 3f * scale + Vector3.up * 1.5f * scale;
-                    return (position, Quaternion.LookRotation(head + Vector3.up * 1f - position));
+                    return (position, Quaternion.LookRotation(head + Vector3.up * scale - position));
                 }
             }
         }
