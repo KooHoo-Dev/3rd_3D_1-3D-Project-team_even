@@ -12,7 +12,11 @@ using UnityEngine.AI;
 
 namespace HybridShooter.Round
 {
-    /// <summary>한 라운드의 보스를 SpawnPointFinder 가 고른 위치에 생성·초기화하고, 사망을 기존 보상 이벤트에 연결한다.</summary>
+    /// <summary>
+    /// 한 라운드의 보스를 SpawnPointFinder 가 고른 위치에 생성·초기화하고, 사망을 기존 보상 이벤트에 연결한다.
+    /// 보스는 RoundTable.BossId → BossTable 행의 Prefab(Resources 경로)으로 고른다.
+    /// 인스펙터 bossId 와 같은 보스는 인스펙터 bossPrefab 을 쓰고, 찾지 못하면 인스펙터 보스로 대신한다.
+    /// </summary>
     public sealed class RoundBossEncounter : MonoBehaviour
     {
         [SerializeField] private BossController bossPrefab;
@@ -83,6 +87,22 @@ namespace HybridShooter.Round
             if (entrance == null && (initializer == null || initializer.IsEntranceRunning == false)) RequestMonsterWipe(boss.transform.position);
             // 보스 이벤트의 MonsterDef는 현재 테이블 이전 중이라 null일 수 있다.
             EventBus<BossAppearedEvent>.Publish(new BossAppearedEvent(eventBoss, boss.gameObject));
+        }
+
+        /// <summary>BossTable 에서 보스와 프리팹을 찾는다. 인스펙터 보스와 같은 Id 면 인스펙터 프리팹을 쓴다</summary>
+        private bool TryResolveBoss(int id, out BossController prefab, out BossDef def)
+        {
+            prefab = null;
+            if (DataManager.Bosses.TryGet(id, out def) == false) return false;
+            if (id == bossId && bossPrefab != null)
+            {
+                prefab = bossPrefab;
+                return true;
+            }
+            var loaded = string.IsNullOrEmpty(def.Prefab) ? null : Resources.Load<GameObject>(def.Prefab);
+            if (loaded != null) prefab = loaded.GetComponent<BossController>();
+            if (prefab == null) Debug.LogWarning($"[RoundBossEncounter] BossTable {id} 의 Prefab '{def.Prefab}' 을 찾지 못해 인스펙터 보스로 대신합니다.", this);
+            return prefab != null;
         }
 
         /// <summary>
