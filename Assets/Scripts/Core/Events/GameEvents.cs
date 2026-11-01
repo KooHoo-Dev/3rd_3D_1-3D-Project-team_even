@@ -265,7 +265,7 @@ namespace HybridShooter.Core.Events
     public readonly struct SupplyCollectedEvent
     {
         public readonly SupplyDef Def;
-        /// <summary>실제로 늘어난 아이템(수류탄·회복 팩) 개수. 가득 차 있었으면 0</summary>
+        /// <summary>실제로 늘어난 아이템(수류탄·회복 팩) 개수. 가득 차 있었으면 0. 보급 무기(SupplyType.Weapon) 는 1</summary>
         public readonly int ItemAmount;
         /// <summary>슬롯의 모든 총에 실제로 채운 예비 탄창 합. 모두 가득 차 있었으면 0</summary>
         public readonly int MagazinesAdded;

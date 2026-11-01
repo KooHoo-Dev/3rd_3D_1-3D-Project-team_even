@@ -5,6 +5,7 @@ using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.Services;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace HybridShooter.Supply
 {
@@ -15,6 +16,8 @@ namespace HybridShooter.Supply
     ///   2) 낙하 지점: ISpawnZoneProvider.TryGetSupplyDropPosition (기본 = 플레이어 기준 XZ SupplyDropMin~MaxDistance) → 아래로 레이캐스트.
     ///      처음 맞은 콜라이더가 dropGroundLayers(기본 Ground) 가 아니면(건물 지붕·바위·나무 등) 버리고,
     ///      지면이 플레이어 발 높이 + ConfigTable.SupplyMaxTerrainHeight 보다 높으면(언덕·산 위 등) 버리고 다시 뽑는다
+    ///      경사가 MaxSlopeAngle 을 넘거나(상자가 묻힘), NavMesh 밖이거나(맵 밖·지붕), 플레이어에서 걸어서 갈 길이 없으면(구덩이·절벽 위) 버린다.
+    ///      플레이어 근처에 NavMesh 가 없으면(NavMesh 없는 테스트 씬 등) NavMesh 검사 둘은 건너뛴다
     ///   3) Resources/{PrefabKey} 프리팹 생성 → SupplyCrate.Launch (지면 + SupplyDropHeight 에서 낙하)
     ///   4) SupplyDroppedEvent 발행 (투하음·안내 방송 = GameSoundRouter, 알림 = SupplyHud, 빛기둥 = SupplyBeaconOverride)
     ///
@@ -33,13 +36,19 @@ namespace HybridShooter.Supply
         private const float RetryDelay = 1f;
         /// <summary>한 회차에서 다시 시도하는 최대 횟수. 넘으면 그 회차는 건너뛰고 다음 주기를 기다린다</summary>
         private const int MaxRetries = 5;
-        /// <summary>투하 1번에서 낙하 지점 후보를 다시 뽑는 횟수 (레이캐스트만이라 가볍다. Ground·높이·거리 조건이 겹쳐 실패가 잦아 넉넉히)</summary>
+        /// <summary>투하 1번에서 낙하 지점 후보를 다시 뽑는 횟수 (대부분 레이캐스트에서 걸러지고 길 찾기는 마지막 검사까지 온 후보만이라 가볍다)</summary>
         private const int MaxPositionTries = 30;
         /// <summary>ConfigTable 에 거리 행이 없을 때의 기본값 (테이블 값과 같게 유지)</summary>
         public const float DefaultDropMinDistance = 20f;
         public const float DefaultDropMaxDistance = 60f;
         /// <summary>dropGroundLayers 를 비워 두면 쓰는 레이어 이름</summary>
         private const string DefaultGroundLayerName = "Ground";
+        /// <summary>착지 허용 최대 경사(도). 넘으면 상자 한쪽이 지면에 묻혀 조준 레이가 막힌다</summary>
+        private const float MaxSlopeAngle = 25f;
+        /// <summary>낙하 지점에서 NavMesh 를 찾는 반경(m). 지면 바로 위에 구워진 NavMesh 만 인정</summary>
+        private const float NavMeshSnapDistance = 1f;
+        /// <summary>플레이어 위치에서 NavMesh 를 찾는 반경(m). 점프·경사로 발이 살짝 떠 있어도 찾도록</summary>
+        private const float PlayerNavMeshSnapDistance = 2f;
 
         [Tooltip("지면 탐색 레이캐스트가 부딪히는 레이어. 지붕·바위 위를 걸러내려면 장애물 레이어도 포함해야 한다 (기본 Everything)")]
         [SerializeField] private LayerMask groundMask = ~0;
@@ -52,6 +61,7 @@ namespace HybridShooter.Supply
         private float dropInterval;
         private float nextAutoDropTime = float.PositiveInfinity;
         private int retryCount;
+        private NavMeshPath path;
 
         /// <summary>현재 필드에 남아 있는 보급 목록 (낙하 중 + 착지 후)</summary>
         public IReadOnlyList<SupplyCrate> ActiveCrates => activeCrates;
@@ -159,7 +169,9 @@ namespace HybridShooter.Supply
         /// <summary>
         /// 보급이 착지할 지면 지점을 찾는다.
         /// ISpawnZoneProvider 에서 후보 XZ 위치를 받아 플레이어 기준 거리 범위(SupplyDropMin~MaxDistance)로 보정한 뒤,
-        /// 위에서 아래로 레이캐스트해 처음 맞은 콜라이더가 허용 레이어(dropGroundLayers)이고 플레이어 발 높이 + 제한 이하면 반환한다.
+        /// 위에서 아래로 레이캐스트해 아래 조건을 모두 통과하면 반환한다 (값싼 검사부터, 길 찾기는 마지막):
+        ///   처음 맞은 콜라이더가 허용 레이어(dropGroundLayers) / 플레이어 발 높이 + 제한 이하 / 경사 MaxSlopeAngle 이하 /
+        ///   NavMesh 위 / 플레이어에서 걸어서 갈 수 있음 (NavMesh 검사 둘은 플레이어 근처에 NavMesh 가 있을 때만)
         /// MaxPositionTries 번 모두 실패하면 탈락 사유별 횟수를 경고로 남기고 false.
         /// </summary>
         private bool TryFindGroundPoint(out Vector3 groundPoint)
@@ -173,7 +185,12 @@ namespace HybridShooter.Supply
             // 높이 기준 = 플레이어 발 높이 (맵 원점·보스 아레나 높이와 무관하게 "플레이어보다 N m 이상 높은 곳" 을 거른다)
             float maxHeight = center.y + DataManager.Config.GetFloat(GameConfig.SupplyMaxTerrainHeight, 5f);
             int allowedLayers = dropGroundLayers.value != 0 ? dropGroundLayers.value : LayerMask.GetMask(DefaultGroundLayerName);
-            int missed = 0, wrongLayer = 0, tooHigh = 0;
+            float minNormalY = Mathf.Cos(MaxSlopeAngle * Mathf.Deg2Rad);
+            // 플레이어가 NavMesh 위에 있어야 "걸어서 갈 수 있는지" 를 따질 수 있다. 없으면 NavMesh 검사를 통째로 건너뛴다
+            NavMeshHit playerNav = default;
+            bool useNavMesh = hasPlayer && NavMesh.SamplePosition(center, out playerNav, PlayerNavMeshSnapDistance, NavMesh.AllAreas);
+            if (useNavMesh && path == null) path = new NavMeshPath();
+            int missed = 0, wrongLayer = 0, tooHigh = 0, tooSteep = 0, offNavMesh = 0, unreachable = 0;
 
             for (int i = 0; i < MaxPositionTries; i++)
             {
@@ -199,13 +216,36 @@ namespace HybridShooter.Supply
                     tooHigh++;
                     continue;
                 }
+                if (hit.normal.y < minNormalY)
+                {
+                    tooSteep++;
+                    continue;
+                }
+                if (useNavMesh)
+                {
+                    // 맵 밖·고립된 지붕 등 NavMesh 가 없는 곳
+                    if (NavMesh.SamplePosition(hit.point, out var dropNav, NavMeshSnapDistance, NavMesh.AllAreas) == false)
+                    {
+                        offNavMesh++;
+                        continue;
+                    }
+                    // 구덩이·절벽 위처럼 NavMesh 는 있지만 플레이어 쪽과 이어지지 않은 곳
+                    if (NavMesh.CalculatePath(playerNav.position, dropNav.position, NavMesh.AllAreas, path) == false || path.status != NavMeshPathStatus.PathComplete)
+                    {
+                        unreachable++;
+                        continue;
+                    }
+                }
 
+                // 착지는 NavMesh 보정 지점이 아니라 보이는 지면(레이캐스트 지점)에
                 groundPoint = hit.point;
                 return true;
             }
 
             Debug.LogWarning($"[SupplyDropper] 낙하 지점을 찾지 못했습니다. 탈락 사유: 지면 없음 {missed} / 허용 레이어 아님 {wrongLayer} / 너무 높음 {tooHigh}" +
-                             $" (플레이어 y {center.y:0.0} + SupplyMaxTerrainHeight → 최대 y {maxHeight:0.0}){(zones == null ? " · ISpawnZoneProvider 없음" : string.Empty)}", this);
+                             $" / 경사 {tooSteep} / NavMesh 밖 {offNavMesh} / 길 없음 {unreachable}" +
+                             $" (플레이어 y {center.y:0.0} + SupplyMaxTerrainHeight → 최대 y {maxHeight:0.0}{(useNavMesh ? string.Empty : " · NavMesh 검사 생략")})" +
+                             $"{(zones == null ? " · ISpawnZoneProvider 없음" : string.Empty)}", this);
             groundPoint = default;
             return false;
         }

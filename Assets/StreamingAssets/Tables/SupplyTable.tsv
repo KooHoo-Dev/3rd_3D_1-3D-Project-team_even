@@ -1,4 +1,6 @@
-Id	SupplyType	DisplayName	AmountMin	AmountMax	Weight	BeaconColor	PrefabKey	MarkerKey	DropSfxKey	AnnounceSfxKey	CollectSfxKey
-# SupplyType: Grenade/Heal  ·  AmountMin~AmountMax: 아이템 지급 개수(획득 때 범위 내 무작위)  ·  모든 보급은 획득 시 슬롯의 모든 총에 예비 탄창도 충전(WeaponTable.SupplyMagazineRatio)  ·  Weight: 투하 종류 가중치  ·  BeaconColor: 빛기둥 색(#RRGGBB)  ·  BL-018/019  ·  DropSfxKey 투하(착지 지점) · AnnounceSfxKey 투하 안내(2D) · CollectSfxKey 획득
-4001	Grenade	수류탄 팩	1	3	50	#FF731A	Supply/GrenadeCrate	marker_grenade	sfx_supply_drop	sfx_supply_announce	sfx_supply_reload
-4002	Heal	회복 팩	1	3	50	#4DFFD9	Supply/HealCrate	marker_heal	sfx_supply_drop	sfx_supply_announce	sfx_supply_reload
+Id	SupplyType	DisplayName	AmountMin	AmountMax	WeaponId	Weight	BeaconColor	PrefabKey	MarkerKey	DropSfxKey	AnnounceSfxKey	CollectSfxKey
+# SupplyType: Grenade/Heal/Weapon  ·  AmountMin~AmountMax: 아이템 지급 개수(획득 때 범위 내 무작위, Weapon 은 0)  ·  WeaponId: Weapon 행만 WeaponTable.Id(Category = Supply, 1회용 — 탄을 다 쓰면 사라짐), 그 외 0  ·  Grenade·Heal 보급은 획득 시 1~3번 칸 총에 예비 탄창도 충전(WeaponTable.SupplyMagazineRatio), Weapon 은 무기만  ·  Weight: 투하 종류 가중치  ·  BeaconColor: 빛기둥 색(#RRGGBB)  ·  BL-018/019  ·  DropSfxKey 투하(착지 지점) · AnnounceSfxKey 투하 안내(2D) · CollectSfxKey 획득
+4001	Grenade	수류탄 팩	1	3	0	40	#FF731A	Supply/GrenadeCrate	marker_grenade	sfx_supply_drop	sfx_supply_announce	sfx_supply_reload
+4002	Heal	회복 팩	1	3	0	40	#4DFFD9	Supply/HealCrate	marker_heal	sfx_supply_drop	sfx_supply_announce	sfx_supply_reload
+4101	Weapon	로켓 발사기	0	0	2007	10	#FFD24D	Supply/WeaponCrate	marker_weapon	sfx_supply_drop	sfx_supply_announce	sfx_supply_reload
+4102	Weapon	유탄 발사기	0	0	2008	10	#C77DFF	Supply/WeaponCrate	marker_weapon	sfx_supply_drop	sfx_supply_announce	sfx_supply_reload

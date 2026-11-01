@@ -16,7 +16,7 @@ namespace HybridShooter.Weapon
     ///    0번 = Sidearm(권총, 고정) · 1·2번 = startingGuns 중 Loadout 순서대로 (출발 전 선택 화면이 ApplyLoadout 으로 덮어씀) · 3번 = 보급 칸(비움).
     ///    슬롯에 안 들어간 총은 "예비"로 꺼 둔다. 총은 파괴하지 않고 예비 ↔ 슬롯을 오간다 (같은 무기를 다시 주울 수 있게).
     ///  - 게임 중 교체는 보급 칸만 (ISupplyWeaponUser.EquipSupplyWeapon). 이전 보급 무기는 탄을 초기화해 예비로 반납(= 버림).
-    ///    보급 무기는 1회용: 예비 탄창 보충(보급 상자 등)에서 제외되고, 탄이 떨어져도 칸에 남는다. 라운드(스테이지)가 끝나면(재시작·다음 라운드) 칸을 비운다.
+    ///    보급 무기는 1회용: 예비 탄창 보충(보급 상자 등)에서 제외되고, 탄창·예비 탄창을 모두 쓰면 SupplyDepletedDiscardDelay 뒤 칸에서 사라지고 이전에 들던 칸으로 돌아간다. 라운드(스테이지)가 끝나면(재시작·다음 라운드) 칸을 비운다.
     ///  - PlayerController 의 입력을 지금 든 총(CurrentGun)으로 넘긴다. 실제 동작은 각 총이 덮어쓴 함수가 정한다.
     ///  - 총이 필요로 하는 조준선·반동·확대·이동 상태를 PlayerController 와 이어준다.
     ///  - 부활(PlayerRevivedEvent)하면 보급 칸을 뺀 총의 탄창을 채우고 예비 탄창을 최소 시작값까지 올린다 (Gun.RestoreAmmoForRevive)
@@ -66,8 +66,14 @@ namespace HybridShooter.Weapon
         private Gun[] allGuns = Array.Empty<Gun>();
         private PlayerController player;
         private int currentIndex = -1;
+        /// <summary>보급 무기를 장착하기 전에 들던 칸 (탄을 다 써서 사라지면 이 칸으로 돌아간다)</summary>
+        private int slotBeforeSupply = -1;
+        /// <summary>보급 무기 탄이 바닥난 시각. 바닥나지 않았으면 Infinity</summary>
+        private float supplyDepletedAt = float.PositiveInfinity;
 
         private const string AimSpeedKey = "GunAim";
+        /// <summary>보급 무기 탄을 다 쓴 뒤 버리기까지 기다리는 시간(초). 마지막 발사의 반동·투사체 발사 동작이 끝나도록</summary>
+        private const float SupplyDepletedDiscardDelay = 0.6f;
 
         #region 유니티 메시지
         private void Awake()
@@ -99,6 +105,7 @@ namespace HybridShooter.Weapon
         private void Update()
         {
             if (CurrentGun != null) CurrentGun.Tick(Time.deltaTime);
+            UpdateSupplyDepletion();
         }
         #endregion
 
@@ -342,11 +349,13 @@ namespace HybridShooter.Weapon
             if (CanEquipSupplyWeapon(weaponId) == false) return false;
             Gun gun = FindReserve(weaponId);
             int previousId = SupplyWeaponId;
+            if (currentIndex >= 0 && currentIndex != SupplySlot) slotBeforeSupply = currentIndex;
 
             ReturnSupplyWeapon();
             reserve.Remove(gun);
             gun.ResetForPickup();
             slots[SupplySlot] = gun;
+            supplyDepletedAt = float.PositiveInfinity;
             Select(SupplySlot);
 
             LoadoutChanged?.Invoke();
@@ -441,6 +450,34 @@ namespace HybridShooter.Weapon
         {
             for (int i = 0; i < SlotCount; i++)
                 if (i != SupplySlot && slots[i] != null) slots[i].RestoreAmmoForRevive();
+        }
+
+        /// <summary>
+        /// 보급 무기(1회용)의 탄창·예비 탄창이 모두 바닥나면 SupplyDepletedDiscardDelay 뒤 칸에서 버리고,
+        /// 들고 있었다면 장착 전에 들던 칸(없으면 시작 칸·다음 칸)으로 돌아간다. 슬롯 HUD 는 SupplyWeaponChangedEvent(이전, 0) 로 갱신
+        /// </summary>
+        private void UpdateSupplyDepletion()
+        {
+            Gun supply = slots[SupplySlot];
+            if (supply == null || supply.IsOutOfAmmo == false)
+            {
+                supplyDepletedAt = float.PositiveInfinity;
+                return;
+            }
+            if (float.IsPositiveInfinity(supplyDepletedAt))
+            {
+                supplyDepletedAt = Time.time;
+                return;
+            }
+            if (Time.time - supplyDepletedAt < SupplyDepletedDiscardDelay) return;
+
+            supplyDepletedAt = float.PositiveInfinity;
+            int previousId = SupplyWeaponId;
+            bool wasHolding = currentIndex == SupplySlot;
+            ReturnSupplyWeapon();
+            if (wasHolding && Select(slotBeforeSupply) == false && Select(startSlot) == false) SelectNext(1);
+            LoadoutChanged?.Invoke();
+            EventBus<SupplyWeaponChangedEvent>.Publish(new SupplyWeaponChangedEvent(previousId, 0));
         }
 
         /// <summary>보급 칸 총을 탄 초기화 후 예비로 반납. 들고 있었으면 내려놓기만 한다 (currentIndex = -1, 바꿔 들기는 호출한 쪽에서)</summary>

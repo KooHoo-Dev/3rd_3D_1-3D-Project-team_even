@@ -54,7 +54,7 @@ namespace HybridShooter.Core.Contracts
     /// <summary>
     /// 보급 무기 받기 → 플레이어 (무기 슬롯 4번 = 보급 칸). ServiceLocator 에 등록되고,
     /// 플레이어 루트에 붙어 있어 GetComponentInParent&lt;ISupplyWeaponUser&gt;() 로도 찾을 수 있다.
-    ///  - 보급 무기는 1회용: 보급 상자로 탄이 충전되지 않고, 탄이 떨어져도 칸에 남는다
+    ///  - 보급 무기는 1회용: 보급 상자로 탄이 충전되지 않고, 탄창·예비 탄창을 모두 쓰면 칸에서 사라진다 (이전에 들던 칸으로 돌아감)
     ///  - 다른 보급 무기를 받으면 이전 보급 무기는 버려진다
     /// 예) 무기 상자: if (user.GetComponentInParent&lt;ISupplyWeaponUser&gt;()?.EquipSupplyWeapon(weaponId) == true) Remove();
     /// </summary>

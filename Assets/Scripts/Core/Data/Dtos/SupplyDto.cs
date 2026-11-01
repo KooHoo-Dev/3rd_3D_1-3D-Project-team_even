@@ -11,6 +11,7 @@ namespace HybridShooter.Core.Data.Dtos
         public string DisplayName = "";  // HUD·분석 표시 이름
         public int AmountMin;  // 아이템 지급 개수 최소 (획득 때 무작위)
         public int AmountMax;  // 아이템 지급 개수 최대
+        public int WeaponId;  // WeaponTable.Id (SupplyType = Weapon 일 때만, Category = Supply. 그 외 0)
         public int Weight;
         public string BeaconColor = "";  // 빛기둥 색 #RRGGBB
         public string PrefabKey = "";

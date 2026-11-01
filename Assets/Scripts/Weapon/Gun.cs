@@ -56,7 +56,7 @@ namespace HybridShooter.Weapon
     ///    장전이 "끝나는 순간"에만 예비 탄창 1개를 써서 탄창을 가득 채운다 (남은 탄은 버림). 취소되면 아무것도 바뀌지 않는다.
     ///    예비 탄창이 없으면 장전할 수 없다 (infiniteMagazines 면 줄지 않음). 보충은 AddMagazines (보급 → GunSlot → 지금 든 총)
     ///  - 장전 취소: 무기 교체, 쏠 수 없는 상태(CanUseWeapon: 구르기·투척·사망·벽넘기), GunSlot.InterruptReload(넉백 피격 등)
-    ///  - 라운드 정리(RoundCleanupEvent, 재시작·다음 라운드 모두)마다 탄창·예비 탄창을 시작값으로
+    ///  - 라운드 정리(RoundCleanupEvent): 처음부터 재시작이면 탄창·예비 탄창을 시작값으로, 다음 라운드면 탄창 가득 + 아껴 둔 예비 탄창 유지(시작값 이상)
     ///
     /// 무기별 기본 튜닝 값은 하위 클래스 생성자에서 정한다.
     /// (필드 초기값과 같은 시점이라, 씬/프리팹에 저장된 인스펙터 값이 있으면 그 값이 덮어쓴다)
@@ -738,10 +738,20 @@ namespace HybridShooter.Weapon
         private void OnUpgradePurchased(UpgradePurchasedEvent evt) => RefreshStats();
 
         /// <summary>
-        /// 라운드(스테이지) 정리마다 탄창·예비 탄창·사격 모드를 시작값으로 (처음부터 재시작이든 다음 라운드든).
-        /// 스테이지를 시작할 때마다 무기 선택 화면에서 고른 총을 새것으로 들고 나간다. 보급 무기는 GunSlot 이 칸에서 뺀다
+        /// 라운드(스테이지) 정리. 장전 취소 + 사격 모드 등 초기화, 탄약은:
+        ///   처음부터 재시작(FullReset) = 시작값 / 다음 라운드 = 탄창 가득 + 예비 탄창 max(현재, 시작값) (아껴 둔 탄창 유지)
+        /// 보급 무기는 GunSlot 이 칸에서 빼며 시작값으로 되돌린다
         /// </summary>
-        private void OnRoundCleanup(RoundCleanupEvent evt) => ResetForPickup();
+        private void OnRoundCleanup(RoundCleanupEvent evt)
+        {
+            if (evt.FullReset)
+            {
+                ResetForPickup();
+                return;
+            }
+            RestoreAmmoForRevive();
+            OnInitialized();
+        }
 
         private void ResetAmmo()
         {

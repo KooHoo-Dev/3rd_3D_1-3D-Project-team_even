@@ -16,13 +16,17 @@ namespace HybridShooter.Supply
     ///    조준하는 동안의 정보(종류·지급량·가득 참 경고)는 GetPrompt → PlayerInteractor → InteractPromptHud 로 표시된다.
     ///  - 획득 대상은 구체 클래스가 아닌 계약(IItemUser, IPlayerAmmo)으로 찾는다.
     ///    가득 차서 못 먹으면(false) 물자는 그대로 남는다.
-    ///  - 착지 후에는 시간이 지나도 사라지지 않는다. (획득 또는 라운드 정리 때만 제거)
+    ///  - SupplyType.Weapon 상자는 아이템 대신 1회용 보급 무기를 보급 칸에 장착한다 (ISupplyWeaponUser, 탄창 충전 없음).
+    ///  - 착지 후 ConfigTable.SupplyLifetime 초가 지나면 사라진다 (갈 수 없는 곳에 떨어진 상자 정리). 그 전에는 획득 또는 라운드 정리 때만 제거
     /// </summary>
     [RequireComponent(typeof(Rigidbody), typeof(BoxCollider))]
     public sealed class SupplyCrate : MonoBehaviour, IInteractable
     {
         /// <summary>Idle = Launch 전, Falling = 낙하 중, Landed = 착지 완료</summary>
         public enum State { Idle, Falling, Landed }
+
+        /// <summary>ConfigTable 에 SupplyLifetime 행이 없을 때의 착지 후 수명(초). 테이블 값과 같게 유지</summary>
+        public const float DefaultLifetime = 90f;
 
         [Tooltip("낙하 속도 (m/s)")]
         [SerializeField] private float fallSpeed = 15f;
@@ -34,6 +38,10 @@ namespace HybridShooter.Supply
         [SerializeField] private bool fitColliderToRenderers = true;
         [Tooltip("콜라이더를 렌더러보다 넓혀서 줍기 쉽게 (m)")]
         [SerializeField] private float pickupPadding = 0.5f;
+        [Tooltip("콜라이더를 렌더러 위로 늘려서 (m), 경사에 살짝 묻혀도 조준 레이가 지면보다 상자를 먼저 맞히게")]
+        [SerializeField] private float pickupTopPadding = 0.5f;
+        [Tooltip("사라지기 전 빛기둥이 깜빡이는 시간 (초)")]
+        [SerializeField] private float expireBlinkTime = 10f;
 
         [Header("위치 표시 (멀리서도 보이는 빛기둥, 색 = SupplyTable.BeaconColor)")]
         [SerializeField] private bool showBeacon = true;
@@ -56,6 +64,9 @@ namespace HybridShooter.Supply
         private float speedAtLandingZone;
         private bool removed;
         private Material beaconMaterial;
+        private Renderer beaconRenderer;
+        /// <summary>착지 시각 (ConfigTable.SupplyLifetime 이 지나면 사라짐). 착지 전 = Infinity</summary>
+        private float landedTime = float.PositiveInfinity;
 
         /// <summary>
         /// 필수 컴포넌트 설정: Rigidbody 는 Kinematic(중력 X, 보간 O), BoxCollider 는 Trigger.
@@ -136,8 +147,33 @@ namespace HybridShooter.Supply
             return Mathf.Sqrt(vLandSq + (v0Sq - vLandSq) * t);
         }
 
-        /// <summary>착지 완료 처리. 이후 FixedUpdate 에서 더 이상 움직이지 않는다</summary>
-        private void Land() => CurrentState = State.Landed;
+        /// <summary>착지 완료 처리. 이후 FixedUpdate 에서 더 이상 움직이지 않고, 수명(SupplyLifetime) 을 세기 시작한다</summary>
+        private void Land()
+        {
+            CurrentState = State.Landed;
+            landedTime = Time.time;
+        }
+
+        /// <summary>
+        /// 착지 후 ConfigTable.SupplyLifetime 초가 지나면 사라진다 (0 이하 = 사라지지 않음).
+        /// 갈 수 없는 곳에 떨어진 상자가 SupplyMaxActive 자리를 계속 차지해 투하가 끊기는 것을 막는 안전장치.
+        /// 마지막 expireBlinkTime 초 동안 빛기둥이 깜빡인다. 획득이 아니므로 SupplyCollectedEvent 는 발행하지 않는다
+        /// </summary>
+        private void Update()
+        {
+            if (CurrentState != State.Landed || removed) return;
+            float lifetime = DataManager.Config.GetFloat(GameConfig.SupplyLifetime, DefaultLifetime);
+            if (lifetime <= 0f) return;
+
+            float remaining = landedTime + lifetime - Time.time;
+            if (remaining <= 0f)
+            {
+                Remove();
+                return;
+            }
+            if (beaconRenderer != null)
+                beaconRenderer.enabled = remaining > expireBlinkTime || Mathf.Repeat(remaining, 0.5f) > 0.2f;
+        }
 
         // ── 상호작용 (IInteractable) ──
 
@@ -149,19 +185,40 @@ namespace HybridShooter.Supply
         /// <summary>조준 중 표시 정보. 매 프레임 불릴 수 있어 계산은 가볍게 (지급은 하지 않음)</summary>
         public InteractPrompt GetPrompt(GameObject user)
         {
+            if (Def.IsWeapon) return GetWeaponPrompt(user);
             string amount = Def.AmountMin == Def.AmountMax ? $"{Def.AmountMin}" : $"{Def.AmountMin}~{Def.AmountMax}";
             string warning = CanReceiveAny(user) ? "" : "수류탄·회복 팩·예비 탄창이 모두 가득 차 있습니다";
             return new InteractPrompt($"{Def.DisplayName} 보급 상자", $"{ItemName(Def.SupplyType)} {amount}개 · 예비 탄창 충전", "획득", "", warning);
         }
 
+        /// <summary>보급 무기 상자: 무기명 · 1회용 · 탄 수. 이미 같은 무기면 경고(획득 불가), 다른 보급 무기를 들고 있으면 버려진다고 안내</summary>
+        private InteractPrompt GetWeaponPrompt(GameObject user)
+        {
+            WeaponDef weapon = DataManager.Weapons.TryGet(Def.WeaponId, out var w) ? w : null;
+            string ammo = weapon != null ? $" · 탄 {weapon.MagazineSize} + 예비 {weapon.StartMagazines}탄창" : "";
+
+            string warning = "";
+            var receiver = user != null ? user.GetComponentInParent<ISupplyWeaponUser>() : null;
+            if (receiver != null && receiver.SupplyWeaponId == Def.WeaponId)
+                warning = "이미 보유 중인 보급 무기입니다";
+            else if (receiver != null && receiver.SupplyWeaponId != 0)
+            {
+                string current = DataManager.Weapons.TryGet(receiver.SupplyWeaponId, out var cur) ? cur.Name : $"무기 {receiver.SupplyWeaponId}";
+                warning = $"현재 {current} 은(는) 버려집니다";
+            }
+            return new InteractPrompt($"{Def.DisplayName} 보급 상자", $"보급 무기 · 1회용 (탄을 다 쓰면 사라짐){ammo}", "획득", weapon != null ? weapon.IconKey : "", warning);
+        }
+
         /// <summary>
         /// user(플레이어 루트)에게 보급을 지급한다.
         ///   아이템: 종류별 AmountMin~AmountMax 개 무작위 / 탄약: 슬롯의 모든 총에 무기별 비율만큼 (IPlayerAmmo.AddSupplyMagazines)
-        /// 둘 중 하나라도 실제로 늘었으면 SupplyCollectedEvent(실제 지급량) 발행 후 물자를 제거하고 true. 하나도 못 받으면 그대로 남고 false.
+        ///   보급 무기: 보급 칸에 장착 (ISupplyWeaponUser.EquipSupplyWeapon, 탄창 충전 없음)
+        /// 하나라도 실제로 늘었으면 SupplyCollectedEvent(실제 지급량) 발행 후 물자를 제거하고 true. 하나도 못 받으면 그대로 남고 false.
         /// </summary>
         public bool Interact(GameObject user)
         {
             if (user == null || CanInteract(user) == false) return false;
+            if (Def.IsWeapon) return InteractWeapon(user);
             var itemUser = user.GetComponentInParent<IItemUser>();
             var ammo = user.GetComponentInParent<IPlayerAmmo>();
             if (itemUser == null && ammo == null) return false;
@@ -171,6 +228,17 @@ namespace HybridShooter.Supply
             if (items == 0 && magazines == 0) return false;
 
             EventBus<SupplyCollectedEvent>.Publish(new SupplyCollectedEvent(Def, items, magazines, transform.position));
+            Remove();
+            return true;
+        }
+
+        /// <summary>보급 무기 지급. 같은 무기를 이미 들고 있거나 장착에 실패하면 상자는 그대로 남고 false</summary>
+        private bool InteractWeapon(GameObject user)
+        {
+            var receiver = user.GetComponentInParent<ISupplyWeaponUser>();
+            if (receiver == null || receiver.SupplyWeaponId == Def.WeaponId || receiver.EquipSupplyWeapon(Def.WeaponId) == false) return false;
+
+            EventBus<SupplyCollectedEvent>.Publish(new SupplyCollectedEvent(Def, 1, 0, transform.position));
             Remove();
             return true;
         }
@@ -235,7 +303,7 @@ namespace HybridShooter.Supply
 
         /// <summary>
         /// 자식 렌더러 전체를 감싸는 크기로 BoxCollider 를 맞춘다.
-        /// 렌더러 월드 AABB 의 꼭짓점 8개를 로컬 공간으로 옮겨 감싸고, XZ 로 pickupPadding 만큼 넓힌다.
+        /// 렌더러 월드 AABB 의 꼭짓점 8개를 로컬 공간으로 옮겨 감싸고, XZ 로 pickupPadding, 위로 pickupTopPadding 만큼 넓힌다.
         /// </summary>
         private void FitColliderToRenderers()
         {
@@ -259,11 +327,13 @@ namespace HybridShooter.Supply
             }
 
             Vector3 lossy = transform.lossyScale;
+            float topPad = pickupTopPadding / Mathf.Max(0.0001f, Mathf.Abs(lossy.y));
             Vector3 pad = new Vector3(
                 pickupPadding * 2f / Mathf.Max(0.0001f, Mathf.Abs(lossy.x)),
-                0f,
+                topPad,
                 pickupPadding * 2f / Mathf.Max(0.0001f, Mathf.Abs(lossy.z)));
-            trigger.center = local.center;
+            // 위로만 늘린다 (바닥은 그대로 → Launch 의 착지 높이 계산 불변)
+            trigger.center = local.center + Vector3.up * (topPad * 0.5f);
             trigger.size = local.size + pad;
         }
 
@@ -281,7 +351,7 @@ namespace HybridShooter.Supply
             beacon.transform.localPosition = Vector3.up * (beaconHeight * 0.5f);
             beacon.transform.localScale = new Vector3(0.3f, beaconHeight * 0.5f, 0.3f);
 
-            var beaconRenderer = beacon.GetComponent<Renderer>();
+            beaconRenderer = beacon.GetComponent<Renderer>();
             beaconRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             var shader = Shader.Find("Universal Render Pipeline/Unlit");
             if (shader != null)

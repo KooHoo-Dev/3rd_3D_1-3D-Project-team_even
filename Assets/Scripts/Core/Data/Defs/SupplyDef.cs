@@ -7,8 +7,8 @@ namespace HybridShooter.Core.Data.Defs
 {
     /// <summary>
     /// 공중 보급 물자 (BL-018, BL-019).
-    /// 종류(SupplyType)별 아이템을 AmountMin~AmountMax 개 지급하고, 모든 보급은 예비 탄창도 함께 충전한다
-    /// (충전량은 무기별 WeaponDef.SupplyMagazineRatio).
+    /// 종류(SupplyType)별 아이템을 AmountMin~AmountMax 개 지급하고, 아이템 보급은 예비 탄창도 함께 충전한다
+    /// (충전량은 무기별 WeaponDef.SupplyMagazineRatio). Weapon 은 WeaponId 의 1회용 보급 무기만 지급한다 (탄창 충전 없음).
     /// </summary>
     public sealed class SupplyDef
     {
@@ -21,6 +21,9 @@ namespace HybridShooter.Core.Data.Defs
         /// <summary>Grenade = 수류탄, Heal = 회복 팩 지급 개수 범위 (획득 때 RollAmount 로 뽑음)</summary>
         public int AmountMin { get; }
         public int AmountMax { get; }
+        /// <summary>Weapon = 지급할 보급 무기 WeaponTable.Id (Category = Supply). 그 외 종류는 0</summary>
+        public int WeaponId { get; }
+        public bool IsWeapon => SupplyType == SupplyType.Weapon;
         public int Weight { get; }
         /// <summary>빛기둥 색 (기본 URP Unlit 빛기둥과 안개 무시 빛기둥 모두 이 색을 쓴다)</summary>
         public Color BeaconColor { get; }
@@ -44,6 +47,7 @@ namespace HybridShooter.Core.Data.Defs
             DisplayName = string.IsNullOrEmpty(supplyDto.DisplayName) ? SupplyType.ToString() : supplyDto.DisplayName;
             AmountMin = supplyDto.AmountMin;
             AmountMax = supplyDto.AmountMax;
+            WeaponId = supplyDto.WeaponId;
             Weight = supplyDto.Weight;
             PrefabKey = supplyDto.PrefabKey;
             MarkerKey = supplyDto.MarkerKey;
@@ -54,7 +58,9 @@ namespace HybridShooter.Core.Data.Defs
             bool hasColor = ColorUtility.TryParseHtmlString(supplyDto.BeaconColor, out var color);
             BeaconColor = hasColor ? color : Color.white;
 
-            dataLoadReport.Check(AmountMin > 0 && AmountMax >= AmountMin, Table, Id, "AmountMin 은 1 이상, AmountMax 는 AmountMin 이상");
+            // 아이템 개수는 Grenade·Heal 만. Weapon 은 WeaponId (WeaponTable 연결 검사는 DataManager 링크 단계)
+            if (IsWeapon) dataLoadReport.Check(WeaponId > 0, Table, Id, "Weapon 행은 WeaponId 가 필요합니다");
+            else dataLoadReport.Check(AmountMin > 0 && AmountMax >= AmountMin, Table, Id, "AmountMin 은 1 이상, AmountMax 는 AmountMin 이상");
             dataLoadReport.Check(Weight > 0, Table, Id, "Weight 는 1 이상");
             dataLoadReport.Check(hasColor, Table, Id, $"BeaconColor '{supplyDto.BeaconColor}' 는 #RRGGBB 형식이어야 합니다");
         }

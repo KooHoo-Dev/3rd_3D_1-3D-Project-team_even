@@ -32,6 +32,7 @@ namespace HybridShooter.Core.Data.Defs
         public const string SupplyLandingHeight = "SupplyLandingHeight";     // BL-018 감속 착지 시작 높이(지면 기준)
         public const string SupplyMaxTerrainHeight = "SupplyMaxTerrainHeight"; // 플레이어 발 높이 + 이 값 이하의 지면에만 낙하 (넘으면 다시 뽑음)
         public const string SupplyMaxActive = "SupplyMaxActive";               // 필드 동시 보급 최대 개수
+        public const string SupplyLifetime = "SupplyLifetime";                 // 착지 후 이 시간(초)이 지나면 사라짐 (0 = 사라지지 않음)
         public const string RoundStartGrenades = "RoundStartGrenades";         // 보스 클리어 후 다음 라운드 시작 지급: 수류탄
         public const string RoundStartHealPacks = "RoundStartHealPacks";       // 〃 회복 팩
         public const string RoundStartMagazines = "RoundStartMagazines";       // 〃 1~3번 칸 모든 총 예비 탄창

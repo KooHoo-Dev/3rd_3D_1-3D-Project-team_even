@@ -179,15 +179,18 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 ## SupplyTable — BL-018·019
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
-| SupplyType | enum | `Grenade` / `Heal` |
+| SupplyType | enum | `Grenade` / `Heal` / `Weapon` (1회용 보급 무기) |
 | DisplayName | string | HUD·분석 표시 이름 |
-| AmountMin / AmountMax | int | 수류탄 / 회복 팩 지급 개수 범위 (획득 때 무작위, 양끝 포함) |
+| AmountMin / AmountMax | int | 수류탄 / 회복 팩 지급 개수 범위 (획득 때 무작위, 양끝 포함). Weapon 은 0 |
+| WeaponId | int | Weapon 행만: 지급할 WeaponTable.Id (`Category = Supply` 여야 함, 로딩 때 검사). 그 외 0 |
 | Weight | int | 투하 종류 가중치 |
 | BeaconColor | string | 빛기둥 색 `#RRGGBB` (안개 무시 빛기둥은 이 색 × HDR 밝기) |
 | PrefabKey / MarkerKey | string | 물자 프리팹 / 낙하 위치 표시 |
 | DropSfxKey / AnnounceSfxKey / CollectSfxKey | string | 투하음(착지 지점) / 투하 안내 방송(2D) / 획득음(랜덤 장전음) |
 
-모든 보급은 획득 시 아이템과 함께 **슬롯의 모든 총에 예비 탄창을 충전**한다 (`WeaponTable.SupplyMagazineRatio`). 아이템·탄약 중 하나라도 실제로 늘면 획득, 둘 다 가득이면 상자가 남는다.
+Grenade·Heal 보급은 획득 시 아이템과 함께 **1~3번 칸 총에 예비 탄창을 충전**한다 (`WeaponTable.SupplyMagazineRatio`). 아이템·탄약 중 하나라도 실제로 늘면 획득, 둘 다 가득이면 상자가 남는다.
+Weapon 보급은 보급 칸(4번)에 무기만 장착한다 (탄창 충전 없음). 1회용이라 탄창·예비 탄창을 모두 쓰면 칸에서 사라진다. 같은 무기를 들고 있으면 획득 불가, 다른 보급 무기는 버려진다.
+착지한 상자는 `ConfigTable.SupplyLifetime` 초 뒤 사라진다 (마지막 10초 빛기둥 깜빡임).
 
 ## UpgradeTable — BL-030·031
 | 컬럼 | 타입 | 설명 |
@@ -216,7 +219,8 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | MonsterLowHpRatio | 일반 몬스터 저체력 표현 비율 | BL-017 |
 | SupplyDropMinDistance / SupplyDropMaxDistance | 보급 낙하 위치: 플레이어 기준 XZ 거리 범위 (20 ~ 60) | BL-018 |
 | SupplyDropHeight / SupplyLandingHeight | 낙하 시작 높이(30 이상) / 감속 착지 시작 높이 (지면 기준) | BL-018 |
-| SupplyMaxTerrainHeight | 보급 낙하 허용 높이 (플레이어 발 높이 + 이 값 이하의 지면만, 5. 맵 원점·보스 아레나 높이와 무관). 착지면은 Ground 레이어여야 함 (SupplyDropper.dropGroundLayers) | BL-018 |
+| SupplyMaxTerrainHeight | 보급 낙하 허용 높이 (플레이어 발 높이 + 이 값 이하의 지면만, 5. 맵 원점·보스 아레나 높이와 무관). 착지면은 Ground 레이어여야 하고, 경사 25° 이하·플레이어에서 걸어서 갈 수 있는 곳(NavMesh 길 검사)만 (코드 상수, SupplyDropper) | BL-018 |
 | SupplyMaxActive | 필드 동시 보급 최대 개수 (도달하면 그 주기 건너뜀, 5) | BL-018 |
-| RoundStartGrenades / RoundStartHealPacks / RoundStartMagazines | 보스 클리어 후 다음 라운드 시작 지급: 수류탄 / 회복 팩 / 1~3번 칸 모든 총 예비 탄창 (각 2, 최대치까지) | |
+| SupplyLifetime | 착지한 보급이 사라지기까지의 시간(초, 90, 0 = 사라지지 않음). 갈 수 없는 곳에 떨어진 상자가 최대 개수를 계속 차지하지 않도록 | BL-018 |
+| RoundStartGrenades / RoundStartHealPacks / RoundStartMagazines | 보스 클리어 후 다음 라운드 시작 지급: 수류탄 / 회복 팩 / 1~3번 칸 모든 총 예비 탄창 (-1 / 2 / 2, 최대치까지. **-1 = 최대치까지 가득**) | |
 | CameraTransitionTime | 1인칭→3인칭 전환 시간 | BL-022 |
