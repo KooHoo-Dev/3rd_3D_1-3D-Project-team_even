@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b85457aacb125f948afac0f11b2c498c, type: 3}
+  m_Name: IntroCrawlText
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.UI.Intro.IntroCrawlText
+  openingLine: "먼 미래,\n하이브의 근원으로
+    향하는 궤도 위에서……"
+  logo: TEAM EVEN
+  episode: 'OPERATION : HIVE PURGE'
+  episodeSubtitle: "하이브 근원 행성 섬멸 작전"
+  paragraphs:
+  - "은하로 번지는 생체 재앙 '하이브'. 연합군 최강의 전투 사이보그인 당신은 그 근원 행성을 섬멸하러 투입되었지만, 대기권 진입 중 격추되어 지표에 불시착했다."
+  - "주 동력로는 파손되었고 무장 대부분이 잠겼다. 남은 것은 궤도 모함의 보급 포드와, 괴물에게서 뽑아낸 생체 자원뿐."
+  - "행성은 침입자를 알아차렸다. 쓰러뜨릴수록 괴물은 더 강해지고, 구조선은 아직 먼 우회 항로 위에 있다."
+  closing: "사냥하라. 무장을 되살려라.\n구조선이 닿을 때까지 — 살아남아라."

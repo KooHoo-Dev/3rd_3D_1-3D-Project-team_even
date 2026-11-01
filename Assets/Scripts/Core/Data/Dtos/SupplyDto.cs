@@ -11,6 +11,7 @@ namespace HybridShooter.Core.Data.Dtos
         public string DisplayName = "";  // HUD·분석 표시 이름
         public int AmountMin;  // 아이템 지급 개수 최소 (획득 때 무작위)
         public int AmountMax;  // 아이템 지급 개수 최대
+        public int WeaponId;  // WeaponTable.Id (SupplyType = Weapon 일 때만, Category = Supply. 그 외 0)
         public int Weight;
         public string BeaconColor = "";  // 빛기둥 색 #RRGGBB
         public string PrefabKey = "";
@@ -18,5 +19,8 @@ namespace HybridShooter.Core.Data.Dtos
         public string DropSfxKey = "";  // SoundTable.Key (투하, 착지 지점)
         public string AnnounceSfxKey = "";  // SoundTable.Key (투하 안내, 2D)
         public string CollectSfxKey = "";  // SoundTable.Key (획득)
+        public string Description = "";  // 한 줄 설명 (보급 무기 획득 카드에 표시, 비워도 됨)
+        public string CrateName = "";  // 상자 조준·근접 안내 제목 (비우면 "{DisplayName} 보급 상자")
+        public string CrateDescription = "";  // 상자 조준·근접 안내 설명 한 줄
     }
 }

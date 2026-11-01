@@ -209,6 +209,8 @@ namespace HybridShooter.Player
         private bool isGrounded;
         private bool isSliding;                // 급경사에 닿아 미끄러지는 중 (지상도 공중도 아님)
         private float snapDownSpeed;           // 지면 스냅: 이번 물리 프레임에 땅으로 끌어내리는 속도
+        private float appliedSnapDown;         // 지난 물리 프레임에 rb 속도에 실제로 더한 스냅 속도 (걷기가 속도를 읽기 전에 뺀다)
+        private bool velocityAlongGround;      // 지난 물리 프레임에 걷기·구르기가 속도를 땅을 따라 눕혔다 (착지 순간의 낙하 속도는 경사로 읽지 않게)
         private Vector3 motorTargetVelocity;   // 이번 물리 프레임 모터가 가려는 수평 속도 (외부 속도 소스에 넘긴다)
         private const float MaxSnapDownSpeed = 20f;
         private const float GroundProbeDepth = 3f;  // 발밑 땅 거리를 이 깊이까지 잰다
@@ -274,6 +276,8 @@ namespace HybridShooter.Player
         private float bossBlend;               // 0 = 어깨 시점, 1 = 보스전 카메라
         private float bossBlendTarget;
         private float bossBlendSpeed;
+        private float bossCameraScale = 1f;       // 보스별 카메라 거리 배율 (IBossCameraProfile). 천천히 따라간다
+        private float bossCameraScaleTarget = 1f;
 
         // 머리 숨김
         private Renderer[] headRendererCache = Array.Empty<Renderer>();

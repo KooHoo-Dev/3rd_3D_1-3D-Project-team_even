@@ -6,6 +6,7 @@ namespace HybridShooter.Audio
     /// 아이템·강화
     ///   보급 투하: 착지 지점 투하음(SupplyTable.DropSfxKey, 3D) + 안내 방송(AnnounceSfxKey, 2D)
     ///   보급 획득: 랜덤 장전음(CollectSfxKey, SoundTable Path 여러 개 → 랜덤)
+    ///   다음 라운드 지급: roundSupplyKey (기본 = 보급 획득과 같은 랜덤 장전음)
     ///   강화 구매
     /// </summary>
     public sealed partial class GameSoundRouter
@@ -18,6 +19,8 @@ namespace HybridShooter.Audio
         }
 
         private void OnSupplyCollected(SupplyCollectedEvent e) => service.PlaySfx(e.Def?.CollectSfx);
+
+        private void OnRoundSupplyGranted(RoundSupplyGrantedEvent e) => service.PlaySfx(roundSupplyKey);
 
         private void OnUpgradePurchased(UpgradePurchasedEvent e) => service.PlaySfx(upgradeSelectKey);
     }

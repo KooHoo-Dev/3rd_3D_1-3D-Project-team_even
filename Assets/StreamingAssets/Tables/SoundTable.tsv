@@ -5,6 +5,7 @@ Key	Category	Path	Volume	Loop	Spatial	MaxInstances	Cooldown	PitchJitter	Priority
 # ── BGM ──
 bgm_crowd	Bgm	Audio/Bgm/Crowd	0.6	true	false	1	0	0	100	0
 bgm_boss	Bgm	Audio/Bgm/Boss	0.7	true	false	1	0	0	100	0
+bgm_intro	Bgm	Audio/Bgm/Intro	0.7	false	false	1	0	0	100	0
 # ── 무기: 발사 (WeaponTable.FireSfxKey) ──
 sfx_rifle_fire	Sfx	Audio/Weapon/AssaultRifle/AssaultRifle_Fire_01;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_02;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_03;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_04;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_05;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_06;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_07;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_08	0.8	false	true	6	0.03	0.04	80	80
 sfx_assault_rifle_fire	Sfx	Audio/Weapon/AssaultRifle/AssaultRifle_Fire_01;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_02;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_03;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_04;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_05;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_06;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_07;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_08	0.8	false	true	6	0.03	0.05	80	80

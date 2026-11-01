@@ -9,7 +9,7 @@ namespace HybridShooter.Audio
     ///   .Round   게임 상태(강화 화면 스냅샷)·라운드 시작·게임오버
     ///   .Combat  몬스터 이미터 자동 부착, 총기 피격·처치 피드백
     ///   .Boss    보스 경고·등장(BGM)·처치(BGM 정지·클리어·아나운서)
-    ///   .Items   보급 투하(투하음·안내 방송)·획득(랜덤 장전음), 강화 구매
+    ///   .Items   보급 투하(투하음·안내 방송)·획득(랜덤 장전음)·다음 라운드 지급, 강화 구매
     ///   .Ui      저체력 경고 반복, 아나운서
     ///
     /// 소리 하나에 재생 경로는 하나만 둔다. 아래 소리는 발행하는 쪽이 이미 직접 재생하므로 여기서 다루지 않는다.
@@ -32,6 +32,8 @@ namespace HybridShooter.Audio
         [SerializeField] private string gameOverKey = "ui_game_over";
         [SerializeField] private string stageClearKey = "ui_stage_clear";
         [SerializeField] private string upgradeSelectKey = "ui_upgrade_select";
+        [Tooltip("보스 클리어 후 다음 라운드 시작 지급 (2D)")]
+        [SerializeField] private string roundSupplyKey = "sfx_supply_reload";
         [SerializeField] private string healthWarningKey = "ui_health_warning";
 
         [Header("아나운서 (최소 사용: 라운드 시작·보스 처치·게임오버)")]
@@ -88,6 +90,7 @@ namespace HybridShooter.Audio
             EventBus<UpgradePurchasedEvent>.Subscribe(OnUpgradePurchased);
             EventBus<SupplyDroppedEvent>.Subscribe(OnSupplyDropped);
             EventBus<SupplyCollectedEvent>.Subscribe(OnSupplyCollected);
+            EventBus<RoundSupplyGrantedEvent>.Subscribe(OnRoundSupplyGranted);
         }
 
         /// <summary>구독 해제</summary>
@@ -107,6 +110,7 @@ namespace HybridShooter.Audio
             EventBus<UpgradePurchasedEvent>.Unsubscribe(OnUpgradePurchased);
             EventBus<SupplyDroppedEvent>.Unsubscribe(OnSupplyDropped);
             EventBus<SupplyCollectedEvent>.Unsubscribe(OnSupplyCollected);
+            EventBus<RoundSupplyGrantedEvent>.Unsubscribe(OnRoundSupplyGranted);
         }
     }
 }

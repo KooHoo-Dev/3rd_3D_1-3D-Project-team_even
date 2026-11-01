@@ -12,7 +12,7 @@ namespace HybridShooter.Reward
 {
     /// <summary>
     /// 라운드 종료 후 강화 선택 단계 담당 (BL-030, BL-031, BL-032).
-    /// 보스를 처치하면 이번 라운드에 번 재화를 보여 주고, 세 강화 중 하나를 구매한 뒤 다음 라운드를 요청한다.
+    /// 보스를 처치하면 이번 라운드에 번 재화를 보여 주고, 재화가 허락하는 만큼 강화를 구매한 뒤 다음 라운드를 요청한다.
     ///
     ///   열기   : GameStateChangedEvent(Current = Reward) 수신.
     ///   구매   : TryPurchase → IUpgradeState.TryPurchase (재화 차감·레벨 상승·UpgradePurchasedEvent 는 Ledger 담당)
@@ -21,7 +21,7 @@ namespace HybridShooter.Reward
     ///            RoundStartedEvent / RoundCleanupEvent(FullReset) 에서 0 으로
     ///
     /// 설계 포인트
-    ///  - 라운드당 하나만 구매한다. 살 수 있는 강화가 있으면 하나를 사야 Finish 할 수 있고, 없으면 바로 건너뛸 수 있다.
+    ///  - 재화가 있으면 여러 번 구매한다 (같은 강화를 연속으로 올리는 것도 최대 레벨까지 허용). Finish 는 언제든 가능 (안 사고 건너뛰기 포함).
     ///  - 비용·효과 수치는 UpgradeTable.tsv 값만 사용한다. (Inspector 에 같은 의미의 값을 두지 않음)
     ///  - 화면(UpgradeScreen)은 이 컴포넌트를 직접 참조하고 Changed 로 갱신한다. 전역 버스로 다시 알리지 않는다.
     ///  - 열린 동안 재화가 바뀌면 Changed 를 다시 알린다. → 보스 보상 지급과 화면 열기의 구독 순서와 상관없이 최종 표시값이 맞다.
@@ -72,9 +72,9 @@ namespace HybridShooter.Reward
 
         public IReadOnlyList<UpgradeType> Types => types;
         public bool IsOpen { get; private set; }
-        public bool HasPurchased { get; private set; }
-        /// <summary>이번 단계에서 구매한 강화 종류 (HasPurchased 일 때만 의미 있음)</summary>
-        public UpgradeType PurchasedType { get; private set; }
+        /// <summary>이번 단계에서 구매한 횟수 (열릴 때 0)</summary>
+        public int PurchaseCount { get; private set; }
+        public bool HasPurchased => PurchaseCount > 0;
 
         /// <summary>이번 라운드 군중전 / 보스전 획득 재화</summary>
         public int CrowdEarned { get; private set; }
@@ -94,8 +94,8 @@ namespace HybridShooter.Reward
             }
         }
 
-        /// <summary>다음 라운드로 넘어갈 수 있는지. 하나를 샀거나, 살 수 있는 강화가 없을 때</summary>
-        public bool CanFinish => IsOpen && (HasPurchased || AnyPurchasable == false);
+        /// <summary>다음 라운드로 넘어갈 수 있는지. 열려 있으면 언제든 (구매 여부와 무관)</summary>
+        public bool CanFinish => IsOpen;
 
         /// <summary>보스 등장 이후인지. 이후에 들어온 재화는 보스전 획득으로 센다</summary>
         private bool bossPhase;
@@ -145,26 +145,25 @@ namespace HybridShooter.Reward
             var next = track.GetNext(level);
             float currentValue = track.GetTotalValue(level);
             float nextValue = next != null ? currentValue + next.Value : currentValue;
-            bool canBuy = IsOpen && HasPurchased == false && next != null && Balance >= next.Cost;
+            bool canBuy = IsOpen && next != null && Balance >= next.Cost;
 
             return new UpgradeOption(type, level, track.MaxLevel, current, next, currentValue, nextValue, canBuy);
         }
 
         /// <summary>
-        /// 강화 하나 구매. 이번 단계에서 이미 샀거나, 최대 레벨·재화 부족이면 false.
+        /// 강화 한 단계 구매. 닫혀 있거나 최대 레벨·재화 부족이면 false. 재화가 남아 있으면 계속 살 수 있다.
         /// 재화 차감과 레벨 상승은 IUpgradeState 가 한 번에 처리한다.
         /// </summary>
         public bool TryPurchase(UpgradeType type)
         {
-            if (IsOpen == false || HasPurchased) return false;
+            if (IsOpen == false) return false;
             if (ServiceLocator.TryGet<IUpgradeState>(out var upgrades) == false ||
                 ServiceLocator.TryGet<ICurrencyWallet>(out var wallet) == false) return false;
 
             var next = upgrades.GetNext(type);
             if (upgrades.TryPurchase(type, wallet) == false) return false;
 
-            HasPurchased = true;
-            PurchasedType = type;
+            PurchaseCount++;
             Debug.Log($"[UpgradeManager] 강화 구매: {next.Name} (비용 {next.Cost}) → {type} Lv{upgrades.GetLevel(type)}, 잔액 {wallet.Balance}", this);
             Changed?.Invoke();
             return true;
@@ -175,7 +174,7 @@ namespace HybridShooter.Reward
         {
             if (CanFinish == false) return;
 
-            Debug.Log($"[UpgradeManager] 강화 선택 종료 ({(HasPurchased ? $"{PurchasedType} 구매" : "건너뛰기")})", this);
+            Debug.Log($"[UpgradeManager] 강화 선택 종료 ({(HasPurchased ? $"{PurchaseCount}회 구매" : "건너뛰기")})", this);
             Close();
             EventBus<RewardSelectionFinishedEvent>.Publish(new RewardSelectionFinishedEvent());
         }
@@ -216,7 +215,7 @@ namespace HybridShooter.Reward
         {
             if (IsOpen) return;
             IsOpen = true;
-            HasPurchased = false;
+            PurchaseCount = 0;
             Debug.Log($"[UpgradeManager] 강화 선택 열림: 이번 라운드 +{RoundEarned} (군중전 {CrowdEarned}, 보스전 {BossEarned}), 보유 {Balance}", this);
             Changed?.Invoke();
         }

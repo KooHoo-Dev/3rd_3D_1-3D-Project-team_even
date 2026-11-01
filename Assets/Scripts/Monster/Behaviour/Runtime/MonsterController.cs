@@ -362,11 +362,18 @@ namespace HybridShooter.Monster.Behaviour
         /// 대상이 없으면 ServiceLocator 의 플레이어를 상태 머신과 이동에 같은 값으로 넣는다.
         /// 플레이어가 죽었거나 아직 등록 전이면 아무것도 하지 않는다.
         /// </summary>
+        /// <remarks>
+        /// 사망 이벤트 뒤에 생성·재사용된 몬스터는 playerDead 가 false 라서, 플레이어의 IsAlive 를 직접 읽어 시체 재추적을 막는다.
+        /// </remarks>
         private void AcquireTarget()
         {
             if (playerDead) return;
             if (StateMachine.HasTarget) return;
             if (ServiceLocator.TryGet(out IPlayerTarget player) == false) return; // 플레이어 등록 전
+            var playerDamageable = player as IDamageable;
+            bool isPlayerDamageable = playerDamageable != null;
+            bool isPlayerDead = isPlayerDamageable && playerDamageable.IsAlive == false;
+            if (isPlayerDead) return;
             StateMachine.SetTarget(player);
             SetMovementTarget(player);
         }

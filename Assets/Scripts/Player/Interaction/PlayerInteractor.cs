@@ -14,6 +14,7 @@ namespace HybridShooter.Player
     ///
     ///  - 매 프레임 조준선(GunSlot.AimRay)을 트리거 포함으로 쏴서 가까운 순으로 본다. 트리거가 아닌 콜라이더(벽 등)가 먼저 맞으면 중단
     ///  - 거리는 플레이어 몸 ↔ IInteractable.InteractTransform 으로 잰다 (3인칭 카메라 거리와 무관)
+    ///  - 조준 대상이 없으면, 몸 중심이 들어가 있는 획득 영역(트리거) 중 가장 가까운 IProximityInteractable (보급 상자: 조준 없이 근처에서 F)
     ///  - 대상이나 프롬프트가 바뀌면 InteractFocusChangedEvent 발행 → InteractPromptHud
     ///  - 무기를 쓸 수 없는 상태(사망·부활·구르기·투척·외부 제어·입력 차단)나 커서가 풀려 있으면 대상 없음
     /// </summary>
@@ -29,6 +30,7 @@ namespace HybridShooter.Player
         [SerializeField] private LayerMask mask = ~0;
 
         private const int MaxHits = 16;
+        private readonly Collider[] overlaps = new Collider[MaxHits];
         private readonly RaycastHit[] hits = new RaycastHit[MaxHits];
 
         private PlayerController player;
@@ -73,7 +75,10 @@ namespace HybridShooter.Player
             && player.IsExternallyControlled == false && player.IsThrowingGrenade == false
             && player.IsGameplayInputBlocked == false && Cursor.lockState == CursorLockMode.Locked;
 
-        private IInteractable FindTarget()
+        /// <summary>조준 대상 우선, 없으면 근처(획득 영역 안)의 IProximityInteractable</summary>
+        private IInteractable FindTarget() => FindAimTarget() ?? FindNearbyTarget();
+
+        private IInteractable FindAimTarget()
         {
             if (gunSlot == null) return null;
             Ray ray = gunSlot.AimRay;
@@ -97,6 +102,36 @@ namespace HybridShooter.Player
                 if (col.isTrigger == false) return null; // 벽·바닥 등에 막힘
             }
             return null;
+        }
+
+        /// <summary>
+        /// 몸 중심을 덮는 트리거(대상의 획득 영역) 중 IProximityInteractable 을 찾아 가장 가까운 것.
+        /// 영역 크기는 대상 쪽이 정한다 (보급 상자 = pickupRadius). Ignore Raycast 레이어 영역도 찾도록 마스크를 명시한다
+        /// </summary>
+        private IInteractable FindNearbyTarget()
+        {
+            Vector3 body = transform.position + Vector3.up * bodyCenterHeight;
+            int count = Physics.OverlapSphereNonAlloc(body, 0.1f, overlaps, ~0, QueryTriggerInteraction.Collide);
+
+            IInteractable best = null;
+            float bestSqr = float.PositiveInfinity;
+            for (int i = 0; i < count; i++)
+            {
+                Collider col = overlaps[i];
+                if (col == null || col.isTrigger == false || col.transform.IsChildOf(transform)) continue;
+
+                var target = col.GetComponentInParent<IProximityInteractable>();
+                if (target == null || IsAlive(target) == false || target.CanInteract(gameObject) == false) continue;
+
+                Transform point = target.InteractTransform != null ? target.InteractTransform : col.transform;
+                float sqr = (point.position - body).sqrMagnitude;
+                if (sqr < bestSqr)
+                {
+                    bestSqr = sqr;
+                    best = target;
+                }
+            }
+            return best;
         }
 
         private void SetFocus(IInteractable target)

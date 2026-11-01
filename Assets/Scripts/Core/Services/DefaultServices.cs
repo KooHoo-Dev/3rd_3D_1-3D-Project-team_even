@@ -145,8 +145,8 @@ namespace HybridShooter.Core.Services
         public bool TryGetSupplyDropPosition(out Vector3 position)
         {
             GetPlayer(out var center, out _);
-            float min = DataManager.Config.GetFloat(GameConfig.SupplyDropMinDistance, 30f);
-            float max = Mathf.Max(min, DataManager.Config.GetFloat(GameConfig.SupplyDropMaxDistance, 150f));
+            float min = DataManager.Config.GetFloat(GameConfig.SupplyDropMinDistance, 20f);
+            float max = Mathf.Max(min, DataManager.Config.GetFloat(GameConfig.SupplyDropMaxDistance, 60f));
             // 면적 기준 균등 분포 (반지름을 그대로 Random 하면 안쪽에 몰린다)
             float distance = Mathf.Sqrt(Random.Range(min * min, max * max));
             float rad = Random.Range(0f, Mathf.PI * 2f);

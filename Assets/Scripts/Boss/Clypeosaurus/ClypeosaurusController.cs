@@ -63,23 +63,19 @@ namespace HybridShooter.Boss.Clypeosaurus
             var entrance = GetComponent<EntranceAttack>();
             entrance.Initialize(attackData, target);
 
+            GetComponent<ClypeosaurusBasicAttack>().Initialize(attackData, target);
             GetComponent<StompAttack>().Initialize(attackData, target);
             GetComponent<MagmaBarrageAttack>().Initialize(attackData, target);
             GetComponent<SuctionAttack>().Initialize(attackData, target);
-
+            
             initialized = true;
 
             if (entrance.TryStart() == false)
             {
-                Debug.LogError(
-                    "[Clypeosaurus] 등장 공격 시작 실패. 초기화·NavMesh를 확인해주세요.",
-                    this);
+                Debug.LogError("[Clypeosaurus] 등장 공격 시작 실패. 초기화·NavMesh를 확인해주세요.", this);
             }
 
-            Debug.Log(
-                $"[Boss] 초기화 | ID: {boss.Def.Id} | " +
-                $"HP: {boss.CurrentHp}/{boss.MaxHp}",
-                boss);
+            Debug.Log($"[Boss] 초기화 | ID: {boss.Def.Id} | " + $"HP: {boss.CurrentHp}/{boss.MaxHp}", boss);
         }
         
         private void OnDamaged(DamageInfo info)

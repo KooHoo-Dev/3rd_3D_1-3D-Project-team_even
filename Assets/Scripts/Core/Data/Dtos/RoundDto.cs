@@ -7,7 +7,7 @@ namespace HybridShooter.Core.Data.Dtos
     public sealed class RoundDto
     {
         public int Round;  // 1부터
-        public int BossId;  // MonsterTable.Id
+        public int BossId;  // BossTable.Id (라운드 보스, RoundBossEncounter 가 고른다)
         public float BossSpawnTimeMin;
         public float BossSpawnTimeMax;
         public float SupplyStartTime;

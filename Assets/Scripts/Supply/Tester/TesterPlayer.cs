@@ -13,7 +13,8 @@ namespace HybridShooter.Supply.Tester
     ///  - WASD: 시점(yaw) 기준 이동, Shift: 달리기, 높이는 바닥(Terrain 및 다른 Collider)을 따라감
     ///  - 마우스 우클릭 드래그: 시점 회전 (카메라가 플레이어 주위를 돈다)
     ///  - G: 수류탄 1개 사용, H: 회복 팩 1개 사용 (보급으로 다시 채워지는지 확인용)
-    ///  - IPlayerTarget 등록 → 보급 낙하 위치(플레이어 기준 30~150m) 계산에 사용됨
+    ///  - F: 주변(interactRange)에서 가장 가까운 상호작용 대상(보급 상자) 사용. 조준 없이 거리로만 고른다 (실제 플레이어는 PlayerInteractor)
+    ///  - IPlayerTarget 등록 → 보급 낙하 위치(플레이어 기준 SupplyDropMin~MaxDistance) 계산에 사용됨
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public sealed class TesterPlayer : MonoBehaviour, IPlayerTarget, IItemUser
@@ -24,6 +25,9 @@ namespace HybridShooter.Supply.Tester
         [Header("회복 팩 (PlayerTable 에 컬럼이 생기기 전까지 여기서 설정)")]
         [SerializeField] private int startHealPacks = 1;
         [SerializeField] private int maxHealPacks = 3;
+
+        [Tooltip("F 키 상호작용 거리(m)")]
+        [SerializeField] private float interactRange = 4f;
 
         [Header("바닥 높이 맞추기 (Terrain 포함 모든 Collider)")]
         [Tooltip("바닥 표면에서 transform.position.y 까지의 높이 (캡슐 피벗이 중앙이므로 기본 1)")]
@@ -128,6 +132,28 @@ namespace HybridShooter.Supply.Tester
 
             if (keyboard.gKey.wasPressedThisFrame) UseGrenade();
             if (keyboard.hKey.wasPressedThisFrame) UseHealPack();
+            if (keyboard.fKey.wasPressedThisFrame) TryInteract();
+        }
+
+        /// <summary>interactRange 안의 상호작용 대상 중 가장 가까운 것을 쓴다 (트리거 포함)</summary>
+        private void TryInteract()
+        {
+            IInteractable best = null;
+            float bestDistance = float.MaxValue;
+            foreach (var col in Physics.OverlapSphere(transform.position, interactRange, ~0, QueryTriggerInteraction.Collide))
+            {
+                var target = col.GetComponentInParent<IInteractable>();
+                if (target == null || target.CanInteract(gameObject) == false) continue;
+                float distance = (col.transform.position - transform.position).sqrMagnitude;
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                best = target;
+            }
+
+            if (best == null) return;
+            var prompt = best.GetPrompt(gameObject);
+            bool done = best.Interact(gameObject);
+            Debug.Log($"[TesterPlayer] {prompt.Title} {(done ? "획득" : $"획득 실패 {prompt.Warning}")}", this);
         }
 
         private void FixedUpdate()

@@ -216,10 +216,6 @@ namespace HybridShooter.Monster.Movement
             }
             else
                 directive = new CrowdDirective(DirectiveKind.Unrestricted, default, 0, false, 0f);
-            
-            // 5) 카메라 시야각 정보 캐싱
-            IPlayerTarget target = targetInfo ?? Target;
-            viewHalfAngleDeg = HorizontalHalfFovDeg(target.ViewPoint.GetComponent<Camera>());
         }
 
         /// <summary>
@@ -609,7 +605,7 @@ namespace HybridShooter.Monster.Movement
                 Transform viewPoint = target.ViewPoint;
                 viewForward = viewPoint.forward;
                 viewPosition = viewPoint.position;
-                // viewHalfAngleDeg = HorizontalHalfFovDeg(viewPoint.GetComponent<Camera>());
+                viewHalfAngleDeg = HorizontalHalfFovDeg(viewPoint.GetComponent<Camera>());
             }
             lookTarget = targetPosition;   // 시선 갱신 (실제 회전은 LateUpdate 의 ApplyLookRotation)
             hasLookTarget = targetValid;

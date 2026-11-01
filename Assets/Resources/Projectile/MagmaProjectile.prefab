@@ -185,11 +185,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44a07fbe1d844c18b4da96c8481b9ff8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.MagmaProjectile
-  damageMask:
-    serializedVersion: 2
-    m_Bits: 1
   coverMask:
     serializedVersion: 2
     m_Bits: 393
-  maxLifetime: 10
+  rangePrefab: {fileID: 7329057322042179811, guid: 9234d485a63c9644595cbf8d4efdef78, type: 3}
   explodeSfxKey: mon_clypeosaurus_magma_impact
