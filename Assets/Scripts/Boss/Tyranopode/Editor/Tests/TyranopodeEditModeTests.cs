@@ -212,6 +212,34 @@ namespace HybridShooter.Boss.TyranopodeEditor.Tests
         }
 
         [Test]
+        public void 벽_감지는_낮은_돌멩이를_무시하고_높은_벽만_잡는다()
+        {
+            // 터레인과 겹치지 않게 먼 곳. 보스는 +z 를 본다 (기본값: 감지 높이 2.5m, 반지름 2m, 앞쪽 3m)
+            var origin = new Vector3(60000f, 0f, 60000f);
+            var go = new GameObject("WallProbeTest");
+            var rock = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            try
+            {
+                go.transform.position = origin;
+                var locomotion = go.AddComponent<TyranopodeLocomotion>();
+                rock.transform.SetPositionAndRotation(origin + new Vector3(0f, 0.5f, 5f), Quaternion.identity); // 높이 1m
+                wall.transform.SetPositionAndRotation(origin + new Vector3(0f, 4f, 12f), Quaternion.identity);
+                wall.transform.localScale = new Vector3(10f, 8f, 1f);
+                Physics.SyncTransforms();
+
+                Assert.IsFalse(locomotion.ProbeWall(Vector3.forward, 3f), "돌멩이(1m)는 벽이 아니다");
+                Assert.IsTrue(locomotion.ProbeWall(Vector3.forward, 8f), "몸 높이에 걸리는 벽");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(rock);
+                Object.DestroyImmediate(wall);
+            }
+        }
+
+        [Test]
         public void 경계가_없으면_그대로()
         {
             var go = new GameObject("LocomotionTest");

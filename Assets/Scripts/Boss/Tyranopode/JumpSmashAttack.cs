@@ -12,8 +12,6 @@ namespace HybridShooter.Boss.Tyranopode
         [Header("진행도 (애니메이션 0~1)")]
         [SerializeField, Range(0f, 1f)] private float jumpStartTime = 0.1f;
         [SerializeField, Range(0f, 1f)] private float impactTime = 0.47f;
-        [Tooltip("최대 도약 거리(m). 플레이어가 더 멀면 이 거리만큼만 뛴다")]
-        [SerializeField, Min(1f)] private float maxLeap = 30f;
 
         private Vector3 from;
         private Vector3 landing;
@@ -33,7 +31,7 @@ namespace HybridShooter.Boss.Tyranopode
         protected override void StartWindup()
         {
             impacted = false;
-            float leap = Mathf.Min(DistanceToTarget, maxLeap);
+            float leap = Mathf.Min(DistanceToTarget, Data.SmashMaxLeap);
             landing = Move.ClampToBounds(transform.position + DirectionToTarget * leap);
             View.Play(TyranopodeView.Idle, 1.6f);
             // 예고 + 공중 시간까지 채운다
@@ -56,12 +54,14 @@ namespace HybridShooter.Boss.Tyranopode
             if (impacted == false && n >= jumpStartTime)
             {
                 float t = Mathf.InverseLerp(jumpStartTime, impactTime, n);
-                Move.MoveDelta(Vector3.Lerp(from, landing, t) - transform.position);
+                // 공중이라 NavMesh 의 틈·돌멩이에 걸리지 않게 직접 옮긴다
+                Move.MoveFree(Vector3.Lerp(from, landing, t) - transform.position, probeWalls: false, out _);
             }
 
             if (impacted == false && n >= impactTime)
             {
                 impacted = true;
+                Move.EndFree();
                 Detonate(telegraph);
                 if (PlayerInCircle(landing, Radius)) HitPlayer(Data.SmashDamage, landing);
                 Owner.BreakEggsNear(landing, Radius);
@@ -71,5 +71,7 @@ namespace HybridShooter.Boss.Tyranopode
 
             if (n >= 1f) Finish();
         }
+
+        protected override void Stopped() => Move.EndFree();
     }
 }
