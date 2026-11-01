@@ -16,6 +16,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
     {
         private GameObject monster;
         private GameObject effectPrefab;
+        private GameObject settingsHolder;
         private MovementProfile profile;
         private FakeTarget target;
         private SelfDestructAttack attack;
@@ -43,10 +44,17 @@ namespace HybridShooter.Monster.Behaviour.Tests
             yield return null;
 
             var body = new MonsterBody(monster.transform);
+            // 프리팹 대용: 꺼진 채 두어 풀의 복제본만 Find 에 잡히게 한다
             effectPrefab = new GameObject("TestExplosionEffect");
-            var settings = monster.AddComponent<SelfDestructSettings>();
+            effectPrefab.SetActive(false);
+            var pooledEffect = effectPrefab.AddComponent<PooledEffect>();
+            // 설정은 꺼진 오브젝트에 붙여 필드를 넣은 뒤 켠다 → Awake 가 채워진 프리팹으로 풀을 만든다
+            settingsHolder = new GameObject("SelfDestructSettingsHolder");
+            settingsHolder.SetActive(false);
+            var settings = settingsHolder.AddComponent<SelfDestructSettings>();
             typeof(SelfDestructSettings).GetField("explosionEffectPrefab", BindingFlags.NonPublic | BindingFlags.Instance)
-                                        .SetValue(settings, effectPrefab);
+                                        .SetValue(settings, pooledEffect);
+            settingsHolder.SetActive(true);
             var spec = new AttackSpec(AttackShape.Circle, 25, 1, 2f, 1.2f, 0f, 2.2f,
                                       radius: 3.5f, sourceDefId: 100501);
             attack = new SelfDestructAttack(spec, body, t =>
@@ -67,6 +75,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             UnityEngine.Object.DestroyImmediate(monster);
             UnityEngine.Object.DestroyImmediate(profile);
             UnityEngine.Object.DestroyImmediate(effectPrefab);
+            UnityEngine.Object.DestroyImmediate(settingsHolder);
             GameObject spawnedEffect = GameObject.Find("TestExplosionEffect(Clone)");
             if (spawnedEffect != null) UnityEngine.Object.DestroyImmediate(spawnedEffect);
         }
