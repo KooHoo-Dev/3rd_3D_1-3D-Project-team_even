@@ -44,10 +44,6 @@ namespace HybridShooter.Monster.Behaviour
             stage = StrikeStage.BeforeFirstCheck;
             hitsDealt = 0;
             nextHitTime = 0f;
-            // ApplyHitRangeRatio();
-            // bool isInArea = area.Contains(Body.Position, Body.Forward, Target.PlayerTrackingInfo.Position);
-            // if (isInArea) Hit(Target, Body.Position);
-            // return true;
         }
 
         /// <summary>
