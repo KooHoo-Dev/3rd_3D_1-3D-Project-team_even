@@ -203,6 +203,19 @@ namespace HybridShooter.Monster.Behaviour.Tests
             return true;
         }
 
+        public bool TryGetNestCenter(out Vector3 center)
+        {
+            center = Vector3.zero;
+            return true;
+        }
+
+        public bool TryGetSpawnPoseAroundNest(Vector3 nestCenter, out Vector3 position, out Quaternion rotation)
+        {
+            position = nestCenter;
+            rotation = Quaternion.identity;
+            return true;
+        }
+
         public bool TryGetSupplyDropPosition(out Vector3 position)
         {
             position = Vector3.zero;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HybridShooter.Core.Contracts;
@@ -22,12 +23,22 @@ namespace HybridShooter.Monster.Behaviour.Tests
             CreateSpawnerDef(203, 1, 0f, 0f),
             CreateSpawnerDef(204, 8, 2f, 1f));
 
+        // Nest 3줄: 231·232 는 StartDelay 0 (몬스터 종류만 다름), 233 은 StartDelay 2
+        private static readonly WaveDef NestWave = CreateWaveDef(110, 0f,
+            CreateSpawnerDef(231, 3, 0f, 1f, "Nest"),
+            CreateSpawnerDef(232, 2, 0f, 0f, "Nest", 1003),
+            CreateSpawnerDef(233, 1, 2f, 0f, "Nest"));
+
         private int spawnCount;
+        private int nestCenterRequests;
+        private readonly List<Vector3> requestedNestCenters = new List<Vector3>();
 
         [SetUp]
         public void SetUp()
         {
             spawnCount = 0;
+            nestCenterRequests = 0;
+            requestedNestCenters.Clear();
         }
 
         private MonsterWave CreateWave(WaveDef waveDef)
@@ -36,9 +47,9 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         // Def 생성자가 internal 이라 리플렉션으로 DataManager Build 단계와 같은 생성자를 부른다. Monster 는 Link 하지 않는다 (대역 팩토리는 안 씀)
-        private static WaveSpawnerDef CreateSpawnerDef(int id, int count, float startDelay, float spawnInterval)
+        private static WaveSpawnerDef CreateSpawnerDef(int id, int count, float startDelay, float spawnInterval, string spawnPattern = "Surround", int monsterId = 1002)
         {
-            var dto = new WaveSpawnerDto { Id = id, MonsterId = 1002, Count = count, StartDelay = startDelay, SpawnInterval = spawnInterval, SpawnPattern = "Surround" };
+            var dto = new WaveSpawnerDto { Id = id, MonsterId = monsterId, Count = count, StartDelay = startDelay, SpawnInterval = spawnInterval, SpawnPattern = spawnPattern };
             return (WaveSpawnerDef)Activator.CreateInstance(typeof(WaveSpawnerDef), BindingFlags.NonPublic | BindingFlags.Instance,
                 null, new object[] { dto, new DataLoadReport() }, null);
         }
@@ -119,6 +130,22 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [Test]
+        public void NestSpawners_SameStartDelay_ShareOneNestCenter()
+        {
+            MonsterWave wave = CreateWave(NestWave);
+
+            wave.Tick(0f);  // 231 첫 마리 + 232 두 마리
+            Assert.AreEqual(3, spawnCount);
+            Assert.AreEqual(1, nestCenterRequests, "StartDelay 0 의 두 줄은 둥지 하나");
+            Assert.IsTrue(requestedNestCenters.TrueForAll(center => center == requestedNestCenters[0]));
+
+            wave.Tick(10f);  // 231 나머지 2마리 + 233 (StartDelay 2) 1마리
+            Assert.AreEqual(6, spawnCount);
+            Assert.AreEqual(2, nestCenterRequests, "StartDelay 2 의 줄은 다른 둥지");
+            Assert.AreEqual(5, requestedNestCenters.FindAll(center => center == requestedNestCenters[0]).Count);
+        }
+
+        [Test]
         public void Stop_DoesNotRaiseFinished()
         {
             MonsterWave wave = CreateWave(Wave103);
@@ -145,6 +172,21 @@ namespace HybridShooter.Monster.Behaviour.Tests
         public bool TryGetSpawnPose(SpawnPattern pattern, int groupSeed, out Vector3 position, out Quaternion rotation)
         {
             position = Vector3.zero;
+            rotation = Quaternion.identity;
+            return true;
+        }
+
+        public bool TryGetNestCenter(out Vector3 center)
+        {
+            nestCenterRequests++;
+            center = new Vector3(nestCenterRequests, 0f, 0f);
+            return true;
+        }
+
+        public bool TryGetSpawnPoseAroundNest(Vector3 nestCenter, out Vector3 position, out Quaternion rotation)
+        {
+            requestedNestCenters.Add(nestCenter);
+            position = nestCenter;
             rotation = Quaternion.identity;
             return true;
         }
