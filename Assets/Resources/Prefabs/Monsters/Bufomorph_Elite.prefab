@@ -28,6 +28,10 @@ PrefabInstance:
       propertyPath: hitIntervalSeconds
       value: 0.15
       objectReference: {fileID: 0}
+    - target: {fileID: 6204530840101116722, guid: 9518c69773724531b266d3719bd54bd7, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 3d7c4b317aafe4a48af5a28107c01a09, type: 2}
     - target: {fileID: 6204530840105330162, guid: 9518c69773724531b266d3719bd54bd7, type: 3}
       propertyPath: m_Materials.Array.size
       value: 2

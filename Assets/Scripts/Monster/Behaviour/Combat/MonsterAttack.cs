@@ -178,7 +178,9 @@ namespace HybridShooter.Monster.Behaviour
         /// </summary>
         private void PickAimOffset()
         {
-            aimOffset = UnityEngine.Random.insideUnitSphere * AimOffsetRadius;
+            Vector3 randomOffset = UnityEngine.Random.insideUnitSphere;
+            randomOffset.y = 0;
+            aimOffset = randomOffset * AimOffsetRadius;
         }
 
         /// <summary>

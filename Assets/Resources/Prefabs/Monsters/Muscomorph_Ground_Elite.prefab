@@ -25,6 +25,10 @@ PrefabInstance:
       value: 0.75
       objectReference: {fileID: 0}
     - target: {fileID: -6963252850141782799, guid: 7df4d2beaf77cfd43940ad8332fc655c, type: 3}
+      propertyPath: aimOffsetRadius
+      value: 1.2
+      objectReference: {fileID: 0}
+    - target: {fileID: -6963252850141782799, guid: 7df4d2beaf77cfd43940ad8332fc655c, type: 3}
       propertyPath: maxHitsPerAttack
       value: 7
       objectReference: {fileID: 0}
@@ -60,6 +64,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[1]'
       value: 
       objectReference: {fileID: 2100000, guid: 708bd9fc5fb64a7c9670b3b07d8dfe9b, type: 2}
+    - target: {fileID: 2645137613515556809, guid: 7df4d2beaf77cfd43940ad8332fc655c, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: de250176a5b85b74aa58c4c6051dbeb5, type: 2}
     - target: {fileID: 2823305950391960783, guid: 7df4d2beaf77cfd43940ad8332fc655c, type: 3}
       propertyPath: m_Materials.Array.size
       value: 2

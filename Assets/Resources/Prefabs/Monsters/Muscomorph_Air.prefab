@@ -1826,13 +1826,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.DiveSettings
   entryDistance: 8
-  entryDistanceRandomRange: 1.5
+  entryDistanceRandomRange: 2
   minHeight: 1
   diveSpeed: 10
   leaveDistance: 12
   turnAwayTime: 1
   altitudeTolerance: 0.5
-  levelOutSpeed: 4
+  levelOutSpeed: 2.59
 --- !u!136 &3168750531067842310
 CapsuleCollider:
   m_ObjectHideFlags: 0
