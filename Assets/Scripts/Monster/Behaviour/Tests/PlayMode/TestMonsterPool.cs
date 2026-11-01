@@ -156,10 +156,20 @@ namespace HybridShooter.Monster.Behaviour.Tests
             GameObject monster = Spawn(Letalobrach, Vector3.zero);
             yield return null;
             var controller = monster.GetComponent<MonsterController>();
-            controller.TakeDamage(new DamageInfo(10, DamageKind.Bullet, Faction.Player, null, Vector3.zero, Vector3.forward));
+            int aliveLayer = monster.layer;
+            Renderer bodyRenderer = monster.GetComponentInChildren<Renderer>();
+            controller.TakeDamage(new DamageInfo(100, DamageKind.Bullet, Faction.Player, null, Vector3.zero, Vector3.forward));
+            Assert.IsTrue(controller.IsLowHealth, "125 중 100 피해 → 저체력");
+            Assert.IsTrue(bodyRenderer.HasPropertyBlock(), "저체력이면 붉은 기 MaterialPropertyBlock");
             MonsterStateMachine oldStateMachine = controller.StateMachine;
 
             pool.WipeAll();
+            yield return null;
+            var corpseBody = monster.GetComponent<Rigidbody>();
+            Assert.IsNotNull(corpseBody, "죽으면 시체 Rigidbody 가 붙는다");
+            Assert.IsFalse(corpseBody.isKinematic);
+            Assert.AreEqual(LayerMask.NameToLayer("MonsterCorpse"), monster.layer);
+            Assert.IsFalse(monster.GetComponent<UnityEngine.AI.NavMeshAgent>().enabled);
             yield return WaitUntilOrTimeout(() => monster.transform.parent == TypeRoot(Letalobrach));
 
             Assert.AreSame(TypeRoot(Letalobrach), monster.transform.parent, "despawnDelay 뒤 종류 루트로 돌아와야 한다");
@@ -173,6 +183,13 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreNotSame(oldStateMachine, controller.StateMachine);
             Assert.IsFalse(controller.StateMachine.IsDead);
             Assert.AreEqual(2, spawnedEventCount);
+
+            yield return null; // Restore 의 Destroy(Rigidbody) 는 프레임 끝에 반영된다
+            Assert.IsNull(reused.GetComponent<Rigidbody>(), "재사용하면 시체 Rigidbody 를 뗀다");
+            Assert.AreEqual(aliveLayer, reused.layer);
+            Assert.IsTrue(reused.GetComponent<UnityEngine.AI.NavMeshAgent>().enabled);
+            Assert.IsFalse(bodyRenderer.HasPropertyBlock(), "재사용하면 붉은 기를 지운다");
+            Assert.IsFalse(controller.IsLowHealth);
         }
 
         // ── 완료 기준 4 ──
