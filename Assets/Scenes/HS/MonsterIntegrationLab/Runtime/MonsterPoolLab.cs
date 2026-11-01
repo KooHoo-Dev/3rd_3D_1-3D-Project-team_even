@@ -15,7 +15,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
     /// </summary>
     /// <remarks>
     /// 소환·반납·회수는 전부 MonsterPool 이 한다. 이 클래스는 입력과 조작 창만 맡는다.
-    /// 대상(플레이어)과 군중 관리자는 몬스터가 스스로 찾는다 (ServiceLocator 의 IPlayerTarget, CrowdCoordinator.Active).
+    /// 대상(플레이어)은 몬스터가 스스로 찾는다 (ServiceLocator 의 IPlayerTarget). 군중 묶음을 배정하지 않으므로 몬스터는 직접 추적한다.
     /// </remarks>
     public sealed class MonsterPoolLab : MonoBehaviour
     {
