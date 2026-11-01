@@ -658,7 +658,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 587008725}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 01a2e3c8731aed14cabde815e8afcf34, type: 3}
   m_Name: 
@@ -737,7 +737,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 769059937}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 274f9ad95dbbb0c42bebe278a1d43f57, type: 3}
   m_Name: 
@@ -821,6 +821,7 @@ MonoBehaviour:
   spawnCount: 2
   spawnRadius: 35
   spawnSampleDistance: 3
+  waveId: 109
 --- !u!1 &790174624
 GameObject:
   m_ObjectHideFlags: 0
