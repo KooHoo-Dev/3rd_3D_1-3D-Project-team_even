@@ -234,6 +234,8 @@ namespace HybridShooter.Core.Data
                 s.DropSfx = FindSound(r, SupplyDef.Table, s.Id, nameof(s.DropSfx), s.DropSfxKey);
                 s.AnnounceSfx = FindSound(r, SupplyDef.Table, s.Id, nameof(s.AnnounceSfx), s.AnnounceSfxKey);
                 s.CollectSfx = FindSound(r, SupplyDef.Table, s.Id, nameof(s.CollectSfx), s.CollectSfxKey);
+                if (s.IsWeapon)
+                    r.Check(weapons.TryGet(s.WeaponId, out var w) && w.Category == WeaponCategory.Supply, SupplyDef.Table, s.Id, $"WeaponId {s.WeaponId} 는 WeaponTable 에 있고 Category = Supply 여야 합니다");
             }
         }
 

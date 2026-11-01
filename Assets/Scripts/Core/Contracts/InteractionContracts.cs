@@ -23,6 +23,14 @@ namespace HybridShooter.Core.Contracts
         Transform InteractTransform { get; }
     }
 
+    /// <summary>
+    /// 조준하지 않아도 근처에서 상호작용 키로 쓸 수 있는 대상 (보급 상자). 멤버 없는 표식 계약.
+    ///  - 대상은 자기 획득 영역을 트리거 콜라이더(자식 가능)로 둔다. 영역 크기는 대상 쪽이 정한다
+    ///  - 플레이어(PlayerInteractor)는 조준 대상이 없을 때, 몸이 들어가 있는 영역 중 가장 가까운 대상을 고른다
+    ///  - 이 계약이 없는 IInteractable 은 지금처럼 조준해야만 쓸 수 있다
+    /// </summary>
+    public interface IProximityInteractable : IInteractable { }
+
     /// <summary>상호작용 프롬프트 HUD 에 표시할 정보</summary>
     public readonly struct InteractPrompt
     {
@@ -54,7 +62,7 @@ namespace HybridShooter.Core.Contracts
     /// <summary>
     /// 보급 무기 받기 → 플레이어 (무기 슬롯 4번 = 보급 칸). ServiceLocator 에 등록되고,
     /// 플레이어 루트에 붙어 있어 GetComponentInParent&lt;ISupplyWeaponUser&gt;() 로도 찾을 수 있다.
-    ///  - 보급 무기는 1회용: 보급 상자로 탄이 충전되지 않고, 탄이 떨어져도 칸에 남는다
+    ///  - 보급 무기는 1회용: 보급 상자로 탄이 충전되지 않고, 탄창·예비 탄창을 모두 쓰면 칸에서 사라진다 (이전에 들던 칸으로 돌아감)
     ///  - 다른 보급 무기를 받으면 이전 보급 무기는 버려진다
     /// 예) 무기 상자: if (user.GetComponentInParent&lt;ISupplyWeaponUser&gt;()?.EquipSupplyWeapon(weaponId) == true) Remove();
     /// </summary>

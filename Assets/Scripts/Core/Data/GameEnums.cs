@@ -34,7 +34,8 @@ namespace HybridShooter.Core.Data
         Herd,      // 한 방향에 밀집한 무리
     }
 
-    public enum SupplyType { Grenade, Heal }
+    /// <summary>Weapon = 1회용 보급 무기 (SupplyTable.WeaponId)</summary>
+    public enum SupplyType { Grenade, Heal, Weapon }
 
     public enum UpgradeType { ReloadSpeed, MagazineSize, GrenadeCapacity }
 

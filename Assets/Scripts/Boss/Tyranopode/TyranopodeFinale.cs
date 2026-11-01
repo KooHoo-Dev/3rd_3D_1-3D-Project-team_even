@@ -104,6 +104,8 @@ namespace HybridShooter.Boss.Tyranopode
             bodyScale = controller.BodyScale; // 타격 뒤 보스가 사라져도 빔 굵기 유지
 
             ServiceLocator.Get<IPlayerCinematic>().SetCinematic(true);
+            // 처치 시 보상 단계로 가지 않도록 코어에 먼저 알린다 (보상 단계는 시간을 멈춰 연출이 멈춘 채 강화 화면을 덮는다)
+            EventBus<BossFinaleStartedEvent>.Publish(new BossFinaleStartedEvent());
             rig = new TyranopodeCinematicRig(transform, "Finale");
             PlaceCamera(0f);
             BuildUi();
