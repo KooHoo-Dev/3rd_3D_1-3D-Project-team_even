@@ -2012,5 +2012,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74f353be3d699e94588f125ad40a7168, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.SelfDestructSettings
-  explosionEffectPrefab: {fileID: 2727121481953674392, guid: 5b716aa738299ab44b45c1534a569fdf, type: 3}
-  effectLifetime: 4
+  explosionEffectPrefab: {fileID: 4815162342108000001, guid: 5b716aa738299ab44b45c1534a569fdf, type: 3}
