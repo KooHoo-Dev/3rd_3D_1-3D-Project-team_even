@@ -8,6 +8,7 @@ namespace HybridShooter.Boss.Tyranopode
     /// 맞는 순간 Detonate: 같은 모양·크기가 밝게 번쩍이며 사라진다 → 실제 피해 범위가 그대로 보인다
     /// 경사진 지형을 따라 휜다: 약 1m 간격 그물 메시의 꼭짓점마다 바닥 높이(TyranopodeGround)를 재서 표면 위 Lift 에 놓는다.
     /// 채움은 바탕을 만들 때 잰 높이를 보간해 매 프레임 다시 놓는다 (다시 재지 않는다)
+    /// ShowSweep: 부채꼴을 한쪽 가장자리에서 반대쪽으로 차오르게 → 쓸고 오는 방향이 보인다 (촉수 폭풍)
     /// </summary>
     public sealed class GroundTelegraph : MonoBehaviour
     {
@@ -51,6 +52,7 @@ namespace HybridShooter.Boss.Tyranopode
         private Vector3[] backVertices;
         private Vector3[] fillVertices;
         private float fillProgress = -1f;
+        private int sweepFill;       // 0 = 바깥으로 차오름, +1 = 왼쪽 가장자리 → 오른쪽, -1 = 오른쪽 → 왼쪽
 
         [Tooltip("맞는 순간 번쩍임이 사라지는 시간(초)")]
         [SerializeField] private float detonateTime = 0.45f;
@@ -95,7 +97,15 @@ namespace HybridShooter.Boss.Tyranopode
 
         /// <summary>부채꼴 (center 에서 forward 방향, 전체 각도 angle)</summary>
         public void ShowSector(Vector3 center, Vector3 forward, float radius, float angle, float time, Color color)
+            => ShowSectorFill(center, forward, radius, angle, time, color, 0);
+
+        /// <summary>쓸기 예고: 부채꼴이 fromLeft 면 왼쪽(forward 기준) 가장자리부터, 아니면 오른쪽부터 반대편으로 차오른다</summary>
+        public void ShowSweep(Vector3 center, Vector3 forward, float radius, float angle, float time, Color color, bool fromLeft)
+            => ShowSectorFill(center, forward, radius, angle, time, color, fromLeft ? 1 : -1);
+
+        private void ShowSectorFill(Vector3 center, Vector3 forward, float radius, float angle, float time, Color color, int fill)
         {
+            sweepFill = fill;
             shape = Shape.Sector;
             this.radius = radius;
             this.angle = angle;
@@ -108,6 +118,7 @@ namespace HybridShooter.Boss.Tyranopode
         public void ShowRect(Vector3 start, Vector3 forward, float width, float length, float time, Color color)
         {
             shape = Shape.Rect;
+            sweepFill = 0;
             this.width = width;
             this.length = length;
             BuildRect();
@@ -324,7 +335,23 @@ namespace HybridShooter.Boss.Tyranopode
             if (Mathf.Approximately(t, fillProgress)) return;
             fillProgress = t;
 
-            if (shape == Shape.Sector)
+            if (shape == Shape.Sector && sweepFill != 0)
+            {
+                // 각도 방향: 바퀴살을 시작 가장자리 쪽으로 모았다가 t 만큼 펼친다
+                fillVertices[0] = backVertices[0];
+                for (int ring = 1; ring <= rings; ring++)
+                for (int spoke = 0; spoke <= spokes; spoke++)
+                {
+                    float at = sweepFill > 0 ? spoke * t : spokes - (spokes - spoke) * t;
+                    int left = Mathf.Min(Mathf.FloorToInt(at), spokes - 1);
+                    float k = at - left;
+                    float a = (-angle * 0.5f + angle * at / spokes) * Mathf.Deg2Rad;
+                    float r = radius * ring / rings;
+                    float h = Mathf.Lerp(heights[SectorIndex(ring, left)], heights[SectorIndex(ring, left + 1)], k);
+                    fillVertices[SectorIndex(ring, spoke)] = new Vector3(Mathf.Sin(a) * r, h, Mathf.Cos(a) * r);
+                }
+            }
+            else if (shape == Shape.Sector)
             {
                 fillVertices[0] = backVertices[0];
                 for (int ring = 1; ring <= rings; ring++)

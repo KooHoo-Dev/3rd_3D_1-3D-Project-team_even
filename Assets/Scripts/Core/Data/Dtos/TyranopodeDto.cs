@@ -79,12 +79,16 @@ namespace HybridShooter.Core.Data.Dtos
 
         // 침 뱉기
         public int SpitDamage;
-        public float SpitSpeed;
+        public int SpitCount;
+        public float SpitInterval;
+        public float SpitFlightTime;
+        public float SpitArcHeight;
         public float SpitRadius;
         public float SpitWindup;
         public float SpitRecovery;
-        public int Phase2SpitCount;
-        public float SpitSpreadAngle;
+        public int Phase2SpitBonus;
+        public float Phase2SpitInterval;
+        public int HeadBrokenSpitReduce;
 
         // 알 던지기
         public int EggCount;
@@ -151,6 +155,9 @@ namespace HybridShooter.Core.Data.Dtos
         public float StormRadius;
         public float StormTelegraph;
         public float StormInterval;
+        public float StormSweepTime;
+        public float StormJumpClear;
+        public float StormFirstExtraTelegraph;
         public int StormDamage;
         public float StormCooldown;
         public float StormWindup;
