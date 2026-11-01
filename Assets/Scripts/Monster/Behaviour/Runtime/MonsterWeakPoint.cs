@@ -1,5 +1,6 @@
 using System;
 using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using UnityEngine;
 
@@ -12,7 +13,7 @@ namespace HybridShooter.Monster.Behaviour
     /// </summary>
     /// <remarks>
     /// 폭발 피해는 받지 않는다. 수류탄은 IDamageable 마다 1번 피해를 주므로, 받으면 몸통과 약점에서 두 번 깎인다.
-    /// Exposure(노출 조건)는 쓰지 않는다. 지금 약점은 Always 부위 1개뿐이다.
+    /// Exposure(노출 조건)가 WhileAttacking 이면 공격 중에만 약점이고, 그 외에는 몸통 피해(배율 없음)로 넘긴다.
     /// </remarks>
     [RequireComponent(typeof(Collider))]
     public sealed class MonsterWeakPoint : MonoBehaviour, IDamageable
@@ -33,6 +34,7 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// 총알 피해에 부위 배율을 곱해 몸에 약점 피해로 넘긴다. 폭발 피해는 무시한다 (몸통이 받는다).
+        /// 약점이 드러나지 않은 때(노출 조건 불만족)는 원래 피해를 몸통 피해로 넘긴다.
         /// </summary>
         /// <param name="info">무기가 준 원래 피해</param>
         public void TakeDamage(in DamageInfo info)
@@ -40,11 +42,33 @@ namespace HybridShooter.Monster.Behaviour
             if (info.Kind == DamageKind.Explosion) return;
 
             MonsterPartDef part = owner.Def.FindPart(partKey); // 없으면 null → 아래에서 NullReferenceException
+            if (IsExposed(part.Exposure) == false)
+            {
+                owner.TakeDamage(info);
+                return;
+            }
 
             int amount = ScaleDamage(info.Amount, part.DamageMultiplier);
             var weakPointInfo = new DamageInfo(amount, info.Kind, info.AttackerFaction, info.Attacker,
                                                info.HitPoint, info.Direction, info.SourceDefId);
             owner.TakeWeakPointDamage(weakPointInfo);
+        }
+
+        /// <summary>노출 조건을 지금 몬스터 상태로 판단한다. TakeDamage 가 배율을 곱할지 정할 때 부른다</summary>
+        /// <param name="exposure">MonsterPartTable.Exposure</param>
+        /// <returns>true = 약점이 드러나 배율을 곱한다</returns>
+        /// <exception cref="NotSupportedException">WhileRecovering 처럼 아직 판단 방법이 없는 조건일 때</exception>
+        private bool IsExposed(PartExposure exposure)
+        {
+            switch (exposure)
+            {
+                case PartExposure.Always:
+                    return true;
+                case PartExposure.WhileAttacking:
+                    return owner.IsAttacking;
+                default:
+                    throw new NotSupportedException($"{exposure} 노출 조건은 아직 일반 몬스터 약점에서 쓸 수 없다");
+            }
         }
 
         /// <summary>약점 피해 = 원래 피해 × 부위 배율, 반올림 (.5 는 올림. 7 × 1.5 = 11)</summary>

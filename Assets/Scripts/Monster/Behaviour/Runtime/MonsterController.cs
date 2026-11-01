@@ -83,6 +83,8 @@ namespace HybridShooter.Monster.Behaviour
         public int MonsterId => monsterId;
         public MonsterDef Def { get; private set; }
         public MonsterStateMachine StateMachine { get; private set; }
+        // 공격 동작(예고·공격·회복)이 진행 중인가. MonsterWeakPoint 가 WhileAttacking 약점 노출을 판단할 때 쓴다
+        public bool IsAttacking => StateMachine.CurrentAttack.IsAttacking;
 
         // ── 소리 알림 (IMonsterSoundSource. MonsterSoundEmitter 가 구독) ──
         public event Action<MonsterAttackDef, SkillPhase> AttackPhaseChanged;
