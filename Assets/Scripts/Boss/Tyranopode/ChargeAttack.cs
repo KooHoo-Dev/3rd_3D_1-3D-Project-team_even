@@ -6,20 +6,19 @@ namespace HybridShooter.Boss.Tyranopode
     /// <summary>
     /// 돌진 (강공격). 예고 동안 플레이어 쪽으로 돌며 직사각형 표시 → 그 방향으로 빠르게 기어간다.
     ///  - 한 번만 맞힌다. 지나가는 길의 알은 깨진다
-    ///  - 벽(NavMesh 가장자리)에 막히면 그로기 (다리 촉수 파괴 시 더 길게)
+    ///  - 몸 높이에 걸리는 벽·경기장 경계에 막히면 그로기 (다리 촉수 파괴 시 더 길게).
+    ///    NavMesh 의 작은 틈·낮은 돌멩이는 타고 넘고, 근처에 NavMesh 가 없는 낭떠러지에서는 그로기 없이 멈춘다 (TyranopodeLocomotion.MoveFree)
     ///  - 페이즈 2: Phase2ChargeCount 번 연속 (사이에 짧게 다시 조준)
     /// </summary>
     public sealed class ChargeAttack : TyranopodeAttack
     {
         [SerializeField, Min(0.1f)] private float crawlPlaySpeed = 2.2f;
         [SerializeField, Min(0f)] private float reaimTime = 0.6f;
-        [Tooltip("이 비율보다 덜 움직인 프레임이 이어지면 벽에 막힌 것")]
-        [SerializeField, Range(0.05f, 0.9f)] private float blockedRatio = 0.35f;
-        [SerializeField, Min(0f)] private float blockedTime = 0.12f;
+        [Tooltip("출발 직후 이 거리(m)보다 덜 달렸을 때 막히면 부딪힌 게 아니라 그냥 멈춘다")]
+        [SerializeField, Min(0f)] private float minImpactDistance = 2f;
 
         private Vector3 direction;
         private float traveled;
-        private float blockedFor;
         private bool hitDone;
         private int chargesLeft;
         private float reaimEndTime;
@@ -53,7 +52,6 @@ namespace HybridShooter.Boss.Tyranopode
             Move.FaceInstant(TargetPosition);
             direction = transform.forward;
             traveled = 0f;
-            blockedFor = 0f;
             hitDone = false;
             reaimEndTime = 0f;
             chargesLeft--;
@@ -71,7 +69,7 @@ namespace HybridShooter.Boss.Tyranopode
             }
 
             float step = Data.ChargeSpeed * Owner.SpeedScale * deltaTime;
-            float moved = Move.MoveDelta(direction * step);
+            var stop = Move.MoveFree(direction * step, probeWalls: true, out float moved);
             traveled += moved;
 
             Vector3 front = transform.position + direction * 3f;
@@ -82,10 +80,16 @@ namespace HybridShooter.Boss.Tyranopode
             }
             Owner.BreakEggsNear(front, Data.ChargeHitRadius);
 
-            // 벽에 막힘 → 그로기
-            blockedFor = moved < step * blockedRatio ? blockedFor + deltaTime : 0f;
-            if (blockedFor >= blockedTime && traveled > 2f)
+            if (stop != TyranopodeLocomotion.MoveStop.None)
             {
+                Debug.Log($"[Tyranopode] 돌진 멈춤: {stop} ({traveled:0.#}m)", this);
+                // 낭떠러지·출발 직후는 부딪힌 게 아니다
+                if (stop == TyranopodeLocomotion.MoveStop.Edge || traveled < minImpactDistance)
+                {
+                    Finish();
+                    return;
+                }
+                // 벽·경기장 경계에 박힘 → 그로기
                 Owner.PlayImpactVfx(front, Data.ChargeHitRadius);
                 Shake(CameraShakePresets.Impact, front, 60f);
                 float groggy = Data.WallGroggyTime * (Owner.IsBroken(TyranopodePartType.LegTentacle) ? Data.LegBrokenWallGroggyMultiplier : 1f);
@@ -108,5 +112,7 @@ namespace HybridShooter.Boss.Tyranopode
             }
             Finish();
         }
+
+        protected override void Stopped() => Move.EndFree();
     }
 }

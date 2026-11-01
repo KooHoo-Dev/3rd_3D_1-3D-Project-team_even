@@ -17,7 +17,8 @@ namespace HybridShooter.Boss.Clypeosaurus
         [SerializeField] private Transform inhaleCenter;
         [SerializeField, Min(0f)] private float stopRadius = 2.5f;
         [SerializeField, Min(0f)] private float fadeIn = 0.3f;
-
+        [SerializeField] private Transform rangePrefab;
+        
         private BossView view;
         private ClypeosaurusDef data;
         private InhaleSettings settings;
@@ -53,6 +54,12 @@ namespace HybridShooter.Boss.Clypeosaurus
             };
         }
         
+        private void LateUpdate()
+        {
+            if (inhaleCenter == null) return;
+            Range.SetPosition(inhaleCenter.position);
+        }
+        
         protected override bool MeetsStartCondition()
         {
             Vector3 offset = TargetRoot.position - transform.position;
@@ -64,6 +71,8 @@ namespace HybridShooter.Boss.Clypeosaurus
 
         protected override void OnWindup()
         {
+            Range.Show(rangePrefab, inhaleCenter.position, data.SuctionNearRadius);
+
             view.PlayState(WindupState);
         }
         
@@ -137,6 +146,5 @@ namespace HybridShooter.Boss.Clypeosaurus
             activeInhale = null;
             receiver = null;
         }
-        
     }
 }

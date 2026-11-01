@@ -162,6 +162,8 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 
 `SummonMinionIds` 는 MonsterTable.Id 를 `|` 로 구분한다 (예: `1001|1002`).
 
+거리·범위 값은 보스 크기 1.6배(프리팹 빌더 `ModelScale`) 기준 실제 값이다. 크기를 바꾸면 몸이 닿는 범위(Melee·Tentacle·Bite·Smash·ChargeHit·TremorNear·JumpBite*)는 같은 배율로, 맴돌기·도약 거리는 조금 덜 바꾼다.
+
 ## CrowdSpawnTable — BL-015
 | 컬럼 | 타입 | 설명 |
 |---|---|---|

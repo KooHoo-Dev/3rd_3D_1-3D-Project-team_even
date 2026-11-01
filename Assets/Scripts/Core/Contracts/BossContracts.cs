@@ -17,4 +17,13 @@ namespace HybridShooter.Core.Contracts
         /// </summary>
         bool IsEntranceRunning { get; }
     }
+
+    /// <summary>
+    /// 보스별 보스전 카메라 거리 배율. 보스 프리팹 루트에 붙인다 (BossAppearedEvent.Instance 에서 찾는다).
+    /// 없으면 1 (플레이어 인스펙터의 보스전 카메라 그대로). 큰 보스는 1 보다 크게 해 화면에 다 들어오게 한다
+    /// </summary>
+    public interface IBossCameraProfile
+    {
+        float CameraDistanceScale { get; }
+    }
 }

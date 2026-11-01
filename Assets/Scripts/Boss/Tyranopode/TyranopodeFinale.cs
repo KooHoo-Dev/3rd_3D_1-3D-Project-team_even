@@ -78,6 +78,7 @@ namespace HybridShooter.Boss.Tyranopode
         private TyranopodeCinematicRig rig;
         private Vector3 focus;
         private Vector3 bossForward;
+        private float bodyScale;
         private float startTime;
 
         private GameObject energy;
@@ -100,6 +101,7 @@ namespace HybridShooter.Boss.Tyranopode
             startTime = Time.time;
             focus = controller.transform.position;
             bossForward = controller.transform.forward;
+            bodyScale = controller.BodyScale; // 타격 뒤 보스가 사라져도 빔 굵기 유지
 
             ServiceLocator.Get<IPlayerCinematic>().SetCinematic(true);
             // 처치 시 보상 단계로 가지 않도록 코어에 먼저 알린다 (보상 단계는 시간을 멈춰 연출이 멈춘 채 강화 화면을 덮는다)
@@ -173,7 +175,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             // 0.25초 굵어짐 → 0.6초 유지 → 0.8초 사라짐
             float width = since < 0.25f ? since / 0.25f : since < 0.85f ? 1f : Mathf.Clamp01(1f - (since - 0.85f) / 0.8f);
-            beam.widthMultiplier = BeamWidth * width * (0.9f + 0.1f * Mathf.Sin(Time.time * 40f));
+            beam.widthMultiplier = BeamWidth * bodyScale * width * (0.9f + 0.1f * Mathf.Sin(Time.time * 40f));
             if (width <= 0f) beam.enabled = false;
         }
 

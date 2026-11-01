@@ -70,6 +70,10 @@ namespace HybridShooter.Core.Data.Defs
         public float BiteWindup => d.BiteWindup;
         public float BiteRecovery => d.BiteRecovery;
         public float JumpBiteMaxDistance => d.JumpBiteMaxDistance;
+        /// <summary>점프 물기 예고 폭(m)</summary>
+        public float JumpBiteWidth => d.JumpBiteWidth;
+        /// <summary>점프 물기 착지 적중 반경(m, 몸 앞쪽)</summary>
+        public float JumpBiteHitRadius => d.JumpBiteHitRadius;
 
         // 점프 내려찍기
         public int SmashDamage => d.SmashDamage;
@@ -77,6 +81,8 @@ namespace HybridShooter.Core.Data.Defs
         public float SmashWindup => d.SmashWindup;
         public float SmashRecovery => d.SmashRecovery;
         public float Phase2SmashRadiusMultiplier => d.Phase2SmashRadiusMultiplier;
+        /// <summary>내려찍기 최대 도약 거리(m). 플레이어가 더 멀면 이만큼만 뛴다</summary>
+        public float SmashMaxLeap => d.SmashMaxLeap;
 
         // 돌진
         public int ChargeDamage => d.ChargeDamage;
@@ -208,8 +214,8 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(GroggyTime > 0f && WallGroggyTime > 0f && GroggyDamageMultiplier > 0f, Table, "Groggy", "그로기 시간·배율은 0보다 커야 합니다.");
 
             r.Check(TentacleDamage >= 0 && TentacleRange > 0f && TentacleAngle > 0f && TentacleAngle <= 360f, Table, "Tentacle", "피해 >= 0, 사거리 > 0, 0 < 각도 <= 360");
-            r.Check(BiteDamage >= 0 && BiteRange > 0f && JumpBiteMaxDistance > BiteRange, Table, "Bite", "피해 >= 0, 0 < BiteRange < JumpBiteMaxDistance");
-            r.Check(SmashDamage >= 0 && SmashRadius > 0f, Table, "Smash", "피해 >= 0, 반경 > 0");
+            r.Check(BiteDamage >= 0 && BiteRange > 0f && JumpBiteMaxDistance > BiteRange && JumpBiteWidth > 0f && JumpBiteHitRadius > 0f, Table, "Bite", "피해 >= 0, 0 < BiteRange < JumpBiteMaxDistance, JumpBiteWidth·JumpBiteHitRadius > 0");
+            r.Check(SmashDamage >= 0 && SmashRadius > 0f && SmashMaxLeap > 0f, Table, "Smash", "피해 >= 0, 반경·최대 도약 > 0");
             r.Check(ChargeDamage >= 0 && ChargeSpeed > 0f && ChargeMaxDistance > 0f && ChargeHitRadius > 0f && Phase2ChargeCount >= 1, Table, "Charge", "피해 >= 0, 속도·거리·반경 > 0, Phase2ChargeCount >= 1");
             r.Check(SpitDamage >= 0 && SpitSpeed > 0f && SpitRadius > 0f && Phase2SpitCount >= 1, Table, "Spit", "피해 >= 0, 속도·반경 > 0, Phase2SpitCount >= 1");
             r.Check(EggQuietTime >= 0f && EggQuietCircleMultiplier >= 1f && EggArcAngle > 0f && EggArcAngle <= 360f, Table, "Egg", "EggQuietTime >= 0, EggQuietCircleMultiplier >= 1, 0 < EggArcAngle <= 360");

@@ -31,7 +31,6 @@ namespace  HybridShooter.Boss.Clypeosaurus
         private NavMeshAgent agent;
         private ClypeosaurusDef data;
 
-        private Transform shadow;
         private Vector3 landingPoint;
         private Vector3 fallStartPoint;
 
@@ -83,20 +82,17 @@ namespace  HybridShooter.Boss.Clypeosaurus
             agentDetached = true;
             transform.position = fallStartPoint;
             
-            // * 0.05f: 바닥에 겹치는 걸 막기 위해 곱함
-            shadow = Instantiate(shadowPrefab, landingPoint + Vector3.up * 0.05f, Quaternion.identity);
-
-            SetShadowScale(0f);
+            Range.Show(shadowPrefab, landingPoint, 0f, 0.05f);
             view.PlayState(IdleState);
         }
 
         private void LateUpdate()
         {
-            if (Phase != SkillPhase.Windup || shadow == null) return;
+            if (Phase != SkillPhase.Windup) return;
             float duration = data.EntranceTelegraphTime;
             
             float progress = duration > 0f ? Mathf.Clamp01((Time.time - windupStatedAt) / duration) : 1f;
-            SetShadowScale(progress);
+            Range.SetRadius(data.EntranceRadius * progress);
         }
 
         protected override void OnActiveStarted()
@@ -104,7 +100,7 @@ namespace  HybridShooter.Boss.Clypeosaurus
             stage = EntranceStage.Falling;
             fallStartedAt = Time.time;
 
-            SetShadowScale(1f);
+            Range.SetRadius(data.EntranceRadius);
         }
         
         protected override void OnActiveTick(float deltaTime)
@@ -147,7 +143,7 @@ namespace  HybridShooter.Boss.Clypeosaurus
                 return;
             }
 
-            ClearShadow();
+            Range.Clear();
 
             view.PlayState(RoarState);
             RaiseImpacted(landingPoint);
@@ -181,14 +177,6 @@ namespace  HybridShooter.Boss.Clypeosaurus
             
             TargetDamageable.TakeDamage(new DamageInfo(data.EntranceDamage, DamageKind.MonsterSkill, Boss.Faction, Boss.gameObject, TargetRoot.position, direction));
         }
-        
-        private void SetShadowScale(float progress)
-        {
-            if (shadow == null) return;
-
-            float diameter = data.EntranceRadius * 2f * progress;
-            shadow.localScale = new Vector3(diameter, 1f, diameter);
-        }
 
         private bool RestoreAgent()
         {
@@ -203,16 +191,8 @@ namespace  HybridShooter.Boss.Clypeosaurus
             return agent.isOnNavMesh && agent.Warp(landingPoint);
         }
 
-        private void ClearShadow()
-        {
-            if (shadow == null) return;
-            Destroy(shadow.gameObject);
-            shadow = null;
-        }
-
         protected override void OnCancelled()
         {
-            ClearShadow();
             RestoreAgent();
             
             if (Boss.IsAlive && gameObject.activeInHierarchy) view.PlayState(IdleState);

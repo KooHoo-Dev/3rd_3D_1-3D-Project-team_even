@@ -57,6 +57,8 @@ namespace HybridShooter.Core.Data.Dtos
         public float BiteWindup;
         public float BiteRecovery;
         public float JumpBiteMaxDistance;
+        public float JumpBiteWidth;
+        public float JumpBiteHitRadius;
 
         // 점프 내려찍기
         public int SmashDamage;
@@ -64,6 +66,7 @@ namespace HybridShooter.Core.Data.Dtos
         public float SmashWindup;
         public float SmashRecovery;
         public float Phase2SmashRadiusMultiplier;
+        public float SmashMaxLeap;
 
         // 돌진
         public int ChargeDamage;

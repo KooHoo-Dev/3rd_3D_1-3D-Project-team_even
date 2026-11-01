@@ -34,8 +34,12 @@ namespace HybridShooter.Boss.TyranopodeEditor
         private const string KoreanFontGuid = "659ceb8947c683b4a9e1216df0a67515";
         /// <summary>Aldrich-Regular SDF (HudFactory.NumberFontGuid 와 같은 글꼴) — 분석 화면 영문·숫자</summary>
         private const string TechFontGuid = "4d0bb7337f597634b94b9005947e8e28";
-        /// <summary>모델 크기 배율. 키우면 TyranopodeTable 의 거리 값도 같이 키워야 한다</summary>
-        private const float ModelScale = 1f;
+        /// <summary>
+        /// 모델 크기 배율 (원본 = 1, 높이 약 5m). 키우면 TyranopodeTable 의 거리 값도 같이 키워야 한다.
+        /// 뼈로 만드는 것(히트박스·막·입)과 NavMeshAgent(트랜스폼 배율을 따른다)는 따라 커지고,
+        /// 크기에 묶인 이동 값(SetupScaledValues)은 다시 만들 때마다 이 배율로 계산한다. 연출 크기는 런타임에 BodyScale 로 맞춘다
+        /// </summary>
+        private const float ModelScale = 1.6f;
 
         private static readonly string[] StateClips =
         {
@@ -95,7 +99,7 @@ namespace HybridShooter.Boss.TyranopodeEditor
 
                 Restore(root, previous);
                 SetupReferences(root, mouth, telegraphMat, spit, egg, beacon, vfx);
-                if (previous.Count == 0) SetupFirstTimeValues(root, tentacleLength);
+                SetupScaledValues(root, tentacleLength);
 
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out bool saved);
                 if (saved) Debug.Log($"[TyranopodeBuilder] 완료: {PrefabPath} (인스펙터 값 {previous.Count}개 유지)", AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
@@ -466,7 +470,10 @@ namespace HybridShooter.Boss.TyranopodeEditor
         }
 
         /// <summary>처음 만들 때만: 모델에서 잰 값 (이후에는 인스펙터 값을 존중)</summary>
-        private static void SetupFirstTimeValues(GameObject root, float tentacleLength)
+        /// <summary>
+        /// 모델 크기에 묶인 값: 다시 만들 때마다 계산해 덮어쓴다 (크기를 바꾸면 이전 값이 맞지 않으므로 보존하지 않는다)
+        /// </summary>
+        private static void SetupScaledValues(GameObject root, float tentacleLength)
         {
             float crawl = MeasureCrawlSpeed() * ModelScale;
             var view = new SerializedObject(root.GetComponent<TyranopodeView>());
@@ -475,6 +482,12 @@ namespace HybridShooter.Boss.TyranopodeEditor
 
             var locomotion = new SerializedObject(root.GetComponent<TyranopodeLocomotion>());
             if (tentacleLength > 0f) locomotion.FindProperty("wallMargin").floatValue = tentacleLength * 0.8f;
+            // 돌진 벽 감지: 몸통 절반 높이·몸통 폭, 몸 중심에서 앞 촉수 절반쯤까지
+            // NavMeshAgent 반지름·높이는 로컬 값이라 배율을 곱해야 월드 크기
+            var agent = root.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            locomotion.FindProperty("wallProbeHeight").floatValue = agent.height * ModelScale * 0.5f;
+            locomotion.FindProperty("wallProbeRadius").floatValue = agent.radius * ModelScale * 0.7f;
+            if (tentacleLength > 0f) locomotion.FindProperty("bodyReach").floatValue = tentacleLength * 0.4f;
             locomotion.ApplyModifiedPropertiesWithoutUndo();
 
             Debug.Log($"[TyranopodeBuilder] 기어가기 1배속 = {crawl:0.##} m/s (TyranopodeTable.CircleSpeed 가 이보다 크면 빨리 재생해 맞춘다), 촉수 길이 = {tentacleLength:0.#} m");

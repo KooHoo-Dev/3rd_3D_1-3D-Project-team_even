@@ -175,6 +175,8 @@ namespace HybridShooter.Player
             rb.position = position;
             rb.linearVelocity = Vector3.zero;
             appliedExternal = Vector3.zero; // 속도를 0 으로 만들었으니 다음 프레임에 뺄 몫도 없다
+            appliedSnapDown = 0f;
+            velocityAlongGround = false;
             isRolling = false;
         }
 
@@ -190,6 +192,8 @@ namespace HybridShooter.Player
             moveDirection = Vector3.zero;
             rb.linearVelocity = Vector3.zero;
             appliedExternal = Vector3.zero; // 외부 속도는 외부 제어 동안 멈춘다 (소스는 유지)
+            appliedSnapDown = 0f;
+            velocityAlongGround = false;
             savedInterpolation = rb.interpolation;
             // kinematic + 직접 위치 지정 시 보간이 켜져 있으면 한 프레임 늦게 따라와 떨린다
             rb.interpolation = RigidbodyInterpolation.None;
@@ -223,6 +227,8 @@ namespace HybridShooter.Player
             rb.interpolation = savedInterpolation;
             rb.linearVelocity = Vector3.zero;
             appliedExternal = Vector3.zero;
+            appliedSnapDown = 0f;
+            velocityAlongGround = false;
             jumpRequestedTime = float.NegativeInfinity;
         }
     }

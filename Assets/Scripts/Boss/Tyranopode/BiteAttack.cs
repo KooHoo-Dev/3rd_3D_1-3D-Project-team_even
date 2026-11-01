@@ -10,8 +10,6 @@ namespace HybridShooter.Boss.Tyranopode
     public sealed class BiteAttack : TyranopodeAttack
     {
         private const float BiteAngle = 70f;
-        private const float JumpBiteWidth = 6f;
-        private const float JumpHitRadius = 5f;
 
         [Header("타격 진행도 (애니메이션 0~1)")]
         [SerializeField, Range(0f, 1f)] private float biteHitTime = 0.42f;
@@ -45,7 +43,7 @@ namespace HybridShooter.Boss.Tyranopode
 
             telegraph = Telegraph();
             float time = Data.BiteWindup * Owner.WindupScale;
-            if (jump) telegraph.ShowRect(transform.position, transform.forward, JumpBiteWidth, DistanceToTarget, time, DangerColor);
+            if (jump) telegraph.ShowRect(transform.position, transform.forward, Data.JumpBiteWidth, DistanceToTarget, time, DangerColor);
             else telegraph.ShowSector(transform.position, transform.forward, Data.BiteRange, BiteAngle, time, DangerColor);
         }
 
@@ -62,7 +60,7 @@ namespace HybridShooter.Boss.Tyranopode
                 HideTelegraphs();
                 Move.FaceInstant(TargetPosition);
                 jumpFrom = transform.position;
-                float distance = Mathf.Max(0f, DistanceToTarget - landShortOf);
+                float distance = Mathf.Max(0f, DistanceToTarget - landShortOf * Owner.BodyScale);
                 jumpTo = Move.ClampToBounds(jumpFrom + DirectionToTarget * distance);
                 View.Play(TyranopodeView.JumpBite, Owner.SpeedScale);
             }
@@ -80,18 +78,20 @@ namespace HybridShooter.Boss.Tyranopode
             if (jump && n >= jumpStartTime && n <= jumpLandTime)
             {
                 float t = Mathf.InverseLerp(jumpStartTime, jumpLandTime, n);
-                Move.MoveDelta(Vector3.Lerp(jumpFrom, jumpTo, t) - transform.position);
+                // 공중이라 NavMesh 의 틈·돌멩이에 걸리지 않게 직접 옮긴다
+                Move.MoveFree(Vector3.Lerp(jumpFrom, jumpTo, t) - transform.position, probeWalls: false, out _);
             }
 
             float hitTime = jump ? jumpLandTime : biteHitTime;
             if (hitDone == false && n >= hitTime)
             {
                 hitDone = true;
-                Vector3 mouth = transform.position + transform.forward * (jump ? JumpHitRadius : 0f);
+                if (jump) Move.EndFree();
+                Vector3 mouth = transform.position + transform.forward * (jump ? Data.JumpBiteHitRadius : 0f);
                 bool hit = jump
-                    ? PlayerInCircle(mouth, JumpHitRadius)
+                    ? PlayerInCircle(mouth, Data.JumpBiteHitRadius)
                     : PlayerInSector(transform.position, transform.forward, Data.BiteRange, BiteAngle);
-                if (jump) FlashCircle(mouth, JumpHitRadius);
+                if (jump) FlashCircle(mouth, Data.JumpBiteHitRadius);
                 else Detonate(telegraph);
                 if (hit) HitPlayer(Data.BiteDamage, transform.position);
                 if (jump) Shake(CameraShakePresets.BossFootstep, transform.position, 40f);
@@ -99,5 +99,7 @@ namespace HybridShooter.Boss.Tyranopode
 
             if (n >= 1f) Finish();
         }
+
+        protected override void Stopped() => Move.EndFree();
     }
 }
