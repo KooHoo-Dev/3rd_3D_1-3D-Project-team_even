@@ -17,6 +17,9 @@ Id	MonsterId	BossId	PartKey	Name	DamageMultiplier	Exposure	PartHp	LinkedAttackId
 102	2101	0	Mouth	입 안	2	WhileAttacking	0	0	0
 103	2102	0	Spine	등뼈 가시	1.5	Always	0	0	0
 104	2103	0	Gland	등 분비샘	2	Always	0	0	0
+# Clypeosaurus (BossId 1): Antenna 는 더듬이 발광구 8개(Clypeosaurus_Antenna_1~8 뼈)가 같은 키를 쓴다
+201	0	1	Head	머리	1.5	Always	0	0	0
+202	0	1	Antenna	더듬이 발광구	2.5	Always	0	0	0
 # Tyranopode (BossId 2): PartKey = TyranopodePartType 이름. 몸통(Body)은 부서지지 않는다(PartHp 0). 그로기 배율은 TyranopodeTable.GroggyDamageMultiplier
 301	0	2	Body	몸통	0.8	Always	0	0	0
 302	0	2	FrontTentacle	앞 촉수	1	Always	600	0	0

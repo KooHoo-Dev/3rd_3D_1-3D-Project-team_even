@@ -112,9 +112,10 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 ### MonsterPartTable
 | 컬럼 | 설명 |
 |---|---|
-| PartKey / Name | 몬스터 안에서 유일한 키 / 부위명 |
+| MonsterId / BossId | 부위 주인. 둘 중 하나만 0 보다 크다. MonsterId = MonsterTable Id (`MonsterWeakPoint`), BossId = BossTable Id (Clypeosaurus `BossWeakPoint`, Tyranopode `TyranopodePart`) |
+| PartKey / Name | 몬스터(보스) 안에서 유일한 키 / 부위명 |
 | DamageMultiplier | 명중 피해 배율 |
-| Exposure | `Always` / `WhileAttacking` / `WhileRecovering` |
+| Exposure | `Always` / `WhileAttacking`(공격 동작 중에만 배율, 아니면 몸통 피해) / `WhileRecovering`(아직 미구현) |
 | PartHp | 0 = 파괴 불가 (`IsDestructible` = PartHp > 0) |
 | LinkedAttackId | 파괴 시 약화되는 공격 (0 = 없음) |
 | TransformToMonsterId | 파괴 시 전환될 몬스터 (0 = 없음, 남은 체력 유지) |
