@@ -307,6 +307,102 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.AreSame(brain.Attack, brain.Current);
         }
 
+        // ── 판정 구간 [HitTimeRatio, HitEndRatio]. Active 0.4~0.9, HitEndRatio 0.9 → 판정 구간 0.65~0.85 ──
+
+        [Test]
+        public void LateEntryInsideHitWindowIsHit()
+        {
+            attack.HitEndRatio = 0.9f;
+            attack.Begin(target, 0f);
+            target.Position = new Vector3(0f, 0f, 3f);
+            attack.Tick(0.4f, 0.4f);
+            attack.Tick(0.7f, 0.3f);
+            Assert.AreEqual(0, target.Received.Count, "판정 시작 때는 범위 밖");
+
+            target.Position = new Vector3(0f, 0f, 1f);
+            attack.Tick(0.8f, 0.1f);
+            Assert.AreEqual(2, target.Received.Count, "판정 구간 안에 늦게 들어와도 맞는다 (1번 × HitCount 2)");
+        }
+
+        [Test]
+        public void MaxHitsAndIntervalLimitRepeatedHits()
+        {
+            attack.HitEndRatio = 0.9f;
+            attack.MaxHitsPerAttack = 2;
+            attack.HitIntervalSeconds = 0.1f;
+            attack.Begin(target, 0f);
+            attack.Tick(0.4f, 0.4f);
+
+            attack.Tick(0.66f, 0.26f);
+            Assert.AreEqual(2, target.Received.Count, "첫 명중");
+
+            attack.Tick(0.72f, 0.06f);
+            Assert.AreEqual(2, target.Received.Count, "간격 0.1s 전에는 다시 맞지 않는다");
+
+            attack.Tick(0.78f, 0.06f);
+            Assert.AreEqual(4, target.Received.Count, "간격 뒤 두 번째 명중");
+
+            attack.Tick(0.84f, 0.06f);
+            attack.Tick(0.95f, 0.11f);
+            Assert.AreEqual(4, target.Received.Count, "최대 2번");
+            Assert.AreEqual(SkillPhase.Recover, attack.Phase, "판정 구간이 Active 안이라 회복은 제때 시작한다");
+        }
+
+        [Test]
+        public void EntryAfterHitWindowIsNotHit()
+        {
+            attack.HitEndRatio = 0.9f;
+            attack.Begin(target, 0f);
+            target.Position = new Vector3(0f, 0f, 3f);
+            attack.Tick(0.4f, 0.4f);
+            attack.Tick(0.7f, 0.3f);
+
+            target.Position = new Vector3(0f, 0f, 1f);
+            attack.Tick(0.86f, 0.16f);
+            attack.Tick(0.95f, 0.09f);
+            Assert.AreEqual(0, target.Received.Count, "판정 구간 끝(0.85) 뒤에 들어오면 맞지 않는다");
+            Assert.AreEqual(SkillPhase.Recover, attack.Phase);
+        }
+
+        [Test]
+        public void HitEndRatioAtOrBelowHitTimeRatioChecksFirstTickOnly()
+        {
+            attack.HitEndRatio = 0.2f;
+            attack.MaxHitsPerAttack = 3;
+            attack.Begin(target, 0f);
+            target.Position = new Vector3(0f, 0f, 3f);
+            attack.Tick(0.4f, 0.4f);
+            attack.Tick(0.7f, 0.3f);
+
+            target.Position = new Vector3(0f, 0f, 1f);
+            attack.Tick(0.8f, 0.1f);
+            Assert.AreEqual(0, target.Received.Count, "구간이 없으면 판정 시작 1틱만 검사한다 (기존 1회 판정)");
+        }
+
+        [Test]
+        public void AimOffsetStaysInsideRadius()
+        {
+            // 10m 앞 대상, 반경 2m → 조준 방향은 대상 방향에서 asin(2/10) ≈ 11.54° 안. 예고 회전이 조준점(WindupLookPoint = AimPoint)을 바로 바라보게 한다
+            target.Position = new Vector3(0f, 0f, 10f);
+            attack.AimOffsetRadius = 2f;
+            attack.WindupTurnSpeed = 100000f;
+            float maxAngle = Mathf.Asin(2f / 10f) * Mathf.Rad2Deg;
+            float largestAngle = 0f;
+
+            for (int seed = 1; seed <= 20; seed++)
+            {
+                UnityEngine.Random.InitState(seed);
+                attack.Begin(target, 0f);
+                attack.Tick(0.1f, 0.1f);
+                float angle = Vector3.Angle(Vector3.forward, body.Forward);
+                Assert.LessOrEqual(angle, maxAngle + 0.01f, $"seed {seed}: 조준점이 반경 밖");
+                largestAngle = Mathf.Max(largestAngle, angle);
+                attack.Cancel();
+            }
+
+            Assert.Greater(largestAngle, 1f, "반경이 있으면 조준점이 대상에서 벗어난다");
+        }
+
         private void RunToRecover()
         {
             attack.Begin(target, 0f);

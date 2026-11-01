@@ -1853,8 +1853,8 @@ GameObject:
   - component: {fileID: 6684576620808380083}
   - component: {fileID: -5282420452375643821}
   - component: {fileID: -6963252850141782799}
-  - component: {fileID: 3673681119355232943}
   - component: {fileID: 5730098645658161961}
+  - component: {fileID: -1667820626942374504}
   m_Layer: 14
   m_Name: Muscomorph_Heavy
   m_TagString: Untagged
@@ -1983,22 +1983,12 @@ MonoBehaviour:
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
   hitTimeRatio: 0.5
+  hitEndRatio: 0.5
+  maxHitsPerAttack: 1
+  hitIntervalSeconds: 0
+  aimOffsetRadius: 3
   hitRangeRatio: 2.2
   windupTurnSpeed: 360
---- !u!114 &3673681119355232943
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7794425194075702535}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f100bc9e0ca917a4fb434a334a8662c5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterDebugActions
-  damageAmount: 10
-  stunSeconds: 2
 --- !u!136 &5730098645658161961
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -2022,6 +2012,22 @@ CapsuleCollider:
   m_Height: 1.6548433
   m_Direction: 1
   m_Center: {x: 0.010138631, y: 0.74, z: 0}
+--- !u!114 &-1667820626942374504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7794425194075702535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c85f4e92e9b67884f980d017806180da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Monster.Tester.MonsterHitAreaVisualizer
+  hitFlashSeconds: 0.3
+  previewColor: {r: 0.2, g: 0.8, b: 1, a: 0.25}
+  hitColor: {r: 1, g: 0.15, b: 0.1, a: 0.6}
+  missColor: {r: 1, g: 0.9, b: 0.1, a: 0.5}
 --- !u!1 &7960356510021968820
 GameObject:
   m_ObjectHideFlags: 0

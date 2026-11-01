@@ -13,6 +13,7 @@ namespace HybridShooter.Monster.Behaviour
     /// 예고 중에는 모든 공격이 WindupLookPoint 쪽으로 WindupTurnSpeed 만큼씩 돈다 (회전 코드는 이 클래스 한 곳).
     /// 공격 한 사이클 = 예고 → Active(ActiveSeconds) → 회복 → 쿨다운(Cooldown). 판정(OnActive)은 Active 의 HitTimeRatio 지점에서 시작한다.
     /// 쿨다운은 회복까지 정상 완료한 시점부터 센다. 취소·조기 종료는 Begin 시점부터 센다.
+    /// 조준은 AimPoint(플레이어 위치 + Begin 때 뽑은 랜덤 offset)로 하고, 피해 판정은 하위 클래스가 실제 플레이어 위치로 한다.
     /// </summary>
     public abstract class MonsterAttack
     {
@@ -24,6 +25,8 @@ namespace HybridShooter.Monster.Behaviour
         private float cycleCooldown;      // s
         private float cycleActiveSeconds; // s
         private float cycleHitTimeRatio;  // 0~1
+        private float cycleHitEndRatio;   // 0~1
+        private Vector3 aimOffset;        // m. 이번 주기 조준점이 플레이어에서 벗어난 양 (반경 AimOffsetRadius 구 안)
         private float activeStartTime;    // s
         private bool isActionDone;        // OnActive 가 true 를 돌려줬으면 같은 Active 에서 다시 부르지 않는다
 
@@ -38,7 +41,19 @@ namespace HybridShooter.Monster.Behaviour
         // Active 시작부터 판정까지의 비율 (0~1). 0 = Active 첫 틱에 판정
         public float HitTimeRatio { get; set; } = 0.5f;
 
-        // 근접 판정 거리 ÷ 진입 거리(Spec.Range). 1 = 같음. AttackState 의 Attack 유지 거리(진입 뒤)와 StrikeAttack 의 Melee 판정이 쓴다. MonsterController 가 인스펙터 값을 넣는다
+        // 판정 구간 끝 비율 (0~1). 판정 구간 = Active 의 [HitTimeRatio, HitEndRatio]. HitTimeRatio 이하 = 판정 시작 1틱만. StrikeAttack 만 쓴다. MonsterController 가 인스펙터 값을 넣는다
+        public float HitEndRatio { get; set; } = 0.5f;
+
+        // 판정 구간 동안 줄 수 있는 최대 명중 횟수. 1 = 1번만. 명중 1번 = Damage × Spec.HitCount. StrikeAttack 만 쓴다. MonsterController 가 인스펙터 값을 넣는다
+        public int MaxHitsPerAttack { get; set; } = 1;
+
+        // 판정 구간 안 반복 명중 사이 최소 간격 (s). StrikeAttack 만 쓴다. MonsterController 가 인스펙터 값을 넣는다
+        public float HitIntervalSeconds { get; set; }
+
+        // 조준점 랜덤 반경 (m). 0 = 정확히 플레이어 위치를 노린다. 다음 Begin 부터 반영. MonsterController 가 인스펙터 값을 넣는다
+        public float AimOffsetRadius { get; set; }
+
+        // 근접 판정 거리 ÷ 진입 거리(Spec.Range). 1 = 같음. StrikeAttack 의 Melee 판정만 쓴다. MonsterController 가 인스펙터 값을 넣는다
         public float HitRangeRatio { get; set; } = 1f;
 
         // 예고 중 WindupLookPoint 쪽으로 도는 속도 (도/초). 0 = 돌지 않는다. MonsterController 가 인스펙터 값을 넣는다
@@ -82,14 +97,23 @@ namespace HybridShooter.Monster.Behaviour
         // 공격 몸이 대상에 부딪힘 (돌진 명중). 인자 = 부딪힌 지점. 소리·연출용
         public event Action<MonsterAttack, Vector3> BodyContacted;
 
+        // 판정 1프레임 알림 (IHitArea 를 쓰는 공격). 인자 = 범위, 기준 위치, 기준 정면, 대상이 범위 안이었는지. 범위 시각화용
+        public event Action<MonsterAttack, IHitArea, Vector3, Vector3, bool> MonsterHitEvent;
+
         // 진행 중인 공격의 대상. 진행 중이 아니면 null
         protected IPlayerTarget Target { get; private set; }
 
         // 공격자 몸체. 예고 중 회전과 하위 클래스의 발사 위치·판정 방향에 쓴다
         protected MonsterBody Body { get; }
 
-        // 예고 중 바라볼 월드 좌표. 기본 = 매 Tick 움직이는 플레이어 위치. 하위 클래스가 바꾼다 (독장판 = 고정 착탄점)
-        protected virtual Vector3 WindupLookPoint => Target.PlayerTrackingInfo.Position;
+        // 이번 주기에 노리는 월드 좌표 = 매 Tick 움직이는 플레이어 위치 + Begin 때 뽑은 랜덤 offset. 조준(방향·착지점·착탄점)에만 쓰고 피해 판정은 실제 플레이어 위치로 한다
+        protected Vector3 AimPoint => Target.PlayerTrackingInfo.Position + aimOffset;
+
+        // 판정 구간이 끝나는 시각 (s) = Active 시작 + ActiveDuration × HitEndRatio(Begin 때 고정). Active 에 들어간 뒤에만 의미 있다
+        protected float HitEndTime => activeStartTime + ActiveDuration * cycleHitEndRatio;
+
+        // 예고 중 바라볼 월드 좌표. 기본 = 조준점(AimPoint). 하위 클래스가 바꾼다 (독장판 = 고정 착탄점)
+        protected virtual Vector3 WindupLookPoint => AimPoint;
 
         /// <summary>
         /// 공격 값, 몸체, 피해 대상 탐색 방법을 받는다. 하위 전략의 생성자가 호출한다. Cooldown 은 Spec.Cooldown 으로 시작한다.
@@ -123,9 +147,9 @@ namespace HybridShooter.Monster.Behaviour
         public virtual bool CanStart(float now) => IsAttacking == false && now >= nextReadyTime;
 
         /// <summary>
-        /// 공격 한 주기를 시작한다 (예고 진입). AttackState 가 유지 사거리(Range × HitRangeRatio) 안·공격 허가·CanStart 일 때 부른다.
-        /// 이 주기의 쿨다운·Active 길이·판정 비율을 여기서 고정하므로
-        /// 진행 중에 Cooldown / ActiveSeconds / HitTimeRatio 가 바뀌어도 다음 Begin 부터 반영된다.
+        /// 공격 한 주기를 시작한다 (예고 진입). AttackState 가 사거리 안·공격 허가·CanStart 일 때 부른다.
+        /// 이 주기의 쿨다운·Active 길이·판정 비율·판정 끝 비율·조준 offset 을 여기서 고정하므로
+        /// 진행 중에 Cooldown / ActiveSeconds / HitTimeRatio / HitEndRatio / AimOffsetRadius 가 바뀌어도 다음 Begin 부터 반영된다.
         /// </summary>
         /// <remarks>여기서 정하는 다음 시작 시각(시작 + 쿨다운)은 취소·조기 종료용이다. 정상 완료하면 Tick 이 회복 끝 기준으로 다시 정한다.</remarks>
         /// <param name="target">이번 주기의 공격 대상</param>
@@ -141,9 +165,22 @@ namespace HybridShooter.Monster.Behaviour
             cycleCooldown = Cooldown;
             cycleActiveSeconds = ActiveSeconds;
             cycleHitTimeRatio = HitTimeRatio;
+            cycleHitEndRatio = HitEndRatio;
             nextReadyTime = now + cycleCooldown;
+            PickAimOffset();
             SetPhase(SkillPhase.Windup, now + Spec.TelegraphTime);
             OnWindup();
+        }
+
+        /// <summary>
+        /// 이번 주기 조준 offset 을 반경 AimOffsetRadius 구 안에서 1번 뽑는다. Begin 이 OnWindup 전에 부른다.
+        /// 주기 동안 고정해 두어야 조준이 매 틱 떨리지 않는다. 반경 0 이면 offset 0 = 정확히 플레이어를 노린다.
+        /// </summary>
+        private void PickAimOffset()
+        {
+            Vector3 randomOffset = UnityEngine.Random.insideUnitSphere;
+            randomOffset.y = 0;
+            aimOffset = randomOffset * AimOffsetRadius;
         }
 
         /// <summary>
@@ -244,8 +281,15 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="point">부딪힌 지점</param>
         protected void NotifyBodyContacted(Vector3 point) => BodyContacted?.Invoke(this, point);
 
+        /// <summary>범위 판정을 한 순간을 알린다. IHitArea 로 판정하는 하위 클래스가 Contains 직후, 피해를 주기 전에 부른다</summary>
+        /// <param name="area">판정에 쓴 범위</param>
+        /// <param name="origin">판정 기준 위치 (월드, m)</param>
+        /// <param name="forward">판정 기준 정면</param>
+        /// <param name="didHit">대상이 범위 안이었으면 true</param>
+        protected void NotifyMonsterHit(IHitArea area, Vector3 origin, Vector3 forward, bool didHit)
+            => MonsterHitEvent?.Invoke(this, area, origin, forward, didHit);
+
         /// <summary>대상에게 Damage × HitCount 피해. 대상이 이미 죽었으면 주지 않는다</summary>
-        /// <remarks>아직 전투시스템 관련 적용되지 않았음</remarks>
         /// <param name="target">피해를 받을 대상</param>
         /// <param name="from">공격 위치. 피해 방향(수평) 계산에 쓴다</param>
         /// <exception cref="InvalidOperationException">대상에서 IDamageable 을 찾지 못했을 때</exception>
