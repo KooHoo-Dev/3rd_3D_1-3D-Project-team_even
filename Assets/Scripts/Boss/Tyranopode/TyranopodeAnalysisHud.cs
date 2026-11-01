@@ -13,6 +13,7 @@ namespace HybridShooter.Boss.Tyranopode
     ///  - [ IMMUNE ] 표시: 무적인 보스를 맞힌 자리에 잠깐 떠서 흔들리다 위로 사라진다
     ///  - 약점 조준선: 공중 포자에 돌아가는 괄호 + 거리. 화면 밖이면 가장자리에 붙어 방향을 가리킨다
     ///  - 등장 이름 카드: 같은 배너 틀로 새 목표·흡수량을 알린다 (등장 연출의 검은 띠 아래쪽에 뜬다)
+    ///  - 회피 안내 (촉수 폭풍): 화면 아래쪽에 [ EVADE ] + 점프 키. 촉수가 닿기 직전 JUMP! 가 크게 깜빡이고, 익히면 학습 완료
     /// TyranopodeController 가 만들고 보스와 함께 사라진다
     /// </summary>
     public sealed class TyranopodeAnalysisHud : MonoBehaviour
@@ -33,6 +34,16 @@ namespace HybridShooter.Boss.Tyranopode
         private const string IntroLine1 = "생체 에너지 흡수 감지 — 위협 등급 상승";
         private const string IntroLine2Shield = "흡수 개체 {0}  >>  외피 생체막 형성 : 막을 먼저 파괴";
         private const string IntroLine2None = "흡수 개체 없음  >>  생체막 미형성";
+        private const string StormHeader = "[ ANALYSIS ]  TENTACLE EXTENSION  //  SCAN {0:0.0}%";
+        private const string StormLine1 = "촉수 연장 감지 — 저공 쓸기";
+        private const string StormLine2 = "점프 [{0}] 로 촉수를 뛰어넘어 회피";
+        private const string EvadeHeader = "[ EVADE ]  LOW SWEEP INCOMING";
+        private const string EvadeLine = "점프 [{0}] — 촉수를 뛰어넘으세요";
+        private const string EvadeCue = "JUMP!";
+        private const string EvadeLearned = "회피 성공 — 패턴 학습 완료";
+        private const float EvadeY = -170f;       // 화면 가운데 아래
+        private const float CueTime = 0.5f;
+        private const float LearnedTime = 2.2f;
         private const string PopText = "[ IMMUNE ]  0 DMG";
         private const string ReticleLabel = "WEAK POINT  {0:0}m";
         private const string ReticleSub = "포자 핵";
@@ -64,6 +75,13 @@ namespace HybridShooter.Boss.Tyranopode
         private float bannerStart = -100f;
         private bool bannerVisible;
 
+        private CanvasGroup evade;
+        private TextMeshProUGUI evadeLine;
+        private TextMeshProUGUI evadeCue;
+        private bool evadeVisible;
+        private float cueStart = -100f;
+        private float learnedStart = -100f;
+
         private readonly List<Pop> pops = new List<Pop>();
         private int nextPop;
 
@@ -93,6 +111,31 @@ namespace HybridShooter.Boss.Tyranopode
         {
             string second = shielded ? string.Format(IntroLine2Shield, absorbed) : IntroLine2None;
             ShowBanner(IntroHeader, IntroLine1, second, IntroCardY);
+        }
+
+        /// <summary>처음 촉수 폭풍: 요령 배너 (jumpKey = 화면에 보일 키 이름)</summary>
+        public void ShowStormHint(string jumpKey)
+            => ShowBanner(StormHeader, StormLine1, string.Format(StormLine2, jumpKey), ImmuneBannerY);
+
+        /// <summary>회피 안내를 켠다 (촉수 폭풍 쓸기마다, 점프로 넘길 때까지)</summary>
+        public void ShowEvadePrompt(string jumpKey)
+        {
+            evadeLine.text = string.Format(EvadeLine, jumpKey);
+            evadeVisible = true;
+            evade.gameObject.SetActive(true);
+        }
+
+        public void HideEvadePrompt() => evadeVisible = false;
+
+        /// <summary>촉수가 곧 닿는다: JUMP! 를 크게 깜빡인다</summary>
+        public void CueJump() => cueStart = Time.time;
+
+        /// <summary>점프로 넘겼다: 학습 완료를 잠깐 보이고 안내를 끈다</summary>
+        public void ShowEvadeLearned()
+        {
+            learnedStart = Time.time;
+            evadeVisible = false;
+            evade.gameObject.SetActive(true);
         }
 
         private void ShowBanner(string headerText, string first, string second, float y)
@@ -138,6 +181,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             var cam = viewCamera();
             UpdateBanner();
+            UpdateEvade();
             UpdatePops(cam);
             UpdateReticle(cam);
         }
@@ -166,6 +210,40 @@ namespace HybridShooter.Boss.Tyranopode
             // 주사선: 틀 위에서 아래로 계속 훑는다
             float sweep = Mathf.Repeat(Time.time * 0.9f, 1f);
             scanLine.anchoredPosition = new Vector2(0f, Mathf.Lerp(-6f, -144f, sweep));
+        }
+
+        private void UpdateEvade()
+        {
+            if (evade.gameObject.activeSelf == false) return;
+            bool learned = Time.time - learnedStart < LearnedTime;
+            float target = evadeVisible || learned ? 1f : 0f;
+            evade.alpha = Mathf.MoveTowards(evade.alpha, target, Time.deltaTime * 4f);
+            if (target <= 0f && evade.alpha <= 0.01f)
+            {
+                evade.gameObject.SetActive(false);
+                return;
+            }
+
+            if (learned)
+            {
+                evadeLine.text = EvadeLearned;
+                evadeLine.color = Cyan;
+                evadeCue.gameObject.SetActive(false);
+                return;
+            }
+            evadeLine.color = Amber;
+
+            // 촉수가 닿기 직전: 크게 튀어나왔다가 줄며 깜빡인다
+            float cue = (Time.time - cueStart) / CueTime;
+            bool cueing = cue >= 0f && cue < 1f;
+            evadeCue.gameObject.SetActive(cueing);
+            if (cueing)
+            {
+                evadeCue.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.6f, 1f, cue);
+                Color c = Amber;
+                c.a = Mathf.Repeat(Time.time * 12f, 1f) < 0.5f ? 1f : 0.45f;
+                evadeCue.color = c;
+            }
         }
 
         private void UpdatePops(Camera cam)
@@ -240,6 +318,7 @@ namespace HybridShooter.Boss.Tyranopode
             canvasRect = (RectTransform)transform;
 
             BuildBanner();
+            BuildEvade();
             for (int i = 0; i < PopCount; i++) pops.Add(BuildPop());
             BuildReticle();
         }
@@ -265,6 +344,26 @@ namespace HybridShooter.Boss.Tyranopode
             scanLine = NewRect("ScanLine", rect, new Vector2(800f, 2f));
             scanLine.anchorMin = scanLine.anchorMax = new Vector2(0.5f, 1f);
             scanLine.gameObject.AddComponent<Image>().color = new Color(Cyan.r, Cyan.g, Cyan.b, 0.35f);
+            rect.gameObject.SetActive(false);
+        }
+
+        private void BuildEvade()
+        {
+            var rect = NewRect("EvadePrompt", canvasRect, new Vector2(640f, 96f));
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(0f, EvadeY);
+            evade = rect.gameObject.AddComponent<CanvasGroup>();
+            evade.blocksRaycasts = false;
+            rect.gameObject.AddComponent<Image>().color = Panel;
+            Corners(rect, 20f, 3f, Cyan);
+
+            var header = Label(rect, tech, 18f, Cyan, new Vector2(0f, -18f), 1f);
+            header.text = EvadeHeader;
+            evadeLine = Label(rect, korean, 30f, Amber, new Vector2(0f, -60f), 1f);
+            evadeCue = Label(rect, tech, 64f, Amber, new Vector2(0f, 70f), 1f);
+            evadeCue.text = EvadeCue;
+            evadeCue.gameObject.SetActive(false);
+            evade.alpha = 0f;
             rect.gameObject.SetActive(false);
         }
 

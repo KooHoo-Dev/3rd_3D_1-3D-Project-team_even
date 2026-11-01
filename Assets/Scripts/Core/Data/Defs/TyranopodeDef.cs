@@ -95,12 +95,23 @@ namespace HybridShooter.Core.Data.Defs
 
         // 침 뱉기
         public int SpitDamage => d.SpitDamage;
-        public float SpitSpeed => d.SpitSpeed;
+        /// <summary>연사 발 수 (페이즈 1, 머리 멀쩡)</summary>
+        public int SpitCount => d.SpitCount;
+        /// <summary>연사 간격(초)</summary>
+        public float SpitInterval => d.SpitInterval;
+        /// <summary>입에서 바닥까지 날아가는 시간(초) = 떨어질 자리 예고 시간</summary>
+        public float SpitFlightTime => d.SpitFlightTime;
+        /// <summary>포물선 꼭대기 높이(m, 출발·도착을 잇는 선 기준)</summary>
+        public float SpitArcHeight => d.SpitArcHeight;
         public float SpitRadius => d.SpitRadius;
         public float SpitWindup => d.SpitWindup;
         public float SpitRecovery => d.SpitRecovery;
-        public int Phase2SpitCount => d.Phase2SpitCount;
-        public float SpitSpreadAngle => d.SpitSpreadAngle;
+        /// <summary>페이즈 2 에서 더 쏘는 발 수</summary>
+        public int Phase2SpitBonus => d.Phase2SpitBonus;
+        /// <summary>페이즈 2 연사 간격(초)</summary>
+        public float Phase2SpitInterval => d.Phase2SpitInterval;
+        /// <summary>머리가 부서지면 덜 쏘는 발 수</summary>
+        public int HeadBrokenSpitReduce => d.HeadBrokenSpitReduce;
 
         // 알 던지기
         public int EggCount => d.EggCount;
@@ -173,11 +184,20 @@ namespace HybridShooter.Core.Data.Defs
         public bool IntroBriefAfterFirst => d.IntroBriefAfterFirst;
 
         // 촉수 폭풍
+        /// <summary>촉수 쓸기 횟수 (좌우 번갈아)</summary>
         public int StormWaves => d.StormWaves;
+        /// <summary>한 번 쓸 때 지나가는 각도(도, 보스 정면 기준 좌우 절반씩)</summary>
         public float StormSectorAngle => d.StormSectorAngle;
         public float StormRadius => d.StormRadius;
         public float StormTelegraph => d.StormTelegraph;
+        /// <summary>쓸기 뒤 촉수를 거두고 다음 예고까지(초)</summary>
         public float StormInterval => d.StormInterval;
+        /// <summary>촉수가 한 번 쓸고 지나가는 시간(초)</summary>
+        public float StormSweepTime => d.StormSweepTime;
+        /// <summary>이 높이(m) 이상 떠 있으면 촉수를 넘는다</summary>
+        public float StormJumpClear => d.StormJumpClear;
+        /// <summary>처음 쓰는 촉수 폭풍의 첫 쓸기 예고에 더하는 시간(초)</summary>
+        public float StormFirstExtraTelegraph => d.StormFirstExtraTelegraph;
         public int StormDamage => d.StormDamage;
         public float StormCooldown => d.StormCooldown;
         public float StormWindup => d.StormWindup;
@@ -217,7 +237,9 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(BiteDamage >= 0 && BiteRange > 0f && JumpBiteMaxDistance > BiteRange && JumpBiteWidth > 0f && JumpBiteHitRadius > 0f, Table, "Bite", "피해 >= 0, 0 < BiteRange < JumpBiteMaxDistance, JumpBiteWidth·JumpBiteHitRadius > 0");
             r.Check(SmashDamage >= 0 && SmashRadius > 0f && SmashMaxLeap > 0f, Table, "Smash", "피해 >= 0, 반경·최대 도약 > 0");
             r.Check(ChargeDamage >= 0 && ChargeSpeed > 0f && ChargeMaxDistance > 0f && ChargeHitRadius > 0f && Phase2ChargeCount >= 1, Table, "Charge", "피해 >= 0, 속도·거리·반경 > 0, Phase2ChargeCount >= 1");
-            r.Check(SpitDamage >= 0 && SpitSpeed > 0f && SpitRadius > 0f && Phase2SpitCount >= 1, Table, "Spit", "피해 >= 0, 속도·반경 > 0, Phase2SpitCount >= 1");
+            r.Check(SpitDamage >= 0 && SpitRadius > 0f && SpitCount - HeadBrokenSpitReduce >= 1 && HeadBrokenSpitReduce >= 0 && Phase2SpitBonus >= 0
+                    && SpitInterval > 0f && Phase2SpitInterval > 0f && SpitFlightTime > 0f && SpitArcHeight >= 0f, Table, "Spit",
+                "피해 >= 0, 반경·간격·비행 시간 > 0, SpitCount - HeadBrokenSpitReduce >= 1, Phase2SpitBonus >= 0, SpitArcHeight >= 0");
             r.Check(EggQuietTime >= 0f && EggQuietCircleMultiplier >= 1f && EggArcAngle > 0f && EggArcAngle <= 360f, Table, "Egg", "EggQuietTime >= 0, EggQuietCircleMultiplier >= 1, 0 < EggArcAngle <= 360");
             r.Check(MinionSpeedMultiplier > 0f && MinionApproachSpeedMultiplier > 0f && InUnit(MinionApproachRatio), Table, "Summon",
                 "MinionSpeedMultiplier·MinionApproachSpeedMultiplier > 0, MinionApproachRatio 0~1");
@@ -231,7 +253,9 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(ShieldPerMinion > 0f && ShieldMaxRatio > 0f && ShieldMaxRatio < 1f && ShieldLayers >= 1 && ShieldBreakGroggyTime > 0f && EnergyFlightTime > 0f,
                 Table, "Shield", "ShieldPerMinion > 0, 0 < ShieldMaxRatio < 1, ShieldLayers >= 1, 그로기·비행 시간 > 0");
             r.Check(IntroShieldPerMonster >= 0f && IntroShieldMaxRatio >= 0f && IntroShieldMaxRatio < 1f, Table, "Intro", "IntroShieldPerMonster >= 0, 0 <= IntroShieldMaxRatio < 1");
-            r.Check(StormWaves >= 1 && StormSectorAngle > 0f && StormSectorAngle <= 360f && StormRadius > 0f && StormTelegraph >= 0f && StormInterval >= 0f, Table, "Storm", "횟수 >= 1, 0 < 각도 <= 360, 반경 > 0");
+            r.Check(StormWaves >= 1 && StormSectorAngle > 0f && StormSectorAngle < 180f && StormRadius > 0f && StormTelegraph >= 0f && StormInterval >= 0f
+                    && StormSweepTime > 0f && StormJumpClear > 0f && StormFirstExtraTelegraph >= 0f, Table, "Storm",
+                "횟수 >= 1, 0 < 각도 < 180 (정면 반원 안), 반경·쓸기 시간·점프 높이 > 0, 예고·간격 >= 0");
             r.Check(AssistMaxDelayMultiplier >= 1f && InUnit(AssistComboReduce) && InUnit(AssistHeavyReduce) && AssistPerDeath >= 0f && AssistSmoothTime >= 0f,
                 Table, "Assist", "MaxDelayMultiplier >= 1, Reduce 0~1, PerDeath·SmoothTime >= 0");
         }

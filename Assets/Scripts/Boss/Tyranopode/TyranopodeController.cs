@@ -70,6 +70,8 @@ namespace HybridShooter.Boss.Tyranopode
         [SerializeField] private GameObject beaconFailVfx;
         [SerializeField] private GameObject minionSpawnVfx;
         [SerializeField] private GameObject minionDeathVfx;
+        [Tooltip("촉수 폭풍: 늘어나는 촉수·생체 채찍")]
+        [SerializeField] private TyranopodeTentacleSweep tentacleSweep;
         [Tooltip("그로기 동안 켜 둘 연출 (보스 자식, 꺼 둔 채)")]
         [SerializeField] private GameObject groggyVfx;
 
@@ -216,6 +218,7 @@ namespace HybridShooter.Boss.Tyranopode
         public IDamageable TargetDamageable { get; private set; }
         public TyranopodeMinions Minions { get; private set; }
         public Transform Mouth => mouth;
+        public TyranopodeTentacleSweep TentacleSweep => tentacleSweep;
         /// <summary>플레이어 시선 (알을 시선 앞쪽에 떨어뜨릴 때)</summary>
         public Transform PlayerView => player.ViewPoint;
         public TyranopodeSpit SpitPrefab => spitPrefab;
@@ -277,6 +280,8 @@ namespace HybridShooter.Boss.Tyranopode
             Need(minionSpawnVfx, nameof(minionSpawnVfx));
             Need(minionDeathVfx, nameof(minionDeathVfx));
             Need(groggyVfx, nameof(groggyVfx));
+            Need(tentacleSweep, nameof(tentacleSweep));
+            if (tentacleSweep != null && tentacleSweep.HasReferences == false) missing.Add("tentacleSweep 의 촉수 뼈·채찍");
             Need(shield, nameof(shield));
             Need(energyOrbVfx, nameof(energyOrbVfx));
             Need(energyAbsorbVfx, nameof(energyAbsorbVfx));
@@ -1173,6 +1178,33 @@ namespace HybridShooter.Boss.Tyranopode
         private const float WaveBaseRadius = 60f;
 
         public void PlayBeaconFailVfx(Vector3 point) => PlayVfx(beaconFailVfx, point, 1f);
+
+        /// <summary>촉수 폭풍: 쓸고 지나가는 촉수 끝의 흙먼지</summary>
+        public void PlaySweepDust(Vector3 point)
+        {
+            point.y = TyranopodeGround.Height(point, point.y);
+            PlayVfx(impactVfx, point, DustScale * BodyScale);
+        }
+
+        /// <summary>처음 쓰는 촉수 폭풍: 분석 화면이 점프로 넘는 요령을 알려 준다</summary>
+        public void ShowStormHint() => analysis.ShowStormHint(JumpKeyName);
+
+        /// <summary>촉수 폭풍 회피 안내 (점프로 넘길 때까지 쓸기마다)</summary>
+        public void ShowEvadePrompt() => analysis.ShowEvadePrompt(JumpKeyName);
+
+        public void HideEvadePrompt() => analysis.HideEvadePrompt();
+
+        public void CueJump() => analysis.CueJump();
+
+        public void ShowEvadeLearned() => analysis.ShowEvadeLearned();
+
+        private static string JumpKeyName => KeyName(new PlayerController.InputPlayerSettings().jumpKey);
+
+        private static string KeyName(UnityEngine.InputSystem.Key key)
+        {
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            return keyboard != null ? keyboard[key].displayName : key.ToString();
+        }
 
         private static void PlayVfx(GameObject prefab, Vector3 point, float scale)
         {

@@ -77,7 +77,8 @@ namespace HybridShooter.Boss.TyranopodeEditor
             var glowMat = SaveMaterial(CreateGlowMaterial(Glow, 6f), "M_Glow");
             var eggMat = SaveMaterial(CreateGlowMaterial(new Color(0.9f, 0.75f, 0.45f), 1.5f), "M_Egg");
 
-            var spit = BuildSpit(glowMat, vfx);
+            var acidMat = SaveMaterial(CreateGlowMaterial(new Color(0.65f, 1f, 0.2f), 4f), "M_AcidCore");
+            var spit = BuildSpit(acidMat, vfx);
             var egg = BuildEgg(eggMat, vfx);
             var beacon = BuildBeacon(glowMat, vfx);
 
@@ -382,6 +383,7 @@ namespace HybridShooter.Boss.TyranopodeEditor
             so.FindProperty("energyOrbVfx").objectReferenceValue = vfx.EnergyOrb;
             so.FindProperty("energyAbsorbVfx").objectReferenceValue = vfx.EnergyAbsorb;
             so.FindProperty("immuneCue").objectReferenceValue = BuildImmuneCue(root, vfx);
+            so.FindProperty("tentacleSweep").objectReferenceValue = BuildTentacleSweep(root, vfx);
             so.FindProperty("ricochetVfx").objectReferenceValue = vfx.Ricochet;
             so.FindProperty("introVeinsVfx").objectReferenceValue = vfx.IntroVeins;
             so.FindProperty("techFont").objectReferenceValue =
@@ -428,6 +430,43 @@ namespace HybridShooter.Boss.TyranopodeEditor
             so.FindProperty("shatterVfx").objectReferenceValue = vfx.ShieldShatter;
             so.ApplyModifiedPropertiesWithoutUndo();
             return shield;
+        }
+
+        /// <summary>촉수 폭풍: 앞·가운데 좌우 촉수 뼈 사슬(뿌리 → 끝) + 촉수 끝에서 이어지는 생체 채찍</summary>
+        private static TyranopodeTentacleSweep BuildTentacleSweep(GameObject root, TyranopodeVfxBuilder.Set vfx)
+        {
+            var bones = root.GetComponentsInChildren<Transform>(true).GroupBy(t => t.name).ToDictionary(g => g.Key, g => g.First());
+            Transform[] Chain(string row, string side)
+                => Enumerable.Range(1, 13).Select(i => bones[$"{BonePrefix}TENTACLE_{row}_{side}_{i:000}"]).ToArray();
+
+            var whipGo = new GameObject("BioWhip", typeof(LineRenderer));
+            whipGo.transform.SetParent(root.transform, false);
+            var line = whipGo.GetComponent<LineRenderer>();
+            line.sharedMaterial = vfx.Beam;
+            line.shadowCastingMode = ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.textureMode = LineTextureMode.Stretch;
+            line.numCapVertices = 4;
+            var whip = whipGo.AddComponent<TyranopodeBioWhip>();
+            var whipSo = new SerializedObject(whip);
+            whipSo.FindProperty("line").objectReferenceValue = line;
+            whipSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var sweep = root.AddComponent<TyranopodeTentacleSweep>();
+            var so = new SerializedObject(sweep);
+            void SetChain(string property, Transform[] chain)
+            {
+                var array = so.FindProperty(property);
+                array.arraySize = chain.Length;
+                for (int i = 0; i < chain.Length; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = chain[i];
+            }
+            SetChain("frontLeft", Chain("F", "L"));
+            SetChain("frontRight", Chain("F", "R"));
+            SetChain("middleLeft", Chain("M", "L"));
+            SetChain("middleRight", Chain("M", "R"));
+            so.FindProperty("whip").objectReferenceValue = whip;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return sweep;
         }
 
         /// <summary>
@@ -655,14 +694,20 @@ namespace HybridShooter.Boss.TyranopodeEditor
 
         // ───────────────────────── 침·알·포자 ─────────────────────────
 
-        private static TyranopodeSpit BuildSpit(Material glow, TyranopodeVfxBuilder.Set vfx)
+        /// <summary>침 = 빛나는 산성 핵을 보스 발광 주머니와 같은 생체막이 감싼 덩어리 + 담즙 꼬리</summary>
+        private static TyranopodeSpit BuildSpit(Material acidCore, TyranopodeVfxBuilder.Set vfx)
         {
-            var go = Primitive("Tyranopode_Spit", glow, new Vector3(0.7f, 0.7f, 0.7f), keepCollider: false);
-            var trail = (GameObject)PrefabUtility.InstantiatePrefab(vfx.SpitTrail, go.transform);
-            trail.transform.localScale = Vector3.one / 0.7f;
+            var go = new GameObject("Tyranopode_Spit");
+            var sac = Primitive("Sac", vfx.SpitSac, Vector3.one * 0.9f, keepCollider: false);
+            sac.transform.SetParent(go.transform, false);
+            var core = Primitive("Core", acidCore, Vector3.one * 0.5f, keepCollider: false);
+            core.transform.SetParent(sac.transform, false);
+            core.transform.localScale = Vector3.one * (0.5f / 0.9f);
+            PrefabUtility.InstantiatePrefab(vfx.SpitTrail, go.transform);
             var spit = go.AddComponent<TyranopodeSpit>();
             var so = new SerializedObject(spit);
             so.FindProperty("burstVfx").objectReferenceValue = vfx.AcidSplash;
+            so.FindProperty("sac").objectReferenceValue = sac.transform;
             so.ApplyModifiedPropertiesWithoutUndo();
             return SavePrefab(go, "Tyranopode_Spit").GetComponent<TyranopodeSpit>();
         }

@@ -30,7 +30,7 @@ namespace HybridShooter.Boss.TyranopodeEditor
             public GameObject Roar, Shockwave, Impact, PartBreak, Stump, Wave, BeaconPulse, BeaconBreak, BeaconFail,
                 AcidSplash, SpitTrail, EggBreak, EggHatch, MinionSpawn, MinionDeath, Groggy,
                 EnergyOrb, EnergyAbsorb, ShieldHit, ShieldCrack, ShieldShatter, FinaleGroundEnergy, OrbitalStrike, Ricochet, IntroVeins;
-            public Material Shield, Beam;
+            public Material Shield, Beam, SpitSac;
         }
 
         private sealed class Materials
@@ -59,11 +59,25 @@ namespace HybridShooter.Boss.TyranopodeEditor
                 Ring = SaveMaterial("M_VfxRing", ring, additive: true),
             };
 
-            var shieldMaterial = SaveShieldMaterial();
+            var shieldMaterial = SaveMembraneMaterial("M_Shield", null);
+            // 침 주머니: 보호막과 같은 생체막, 더 불투명하고 산성 담즙빛 혈관이 빠르게 맥박친다
+            var spitSac = SaveMembraneMaterial("M_SpitSac", material =>
+            {
+                material.SetColor("_BaseColor", new Color(0.32f, 0.4f, 0.08f, 0.8f));
+                material.SetColor("_VeinColor", new Color(1.8f, 2.6f, 0.4f, 1f));
+                material.SetColor("_DamagedVeinColor", new Color(1.8f, 2.6f, 0.4f, 1f));
+                material.SetColor("_RimColor", new Color(1.2f, 2f, 0.3f, 1f));
+                material.SetColor("_HitColor", new Color(1.8f, 2.6f, 0.4f, 1f));
+                material.SetFloat("_CellScale", 4f);
+                material.SetFloat("_VeinWidth", 0.18f);
+                material.SetFloat("_PulseSpeed", 7f);
+                material.SetFloat("_Wobble", 0.08f);
+            });
 
             return new Set
             {
                 Shield = shieldMaterial,
+                SpitSac = spitSac,
                 Beam = m.Additive,
                 Ricochet = Save("VFX_Ricochet", root =>
                 {
@@ -206,11 +220,19 @@ namespace HybridShooter.Boss.TyranopodeEditor
                 }),
                 AcidSplash = Save("VFX_AcidSplash", root =>
                 {
-                    Burst(root, m.Additive, Acid, count: 35, speed: 7f, size: 0.4f, life: 0.8f, gravity: 2f, shapeRadius: 0.3f, upward: true);
-                    Flash(root, m.Additive, Acid, size: 4f);
+                    // 반경 2.5m 기준 (침이 실제 반경에 맞춰 키운다): 담즙이 튀고 찢어진 막 조각, 바닥 링, 산성 김
+                    Flash(root, m.Additive, Acid, size: 5f);
+                    GroundRing(root, m.Ring, new Color(0.75f, 1f, 0.3f, 0.9f), diameter: 5f, life: 0.6f);
+                    Burst(root, m.Additive, Acid, count: 40, speed: 7f, size: 0.35f, life: 0.9f, gravity: 2.5f, shapeRadius: 0.4f, upward: true);
+                    Burst(root, m.Alpha, new Color(0.3f, 0.35f, 0.1f, 0.9f), count: 12, speed: 5f, size: 0.5f, life: 1.1f, gravity: 2.5f, shapeRadius: 0.3f, upward: true);
+                    Plume(root, m.Alpha, new Color(0.55f, 0.7f, 0.35f, 0.35f), rate: 30f, duration: 0.8f, speed: 2.5f, size: 1.8f);
                 }),
                 SpitTrail = Save("VFX_SpitTrail", root =>
-                    Loop(root, m.Additive, Acid, rate: 60f, speed: 0.2f, size: 0.6f, life: 0.35f, gravity: 0f)),
+                {
+                    // 빛나는 꼬리 + 떨어지는 담즙 방울
+                    Loop(root, m.Additive, Acid, rate: 50f, speed: 0.2f, size: 0.7f, life: 0.3f, gravity: 0f);
+                    Loop(root, m.Additive, new Color(0.8f, 1f, 0.35f, 0.9f), rate: 25f, speed: 0.6f, size: 0.18f, life: 0.6f, gravity: 2.5f);
+                }),
                 EggBreak = Save("VFX_EggBreak", root =>
                 {
                     Burst(root, m.Alpha, Shell, count: 20, speed: 6f, size: 0.4f, life: 1f, gravity: 2.5f, shapeRadius: 0.4f, upward: true);
@@ -496,13 +518,15 @@ namespace HybridShooter.Boss.TyranopodeEditor
         }
 
         /// <summary>보호막 막: 전용 셰이더(혈관·가장자리 빛·찢김). 색·세기 기본값은 셰이더 속성 기본값</summary>
-        private static Material SaveShieldMaterial()
+        /// <summary>생체막 셰이더 머티리얼. setup 이 없으면 셰이더 기본값(보호막 주황)</summary>
+        private static Material SaveMembraneMaterial(string name, Action<Material> setup)
         {
             var shader = Shader.Find("HybridShooter/TyranopodeMembrane");
             if (shader == null) throw new System.InvalidOperationException("[TyranopodeVfx] 셰이더 HybridShooter/TyranopodeMembrane 이 없습니다 (Assets/Shaders/Boss).");
             var material = new Material(shader);
+            setup?.Invoke(material);
 
-            string path = $"{Folder}/M_Shield.mat";
+            string path = $"{Folder}/{name}.mat";
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (existing == null)
             {
