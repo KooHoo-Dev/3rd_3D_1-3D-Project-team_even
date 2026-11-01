@@ -1,6 +1,6 @@
 // 독 포탄 착탄 예고 표식(PoisonFogTargetMarker) 전용 셰이더. URP Unlit + 반투명.
-// PoisonAreaAttack.OnWindup 이 구를 (지름, 1, 지름) 으로 납작하게 눌러 착탄 범위를 보여 준다.
-//   1. 테두리 링   : 돔 가장자리를 진하게 → 착탄 범위 경계.
+// PoisonAreaAttack.OnWindup 이 TerrainDiscMesh 로 지름 1m 원판을 Terrain 곡면에 맞추고 (지름, 1, 지름) 으로 넓혀 착탄 범위를 보여 준다.
+//   1. 테두리 링   : 원판 가장자리를 진하게 → 착탄 범위 경계.
 //   2. 조여드는 링 : 가장자리에서 중심으로 반복해서 좁혀 오는 링 → "곧 떨어진다" 경고.
 //   3. 깜빡임      : 전체 밝기가 주기적으로 오르내린다.
 //   4. 안쪽 채움   : 아주 옅게만 칠해 아래(지형·기존 독장판)가 비쳐 보인다.
@@ -95,7 +95,7 @@ Shader "HybridShooter/PoisonMarker"
 
             half4 Fragment(Varyings input) : SV_Target
             {
-                // 반경 비율: 0 = 중심, 1 = 가장자리 (오브젝트 XZ 거리 ÷ 기본 구 반지름 0.5)
+                // 반경 비율: 0 = 중심, 1 = 가장자리 (오브젝트 XZ 거리 ÷ 원판 반지름 0.5)
                 float radiusRatio = saturate(length(input.positionXZ) / 0.5);
 
                 // 1) 테두리 링: 가장자리에서 _EdgeWidth 안쪽까지.
