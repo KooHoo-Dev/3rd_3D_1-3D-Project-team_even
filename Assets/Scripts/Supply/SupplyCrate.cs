@@ -190,7 +190,7 @@ namespace HybridShooter.Supply
 
         /// <summary>
         /// 조준·근접 안내. 제목·설명은 SupplyTable.CrateName / CrateDescription (예: "수류탄 보급 상자" / "수류탄과 탄약이 들어 있는 보급 상자").
-        /// 받을 수 없을 때만 짧은 경고를 붙인다. 무기 상세(무기명·설명)는 획득 후 SupplyWeaponPickupHud 가 보여 준다.
+        /// 받을 수 없을 때만 짧은 경고를 붙인다. 무기 상세(무기명·설명)는 획득 후 SupplyInfoCardHud 가 보여 준다.
         /// 매 프레임 불릴 수 있어 계산은 가볍게 (지급은 하지 않음)
         /// </summary>
         public InteractPrompt GetPrompt(GameObject user) =>

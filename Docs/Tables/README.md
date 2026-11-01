@@ -187,11 +187,11 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | BeaconColor | string | 빛기둥 색 `#RRGGBB` (안개 무시 빛기둥은 이 색 × HDR 밝기) |
 | PrefabKey / MarkerKey | string | 물자 프리팹 / 낙하 위치 표시 |
 | DropSfxKey / AnnounceSfxKey / CollectSfxKey | string | 투하음(착지 지점) / 투하 안내 방송(2D) / 획득음(랜덤 장전음) |
-| Description | string | 한 줄 활용 설명. 보급 무기 획득 카드(`SupplyWeaponPickupHud`)에 표시 — 5초 안에 읽을 수 있게 짧게 (아이템 행은 비워 둠) |
+| Description | string | 한 줄 활용 설명. 보급 무기 획득 카드(`SupplyInfoCardHud`)에 표시 — 5초 안에 읽을 수 있게 짧게 (아이템 행은 비워 둠) |
 | CrateName / CrateDescription | string | 상자를 조준하거나 2m 안에 갔을 때 안내 제목 / 설명 한 줄 (예: `수류탄 보급 상자` / `수류탄과 탄약이 들어 있는 보급 상자`). 제목을 비우면 `{DisplayName} 보급 상자` |
 
 모든 보급(Grenade·Heal·Weapon)은 획득 시 **1~3번 칸 총에 예비 탄창을 충전**한다 (보급 무기에는 충전 안 함) (`WeaponTable.SupplyMagazineRatio`). 아이템·탄약 중 하나라도 실제로 늘면 획득, 둘 다 가득이면 상자가 남는다.
-Weapon 보급은 보급 칸(4번)에 무기를 장착하고 탄창도 충전한다 (같은 보급 무기를 들고 있으면 탄창만, 빛기둥 연보라 `#C8A2FF`, 획득 시 우측 카드 `SupplyWeaponPickupHud`). 1회용이라 탄창·예비 탄창을 모두 쓰면 칸에서 사라진다. 다른 보급 무기는 버려진다.
+Weapon 보급은 보급 칸(4번)에 무기를 장착하고 탄창도 충전한다 (같은 보급 무기를 들고 있으면 탄창만, 빛기둥 연보라 `#C8A2FF`, 획득 시 우측 카드 `SupplyInfoCardHud`). 1회용이라 탄창·예비 탄창을 모두 쓰면 칸에서 사라진다. 다른 보급 무기는 버려진다.
 착지한 상자는 `ConfigTable.SupplyLifetime` 초 뒤 사라진다 (마지막 10초 빛기둥 깜빡임).
 조준하지 않아도 상자 반경 2m(`SupplyCrate.pickupRadius`, Inspector) 안에서 F 로 획득한다 (근접 획득, `IProximityInteractable`).
 
