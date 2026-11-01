@@ -12,21 +12,24 @@ namespace HybridShooter.Supply
     ///
     ///  - 하늘(지면 + SupplyDropHeight)에서 일정 속도로 떨어지다가, 지면 SupplyLandingHeight 이내로 들어오면
     ///    착지 속도(landingSpeed)까지 등감속하며 서서히 내려앉는다.
-    ///  - Kinematic Rigidbody + Trigger Collider. 착지한 뒤 플레이어가 조준하고 상호작용 키(F)를 누르면 획득 (IInteractable).
+    ///  - Kinematic Rigidbody + Trigger Collider. 착지한 뒤 플레이어가 조준하거나, 근접 획득 영역(pickupRadius) 안에서 상호작용 키(F)를 누르면 획득
+    ///    (IProximityInteractable — 영역은 Ignore Raycast 레이어 자식 트리거라 조준 레이·총알 판정에는 걸리지 않는다).
     ///    조준하는 동안의 정보(종류·지급량·가득 참 경고)는 GetPrompt → PlayerInteractor → InteractPromptHud 로 표시된다.
     ///  - 획득 대상은 구체 클래스가 아닌 계약(IItemUser, IPlayerAmmo)으로 찾는다.
     ///    가득 차서 못 먹으면(false) 물자는 그대로 남는다.
-    ///  - SupplyType.Weapon 상자는 아이템 대신 1회용 보급 무기를 보급 칸에 장착한다 (ISupplyWeaponUser, 탄창 충전 없음).
+    ///  - SupplyType.Weapon 상자는 아이템 대신 1회용 보급 무기를 보급 칸에 장착하고, 1~3번 칸 총에 예비 탄창도 충전한다 (보급 무기에는 충전 안 함).
     ///  - 착지 후 ConfigTable.SupplyLifetime 초가 지나면 사라진다 (갈 수 없는 곳에 떨어진 상자 정리). 그 전에는 획득 또는 라운드 정리 때만 제거
     /// </summary>
     [RequireComponent(typeof(Rigidbody), typeof(BoxCollider))]
-    public sealed class SupplyCrate : MonoBehaviour, IInteractable
+    public sealed class SupplyCrate : MonoBehaviour, IProximityInteractable
     {
         /// <summary>Idle = Launch 전, Falling = 낙하 중, Landed = 착지 완료</summary>
         public enum State { Idle, Falling, Landed }
 
         /// <summary>ConfigTable 에 SupplyLifetime 행이 없을 때의 착지 후 수명(초). 테이블 값과 같게 유지</summary>
         public const float DefaultLifetime = 90f;
+        /// <summary>Unity 기본 Ignore Raycast 레이어 (근접 획득 영역용)</summary>
+        private const int IgnoreRaycastLayer = 2;
 
         [Tooltip("낙하 속도 (m/s)")]
         [SerializeField] private float fallSpeed = 15f;
@@ -40,6 +43,8 @@ namespace HybridShooter.Supply
         [SerializeField] private float pickupPadding = 0.5f;
         [Tooltip("콜라이더를 렌더러 위로 늘려서 (m), 경사에 살짝 묻혀도 조준 레이가 지면보다 상자를 먼저 맞히게")]
         [SerializeField] private float pickupTopPadding = 0.5f;
+        [Tooltip("근접 획득 반지름(m). 플레이어 몸 중심이 이 안에 들어오면 조준하지 않아도 F 로 획득 (IProximityInteractable)")]
+        [SerializeField, Min(0.5f)] private float pickupRadius = 2f;
         [Tooltip("사라지기 전 빛기둥이 깜빡이는 시간 (초)")]
         [SerializeField] private float expireBlinkTime = 10f;
 
@@ -82,6 +87,7 @@ namespace HybridShooter.Supply
             trigger = GetComponent<BoxCollider>();
             trigger.isTrigger = true;
             if (fitColliderToRenderers) FitColliderToRenderers();
+            CreatePickupZone();
         }
 
         /// <summary>
@@ -182,37 +188,31 @@ namespace HybridShooter.Supply
         /// <summary>착지한 뒤에만 (낙하 중에는 프롬프트도 뜨지 않는다). 가득 찬 경우는 프롬프트 경고로 알리고 Interact 가 실패한다</summary>
         public bool CanInteract(GameObject user) => removed == false && Def != null && CurrentState == State.Landed;
 
-        /// <summary>조준 중 표시 정보. 매 프레임 불릴 수 있어 계산은 가볍게 (지급은 하지 않음)</summary>
-        public InteractPrompt GetPrompt(GameObject user)
-        {
-            if (Def.IsWeapon) return GetWeaponPrompt(user);
-            string amount = Def.AmountMin == Def.AmountMax ? $"{Def.AmountMin}" : $"{Def.AmountMin}~{Def.AmountMax}";
-            string warning = CanReceiveAny(user) ? "" : "수류탄·회복 팩·예비 탄창이 모두 가득 차 있습니다";
-            return new InteractPrompt($"{Def.DisplayName} 보급 상자", $"{ItemName(Def.SupplyType)} {amount}개 · 예비 탄창 충전", "획득", "", warning);
-        }
+        /// <summary>
+        /// 조준·근접 안내. 제목·설명은 SupplyTable.CrateName / CrateDescription (예: "수류탄 보급 상자" / "수류탄과 탄약이 들어 있는 보급 상자").
+        /// 받을 수 없을 때만 짧은 경고를 붙인다. 무기 상세(무기명·설명)는 획득 후 SupplyWeaponPickupHud 가 보여 준다.
+        /// 매 프레임 불릴 수 있어 계산은 가볍게 (지급은 하지 않음)
+        /// </summary>
+        public InteractPrompt GetPrompt(GameObject user) =>
+            new InteractPrompt(Def.CrateName, Def.CrateDescription, "획득", "", GetWarning(user));
 
-        /// <summary>보급 무기 상자: 무기명 · 1회용 · 탄 수. 이미 같은 무기면 경고(획득 불가), 다른 보급 무기를 들고 있으면 버려진다고 안내</summary>
-        private InteractPrompt GetWeaponPrompt(GameObject user)
+        /// <summary>받을 수 없거나 주의가 필요한 경우의 짧은 경고 (없으면 빈 문자열)</summary>
+        private string GetWarning(GameObject user)
         {
-            WeaponDef weapon = DataManager.Weapons.TryGet(Def.WeaponId, out var w) ? w : null;
-            string ammo = weapon != null ? $" · 탄 {weapon.MagazineSize} + 예비 {weapon.StartMagazines}탄창" : "";
+            if (Def.IsWeapon == false) return CanReceiveAny(user) ? "" : "모두 가득 차 있습니다";
 
-            string warning = "";
             var receiver = user != null ? user.GetComponentInParent<ISupplyWeaponUser>() : null;
-            if (receiver != null && receiver.SupplyWeaponId == Def.WeaponId)
-                warning = "이미 보유 중인 보급 무기입니다";
-            else if (receiver != null && receiver.SupplyWeaponId != 0)
-            {
-                string current = DataManager.Weapons.TryGet(receiver.SupplyWeaponId, out var cur) ? cur.Name : $"무기 {receiver.SupplyWeaponId}";
-                warning = $"현재 {current} 은(는) 버려집니다";
-            }
-            return new InteractPrompt($"{Def.DisplayName} 보급 상자", $"보급 무기 · 1회용 (탄을 다 쓰면 사라짐){ammo}", "획득", weapon != null ? weapon.IconKey : "", warning);
+            if (receiver == null || receiver.SupplyWeaponId == 0) return "";
+            if (receiver.SupplyWeaponId != Def.WeaponId) return "들고 있는 보급 무기와 바뀝니다";
+            // 같은 무기를 들고 있으면 탄창만 받는다
+            var ammo = user.GetComponentInParent<IPlayerAmmo>();
+            return ammo != null && ammo.CanAddSupplyMagazines ? "이미 가진 무기라 탄약만 받습니다" : "모두 가득 차 있습니다";
         }
 
         /// <summary>
         /// user(플레이어 루트)에게 보급을 지급한다.
         ///   아이템: 종류별 AmountMin~AmountMax 개 무작위 / 탄약: 슬롯의 모든 총에 무기별 비율만큼 (IPlayerAmmo.AddSupplyMagazines)
-        ///   보급 무기: 보급 칸에 장착 (ISupplyWeaponUser.EquipSupplyWeapon, 탄창 충전 없음)
+        ///   보급 무기: 보급 칸에 장착 (ISupplyWeaponUser.EquipSupplyWeapon) + 1~3번 칸 예비 탄창 충전
         /// 하나라도 실제로 늘었으면 SupplyCollectedEvent(실제 지급량) 발행 후 물자를 제거하고 true. 하나도 못 받으면 그대로 남고 false.
         /// </summary>
         public bool Interact(GameObject user)
@@ -232,13 +232,20 @@ namespace HybridShooter.Supply
             return true;
         }
 
-        /// <summary>보급 무기 지급. 같은 무기를 이미 들고 있거나 장착에 실패하면 상자는 그대로 남고 false</summary>
+        /// <summary>
+        /// 보급 무기 + 예비 탄창 지급. 탄창은 1~3번 칸 총에만 (IPlayerAmmo.AddSupplyMagazines 가 보급 칸을 뺀다 — 보급 무기는 1회용).
+        /// 같은 보급 무기를 이미 들고 있으면 탄창만 받는다. 둘 다 못 받으면 상자는 그대로 남고 false.
+        /// SupplyCollectedEvent 의 ItemAmount = 무기를 장착했으면 1, 탄창만이면 0
+        /// </summary>
         private bool InteractWeapon(GameObject user)
         {
             var receiver = user.GetComponentInParent<ISupplyWeaponUser>();
-            if (receiver == null || receiver.SupplyWeaponId == Def.WeaponId || receiver.EquipSupplyWeapon(Def.WeaponId) == false) return false;
+            var ammo = user.GetComponentInParent<IPlayerAmmo>();
+            bool equipped = receiver != null && receiver.SupplyWeaponId != Def.WeaponId && receiver.EquipSupplyWeapon(Def.WeaponId);
+            int magazines = ammo != null ? ammo.AddSupplyMagazines() : 0;
+            if (equipped == false && magazines == 0) return false;
 
-            EventBus<SupplyCollectedEvent>.Publish(new SupplyCollectedEvent(Def, 1, 0, transform.position));
+            EventBus<SupplyCollectedEvent>.Publish(new SupplyCollectedEvent(Def, equipped ? 1 : 0, magazines, transform.position));
             Remove();
             return true;
         }
@@ -255,16 +262,6 @@ namespace HybridShooter.Supply
             }
             var ammo = user.GetComponentInParent<IPlayerAmmo>();
             return ammo != null && ammo.CanAddSupplyMagazines;
-        }
-
-        private static string ItemName(SupplyType type)
-        {
-            switch (type)
-            {
-                case SupplyType.Grenade: return "수류탄";
-                case SupplyType.Heal: return "회복 팩";
-                default: return type.ToString();
-            }
         }
 
         /// <summary>종류에 맞는 아이템을 amount 개 보충하고, 최대치에 막히지 않고 실제로 늘어난 개수를 돌려준다</summary>
@@ -299,6 +296,23 @@ namespace HybridShooter.Supply
             removed = true;
             Removed?.Invoke(this);
             Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// 근접 획득 영역: 상자 중심에 반지름 pickupRadius 의 트리거 SphereCollider 를 가진 자식을 만든다.
+        /// Ignore Raycast 레이어라 기본 레이캐스트(조준·카메라 등)에는 걸리지 않고, 플레이어는 OverlapSphere 로 직접 찾는다
+        /// (자식 콜라이더라 GetComponentInParent 로 이 상자를 찾는다. 루트의 Kinematic Rigidbody 에 묶인다)
+        /// </summary>
+        private void CreatePickupZone()
+        {
+            var zone = new GameObject("PickupZone");
+            zone.layer = IgnoreRaycastLayer;
+            zone.transform.SetParent(transform, false);
+            zone.transform.localPosition = trigger.center;
+            var sphere = zone.AddComponent<SphereCollider>();
+            sphere.isTrigger = true;
+            float scale = Mathf.Max(0.0001f, Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z)));
+            sphere.radius = pickupRadius / scale;
         }
 
         /// <summary>

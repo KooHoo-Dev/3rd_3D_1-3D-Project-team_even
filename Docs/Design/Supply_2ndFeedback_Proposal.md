@@ -167,7 +167,7 @@
 
 ---
 
-## 7. 추가 설계 — 상황에 따라 바뀌는 보급 확률 (검토 중, 구현 전)
+## 7. 추가 설계 — 상황에 따라 바뀌는 보급 확률 (Q-A~Q-D 권장안 확정 · 구현 완료, 플레이 확인 전)
 
 > 요청: ① 수류탄·회복 팩 상자 확률은 플레이어의 현재 보유량에 따라 조정 ② 무기 상자 확률은 웨이브 몬스터 수가 급증할 때, 플레이어가 보급 무기를 다 썼을 때 상승
 
@@ -223,3 +223,144 @@ ConfigTable 신규 행 (기획 조정값): `SupplyNeedWeightMin 0.25` · `Supply
 | Q-B | 보급 무기를 들고 있을 때 무기 상자 | **(권장) 확률 절반** / 그대로 / 나오지 않음 |
 | Q-C | 수류탄·회복 둘 다 가득일 때 무기 확률 상승 | **(권장) 허용** / 무기 배율은 보유량과 무관하게 유지(정규화) |
 | Q-D | 배율 수치 (×2 / ×0.25 / ×2.5 / 상한 ×4) · 기본 Weight | **(권장) 표 배율 + 무기 기본 Weight 15 로 시작, 플레이 후 ConfigTable·SupplyTable 에서 조정** |
+
+### 7-7. 구현 결과 (Q-A·Q-B·Q-D 권장안, Q-C 허용)
+
+- `Supply/SupplyDropWeights.cs` (신규, `SupplyDropper.Awake` 가 자동 부착): 보유량 배율 · 급증(`MonsterSpawnedEvent` 10초 12마리 → 30초) · 소진(`SupplyWeaponChangedEvent.Depleted` → 다음 무기 상자 투하까지) · 보유 중 ×0.5 · 상한 ×4 · 필드에 무기 상자가 있으면 급증·소진 배율 미적용. 라운드 정리 때 상태 초기화
+- `SupplyDef.Pick(all, roll, weightOf)` 오버로드 (전부 0 이하면 기본 Weight 로)
+- `SupplyWeaponChangedEvent.Depleted` 추가 (기본값 false — 기존 발행·구독 코드 영향 없음), `GunSlot` 탄 소진 시 true
+- `SupplyDropper.DropRandom`: 투하마다 `[SupplyDropper] 투하 확률: 수류탄 팩 41% · … (급증 O/X · 무기 소진 O/X) → 선택` 로그
+- 데이터: `SupplyTable` 무기 Weight 10 → 15, `ConfigTable` 9행 (`SupplyNeedWeightMin/Max`, `SupplyWeaponSurge/Depleted/HeldMultiplier`, `SupplyWeaponMultiplierCap`, `SupplySurgeSpawnCount/Window/Duration`)
+
+플레이 확인 항목
+- [ ] 수류탄 0개일 때 수류탄 상자가 자주, 가득일 때 드물게 (Console 투하 확률 로그로 확인)
+- [ ] 웨이브가 몰려올 때 `몬스터 급증` 로그 → 다음 투하 확률에서 무기 상자 상승
+- [ ] 보급 무기 탄을 다 쓰면 다음 투하에서 `무기 소진 O`, 무기 상자가 떨어지면 `X` 로
+- [ ] 보급 무기를 들고 있는 동안 무기 상자 확률 절반
+
+---
+
+## 8. 3차 개선 설계 — 근접 획득 · 무기 상자 연출 · 무기 획득 UI · 보유 시 무기 상자 제외 (Q1·Q3·Q4 권장안, Q2 = 2m 확정 · 구현 완료, 플레이 확인 전)
+
+> 모든 판단은 「이벤트 버스와 외부 데이터 적용 기준」 v0.1 기준. 표의 **통신 / 데이터** 열에 방식과 근거를 적는다.
+
+### 8-1. 근접 획득 (조준 → 상자 근처에서 F)
+
+현재: `PlayerInteractor`(플레이어 모듈)가 조준 레이로만 대상을 찾는다 → 3인칭·긴박한 상황에서 상자를 정확히 겨눠야 해 불편.
+
+```
+SupplyCrate  ── 획득 영역 SphereCollider(트리거, 반지름 pickupRadius) 추가 · IProximityInteractable(표식 계약) 구현
+PlayerInteractor.FindTarget
+  1) 조준 레이 대상 (기존 — 여러 상자 중 하나를 골라 집을 수 있게 우선)
+  2) 없으면 몸 중심의 OverlapSphere(트리거 포함) → 내가 들어가 있는 획득 영역 중 가장 가까운 IProximityInteractable
+  → 기존과 같이 InteractFocusChangedEvent → 프롬프트 HUD, F → TryInteract
+```
+
+| 항목 | 방식 | 근거 |
+|---|---|---|
+| 상자 영역 판정 → 대상 선택 | **직접 처리** (PlayerInteractor 가 물리 쿼리로 찾고 `IInteractable.Interact` 직접 호출) | 상호작용 요청과 성공 여부(반환값)가 다음 처리 조건 → 직접 호출 |
+| 근접 허용 여부 | **Core 계약 `IProximityInteractable : IInteractable`** (멤버 없는 표식) | 다른 상호작용 대상(테스트 무기 픽업 등)은 지금처럼 조준만. 기존 `IInteractable` 변경 없음 |
+| 영역 등록/해제 방식 | OnTriggerEnter/Exit 등록이 아니라 **매 프레임 OverlapSphere** | 상자가 파괴돼도 남는 참조·해제 누락이 없다. 프레임당 쿼리 1회라 비용 작음 |
+| 획득 반지름 `pickupRadius` (**2m 확정**) | **Inspector (SupplyCrate)** | 콜라이더 크기 = 프리팹 설정 (기준 문서 표: 콜라이더 → Inspector). 밸런스 비교 대상 아님 |
+| 키 입력 | 기존 PlayerController → PlayerInteractor 그대로 | 보급 쪽에서 F 를 따로 읽으면 다른 상호작용과 이중 입력 |
+
+### 8-2. 무기 상자 = 연보라 빛기둥
+
+| 항목 | 방식 | 근거 |
+|---|---|---|
+| 4101·4102 `BeaconColor` → `#C8A2FF` (연보라) | **SupplyTable 값만 변경** | 이미 종류별 정의 데이터. 코드 변경 없음 (`SupplyBeaconOverride` 도 같은 색 × HDR) |
+
+### 8-3. 무기 획득 정보 UI (화면 우측 중단)
+
+```
+SupplyCrate.InteractWeapon → (기존) SupplyCollectedEvent(Def = 무기 행, ItemAmount 1)
+  → [신규] SupplyWeaponPickupHud : Def.IsWeapon 이면 우측 중단 카드 3.5초
+     [아이콘]  보급 무기 획득
+               로켓 발사기
+               1회용 · 탄 1 + 예비 4 · [4] 보급 칸
+```
+
+| 항목 | 방식 | 근거 |
+|---|---|---|
+| 획득 사실 → HUD | **기존 전역 `SupplyCollectedEvent` 구독** (새 이벤트 없음) | 이미 사운드·분석·테스트 HUD 가 독립적으로 관찰하는 확정된 사실. HUD 는 보급 상자를 참조하지 않는 독립 표현 책임 → 기준 문서의 버스 적합 조건 충족 |
+| 무기명·아이콘·탄 수 | **WeaponTable (기존 Def: Name·IconKey·MagazineSize·StartMagazines)** | 공통 정의 공유. 아이콘 `Resources/UI/WeaponIcons/rocket_launcher·grenade_launcher` 이미 있음 |
+| 위치·크기·표시 시간 | **Inspector (HUD 직렬화 필드)** | 화면을 보며 조정하는 연출값 |
+| 설치 | `GameFlowUiBootstrap.Ensure<SupplyWeaponPickupHud>` | 다른 HUD 와 같은 방식, 씬 수정 없음 |
+
+### 8-4. 보급 무기를 들고 있으면 무기 상자 확률 0
+
+| 항목 | 방식 | 근거 |
+|---|---|---|
+| `ConfigTable.SupplyWeaponHeldMultiplier` 0.5 → **0** | **데이터 값만 변경** | 이미 기획 조정값으로 분리된 항목. `SupplyDef.Pick` 은 0 가중치를 건너뜀 (코드 변경 없음) |
+
+결과: 보급 무기 보유 중 = 무기 상자 0% → 다 써서 사라지면 소진 배율(×2.5)로 바로 다시 잘 나온다.
+
+### 8-5. 보완점
+
+| # | 보완점 | 대응 |
+|---|---|---|
+| H1 | **`PlayerInteractor` 는 플레이어 담당(MinSeong) 코드** | 변경은 `FindTarget` 에 "조준 대상 없으면 근접 대상" 한 단계 추가뿐. 공유 후 반영 |
+| H2 | 상자 여러 개가 영역에 겹치면? | 조준 대상 우선 → 없으면 가장 가까운 상자 |
+| H3 | 착지 전(낙하 중) 상자 영역에 들어가면? | 기존 `CanInteract`(착지 후만)가 걸러 줌 |
+| H4 | 영역 트리거가 다른 시스템에 걸리는지 (몬스터·투사체가 트리거에 반응) | 영역 콜라이더는 상자 자식 오브젝트에 두고 `Ignore Raycast` 레이어 → 조준 레이·총알 판정에서 제외. 플레이어 쪽 OverlapSphere 는 이 레이어를 포함해 조회 |
+| H5 | 근접 획득으로 바뀌면 조준용 위쪽 판정 확장(`pickupTopPadding`) 필요성 감소 | 조준 획득도 유지하므로 그대로 둠 |
+| H6 | 연보라 하나로 로켓·유탄 구분 불가 | 프롬프트·획득 UI 에 무기명이 나옴. 구분이 필요하면 행별 색 |
+| H7 | 테스트 씬은 `SupplyHud` 에도 "보급 획득! 로켓 발사기 +1" 이 같이 뜸 | 테스트 HUD 라 유지 |
+| H8 | 보유 중 0% 라 "보급 무기를 오래 아끼는" 플레이에서는 무기 상자가 계속 안 나옴 | 의도로 봄. 완화가 필요하면 Held 값을 0.1 등으로 |
+
+### 8-6. 확인 받을 항목
+
+| Q | 질문 | 권장안 |
+|---|---|---|
+| Q1 | 근접 획득 구현 위치 | **(권장) 상자에 획득 영역 트리거 + PlayerInteractor 가 조준 대상 없을 때 영역 안의 가장 가까운 상자 선택 (MinSeong 공유)** / 보급 쪽에서 F 키를 따로 처리 (비권장: 이중 입력) |
+| Q2 | 획득 반지름 | **(권장) 3m** / 다른 값 |
+| Q3 | 무기 획득 UI 표시 조건 | **(권장) 보급 상자에서 무기를 얻을 때만** / 보급 칸에 무기가 장착될 때마다 (디버그 T 키 포함) |
+| Q4 | UI 표시 시간·내용 | **(권장) 3.5초 · 아이콘 + "보급 무기 획득" + 무기명 + "1회용 · 탄 수 · [4] 보급 칸"** |
+
+### 8-7. 구현 결과
+
+| 설계 | 구현 |
+|---|---|
+| 8-1 | Core 계약 `IProximityInteractable : IInteractable` (표식). `SupplyCrate` 가 구현 + Awake 에서 자식 `PickupZone`(Ignore Raycast, 트리거 SphereCollider, `pickupRadius = 2` Inspector) 생성. `PlayerInteractor.FindTarget` = `FindAimTarget() ?? FindNearbyTarget()` — 몸 중심 OverlapSphere(트리거 포함)로 영역 안의 가장 가까운 대상 |
+| 8-2 | `SupplyTable` 4101·4102 `BeaconColor = #C8A2FF` |
+| 8-3 | `UI/SupplyWeaponPickupHud.cs` (신규, `GameFlowUiBootstrap` 자동 부착). `SupplyCollectedEvent` 중 `Def.IsWeapon` 만 → 우측 중단 카드 3.5초 (오른쪽에서 밀려 들어옴, 실제 시간 기준). 아이콘·무기명·탄 수 = WeaponDef, 위치·크기·시간 = Inspector |
+| 8-4 | `ConfigTable.SupplyWeaponHeldMultiplier = 0` (코드 기본값도 0 으로 맞춤) |
+
+플레이 확인 항목
+- [ ] 상자 2m 안에 들어가면 조준하지 않아도 `[F] 획득` 프롬프트, F 로 획득 (1인칭·3인칭 모두)
+- [ ] 상자 여러 개가 가까우면 조준한 상자 우선, 아니면 가까운 상자
+- [ ] 총알·조준이 획득 영역(보이지 않는 구)에 막히지 않음
+- [ ] 무기 상자 빛기둥이 연보라
+- [ ] 보급 무기 획득 시 우측 중단 카드 (아이콘·무기명·1회용·탄 수·[4] 보급 칸)
+- [ ] 보급 무기 보유 중에는 투하 확률 로그의 무기 상자 0%, 다 쓰면 다시 등장
+
+### 8-8. 무기 획득 카드에 활용 설명 추가
+
+| 항목 | 방식 | 근거 |
+|---|---|---|
+| 무기별 한 줄 설명 | **`SupplyTable.Description` 열 (DTO·Def 필드 추가)** | 보급 무기 행마다 다른 콘텐츠 문구 = 종류별 작성 데이터. 보급 상자에서 얻을 때만 쓰는 문구라 무기 담당 테이블(WeaponTable)이 아닌 보급 정의에 둔다 |
+| 카드 배치 (아이콘 · 제목 · 무기명 · 설명 2줄 · [4] 보급 칸) · 크기 540×184 · 표시 5초. 1회용·탄 수는 유저에게 필요 없는 정보라 표시하지 않음 | **Inspector (HUD 필드)** | 화면을 보며 조정하는 연출값. 설명 두 줄을 읽도록 3.5 → 5초 |
+
+- 4101 로켓 발사기: "재장전 시간이 느리지만 파괴력이 강력한 무기입니다"
+- 4102 유탄 발사기: "수류탄처럼 궤도를 그리며 여러 적을 타격하는 범위 공격형 무기입니다"
+- 무기명은 WeaponTable 이름(로켓 발사기·유탄 발사기)을 그대로 쓴다
+
+### 8-9. 상자 안내 문구 간소화
+
+| 상자 | 제목 (`CrateName`) | 설명 (`CrateDescription`) |
+|---|---|---|
+| 4001 수류탄 | 수류탄 보급 상자 | 수류탄과 탄약이 들어 있는 보급 상자 |
+| 4002 회복 팩 | 회복 팩 보급 상자 | 회복 팩과 탄약이 들어 있는 보급 상자 |
+| 4101·4102 무기 | 무기 보급 상자 | 보급 무기가 들어 있는 보급 상자 |
+
+- 데이터: **`SupplyTable` 열 2개 추가** (행마다 다른 화면 문구 = 종류별 작성 데이터, 표에서 바로 수정)
+- 개수·탄 수·무기명은 안내에서 제외. 무기 상세는 획득 후 카드(8-8)만
+- 경고는 받을 수 없을 때만 짧게: 아이템 상자 "모두 가득 차 있습니다" · 무기 상자 "이미 가진 보급 무기입니다" / "들고 있는 보급 무기와 바뀝니다"
+- 무기 상자 탄약 → 8-10 으로 변경 (무기 + 1~3번 칸 탄창, 설명 "보급 무기와 탄약이 들어 있는 보급 상자")
+
+### 8-10. 무기 상자도 탄약 지급 (Q3-1 변경)
+
+- 무기 상자 획득 = 보급 무기 장착 + **1~3번 칸 총 예비 탄창 충전** (`IPlayerAmmo.AddSupplyMagazines`, 보급 칸 제외 — 보급 무기에는 충전 안 함)
+- 같은 보급 무기를 이미 들고 있으면 **탄창만** 받는다 (안내 경고 "이미 가진 무기라 탄약만 받습니다", 탄창도 가득이면 "모두 가득 차 있습니다" + 획득 불가)
+- `SupplyCollectedEvent.ItemAmount` = 무기를 장착했으면 1, 탄창만이면 0 → 무기 획득 카드는 1 일 때만
+- 통신·데이터 추가 없음 (기존 직접 호출·이벤트·테이블 문구만 수정)

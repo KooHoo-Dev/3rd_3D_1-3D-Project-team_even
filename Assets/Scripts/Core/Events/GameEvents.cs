@@ -265,7 +265,7 @@ namespace HybridShooter.Core.Events
     public readonly struct SupplyCollectedEvent
     {
         public readonly SupplyDef Def;
-        /// <summary>실제로 늘어난 아이템(수류탄·회복 팩) 개수. 가득 차 있었으면 0. 보급 무기(SupplyType.Weapon) 는 1</summary>
+        /// <summary>실제로 늘어난 아이템(수류탄·회복 팩) 개수. 가득 차 있었으면 0. 보급 무기(SupplyType.Weapon) 는 장착했으면 1, 같은 무기라 탄창만 받았으면 0</summary>
         public readonly int ItemAmount;
         /// <summary>슬롯의 모든 총에 실제로 채운 예비 탄창 합. 모두 가득 차 있었으면 0</summary>
         public readonly int MagazinesAdded;
@@ -312,11 +312,18 @@ namespace HybridShooter.Core.Events
         public InteractFocusChangedEvent(bool hasTarget, InteractPrompt prompt) { HasTarget = hasTarget; Prompt = prompt; }
     }
 
-    /// <summary>보급 칸(4번) 무기가 바뀜. Id 0 = 비어 있음 (처음부터 재시작 시 New = 0)</summary>
+    /// <summary>
+    /// 보급 칸(4번) 무기가 바뀜. Id 0 = 비어 있음 (처음부터 재시작 시 New = 0).
+    /// Depleted = 탄을 모두 써서 사라짐 (라운드 정리·다른 보급 무기로 교체와 구분. 보급 확률이 무기 상자를 올리는 데 쓴다)
+    /// </summary>
     public readonly struct SupplyWeaponChangedEvent
     {
         public readonly int PreviousWeaponId, NewWeaponId;
-        public SupplyWeaponChangedEvent(int previousWeaponId, int newWeaponId) { PreviousWeaponId = previousWeaponId; NewWeaponId = newWeaponId; }
+        public readonly bool Depleted;
+        public SupplyWeaponChangedEvent(int previousWeaponId, int newWeaponId, bool depleted = false)
+        {
+            PreviousWeaponId = previousWeaponId; NewWeaponId = newWeaponId; Depleted = depleted;
+        }
     }
 
     /// <summary>[코어(WeaponUnlockLedger)] → UI(해금 알림). 무기가 영구 해금됨 (다음 출발 때 무기 선택 화면에서 고를 수 있다)</summary>

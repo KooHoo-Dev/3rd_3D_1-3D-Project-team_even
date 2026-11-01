@@ -19,5 +19,8 @@ namespace HybridShooter.Core.Data.Dtos
         public string DropSfxKey = "";  // SoundTable.Key (투하, 착지 지점)
         public string AnnounceSfxKey = "";  // SoundTable.Key (투하 안내, 2D)
         public string CollectSfxKey = "";  // SoundTable.Key (획득)
+        public string Description = "";  // 한 줄 설명 (보급 무기 획득 카드에 표시, 비워도 됨)
+        public string CrateName = "";  // 상자 조준·근접 안내 제목 (비우면 "{DisplayName} 보급 상자")
+        public string CrateDescription = "";  // 상자 조준·근접 안내 설명 한 줄
     }
 }

@@ -33,6 +33,16 @@ namespace HybridShooter.Core.Data.Defs
         public const string SupplyMaxTerrainHeight = "SupplyMaxTerrainHeight"; // 플레이어 발 높이 + 이 값 이하의 지면에만 낙하 (넘으면 다시 뽑음)
         public const string SupplyMaxActive = "SupplyMaxActive";               // 필드 동시 보급 최대 개수
         public const string SupplyLifetime = "SupplyLifetime";                 // 착지 후 이 시간(초)이 지나면 사라짐 (0 = 사라지지 않음)
+        // 상황별 보급 확률 배율 (SupplyDropWeights): 최종 가중치 = SupplyTable.Weight × 배율
+        public const string SupplyNeedWeightMin = "SupplyNeedWeightMin";       // 수류탄·회복 팩이 가득일 때 그 상자 배율
+        public const string SupplyNeedWeightMax = "SupplyNeedWeightMax";       // 〃 0개일 때 배율 (사이는 보유 비율로 선형)
+        public const string SupplyWeaponSurgeMultiplier = "SupplyWeaponSurgeMultiplier";         // 몬스터 급증 중 무기 상자 배율
+        public const string SupplyWeaponDepletedMultiplier = "SupplyWeaponDepletedMultiplier";   // 보급 무기를 다 쓴 뒤(다음 무기 상자 투하까지) 무기 상자 배율
+        public const string SupplyWeaponHeldMultiplier = "SupplyWeaponHeldMultiplier";           // 보급 무기를 들고 있을 때 무기 상자 배율
+        public const string SupplyWeaponMultiplierCap = "SupplyWeaponMultiplierCap";             // 무기 상자 배율 상한
+        public const string SupplySurgeSpawnCount = "SupplySurgeSpawnCount";   // 최근 SupplySurgeWindow 초 소환 수가 이 이상이면 몬스터 급증
+        public const string SupplySurgeWindow = "SupplySurgeWindow";           // 급증 판정 구간(초)
+        public const string SupplySurgeDuration = "SupplySurgeDuration";       // 급증 판정 후 유지 시간(초)
         public const string RoundStartGrenades = "RoundStartGrenades";         // 보스 클리어 후 다음 라운드 시작 지급: 수류탄
         public const string RoundStartHealPacks = "RoundStartHealPacks";       // 〃 회복 팩
         public const string RoundStartMagazines = "RoundStartMagazines";       // 〃 1~3번 칸 모든 총 예비 탄창

@@ -23,6 +23,14 @@ namespace HybridShooter.Core.Contracts
         Transform InteractTransform { get; }
     }
 
+    /// <summary>
+    /// 조준하지 않아도 근처에서 상호작용 키로 쓸 수 있는 대상 (보급 상자). 멤버 없는 표식 계약.
+    ///  - 대상은 자기 획득 영역을 트리거 콜라이더(자식 가능)로 둔다. 영역 크기는 대상 쪽이 정한다
+    ///  - 플레이어(PlayerInteractor)는 조준 대상이 없을 때, 몸이 들어가 있는 영역 중 가장 가까운 대상을 고른다
+    ///  - 이 계약이 없는 IInteractable 은 지금처럼 조준해야만 쓸 수 있다
+    /// </summary>
+    public interface IProximityInteractable : IInteractable { }
+
     /// <summary>상호작용 프롬프트 HUD 에 표시할 정보</summary>
     public readonly struct InteractPrompt
     {

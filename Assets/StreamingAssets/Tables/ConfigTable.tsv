@@ -16,6 +16,15 @@ SupplyLandingHeight	3	감속 착지 시작 높이(m, 지면 기준) - BL-018
 SupplyMaxTerrainHeight	5	보급 낙하 허용 높이(m, 플레이어 발 높이 기준. 지면이 플레이어보다 이 값을 넘게 높으면 다시 뽑음 = 언덕·산 위 제외). 착지면은 Ground 레이어여야 함
 SupplyMaxActive	5	필드에 동시에 존재할 수 있는 보급 최대 개수(도달하면 투하 건너뜀)
 SupplyLifetime	90	보급 상자가 착지 후 사라지기까지의 시간(초, 0 = 사라지지 않음). 마지막 10초는 빛기둥이 깜빡임. 갈 수 없는 곳에 떨어진 상자가 최대 개수를 계속 차지하지 않도록
+SupplyNeedWeightMin	0.25	보급 확률 - 수류탄·회복 팩을 가득 보유했을 때 그 상자의 가중치 배율 (SupplyTable.Weight × 배율, 0 이면 가득일 때 안 나옴)
+SupplyNeedWeightMax	2	보급 확률 - 수류탄·회복 팩이 0개일 때 그 상자의 가중치 배율 (보유 비율에 따라 Max → Min 선형)
+SupplyWeaponSurgeMultiplier	2.5	보급 확률 - 몬스터 급증 중 무기 상자 가중치 배율
+SupplyWeaponDepletedMultiplier	2.5	보급 확률 - 보급 무기를 다 써서 사라진 뒤 다음 무기 상자가 투하될 때까지 무기 상자 가중치 배율
+SupplyWeaponHeldMultiplier	0	보급 확률 - 보급 무기를 들고 있을 때 무기 상자 가중치 배율 (0 = 보유 중에는 무기 상자가 나오지 않음. 다 쓰면 SupplyWeaponDepletedMultiplier 로 다시 잘 나옴)
+SupplyWeaponMultiplierCap	4	보급 확률 - 무기 상자 배율 상한 (급증 × 소진이 겹쳐도 이 값까지). 필드에 무기 상자가 이미 있으면 급증·소진 배율은 적용 안 함
+SupplySurgeSpawnCount	12	몬스터 급증 판정 - 최근 SupplySurgeWindow 초 동안 소환된 몬스터가 이 수 이상이면 급증
+SupplySurgeWindow	10	몬스터 급증 판정 구간(초)
+SupplySurgeDuration	30	몬스터 급증 판정 후 유지 시간(초). 투하 간격(RoundTable.SupplyInterval 25초)보다 길게 해야 급증 중 최소 1번 투하
 CameraTransitionTime	1.2	1인칭→3인칭 전환 시간(초) - BL-022
 RoundStartGrenades	-1	보스 클리어 후 다음 라운드 시작 때 지급하는 수류탄 개수(최대 보유량까지, -1 = 최대 보유량까지 가득)
 RoundStartHealPacks	2	보스 클리어 후 다음 라운드 시작 때 지급하는 회복 팩 개수(최대 보유량까지, -1 = 가득)

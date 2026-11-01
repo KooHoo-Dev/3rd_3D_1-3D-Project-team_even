@@ -477,7 +477,7 @@ namespace HybridShooter.Weapon
             ReturnSupplyWeapon();
             if (wasHolding && Select(slotBeforeSupply) == false && Select(startSlot) == false) SelectNext(1);
             LoadoutChanged?.Invoke();
-            EventBus<SupplyWeaponChangedEvent>.Publish(new SupplyWeaponChangedEvent(previousId, 0));
+            EventBus<SupplyWeaponChangedEvent>.Publish(new SupplyWeaponChangedEvent(previousId, 0, depleted: true));
         }
 
         /// <summary>보급 칸 총을 탄 초기화 후 예비로 반납. 들고 있었으면 내려놓기만 한다 (currentIndex = -1, 바꿔 들기는 호출한 쪽에서)</summary>

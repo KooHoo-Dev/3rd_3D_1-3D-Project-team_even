@@ -12,7 +12,7 @@ namespace HybridShooter.Supply
     /// <summary>
     /// 보급 투하 담당 (BL-018).
     ///
-    ///   1) 종류 선택: SupplyDef.Pick (SupplyTable Weight)
+    ///   1) 종류 선택: SupplyDef.Pick (SupplyTable Weight × 상황 배율 = SupplyDropWeights: 보유량·몬스터 급증·보급 무기 상태)
     ///   2) 낙하 지점: ISpawnZoneProvider.TryGetSupplyDropPosition (기본 = 플레이어 기준 XZ SupplyDropMin~MaxDistance) → 아래로 레이캐스트.
     ///      처음 맞은 콜라이더가 dropGroundLayers(기본 Ground) 가 아니면(건물 지붕·바위·나무 등) 버리고,
     ///      지면이 플레이어 발 높이 + ConfigTable.SupplyMaxTerrainHeight 보다 높으면(언덕·산 위 등) 버리고 다시 뽑는다
@@ -62,6 +62,7 @@ namespace HybridShooter.Supply
         private float nextAutoDropTime = float.PositiveInfinity;
         private int retryCount;
         private NavMeshPath path;
+        private SupplyDropWeights weights;
 
         /// <summary>현재 필드에 남아 있는 보급 목록 (낙하 중 + 착지 후)</summary>
         public IReadOnlyList<SupplyCrate> ActiveCrates => activeCrates;
@@ -72,10 +73,12 @@ namespace HybridShooter.Supply
         /// <summary>다음 자동 투하까지 남은 시간(초). 자동 투하가 꺼져 있거나 멈춘 상태면 Infinity</summary>
         public float TimeUntilNextDrop => autoDrop ? Mathf.Max(0f, nextAutoDropTime - Time.time) : float.PositiveInfinity;
 
-        /// <summary>다음 라운드 시작 지급(RoundStartSupply)이 없으면 붙인다. 보급이 있는 씬이면 따로 배치하지 않아도 동작하도록</summary>
+        /// <summary>다음 라운드 시작 지급(RoundStartSupply)·상황별 확률(SupplyDropWeights)이 없으면 붙인다. 보급이 있는 씬이면 따로 배치하지 않아도 동작하도록</summary>
         private void Awake()
         {
             if (GetComponent<RoundStartSupply>() == null) gameObject.AddComponent<RoundStartSupply>();
+            weights = GetComponent<SupplyDropWeights>();
+            if (weights == null) weights = gameObject.AddComponent<SupplyDropWeights>();
         }
 
         /// <summary>라운드 정리 이벤트 구독 (OnDisable 과 짝)</summary>
@@ -110,17 +113,19 @@ namespace HybridShooter.Supply
         }
 
         /// <summary>
-        /// SupplyTable 의 Weight(가중치)로 보급 종류(수류탄/회복 팩)를 랜덤 선택해 투하한다.
-        /// 테이블이 비었거나 투하에 실패하면 null.
+        /// SupplyTable 의 Weight(가중치) × 상황 배율(SupplyDropWeights)로 보급 종류를 랜덤 선택해 투하한다.
+        /// 확률 조정용으로 각 상자의 최종 확률을 로그로 남긴다. 테이블이 비었거나 투하에 실패하면 null.
         /// </summary>
         public SupplyCrate DropRandom()
         {
-            var def = SupplyDef.Pick(DataManager.Supplies.All, Random.value);
+            var all = DataManager.Supplies.All;
+            var def = SupplyDef.Pick(all, Random.value, d => weights.WeightOf(d, activeCrates));
             if (def == null)
             {
                 Debug.LogError("[SupplyDropper] SupplyTable 이 비어 있습니다.");
                 return null;
             }
+            Debug.Log($"[SupplyDropper] 투하 확률: {weights.Describe(all, activeCrates)} → {def.DisplayName}", this);
             return Drop(def);
         }
 
@@ -153,6 +158,7 @@ namespace HybridShooter.Supply
             crate.Removed += OnCrateRemoved;
             activeCrates.Add(crate);
 
+            weights.NotifyDropped(def);
             EventBus<SupplyDroppedEvent>.Publish(new SupplyDroppedEvent(def, crate.LandingPosition, crate.gameObject));
             return crate;
         }
