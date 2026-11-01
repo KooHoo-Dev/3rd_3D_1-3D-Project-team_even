@@ -205,10 +205,65 @@ namespace HybridShooter.Monster.Movement
                 directive = new CrowdDirective(DirectiveKind.Unrestricted, default, 0, false, 0f);
                 return;
             }
+            JoinAssignedCrowd();
+            RegisterAssignedCrowd();
+        }
+
+        /// <summary>
+        /// 배정된 묶음(assignedController)에 소속한다 (이미 소속이면 무시). 소속은 묶음 수명 판단용이다.
+        /// Activate(활성화 시 배정돼 있음)와 JoinCrowd(소환 직후 배정)가 부른다.
+        /// </summary>
+        private void JoinAssignedCrowd()
+        {
+            if (crowdController != null) return;
             crowdController = assignedController;
             crowdController.Join(this);
+        }
+
+        /// <summary>
+        /// 소속된 묶음의 배분 대상으로 등록하고 군중 모드로 동작한다. Activate 와 JoinCrowd(이미 활성인 개체)가 소속 뒤에 부른다.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">슬롯 모드에서 접근 슬롯 반경 + 여유가 공격 사거리 이상일 때 (ValidateCombatSlots)</exception>
+        private void RegisterAssignedCrowd()
+        {
+            isDirectMode = false;
             ValidateCombatSlots();
             if (suspended == false || retainReservation) RegisterCrowd();
+        }
+
+        /// <summary>
+        /// 이 몬스터를 군중 묶음에 배정하고 바로 소속시킨다. MonsterSpawner 가 Crowd 형식으로 소환한 직후 부른다.
+        /// 바로 소속시켜야 같은 Tick 에 스포너가 끝나도(MarkSpawnFinished) 묶음이 0마리로 보고 파괴되지 않는다.
+        /// 첫 활성화(Start) 전이면 배분 등록은 Activate 가 하고, 풀에서 꺼내 이미 직접 추적으로 활성화됐으면 지금 군중 모드로 바꾼다.
+        /// </summary>
+        /// <param name="controller">통제받을 묶음</param>
+        /// <exception cref="ArgumentNullException">controller 가 null 일 때</exception>
+        /// <exception cref="InvalidOperationException">이미 군중 묶음에 소속돼 있을 때</exception>
+        /// <remarks>직접 추적으로 쥐고 있던 목표는 묶음에 목표가 없을 때만 넘긴다 (묶음 SetTarget 은 예약을 모두 비우므로).</remarks>
+        public void JoinCrowd(CrowdController controller)
+        {
+            if (controller == null) throw new ArgumentNullException(nameof(controller));
+            if (crowdController != null) throw new InvalidOperationException("이미 군중 묶음에 소속돼 있다");
+
+            assignedController = controller;
+            JoinAssignedCrowd();
+            bool isActivated = started && isActiveAndEnabled;
+            if (isActivated == false) return;
+
+            IPlayerTarget directTarget = targetInfo;
+            RegisterAssignedCrowd();
+            bool shouldHandOverTarget = controller.Target == null && directTarget != null;
+            if (shouldHandOverTarget) controller.SetTarget(directTarget);
+        }
+
+        /// <summary>
+        /// 묶음 배정을 지운다. 다음 활성화는 직접 추적. MonsterPool 이 반납받은 몬스터를 끈 뒤 부른다 (재사용 때 옛 묶음에 다시 들어가지 않게).
+        /// </summary>
+        /// <exception cref="InvalidOperationException">활성 상태일 때 (소속 해제는 OnDisable 이 한다)</exception>
+        public void ClearCrowdAssignment()
+        {
+            if (isActiveAndEnabled) throw new InvalidOperationException("ClearCrowdAssignment 는 비활성 상태에서만 호출할 수 있다");
+            assignedController = null;
         }
 
         /// <summary>

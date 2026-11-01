@@ -2237,6 +2237,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWaveDirector
   monsterPool: {fileID: 1655045236}
+  crowdControllerTemplate: {fileID: 8939933189621404129, guid: b18a8b7bd1576bd4ea34608080dff36f, type: 3}
 --- !u!4 &1655045238
 Transform:
   m_ObjectHideFlags: 0

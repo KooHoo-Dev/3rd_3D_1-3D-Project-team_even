@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data.Defs;
+using HybridShooter.Monster.Movement;
 
 namespace HybridShooter.Monster.Behaviour
 {
@@ -19,6 +20,7 @@ namespace HybridShooter.Monster.Behaviour
         private readonly WaveStageDef stage;
         private readonly IMonsterFactory monsterFactory;
         private readonly ISpawnZoneProvider spawnZones;
+        private readonly CrowdController crowdControllerTemplate;  // Crowd 묶음마다 복제할 컨트롤러. null = Crowd 줄 없음 가정
 
         // ── 진행 상태 ──
         private float elapsedTime;  // 초, 스테이지 시작 기준 (WaveDef.StartTime 과 같은 기준)
@@ -48,11 +50,13 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="stage">실행할 스테이지 행 (Waves 가 Link 된 것, StartTime 순)</param>
         /// <param name="monsterFactory">웨이브·스포너에 그대로 넘길 팩토리 (보통 ServiceLocator 의 MonsterPool)</param>
         /// <param name="spawnZones">웨이브·스포너에 그대로 넘길 소환 위치 계산 (보통 ServiceLocator 의 RingSpawnZoneProvider)</param>
-        public MonsterWaveStage(WaveStageDef stage, IMonsterFactory monsterFactory, ISpawnZoneProvider spawnZones)
+        /// <param name="crowdControllerTemplate">웨이브에 그대로 넘길 군중 묶음 템플릿. Crowd 줄이 없으면 null 이어도 된다</param>
+        public MonsterWaveStage(WaveStageDef stage, IMonsterFactory monsterFactory, ISpawnZoneProvider spawnZones, CrowdController crowdControllerTemplate = null)
         {
             this.stage = stage;
             this.monsterFactory = monsterFactory;
             this.spawnZones = spawnZones;
+            this.crowdControllerTemplate = crowdControllerTemplate;
         }
 
         /// <summary>
@@ -99,7 +103,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             while (nextWaveIndex < stage.Waves.Count && stage.Waves[nextWaveIndex].StartTime <= elapsedTime)
             {
-                var wave = new MonsterWave(stage.Waves[nextWaveIndex], monsterFactory, spawnZones);
+                var wave = new MonsterWave(stage.Waves[nextWaveIndex], monsterFactory, spawnZones, crowdControllerTemplate);
                 wave.Finished += OnWaveFinished;
                 runningWaves.Add(wave);
                 nextWaveIndex++;

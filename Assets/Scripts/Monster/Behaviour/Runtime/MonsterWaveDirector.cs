@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
+using HybridShooter.Monster.Movement;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.Services;
 using UnityEngine;
@@ -27,6 +28,8 @@ namespace HybridShooter.Monster.Behaviour
         [Header("연결")]
         [Tooltip("스테이지 시작 직전 WarmupStage 와 소환 팩토리 둘 다 이 풀을 쓴다")]
         [SerializeField] private MonsterPool monsterPool;
+        [Tooltip("Crowd 형식 묶음마다 복제할 CrowdController 프리팹 (Crowd Controller.prefab). Crowd 줄이 없으면 비워도 된다")]
+        [SerializeField] private CrowdController crowdControllerTemplate;
 
         // ── 라운드 진행 ──
         private bool isRoundRunning;
@@ -197,7 +200,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             monsterPool.WarmupStage(stage);
 
-            var runningStage = new MonsterWaveStage(stage, monsterPool, ServiceLocator.Get<ISpawnZoneProvider>());
+            var runningStage = new MonsterWaveStage(stage, monsterPool, ServiceLocator.Get<ISpawnZoneProvider>(), crowdControllerTemplate);
             runningStage.Finished += OnStageFinished;
             runningStages.Add(runningStage);
             Debug.Log($"[MonsterWaveDirector] 라운드 {roundNo} 스테이지 {stage.Id} 시작 (라운드 {roundElapsedTime:0.0}초)", this);

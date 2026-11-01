@@ -4,6 +4,7 @@ using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.Services;
+using HybridShooter.Monster.Movement;
 using UnityEngine;
 
 namespace HybridShooter.Monster.Behaviour
@@ -204,7 +205,7 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// MonsterController.Despawn 이 호출한다. 개체를 끄고 Def.Id 종류 루트로 옮겨 반납 스택에 넣는다.
+        /// MonsterController.Despawn 이 호출한다. 개체를 끄고 군중 묶음 배정을 지운 뒤 Def.Id 종류 루트로 옮겨 반납 스택에 넣는다.
         /// 이 풀이 만들지 않은 몬스터도 같은 방법으로 받는다.
         /// </summary>
         /// <param name="monster">반납할 몬스터 GameObject (루트에 MonsterController)</param>
@@ -212,6 +213,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             var controller = monster.GetComponent<MonsterController>();
             monster.SetActive(false);
+            monster.GetComponent<MonsterMovement>().ClearCrowdAssignment(); // 재사용 때 옛 묶음에 다시 들어가지 않게
             IdleMonsters idleMonsters = GetIdleMonsters(controller.Def.Id);
             monster.transform.SetParent(idleMonsters.Root);
             idleMonsters.Returned.Push(controller);
