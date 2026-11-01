@@ -9,7 +9,7 @@ using Debug = UnityEngine.Debug;
 namespace HybridShooter.Monster.Movement
 {
     /// <summary>
-    /// 씬 단위 군중 제어 파라미터. CrowdCoordinator 의 Inspector 에서 조정하고 배분·판단 주기마다 읽힌다.
+    /// 씬 단위 군중 제어 파라미터. CrowdController 의 Inspector 에서 조정하고 배분·판단 주기마다 읽힌다.
     /// 초기값은 팀 ConfigTable 제안값 6m / 8마리 참고.
     /// </summary>
     [Serializable]
@@ -27,7 +27,7 @@ namespace HybridShooter.Monster.Movement
         public SlotSettings Slots = new SlotSettings();
     }
 
-    /// <summary>디버그·HUD 용 집계 (읽기 전용). CrowdCoordinator.GetSnapshot 이 만들어 MovementLab HUD 가 읽는다.</summary>
+    /// <summary>디버그·HUD 용 집계 (읽기 전용). CrowdController.GetSnapshot 이 만들어 MovementLab HUD 가 읽는다.</summary>
     public readonly struct CrowdSnapshot
     {
         public readonly int Registered;           // 등록된 몬스터 수
@@ -38,7 +38,7 @@ namespace HybridShooter.Monster.Movement
         // 마지막 배분 + 판단에 걸린 시간 (ms)
         public readonly float LastTickMs;
 
-        /// <summary>CrowdCoordinator.GetSnapshot 이 현재 집계 값을 묶을 때 쓴다.</summary>
+        /// <summary>CrowdController.GetSnapshot 이 현재 집계 값을 묶을 때 쓴다.</summary>
         /// <param name="registered">등록된 몬스터 수</param>
         /// <param name="summary">마지막 배분 집계</param>
         /// <param name="engagedInsideNear">토큰 보유 + NearRadius 안 개체 수</param>
@@ -55,14 +55,16 @@ namespace HybridShooter.Monster.Movement
     }
 
     /// <summary>
-    /// 씬에 1개. 등록 관리 + 주기적 토큰 배분 + 개체 판단을 프레임에 분산 호출.
+    /// 군중 묶음 1개의 통제자. Crowd 형식으로 스폰된 묶음마다 1개씩 만들어진다 (랩 씬은 직접 배치).
+    /// 등록 관리 + 주기적 토큰 배분 + 개체 판단을 프레임에 분산 호출.
     /// 이동 "명령"은 내리지 않는다. CrowdDirective(허가 + 정보)만 전달한다.
     /// </summary>
     /// <remarks>
     /// 군중 모드 MonsterMovement 의 Think·TickMovement 는 이 클래스의 Update 가 호출 순서대로 부른다.
     /// 모드: UseSlots = true 면 SlotRegistry 로 슬롯 예약, false 면 EngageAllocator 로 토큰 배분.
+    /// 수명: 스포너가 MarkSpawnFinished 를 부른 뒤 소속 개체(members)가 0 이 되면 스스로 파괴된다.
     /// </remarks>
-    public sealed class CrowdCoordinator : MonoBehaviour
+    public sealed class CrowdController : MonoBehaviour
     {
         // ════════ 설정 (Inspector) ════════
         [Header("설정")]
@@ -70,11 +72,12 @@ namespace HybridShooter.Monster.Movement
         [SerializeField] private MonoBehaviour targetSource;
         [SerializeField] private CrowdSettings settings = new CrowdSettings();
 
-        // ════════ 정적 (씬 전역) ════════
-        // 씬에서 활성화된 Coordinator. MonsterMovement 에 직접 지정하지 않았을 때 사용 (없으면 null)
-        public static CrowdCoordinator Active { get; private set; }
+        private static readonly ProfilerMarker TickMarker = new ProfilerMarker("CrowdController.Tick");
 
-        private static readonly ProfilerMarker TickMarker = new ProfilerMarker("CrowdCoordinator.Tick");
+        // ════════ 소속 개체·수명 ════════
+        // 이 묶음에 속한 몬스터 (Join/Leave 로 관리). 정지 중이라 등록 해제된 개체도 포함한다
+        private readonly List<MonsterMovement> members = new List<MonsterMovement>();
+        private bool spawnFinished;   // 스포너가 이 묶음의 소환을 모두 마쳤나 (MarkSpawnFinished)
 
         // ════════ 등록된 몬스터·추적 대상 ════════
         private readonly List<MonsterMovement> agents = new List<MonsterMovement>(); // Register/Unregister 로 관리
@@ -108,6 +111,7 @@ namespace HybridShooter.Monster.Movement
         // ════════ 외부 공개 ════════
         public IPlayerTarget Target => target ?? targetSource as IPlayerTarget;   // null = 목표 없음
         public CrowdSettings Settings => settings;
+        public int MemberCount => members.Count;
         public int EngageCapacity => settings.EngageCapacity;
         public IReadOnlyList<MonsterMovement> Agents
         {
@@ -183,19 +187,56 @@ namespace HybridShooter.Monster.Movement
                 Debug.LogError("SlotSettings 첫 링 후보 수·반경·간격은 양수이고 최대 링 수는 2 이상이어야 함", this);
         }
 
-        /// <summary>씬 전역 Active 로 등록한다. 2개 이상 활성화되면 에러 로그를 남기고 마지막 것이 Active 가 된다.</summary>
-        private void OnEnable()
-        {
-            if (Active != null && Active != this)
-                Debug.LogError("CrowdCoordinator 가 2개 이상 활성화됨", this);
-            Active = this;
-        }
-
-        /// <summary>꺼질 때 Active 를 해제하고 모든 슬롯 예약을 비운다.</summary>
+        /// <summary>꺼질 때 모든 슬롯 예약을 비운다.</summary>
         private void OnDisable()
         {
-            if (Active == this) Active = null;
             ClearSlotReservations();
+        }
+
+        /// <summary>
+        /// 몬스터를 이 묶음의 소속으로 넣는다. MonsterMovement.Activate 가 이 컨트롤러를 받을 때 부른다.
+        /// 소속은 수명 판단용이고, 실제 배분 대상 등록은 Register 가 따로 한다 (정지 중이면 소속만 되고 등록은 안 될 수 있다).
+        /// </summary>
+        /// <param name="member">소속시킬 몬스터</param>
+        /// <exception cref="ArgumentNullException">member 가 null 일 때</exception>
+        /// <exception cref="InvalidOperationException">이미 소속된 몬스터일 때</exception>
+        public void Join(MonsterMovement member)
+        {
+            if (member == null) throw new ArgumentNullException(nameof(member));
+            if (members.Contains(member)) throw new InvalidOperationException($"이미 소속된 MonsterMovement: {member.name}");
+            members.Add(member);
+        }
+
+        /// <summary>
+        /// 몬스터를 소속에서 뺀다. MonsterMovement.OnDisable(사망·풀 반환)이 등록 해제 뒤에 부른다.
+        /// 소환이 끝났고 소속이 0 이 되면 이 묶음을 파괴한다.
+        /// </summary>
+        /// <param name="member">뺄 몬스터</param>
+        /// <exception cref="ArgumentNullException">member 가 null 일 때</exception>
+        /// <exception cref="InvalidOperationException">소속되지 않은 몬스터일 때</exception>
+        public void Leave(MonsterMovement member)
+        {
+            if (member == null) throw new ArgumentNullException(nameof(member));
+            if (members.Remove(member) == false) throw new InvalidOperationException($"소속되지 않은 MonsterMovement: {member.name}");
+            DestroyIfFinished();
+        }
+
+        /// <summary>
+        /// 이 묶음의 소환이 모두 끝났음을 알린다. MonsterSpawner 가 묶음의 마지막 개체를 소환한 뒤 부른다.
+        /// 이미 전멸해 있으면 바로 파괴한다.
+        /// </summary>
+        public void MarkSpawnFinished()
+        {
+            spawnFinished = true;
+            DestroyIfFinished();
+        }
+
+        /// <summary>소환이 끝났고 소속 개체가 없으면 이 GameObject 를 파괴한다. Leave·MarkSpawnFinished 가 부른다.</summary>
+        private void DestroyIfFinished()
+        {
+            if (spawnFinished == false) return;
+            if (members.Count > 0) return;
+            Destroy(gameObject);
         }
 
         /// <summary>
@@ -478,7 +519,7 @@ namespace HybridShooter.Monster.Movement
         /// 몬스터 판단(Think)은 ThinkCycle 동안 프레임에 나눠 라운드 로빈으로 호출한다.
         /// 목표가 무효면 예약을 비우고 전원에게 Think 를 호출해 Idle 로 만든다.
         /// 마지막에 등록 개체의 TickMovement 를 호출한다: 군중 모드 몬스터의 Update 는 비어 있으므로,
-        /// "Coordinator(배분·Think) → 몬스터(예약 검증·지연 의도 적용)" 순서가 실행 순서 설정 없이 호출 순서로 고정된다.
+        /// "CrowdController(배분·Think) → 몬스터(예약 검증·지연 의도 적용)" 순서가 실행 순서 설정 없이 호출 순서로 고정된다.
         /// </summary>
         private void Update()
         {

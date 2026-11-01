@@ -6,7 +6,7 @@ namespace HybridShooter.Monster.Movement
     /// </summary>
     /// <remarks>
     /// 새 몬스터 유형 = 이 인터페이스 구현 1개 + MovementPolicyKind 값 1개 + 팩토리 case 1줄.
-    /// CrowdCoordinator 는 수정하지 않는다.
+    /// CrowdController 는 수정하지 않는다.
     /// </remarks>
     public interface IMovementPolicy
     {

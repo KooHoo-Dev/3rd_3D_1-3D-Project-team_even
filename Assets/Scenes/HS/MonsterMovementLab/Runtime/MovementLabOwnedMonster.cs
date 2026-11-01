@@ -16,7 +16,7 @@ namespace HybridShooter.Monster.MovementLab
         [SerializeField] private MovementProfile ownedProfile;
 
         private MonsterMovement movement;
-        private CrowdCoordinator coordinator;   // null 이면 직접 추적 모드
+        private CrowdController coordinator;   // null 이면 직접 추적 모드
         private IPlayerTarget directTarget;
         private MovementPolicyKind appliedKind;
         private MovementTuning appliedTuning;
@@ -25,7 +25,7 @@ namespace HybridShooter.Monster.MovementLab
         public MovementProfile Profile => ownedProfile;
 
         /// <summary>비활성 상태에서 MonsterMovement 를 붙인 직후, 활성화 전에 호출</summary>
-        public void Initialize(MovementProfile profile, CrowdCoordinator crowd, IPlayerTarget target)
+        public void Initialize(MovementProfile profile, CrowdController crowd, IPlayerTarget target)
         {
             movement = GetComponent<MonsterMovement>();
             ownedProfile = profile;

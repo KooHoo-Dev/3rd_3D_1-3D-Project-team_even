@@ -119,18 +119,19 @@ namespace HybridShooter.Monster.Behaviour.Tests
         [UnityTest]
         public IEnumerator ActivatingCrowdMonsterWhileCoordinatorHasNoTargetThrowsNothing()
         {
-            var coordinatorObject = new GameObject("TestCrowdCoordinator");
-            var crowdCoordinator = coordinatorObject.AddComponent<CrowdCoordinator>();
+            var coordinatorObject = new GameObject("TestCrowdController");
+            var crowdCoordinator = coordinatorObject.AddComponent<CrowdController>();
             var crowdMonsterObject = new GameObject("TestCrowdMonster");
             crowdMonsterObject.SetActive(false);
             crowdMonsterObject.AddComponent<NavMeshAgent>();
             crowdMonsterObject.AddComponent<NavMeshMoveExecutor>();
             var crowdMovement = crowdMonsterObject.AddComponent<MonsterMovement>();
             crowdMovement.Configure(profile, crowdCoordinator);
+            crowdMovement.SetCombatTuning(3.5f, 5f); // 사거리 5m: 슬롯 반경 검사(2.8 + 0.6 + 0.2) 통과
 
             crowdMonsterObject.SetActive(true);
             yield return null;   // Start → Activate
-            yield return null;   // CrowdCoordinator.Update → Think (목표 없음)
+            yield return null;   // CrowdController.Update → Think (목표 없음)
 
             Assert.IsNull(crowdCoordinator.Target);
             Assert.IsTrue(crowdMovement.enabled);

@@ -32,6 +32,8 @@ namespace HybridShooter.Core.Data
         Flank,     // 플레이어 측면/시야 밖
         Air,       // 공중
         Herd,      // 한 방향에 밀집한 무리
+        Nest,      // 둥지: 같은 웨이브·같은 StartDelay 의 Nest 스포너들이 링 위 한 지점 주위에서 종류를 섞어 계속 나온다
+        Crowd,     // 군중 묶음: 같은 웨이브·같은 StartDelay 의 Crowd 스포너들이 한 지점 주위에서 나오고, 묶음 전용 CrowdController 의 슬롯 포위 통제를 받는다
     }
 
     /// <summary>Weapon = 1회용 보급 무기 (SupplyTable.WeaponId)</summary>

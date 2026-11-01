@@ -10,7 +10,7 @@ namespace HybridShooter.Monster.Movement
     /// 한 몬스터는 슬롯 1개만 가진다. 슬롯 위치 투영과 도달 가능성은 NavMeshSlotNavigation 으로 판단한다.
     /// </summary>
     /// <remarks>
-    /// CrowdCoordinator 가 슬롯 모드(UseSlots = true)에서 소유한다. 몬스터 id(ownerId)는 MonsterMovement.GetInstanceID 값이다.
+    /// CrowdController 가 슬롯 모드(UseSlots = true)에서 소유한다. 몬스터 id(ownerId)는 MonsterMovement.GetInstanceID 값이다.
     /// </remarks>
     public sealed class SlotRegistry
     {
@@ -102,13 +102,13 @@ namespace HybridShooter.Monster.Movement
         public float MinimumRingGap => minimumRingGap;
         public int MaxRingCount => maxRingCount;
         public int ApproachReservations { get; private set; }   // 접근 링(0번) 슬롯 예약 수
-        /// <summary>ownerId 가 접근 링(0번) 슬롯을 예약 중인가. CrowdCoordinator 가 접근 허용 판단과 집계에 쓴다.</summary>
+        /// <summary>ownerId 가 접근 링(0번) 슬롯을 예약 중인가. CrowdController 가 접근 허용 판단과 집계에 쓴다.</summary>
         /// <param name="ownerId">몬스터 id</param>
         /// <returns>접근 링 슬롯을 예약 중이면 true</returns>
         public bool HasApproachReservation(int ownerId) =>
             ownerSlots.TryGetValue(ownerId, out int id) && id < approachCount;
 
-        /// <summary>설정을 검증하고 링 간격에 맞는 슬롯 증가 수(countStep)를 계산한 뒤 시작 링 2개를 만든다. CrowdCoordinator.EnsureSlots 가 부른다.</summary>
+        /// <summary>설정을 검증하고 링 간격에 맞는 슬롯 증가 수(countStep)를 계산한 뒤 시작 링 2개를 만든다. CrowdController.EnsureSlots 가 부른다.</summary>
         /// <param name="settings">링 기하·도착·진행·거절 설정. 링 기하 값은 생성 시 고정된다</param>
         /// <param name="navigation">슬롯 위치 투영과 도달 가능성 판단</param>
         /// <exception cref="ArgumentNullException">settings 또는 navigation 이 null 일 때</exception>
@@ -168,7 +168,7 @@ namespace HybridShooter.Monster.Movement
         /// <summary>
         /// 목표 위치(center)가 바뀐 뒤 슬롯 후보를 다시 계산하고 점유 상태를 갱신한다.
         /// 만료된 거절 기록 정리 → 모든 슬롯 위치 재계산(유효하지 않게 된 슬롯의 예약은 해제) → 소유자가 슬롯에 도착했는지(Occupied) 판정
-        /// CrowdCoordinator.RefreshSlots 가 배분 주기마다 부른다.
+        /// CrowdController.RefreshSlots 가 배분 주기마다 부른다.
         /// </summary>
         /// <param name="center">목표(플레이어) 위치. 링의 중심</param>
         /// <param name="now">현재 시각 (s). 거절 기록 만료 판정에 쓴다</param>
@@ -340,7 +340,7 @@ namespace HybridShooter.Monster.Movement
         /// <summary>
         /// 몬스터에게 슬롯을 주거나 기존 슬롯을 유지·승급시킨다. 슬롯이 있으면 true 와 함께 snapshot 반환.
         /// allowApproach 가 false 면 접근 링(0번)은 건너뛰고 바깥 링에서만 찾는다.
-        /// CrowdCoordinator.RequestDirective 가 개체 판단마다 부른다.
+        /// CrowdController.RequestDirective 가 개체 판단마다 부른다.
         /// </summary>
         /// <remarks>필요하면 바깥 링을 새로 만든다 (최대 maxRingCount). 진전 없이 ProgressTimeout 이 지나면 기존 슬롯을 거절(Reject)한다.</remarks>
         /// <param name="ownerId">몬스터 id</param>

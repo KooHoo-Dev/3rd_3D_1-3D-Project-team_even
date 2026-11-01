@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 8939933189621404129}
   - component: {fileID: 5981608044873487605}
   m_Layer: 0
-  m_Name: Crowd Coordinator
+  m_Name: Crowd Controller
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -44,7 +44,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3487f5d42e47433f9640a565b6f9ef08, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.CrowdCoordinator
+  m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.CrowdController
   targetSource: {fileID: 0}
   settings:
     EngageCapacity: 8
@@ -52,8 +52,8 @@ MonoBehaviour:
     ReleaseRadius: 10.5
     AllocationInterval: 0.2
     ThinkCycle: 0.5
-    EnableCrowdControl: 0
-    UseSlots: 0
+    EnableCrowdControl: 1
+    UseSlots: 1
     Slots:
       ApproachCount: 7
       ApproachRadius: 1.3

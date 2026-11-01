@@ -8,7 +8,7 @@ namespace HybridShooter.Monster.MovementLab
     public sealed class MovementLabGizmos : MonoBehaviour
     {
         [Header("Sources")]
-        [SerializeField] private CrowdCoordinator coordinator;
+        [SerializeField] private CrowdController coordinator;
         [SerializeField] private MonoBehaviour targetSource;
         [SerializeField] private Transform optionalMonsterRoot;
 
@@ -40,7 +40,7 @@ namespace HybridShooter.Monster.MovementLab
         /// <summary>Scene 뷰 링(슬롯) 위 텍스트 표시 여부. MovementLabController 의 GUI 토글이 설정한다</summary>
         public bool ShowSlotIds { get => showSlotIds; set => showSlotIds = value; }
 
-        public void Configure(CrowdCoordinator source, Transform monsterRoot = null)
+        public void Configure(CrowdController source, Transform monsterRoot = null)
         {
             coordinator = source;
             optionalMonsterRoot = monsterRoot;

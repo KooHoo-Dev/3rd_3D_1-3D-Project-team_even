@@ -381,7 +381,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// 이동(군중)에 목표를 넣는다. 지금 목표와 같으면 다시 넣지 않는다.
         /// </summary>
-        /// <remarks>CrowdCoordinator.SetTarget 은 호출마다 군중 전체의 슬롯 예약을 비우므로 중복 호출을 막는다.</remarks>
+        /// <remarks>CrowdController.SetTarget 은 호출마다 군중 전체의 슬롯 예약을 비우므로 중복 호출을 막는다.</remarks>
         /// <param name="target">새 목표. null = 대상 상실 (플레이어 사망 등)</param>
         private void SetMovementTarget(IPlayerTarget target)
         {

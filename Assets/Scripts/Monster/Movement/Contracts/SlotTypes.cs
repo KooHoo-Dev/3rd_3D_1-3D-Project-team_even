@@ -66,7 +66,7 @@ namespace HybridShooter.Monster.Movement
         public readonly int OwnerId;
         public readonly Vector3 Position;
         public readonly float Radius;   // m, 몬스터 NavMeshAgent 반경
-        /// <summary>장애물 생성. CrowdCoordinator 가 등록 몬스터마다 만든다</summary>
+        /// <summary>장애물 생성. CrowdController 가 등록 몬스터마다 만든다</summary>
         /// <param name="ownerId">몬스터 id (GetInstanceID)</param>
         /// <param name="position">몬스터 위치 (월드)</param>
         /// <param name="radius">몬스터 반경 (m)</param>

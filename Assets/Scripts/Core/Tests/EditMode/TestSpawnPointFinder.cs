@@ -215,5 +215,14 @@ namespace HybridShooter.Core.Tests
 
             Assert.IsTrue(found);
         }
+
+        [Test]
+        public void IsInsideMap_UsesFlatDistanceToMapCenter()
+        {
+            CreateTerrain(x => 0f);   // 맵 중심 원점, 반지름 10
+
+            Assert.IsTrue(finder.IsInsideMap(new Vector3(6f, 50f, 8f)), "XZ 거리 10 = 경계 위, 높이 무시");
+            Assert.IsFalse(finder.IsInsideMap(new Vector3(7f, 0f, 8f)), "XZ 거리 10.6");
+        }
     }
 }
