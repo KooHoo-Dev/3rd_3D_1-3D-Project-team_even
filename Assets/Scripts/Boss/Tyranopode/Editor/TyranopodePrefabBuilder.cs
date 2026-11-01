@@ -16,7 +16,7 @@ namespace HybridShooter.Boss.TyranopodeEditor
     ///  - Resources/Boss/Tyranopode/ 에 애니메이터 컨트롤러·머티리얼·침/알/포자 프리팹·보스 프리팹 생성
     ///  - 다시 실행해도 인스펙터에서 손본 값(패턴 가중치·타격 시점·히트박스 크기·이동 값 등)은 이전 프리팹에서 옮겨 온다
     ///  - 모델 구조: 몸통 뼈 BODY_01(아래)→05(위), 맨 위 돔 둘레에 턱 꽃잎 6장(JAW_*), 촉수 6개(앞 F·중간 M·뒤 R × 좌우)
-    ///  - 히트박스: 몸통(기본 레이어, 플레이어를 막음) / 머리·주머니·촉수(BossHitbox 레이어, 총알 판정만)
+    ///  - 히트박스: 몸통(MonsterBlocking 레이어, 플레이어를 막음) / 머리·주머니·촉수(BossHitbox 레이어, 총알 판정만)
     ///  - 앞 촉수(F) 쪽이 루트 +Z(정면)가 되도록 모델을 돌린다 (ROOT_ 에 회전 애니메이션이 없을 때만)
     ///  - 기어가기 기준 속도는 CrawlForward_RM 클립의 이동량으로 잰다 (발 미끄러짐 방지)
     /// </summary>
@@ -29,6 +29,8 @@ namespace HybridShooter.Boss.TyranopodeEditor
         private const string PrefabPath = OutFolder + "/Tyranopode.prefab";
         private const string ControllerPath = OutFolder + "/Tyranopode_Boss.controller";
         private const string BonePrefix = "TYRANOPODE_";
+        /// <summary>몸통 히트박스 레이어 (PlayerController.MonsterContact 와 같은 몬스터 몸 레이어)</summary>
+        private const string BodyLayerName = "MonsterBlocking";
         private const string ModelRootBone = "ROOT_";
         /// <summary>NotoSansKR-Regular SDF (HudFactory.TextFontGuid 와 같은 글꼴)</summary>
         private const string KoreanFontGuid = "659ceb8947c683b4a9e1216df0a67515";
@@ -96,11 +98,11 @@ namespace HybridShooter.Boss.TyranopodeEditor
                 AlignFront(root, bones);
 
                 SetupRoot(root, controller);
-                var mouth = BuildHitboxes(root, bones, hitboxLayer, vfx.Stump, out float tentacleLength);
+                var mouth = BuildHitboxes(root, bones, hitboxLayer, vfx.Stump, out float tentacleLength, out float bodyRadius);
 
                 Restore(root, previous);
                 SetupReferences(root, mouth, telegraphMat, spit, egg, beacon, vfx);
-                SetupScaledValues(root, tentacleLength);
+                SetupScaledValues(root, tentacleLength, bodyRadius);
 
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out bool saved);
                 if (saved) Debug.Log($"[TyranopodeBuilder] 완료: {PrefabPath} (인스펙터 값 {previous.Count}개 유지)", AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
@@ -364,7 +366,6 @@ namespace HybridShooter.Boss.TyranopodeEditor
         {
             var so = new SerializedObject(root.GetComponent<TyranopodeController>());
             so.FindProperty("playerSource").objectReferenceValue = null;
-            so.FindProperty("arenaCenter").objectReferenceValue = null;
             so.FindProperty("mouth").objectReferenceValue = mouth;
             so.FindProperty("telegraphMaterial").objectReferenceValue = telegraph;
             so.FindProperty("spitPrefab").objectReferenceValue = spit;
@@ -512,7 +513,7 @@ namespace HybridShooter.Boss.TyranopodeEditor
         /// <summary>
         /// 모델 크기에 묶인 값: 다시 만들 때마다 계산해 덮어쓴다 (크기를 바꾸면 이전 값이 맞지 않으므로 보존하지 않는다)
         /// </summary>
-        private static void SetupScaledValues(GameObject root, float tentacleLength)
+        private static void SetupScaledValues(GameObject root, float tentacleLength, float bodyRadius)
         {
             float crawl = MeasureCrawlSpeed() * ModelScale;
             var view = new SerializedObject(root.GetComponent<TyranopodeView>());
@@ -521,12 +522,15 @@ namespace HybridShooter.Boss.TyranopodeEditor
 
             var locomotion = new SerializedObject(root.GetComponent<TyranopodeLocomotion>());
             if (tentacleLength > 0f) locomotion.FindProperty("wallMargin").floatValue = tentacleLength * 0.8f;
-            // 돌진 벽 감지: 몸통 절반 높이·몸통 폭, 몸 중심에서 앞 촉수 절반쯤까지
-            // NavMeshAgent 반지름·높이는 로컬 값이라 배율을 곱해야 월드 크기
+            // 돌진 벽 감지: 촉수가 아니라 몸통으로 (몸통 히트박스 캡슐 반지름, 몸 중심에서 몸통 앞면 조금 너머까지)
+            // NavMeshAgent 높이는 로컬 값이라 배율을 곱해야 월드 크기
             var agent = root.GetComponent<UnityEngine.AI.NavMeshAgent>();
             locomotion.FindProperty("wallProbeHeight").floatValue = agent.height * ModelScale * 0.5f;
-            locomotion.FindProperty("wallProbeRadius").floatValue = agent.radius * ModelScale * 0.7f;
-            if (tentacleLength > 0f) locomotion.FindProperty("bodyReach").floatValue = tentacleLength * 0.4f;
+            if (bodyRadius > 0f)
+            {
+                locomotion.FindProperty("wallProbeRadius").floatValue = bodyRadius;
+                locomotion.FindProperty("bodyReach").floatValue = 0.5f;
+            }
             locomotion.ApplyModifiedPropertiesWithoutUndo();
 
             Debug.Log($"[TyranopodeBuilder] 기어가기 1배속 = {crawl:0.##} m/s (TyranopodeTable.CircleSpeed 가 이보다 크면 빨리 재생해 맞춘다), 촉수 길이 = {tentacleLength:0.#} m");
@@ -535,9 +539,10 @@ namespace HybridShooter.Boss.TyranopodeEditor
         // ───────────────────────── 부위 히트박스 ─────────────────────────
 
         /// <summary>뼈 위치로 히트박스를 만들고 입(머리 돔 꼭대기) 위치를 돌려준다</summary>
-        private static Transform BuildHitboxes(GameObject root, Dictionary<string, Transform> bones, int hitboxLayer, GameObject stumpVfx, out float tentacleLength)
+        private static Transform BuildHitboxes(GameObject root, Dictionary<string, Transform> bones, int hitboxLayer, GameObject stumpVfx, out float tentacleLength, out float bodyRadiusOut)
         {
             tentacleLength = 0f;
+            bodyRadiusOut = 0f;
             var body = Enumerable.Range(1, 5).Select(i => Bone(bones, $"BODY_{i:00}")).ToList();
             var jaws = bones.Where(p => p.Key.StartsWith("JAW_")).Select(p => p.Value).ToList();
             var tentacles = new List<(string row, List<Transform> chain)>();
@@ -559,10 +564,14 @@ namespace HybridShooter.Boss.TyranopodeEditor
             Vector3 axis = (top - bottom).normalized;
             float ringRadius = tentacles.Average(t => Vector3.ProjectOnPlane(t.chain[0].position - bottom, axis).magnitude);
             float bodyRadius = Mathf.Max(0.5f, ringRadius * 0.9f);
+            bodyRadiusOut = bodyRadius;
 
-            // 몸통: 기본 레이어 → 총알도 맞고 플레이어도 막는다
+            // 몸통: 몬스터 몸과 같은 MonsterBlocking 레이어 → 총알도 맞고 플레이어도 막는다(옆으로만 밀려 올라타지 않음).
+            // 몬스터 도약(PounceSettings 장애물·바닥 마스크)에는 들어 있지 않아 잡몹이 보스 몸에 막히거나 그 위를 바닥으로 보지 않는다
+            int bodyLayer = LayerMask.NameToLayer(BodyLayerName);
+            if (bodyLayer < 0) throw new System.InvalidOperationException($"[TyranopodeBuilder] '{BodyLayerName}' 레이어가 없습니다. TagManager 를 확인해주세요.");
             var bodyHit = AddCapsule(body[0], top, bodyRadius, TyranopodePartType.Body, null, null, "Hit_Body");
-            bodyHit.layer = 0;
+            bodyHit.layer = bodyLayer;
 
             // 머리: 돔 구 + 턱 꽃잎마다 작은 구. 머리가 부서지면 꽃잎이 오그라든다
             var dome = NewHitbox(body[4], "Hit_Head", top + axis * bodyRadius * 0.3f);

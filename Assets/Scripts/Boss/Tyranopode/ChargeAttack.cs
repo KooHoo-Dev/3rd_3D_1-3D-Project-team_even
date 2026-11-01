@@ -6,7 +6,8 @@ namespace HybridShooter.Boss.Tyranopode
     /// <summary>
     /// 돌진 (강공격). 예고 동안 플레이어 쪽으로 돌며 직사각형 표시 → 그 방향으로 빠르게 기어간다.
     ///  - 한 번만 맞힌다. 지나가는 길의 알은 깨진다
-    ///  - 몸 높이에 걸리는 벽·경기장 경계에 막히면 그로기 (다리 촉수 파괴 시 더 길게).
+    ///  - 몸통이 실제 벽에 정면으로 박으면 그로기 (다리 촉수 파괴 시 더 길게). 비스듬히 스치면 벽을 따라 미끄러진다.
+    ///    경기장 원(어림값)에는 막히지 않는다
     ///    NavMesh 의 작은 틈·낮은 돌멩이는 타고 넘고, 근처에 NavMesh 가 없는 낭떠러지에서는 그로기 없이 멈춘다 (TyranopodeLocomotion.MoveFree)
     ///  - 페이즈 2: Phase2ChargeCount 번 연속 (사이에 짧게 다시 조준)
     /// </summary>
@@ -69,7 +70,7 @@ namespace HybridShooter.Boss.Tyranopode
             }
 
             float step = Data.ChargeSpeed * Owner.SpeedScale * deltaTime;
-            var stop = Move.MoveFree(direction * step, probeWalls: true, out float moved);
+            var stop = Move.MoveFree(direction * step, airborne: false, out float moved);
             traveled += moved;
 
             Vector3 front = transform.position + direction * 3f;
@@ -82,7 +83,10 @@ namespace HybridShooter.Boss.Tyranopode
 
             if (stop != TyranopodeLocomotion.MoveStop.None)
             {
-                Debug.Log($"[Tyranopode] 돌진 멈춤: {stop} ({traveled:0.#}m)", this);
+                string what = stop == TyranopodeLocomotion.MoveStop.Wall && Move.LastWallCollider != null
+                    ? $" — 벽: {Move.LastWallCollider.name} ({Move.LastWallPoint})"
+                    : "";
+                Debug.Log($"[Tyranopode] 돌진 멈춤: {stop} ({traveled:0.#}m){what}", Move.LastWallCollider != null ? Move.LastWallCollider : this);
                 // 낭떠러지·출발 직후는 부딪힌 게 아니다
                 if (stop == TyranopodeLocomotion.MoveStop.Edge || traveled < minImpactDistance)
                 {

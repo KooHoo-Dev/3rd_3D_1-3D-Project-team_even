@@ -60,9 +60,11 @@ namespace HybridShooter.Monster.Behaviour
             }
             Land(ground);
             Vector3 player = Target.PlayerTrackingInfo.Position;
-            if (landingArea.Contains(ground, Body.Forward, player) &&
-                Mathf.Abs(player.y - ground.y) <= settings.HitHeightTolerance)
-                Hit(Target, ground);
+            bool isInLandingArea = landingArea.Contains(ground, Body.Forward, player);
+            bool isWithinHeight = Mathf.Abs(player.y - ground.y) <= settings.HitHeightTolerance;
+            bool isInArea = isInLandingArea && isWithinHeight;
+            NotifyMonsterHit(landingArea, ground, Body.Forward, isInArea);
+            if (isInArea) Hit(Target, ground);
             return true;
         }
 
@@ -113,7 +115,7 @@ namespace HybridShooter.Monster.Behaviour
                 desired = below;
             Vector3 ground = ResolveGround(desired);
             if (IsBodyClear(ground + rootOffset) == false)
-                throw new InvalidOperationException($"도약 취소 복구 지점에 몸체가 들어갈 수 없다: {ground}");
+                Debug.LogWarning($"도약 취소 복구 지점에 몸체가 들어갈 수 없다: {ground}");
             return ground;
         }
 

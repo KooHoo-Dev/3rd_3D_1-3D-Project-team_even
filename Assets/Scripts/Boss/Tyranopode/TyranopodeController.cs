@@ -75,9 +75,8 @@ namespace HybridShooter.Boss.Tyranopode
         [Tooltip("그로기 동안 켜 둘 연출 (보스 자식, 꺼 둔 채)")]
         [SerializeField] private GameObject groggyVfx;
 
-        [Header("경기장 (비우면 보스 위치에서 벽까지 재서 정한다)")]
-        [SerializeField] private Transform arenaCenter;
-        [SerializeField, Min(0f)] private float arenaRadius;
+        [Header("경기장 (씬에 TyranopodeArena 가 있으면 그 값, 없으면 보스 발밑 NavMesh 에서 잰다)")]
+        [Tooltip("열린 맵(사방이 막히지 않음)일 때 포효 소환 둘레·파동 범위 반지름(m)")]
         [SerializeField, Min(5f)] private float fallbackArenaRadius = 35f;
 
         [Header("보호막 (포효 소환 중 플레이어가 죽으면 잡몹 에너지를 흡수)")]
@@ -301,7 +300,7 @@ namespace HybridShooter.Boss.Tyranopode
 
         /// <summary>
         /// 히트박스 레이어는 총알·수류탄 판정(레이캐스트·겹침)만 받고 어떤 물체와도 부딪치지 않게 한다.
-        /// 바닥에 깔린 촉수에 플레이어가 걸리지 않는다. 몸통(Body)만 기본 레이어로 플레이어를 막는다
+        /// 바닥에 깔린 촉수에 플레이어가 걸리지 않는다. 몸통(Body)만 MonsterBlocking 레이어로 플레이어를 막는다 (프리팹 빌더)
         /// </summary>
         private static void IgnoreHitboxCollisions()
         {
@@ -360,17 +359,19 @@ namespace HybridShooter.Boss.Tyranopode
             assist = new TyranopodeAssist(Def);
             assist.Begin();
 
-            Minions = new TyranopodeMinions(transform, minionSpawnVfx, minionDeathVfx, fling,
+            Minions = new TyranopodeMinions(minionSpawnVfx, minionDeathVfx, fling,
                 Def.MinionSpeedMultiplier, Def.MinionApproachSpeedMultiplier, Def.MinionApproachRatio);
             // 분석 화면은 플레이어가 지금 보는 카메라로 화면 위치를 잡는다 (1·3인칭 전환 반영)
             var playerController = (PlayerController)target;
             playerCamera = () => playerController.CurrentCameraTransform.GetComponent<Camera>();
             analysis = TyranopodeAnalysisHud.Create(finaleAssets.Font, techFont, playerCamera);
-            Vector3 center = arenaCenter != null ? arenaCenter.position : transform.position;
-            Minions.SetupArena(center, arenaCenter != null ? arenaRadius : 0f, fallbackArenaRadius);
-            locomotion.SetBounds(Minions.Center, Minions.Radius);
+            var arena = FindAnyObjectByType<TyranopodeArena>();
+            if (arena != null) Minions.SetArena(arena.transform.position, arena.Radius);
+            else Minions.MeasureArena(transform.position, fallbackArenaRadius);
+            // 열린 맵이면 경계 없음 (맵 끝은 MoveFree 의 낭떠러지 판정이 막는다)
+            locomotion.SetBounds(Minions.Center, Minions.HasBounds ? Minions.Radius : 0f);
             // 몸이 커질수록 벽 여유가 늘어 움직일 공간이 준다 → 맴돌 공간이 모자라면 알린다 (크기 배율·CircleRadius 조정)
-            if (locomotion.InnerRadius < Def.CircleRadius)
+            if (Minions.HasBounds && locomotion.InnerRadius < Def.CircleRadius)
                 Debug.LogWarning($"[Tyranopode] 경기장이 좁습니다: 움직일 수 있는 반지름 {locomotion.InnerRadius:0.#}m < 맴돌기 반경 {Def.CircleRadius:0.#}m", this);
 
             IsPhase2 = false;
@@ -381,7 +382,7 @@ namespace HybridShooter.Boss.Tyranopode
             BeginIntro(Def.IntroBriefAfterFirst && introPlayed);
             introPlayed = true;
 
-            Debug.Log($"[Tyranopode] 초기화 | HP {boss.CurrentHp}/{boss.MaxHp} | 경기장 반지름 {Minions.Radius:0.#}m", this);
+            Debug.Log($"[Tyranopode] 초기화 | HP {boss.CurrentHp}/{boss.MaxHp} | 경기장 {Minions.ArenaSource}", this);
         }
 
         private void BuildParts()
