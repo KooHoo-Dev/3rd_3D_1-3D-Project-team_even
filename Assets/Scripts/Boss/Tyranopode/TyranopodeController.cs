@@ -1309,7 +1309,7 @@ namespace HybridShooter.Boss.Tyranopode
             if (state == State.Groggy) view.EndGroggy();
             groggyVfx.SetActive(false);
             EndSummonImmunity();
-            Minions.SpawnLoose(Def.SummonMinionIds, crowd);
+            Minions.SpawnLoose(Def.SummonMinionIds, crowd, Target.position);
             BeginIntro(brief);
         }
 

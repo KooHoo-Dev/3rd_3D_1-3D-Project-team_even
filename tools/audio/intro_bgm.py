@@ -4,14 +4,25 @@
     python tools/audio/intro_bgm.py            → Assets/Resources/Audio/Bgm/Intro.wav
     python tools/audio/intro_bgm.py -o out.wav
 
-곡 구성 (75 BPM, 4/4 → 1박 0.8초, 1마디 3.2초). 마디 경계 시각은 IntroCrawlDirector 의 연출 타이밍과 맞춰져 있다
-    마디  0~1   0.0 ~  6.4초  인트로     저음 드론 + 고음 쉬머 + 역방향 심벌 → 로고 등장 직전까지 부풀린다
-    마디  2~5   6.4 ~ 19.2초  팡파르     로고 등장(6.4초) 타격 + 브라스 주제 (D 장조, ♭VI·♭VII 와 Lydian II 로 '우주적' 색채)
-    마디  6~17 19.2 ~ 57.6초  크롤       텍스트를 읽는 구간. 부드러운 현 패드 + 하프 오스티나토 + 호른 선율 (듣기 편하게)
-    마디 18~19 57.6 ~ 64.0초  빌드업     카메라가 아래로 내려가며 행성 등장 직전. 16분 오스티나토·현 상행·라이저
-    마디 20~21 64.0 ~ 70.4초  행성       어두운 Dm + 브람 + 합창 + 저현 오스티나토 (우주선 진입)
-    마디 22~23 70.4 ~ 76.8초  격추       70.4초 피격 타격 + 하강 선율 (추락)
-    마디 24    76.8초 ~       종지       화면 암전과 함께 D 장조로 해결 (생존의 다짐) → 잔향
+곡 구성 (75 BPM, 4/4 → 1박 0.8초, 1마디 3.2초). 마디 경계 시각은 IntroTimeline(C#) 의 연출 타이밍과 같다
+    마디  0~1   0.0 ~  6.4초  인트로     첼로·베이스 열린 5도 → 바이올린 하모닉스 → 합창, 한 겹씩 쌓아 로고 직전까지 부풀린다
+    마디  2~5   6.4 ~ 19.2초  팡파르     로고 타격. 트럼펫 주제를 먼저 홀로 → 반복(마디 4~5)에서 바이올린 대선율·첼로 진행이 더해진다
+                                       I – ♭VI·♭VII (크로매틱 미디언트) – Lydian II(E/D) – I – IV – Vsus4·V
+    마디  6~13 19.2 ~ 44.8초  크롤       A(6~9) 하프 오스티나토 + 비올라 패드 + 호른 선율 / B(10~13) 선율이 바이올린으로,
+                                       호른은 긴 대선율, 하프 대신 첼로 스타카토, 합창·타이코가 새 겹으로 (iv 단조 차용 Gm 으로 쓸쓸한 색)
+    마디 14~15 44.8 ~ 51.2초  빌드업     ♭VI–♭VII. 2박마다 한 겹씩 (첼로 8분 → 하프 16분 → 바이올린 상행·팀파니 롤)
+    마디 16~17 51.2 ~ 57.6초  행성       i – VI·VII (Dm 에픽 진행). 브람 + 합창 + 첼로 오스티나토 + 호른 상행
+    마디 18~19 57.6 ~ 64.0초  격추       57.6초 피격 타격(불협 브람) + 바이올린·호른 하강 선율 → V(A) 로 긴장
+    마디 20    64.0초 ~       종지       화면 암전과 함께 D 장조(피카르디)로 해결 — 생존의 다짐 → 잔향
+
+편성·레이어 (악기 층이 따로 들리게 — 영화 음악 편곡 관례)
+  - 좌석 배치 패닝: 바이올린 왼쪽, 비올라 가운데, 첼로 오른쪽, 호른 왼쪽 뒤, 트럼펫 오른쪽 뒤, 하프 오른쪽, 합창 넓게
+  - 음역 분리: 오스티나토는 선율과 떨어진 음역, 저음은 5도·8도만 (낮은 음정 한계 — 탁해지지 않게)
+  - 리듬·아티큘레이션 대비: 긴 선율 ↔ 짧은 오스티나토 ↔ 긴 대선율. 주제는 처음엔 홀로, 반복할 때 대선율을 더한다
+  - 오스티나토·스타카토는 리버브를 적게(앞), 패드·합창·호른은 많이(뒤) → 앞뒤 깊이감
+  - 성부 진행: 화음이 바뀔 때 모든 음을 새로 뜯지 않는다. 공통음은 붙잡고 나머지는 반음·온음으로 옮긴다 (voice_lead)
+  - 레가토: 현·호른 선율은 끊기지 않는 한 소리로 그리고 음이 바뀌는 곳만 짧게 미끄러진다 (legato) — 트럼펫·빠른 음계·스타카토만 음마다 어택
+  - 페이드: 처음 2초 페이드 인, 종지 화음 뒤 잔향까지 페이드 아웃
 
 기법 (하이브리드 오케스트라 트레일러 음악의 관례를 신스로 흉내)
   - 음원: 대역 제한 웨이브테이블 (배음 진폭을 irfft 로 한 주기 테이블로 만든다 → 에일리어싱 없음, 가산 합성보다 훨씬 빠름)
@@ -37,10 +48,13 @@ SR = 48000
 BPM = 75
 BEAT = 60.0 / BPM
 BAR = 4 * BEAT
-END_BEAT = 96          # 마디 24 시작 = 종지 화음
+END_BEAT = 80          # 마디 20 시작 = 종지 화음
 TAIL = 9.0             # 종지 후 잔향 (초)
 LENGTH = END_BEAT * BEAT + TAIL
 N = int(LENGTH * SR)
+
+FADE_IN = 2.0
+FADE_OUT_START = END_BEAT * BEAT + 2.4   # 종지 뒤 2.4초 울린 다음 잔향 끝까지 서서히
 
 TARGET_LUFS = -16.0
 CEILING_DBTP = -1.5
@@ -49,6 +63,8 @@ TABLE = 4096
 NYQUIST_LIMIT = 16000.0
 
 rng = np.random.default_rng(20261031)
+# 모든 웨이브테이블이 같은 배음 위상 표를 쓴다 → 음정이 다른 테이블을 겹쳐 섞어도(레가토 이음매) 위상이 어긋나 소리가 비지 않는다
+HARMONIC_PHASES = np.random.default_rng(7).uniform(0, 2 * np.pi, 512)
 
 
 # ───────────────────────── 음정 ─────────────────────────
@@ -79,7 +95,7 @@ def make_table(amps):
     amps = np.asarray(amps, dtype=float)
     k = np.arange(1, len(amps) + 1)
     spec = np.zeros(TABLE // 2 + 1, dtype=complex)
-    phases = rng.uniform(0, 2 * np.pi, len(amps))  # 무작위 위상 → 파형 꼭짓점이 뾰족하지 않아 피크가 낮다
+    phases = HARMONIC_PHASES[:len(amps)]  # 고정된 무작위 위상 → 파형 꼭짓점이 뾰족하지 않아 피크가 낮다
     spec[k] = amps * (TABLE / 2) * np.exp(1j * phases)
     table = np.fft.irfft(spec, TABLE)
     rms = np.sqrt(np.mean(table ** 2))
@@ -206,7 +222,7 @@ def bandpass(x, low, high, order=2):
 
 # ───────────────────────── 버스 ─────────────────────────
 
-BUSES = ('strings', 'brass', 'horn', 'choir', 'harp', 'low', 'bass', 'perc', 'fx')
+BUSES = ('violins', 'violas', 'celli', 'brass', 'horn', 'choir', 'harp', 'bass', 'perc', 'fx')
 bus = {name: np.zeros((N, 2)) for name in BUSES}
 
 
@@ -230,22 +246,31 @@ def at(beat):
 
 # ───────────────────────── 악기 ─────────────────────────
 
-def strings(m, beat, beats, vel=0.6, attack=0.35, release=1.1, spread=0.7, bright=None):
+# 현 섹션: (버스, 가운데 위치, 퍼짐, 밝기 가산) — 좌석 배치대로 놓아 섹션이 따로 들리게
+SECTIONS = {
+    'violins': ('violins', -0.45, 0.3, 0.25),
+    'violas': ('violas', 0.1, 0.45, 0.0),
+    'celli': ('celli', 0.45, 0.25, -0.15),
+}
+
+
+def strings(m, beat, beats, vel=0.6, attack=0.35, release=1.1, section='violas', bright=None):
+    bus_name, center, spread, extra = SECTIONS[section]
     f0 = hz(m)
     dur = beats * BEAT
-    cutoff = 1300.0 + 2600.0 * (vel if bright is None else bright)
+    cutoff = 1300.0 + 2600.0 * float(np.clip((vel if bright is None else bright) + extra, 0.05, 1.0))
     table = cached(('str', m, int(cutoff / 100)), lambda: make_table(saw_amps(f0, cutoff)))
     env = adsr(dur, attack, 0.6, 0.85, release)
     t = np.arange(len(env)) / SR
     out = np.zeros((len(env), 2))
     for det, p in zip((-11, -4, 4, 11), (-1.0, -0.35, 0.35, 1.0)):
         cents = det + rng.normal(0, 1.5) + vibrato(t, 9, 5.0 + rng.uniform(-0.4, 0.4), 0.35)
-        out += stereo(osc(table, phase_of(f0, cents, t)), p * spread)
-    add('strings', out * env[:, None] * vel ** 1.3 * 0.32, at(beat))
+        out += stereo(osc(table, phase_of(f0, cents, t)), float(np.clip(center + p * spread, -1, 1)))
+    add(bus_name, out * env[:, None] * vel ** 1.3 * 0.32, at(beat))
 
 
-def brass(m, beat, beats, vel=0.8, bus_name='brass', max_bright=1.0, attack=0.06, release=0.35, voices=3):
-    """밝기 테이블 4장을 섞어 어택에서 필터가 열리는 스웰. 음정은 -25센트에서 올라와 붙는다"""
+def brass(m, beat, beats, vel=0.8, bus_name='brass', max_bright=1.0, attack=0.06, release=0.35, voices=3, pan=0.25):
+    """밝기 테이블 4장을 섞어 어택에서 필터가 열리는 스웰. 음정은 아주 살짝(-6센트) 아래에서 붙는다"""
     f0 = hz(m)
     dur = beats * BEAT
     levels = (0.0, 0.33, 0.66, 1.0)
@@ -256,7 +281,7 @@ def brass(m, beat, beats, vel=0.8, bus_name='brass', max_bright=1.0, attack=0.06
     b = np.clip(vel * max_bright * swell * env ** 0.5, 0.0, 1.0) * (len(levels) - 1)
     lo = np.clip(b.astype(int), 0, len(levels) - 2)
     w = b - lo
-    scoop = -25.0 * np.exp(-t / 0.035)
+    scoop = -6.0 * np.exp(-t / 0.03)
     out = np.zeros((len(env), 2))
     dets = np.linspace(-6, 6, voices) if voices > 1 else [0.0]
     for i, det in enumerate(dets):
@@ -266,14 +291,20 @@ def brass(m, beat, beats, vel=0.8, bus_name='brass', max_bright=1.0, attack=0.06
         for j in range(len(levels) - 1):
             sel = lo == j
             mono[sel] = waves[j][sel] * (1 - w[sel]) + waves[j + 1][sel] * w[sel]
-        p = (i / max(voices - 1, 1) - 0.5) * 0.5
+        p = pan + (i / max(voices - 1, 1) - 0.5) * 0.3
         out += stereo(mono, p)
     loud = 0.55 + 0.45 * b / (len(levels) - 1)
     add(bus_name, out * (env * loud)[:, None] * vel ** 1.2 * 0.3, at(beat))
 
 
+def trumpet(m, beat, beats, vel=0.8, **kw):
+    """트럼펫: 밝은 브라스, 오른쪽 뒤"""
+    brass(m, beat, beats, vel, **kw)
+
+
 def horn(m, beat, beats, vel=0.55):
-    brass(m, beat, beats, vel, bus_name='horn', max_bright=0.45, attack=0.18, release=0.6, voices=2)
+    """호른: 어두운 브라스, 왼쪽 뒤"""
+    brass(m, beat, beats, vel, bus_name='horn', max_bright=0.45, attack=0.18, release=0.6, voices=2, pan=-0.35)
 
 
 def choir(m, beat, beats, vel=0.5):
@@ -290,7 +321,7 @@ def choir(m, beat, beats, vel=0.5):
     add('choir', out * env[:, None] * vel * 0.17, at(beat))
 
 
-def harp(m, beat, vel=0.45, p=0.0):
+def harp(m, beat, vel=0.45, p=0.5):
     """뜯는 소리: 밝은 테이블 → 어두운 테이블로 빠르게 넘어가며 감쇠"""
     f0 = hz(m)
     bright = cached(('harp_b', m), lambda: make_table(saw_amps(f0, 7500, 1.2)))
@@ -304,17 +335,17 @@ def harp(m, beat, vel=0.45, p=0.0):
     add('harp', stereo(mono * env * vel * 0.5, p), at(beat))
 
 
-def low_strings(m, beat, beats=0.5, vel=0.6):
-    """저현 스타카토 (오스티나토용)"""
+def celli_staccato(m, beat, beats=0.5, vel=0.6):
+    """첼로 스타카토 (오스티나토용, 오른쪽)"""
     f0 = hz(m)
     table = cached(('low', m), lambda: make_table(saw_amps(f0, 1600)))
     length = int((beats * BEAT + 0.3) * SR)
     t = np.arange(length) / SR
     env = np.clip(t / 0.012, 0, 1) * np.exp(-t / (beats * BEAT * 0.45))
     out = np.zeros((length, 2))
-    for det, p in ((-7, -0.5), (0, 0.0), (7, 0.5)):
+    for det, p in ((-7, 0.3), (0, 0.45), (7, 0.6)):
         out += stereo(osc(table, phase_of(f0, det, t)), p)
-    add('low', out * env[:, None] * vel * 0.3, at(beat))
+    add('celli', out * env[:, None] * vel * 0.3, at(beat))
 
 
 def bass(m, beat, beats, vel=0.6):
@@ -323,6 +354,163 @@ def bass(m, beat, beats, vel=0.6):
     env = adsr(beats * BEAT, 0.08, 0.5, 0.9, 0.8)
     t = np.arange(len(env)) / SR
     add('bass', stereo(osc(table, phase_of(f0, 0, t)) * env * vel * 0.55), at(beat))
+
+
+# ───────────────────────── 레가토·성부 진행 ─────────────────────────
+#
+# 실제 편곡처럼 화음이 바뀔 때 모든 음을 새로 뜯지 않는다.
+#  - 성부 진행(voice leading): 화음마다 4성부 배치를 고를 때 앞 화음에서 가장 적게 움직이는 배치를 고른다
+#    → 공통음은 같은 성부가 그대로 붙잡고(이음줄), 나머지는 반음·온음으로 옮겨 간다. 병행 5도·8도와 큰 도약은 벌점
+#  - 레가토 렌더: 한 성부(또는 선율)를 끊지 않는 하나의 소리로 그린다. 음이 바뀌는 곳만 짧게(50~70ms) 미끄러지고
+#    (현악 목업의 슬러·포르타멘토 전이), 활 바꿈처럼 음량이 아주 살짝 숨을 쉰다. 비브라토는 음마다 늦게 피어난다
+#  - 음정에 따라 배음 테이블이 바뀌는 구간은 같은 위상 표를 쓰는 테이블끼리 겹쳐 섞어 이음매가 들리지 않게 한다
+
+PITCH_CLASS = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11}
+
+
+def pitch_class(name):
+    n = PITCH_CLASS[name[0]]
+    for c in name[1:]:
+        n += 1 if c == '#' else -1
+    return n % 12
+
+
+def smooth01(x):
+    x = np.clip(x, 0.0, 1.0)
+    return x * x * (3.0 - 2.0 * x)
+
+
+def dynamics(points):
+    """[(박, 크기)] 를 잇는 셈여림 곡선 → 초를 받는 함수 (크레셴도·디미누엔도를 음마다가 아니라 흐름으로)"""
+    beats, gains = zip(*points)
+    return lambda seconds: np.interp(seconds / BEAT, beats, gains)
+
+
+def legato(bus_name, events, table_for, center=0.0, spread=0.3, dets=(-8, -3, 3, 8), attack=0.3, release=1.0,
+           glide=0.06, vib=(9.0, 5.2), dyn=None, gain=0.3, dip=0.1):
+    """
+    events: [(midi, 시작 박, 길이 박)]. 같은 음이 이어지면 묶고(이음줄), 0.05박보다 벌어지면 새 프레이즈.
+    한 프레이즈는 위상이 끊기지 않는 하나의 소리 — 음이 바뀌는 곳만 glide 초 동안 미끄러진다
+    """
+    phrases, cur = [], []
+    for m, beat, beats in sorted(events, key=lambda e: e[1]):
+        if cur and beat - (cur[-1][1] + cur[-1][2]) > 0.05:
+            phrases.append(cur)
+            cur = []
+        if cur and cur[-1][0] == m:
+            cur[-1] = (m, cur[-1][1], beat + beats - cur[-1][1])
+            continue
+        cur.append((m, beat, beats))
+    if cur:
+        phrases.append(cur)
+
+    for phrase in phrases:
+        start = phrase[0][1] * BEAT
+        dur = (phrase[-1][1] + phrase[-1][2]) * BEAT - start
+        env = adsr(dur, attack, 0.5, 0.9, release)
+        n = len(env)
+        t = np.arange(n) / SR
+        bounds = [e[1] * BEAT - start for e in phrase[1:]]
+
+        pitch = np.full(n, float(phrase[0][0]))
+        since = t.copy()                      # 지금 음이 시작된 뒤 지난 시간 (비브라토가 음마다 늦게 피어나게)
+        for k, b in enumerate(bounds):
+            pitch += (phrase[k + 1][0] - phrase[k][0]) * smooth01((t - b) / glide)
+            since = np.where(t >= b, t - b, since)
+            env *= 1.0 - dip * np.exp(-((t - b - 0.02) / 0.05) ** 2)
+        weights = []
+        for k in range(len(phrase)):
+            on = smooth01((t - bounds[k - 1]) / glide) if k > 0 else 1.0
+            off = 1.0 - smooth01((t - bounds[k]) / glide) if k < len(bounds) else 1.0
+            weights.append(on * off)
+        if dyn is not None:
+            env = env * dyn(start + t)
+        depth = vib[0] * np.clip((since - 0.25) / 0.5, 0.0, 1.0)
+
+        out = np.zeros((n, 2))
+        for i, det in enumerate(dets):
+            cents = det + rng.normal(0, 1.0) + depth * np.sin(2 * np.pi * (vib[1] + rng.uniform(-0.3, 0.3)) * t + rng.uniform(0, 6.28))
+            phase = np.cumsum(hz(pitch) * 2.0 ** (cents / 1200.0)) / SR + rng.uniform()
+            mono = np.zeros(n)
+            for k, (m, _, _) in enumerate(phrase):
+                w = np.broadcast_to(weights[k], (n,))
+                idx = np.nonzero(w > 1e-4)[0]
+                mono[idx] += w[idx] * osc(table_for(m), phase[idx])
+            p = center + (i / max(len(dets) - 1, 1) - 0.5) * 2.0 * spread
+            out += stereo(mono, float(np.clip(p, -1, 1)))
+        add(bus_name, out * (env * gain)[:, None], start)
+
+
+def string_table(section, vel):
+    _, _, _, extra = SECTIONS[section]
+    cutoff = 1300.0 + 2600.0 * float(np.clip(vel + extra, 0.05, 1.0))
+    return lambda m: cached(('str', m, int(cutoff / 100)), lambda: make_table(saw_amps(hz(m), cutoff)))
+
+
+def string_legato(section, events, vel, attack=0.3, release=1.0, dyn=None, glide=0.06):
+    bus_name, center, spread, _ = SECTIONS[section]
+    legato(bus_name, events, string_table(section, vel), center, spread, (-11, -4, 4, 11), attack, release, glide,
+           (9.0, 5.0), dyn, vel ** 1.3 * 0.32)
+
+
+def horn_legato(events, vel, attack=0.18, release=0.7, dyn=None):
+    table_for = lambda m: cached(('horn_l', m), lambda: make_table(brass_amps(hz(m), 0.38)))
+    legato('horn', events, table_for, -0.35, 0.12, (-5, 5), attack, release, 0.07, (6.0, 5.0), dyn, vel ** 1.2 * 0.3)
+
+
+def bass_legato(events, vel, dyn=None):
+    table_for = lambda m: cached(('bass', m), lambda: make_table([1.0, 0.35, 0.12, 0.05]))
+    # 베이스는 근음이 크게 뛰므로 미끄러지지 않고(15ms) 활만 바꾸듯 살짝 다시 긋는다
+    legato('bass', events, table_for, 0.0, 0.0, (0,), 0.08, 0.8, 0.015, (0.0, 5.0), dyn, vel * 0.55, dip=0.25)
+
+
+def line(text, start_beat, shift=0):
+    """'음 길이(박)' 표기 → events. 음 이름 '-' 는 쉼표"""
+    tokens = text.split()
+    events, beat = [], start_beat
+    for i in range(0, len(tokens), 2):
+        name, beats = tokens[i], float(tokens[i + 1])
+        if name != '-':
+            events.append((midi(name) + shift, beat, beats))
+        beat += beats
+    return events
+
+
+def voice_lead(progression, start_beat, voices=4, low=55, high=74):
+    """
+    progression: [(박 수, '화음 음 이름(옥타브 없이)')] → 성부별 events.
+    화음마다 음역 안의 모든 배치 중 앞 배치에서 가장 덜 움직이는 것을 고른다 (공통음 유지·순차 진행·병행 5/8도 벌점)
+    """
+    from itertools import combinations
+    parts = [[] for _ in range(voices)]
+    prev = None
+    beat = start_beat
+    for beats, names in progression:
+        pcs = {pitch_class(x) for x in names.split()}
+        pool = [m for m in range(low, high + 1) if m % 12 in pcs]
+        best, best_cost = None, None
+        for combo in combinations(pool, voices):
+            if len(pcs) <= voices and {m % 12 for m in combo} != pcs:
+                continue
+            if any(b - a > 12 for a, b in zip(combo, combo[1:])):
+                continue
+            if prev is None:
+                cost = abs(np.mean(combo) - (low + high) / 2) + (combo[-1] - combo[0]) * 0.1
+            else:
+                moves = [c - p for c, p in zip(combo, prev)]
+                cost = sum(abs(d) for d in moves) + 2.0 * sum(abs(d) > 4 for d in moves)
+                for i in range(voices):
+                    for j in range(i + 1, voices):
+                        before, after = (prev[j] - prev[i]) % 12, (combo[j] - combo[i]) % 12
+                        if before == after and after in (0, 7) and moves[i] != 0 and moves[i] * moves[j] > 0:
+                            cost += 4.0
+            if best_cost is None or cost < best_cost:
+                best, best_cost = combo, cost
+        for v, m in enumerate(best):
+            parts[v].append((m, beat, beats))
+        prev = best
+        beat += beats
+    return parts
 
 
 # ───────────────────────── 타악·효과 ─────────────────────────
@@ -417,7 +605,7 @@ def braam(chord, beat, vel=1.0, beats=6):
     tmp = bus['brass']
     bus['brass'] = np.zeros((N, 2))
     for m in chord:
-        brass(m, beat, beats, vel, max_bright=1.0, attack=0.04, release=1.5, voices=5)
+        brass(m, beat, beats, vel, max_bright=1.0, attack=0.04, release=1.5, voices=5, pan=0.0)
     hit = bus['brass']
     bus['brass'] = tmp
     i0 = int(beat * BEAT * SR)
@@ -437,58 +625,72 @@ def impact(beat, vel=1.0):
 
 # ───────────────────────── 악보 ─────────────────────────
 
-def pad(beat, beats, voicing, bass_note, vel=0.5, attack=0.35):
-    for m in notes(voicing):
-        strings(m, beat, beats, vel, attack=attack)
-    bass(midi(bass_note), beat, beats, vel)
-
-
-def melody(inst, line, start_beat, vel, shift=0, **kw):
-    """line: '음 길이(박)' 쌍을 공백으로. 음 이름 '-' 는 쉼표. shift = 반음 단위 이조 (옥타브 겹침용)"""
-    tokens = line.split()
-    beat = start_beat
-    for i in range(0, len(tokens), 2):
-        name, beats = tokens[i], float(tokens[i + 1])
-        if name != '-':
-            inst(midi(name) + shift, beat, beats * 1.02, vel, **kw)
-        beat += beats
-
-
 def ostinato(chord_tones, beat, beats, step=0.5, vel=0.4, pattern=(0, 1, 2, 3, 2, 1, 2, 1)):
+    """하프 아르페지오 (오른쪽, 음마다 살짝 좌우로)"""
     ms = notes(chord_tones)
     count = int(round(beats / step))
     for i in range(count):
         accent = 1.0 if i % 4 == 0 else 0.8
-        harp(ms[pattern[i % len(pattern)] % len(ms)], beat + i * step, vel * accent, p=0.35 if i % 2 else -0.35)
+        harp(ms[pattern[i % len(pattern)] % len(ms)], beat + i * step, vel * accent, p=0.62 if i % 2 else 0.38)
+
+
+# 곡 전체 화성 (8박 ~ 86박). 비올라 4성부·베이스·팡파르 호른이 모두 이 진행을 성부 진행으로 따라간다
+HARMONY = (
+    # 팡파르 (마디 2~5): I – ♭VI·♭VII – II/I(Lydian) – I – IV – Vsus4·V
+    (4, 'D F# A', 'D2'), (2, 'Bb D F', 'Bb1'), (2, 'C E G', 'C2'), (2, 'E G# B', 'D2'),
+    (2, 'D F# A', 'D2'), (2, 'G B D', 'G1'), (1, 'A D E', 'A1'), (1, 'A C# E', 'A1'),
+    # 크롤 A (마디 6~9): I – IV/I – vi(Bm) – Vsus4·V
+    (4, 'D F# A', 'D2'), (4, 'G B D', 'D2'), (4, 'B D F#', 'B1'), (2, 'A D E', 'A1'), (2, 'A C# E', 'A1'),
+    # 크롤 B (마디 10~13): I – iii – IV·iv(단조 차용) – Vsus4·V7
+    (4, 'D F# A', 'D2'), (4, 'F# A C#', 'F#1'), (2, 'G B D', 'G1'), (2, 'G Bb D', 'G1'), (2, 'A D E', 'A1'), (2, 'A C# E G', 'A1'),
+    # 빌드업 (마디 14~15): ♭VI – ♭VII
+    (4, 'Bb D F', 'Bb1'), (4, 'C E G', 'C2'),
+    # 행성 (마디 16~17): i – VI·VII
+    (4, 'D F A', 'D2'), (2, 'Bb D F', 'Bb1'), (2, 'C E G', 'C2'),
+    # 격추 (마디 18~19): iv/i – VI – V7
+    (4, 'G Bb D', 'D2'), (2, 'Bb D F', 'Bb1'), (2, 'A C# E G', 'A1'),
+    # 종지 (마디 20): I (피카르디)
+    (6, 'D F# A', 'D2'),
+)
+HARMONY_START = 8
 
 
 def score():
-    # ── 마디 0~1: 인트로 (0~8박) ──
-    bass(midi('D2'), 0, 8, 0.45)
-    strings(midi('D3'), 0, 8, 0.35, attack=3.0)
-    strings(midi('A3'), 1, 7, 0.3, attack=3.0)
-    strings(midi('A5'), 2, 6, 0.22, attack=2.5, bright=0.2)
-    strings(midi('E6'), 3, 5, 0.18, attack=2.5, bright=0.2)
-    choir(midi('A4'), 2, 6, 0.3)
+    progression = [(beats, names) for beats, names, _ in HARMONY]
+
+    # ── 바탕: 비올라 4성부 (곡 내내 성부 진행으로 이어진다) + 베이스 ──
+    viola_dyn = dynamics([(8, 0.55), (22, 0.55), (24, 0.46), (38, 0.46), (40, 0.52), (54, 0.52), (56, 0.5), (63.5, 0.66),
+                          (64, 0.52), (71.5, 0.56), (72, 0.6), (80, 0.6), (86, 0.55)])
+    for part in voice_lead(progression, HARMONY_START, voices=4, low=55, high=74):
+        string_legato('violas', part, 1.0, attack=0.12, release=3.0, dyn=viola_dyn)
+    bass_events = [(midi('D2'), 0, 8)]
+    beat = HARMONY_START
+    for beats, _, root in HARMONY:
+        bass_events.append((midi(root), beat, beats))
+        beat += beats
+    bass_legato(bass_events, 1.0, dynamics([(0, 0.4), (8, 0.62), (24, 0.5), (40, 0.55), (56, 0.6), (64, 0.62), (86, 0.65)]))
+
+    # ── 마디 0~1: 인트로 (0~8박) — 한 겹씩 ──
+    string_legato('celli', [(midi('D3'), 0, 8.5)], 0.4, attack=2.5, release=1.5)          # 열린 5도 (저음은 5도·8도만)
+    string_legato('celli', [(midi('A3'), 0.5, 8)], 0.35, attack=2.5, release=1.5)
+    strings(midi('A5'), 2, 6, 0.22, attack=2.0, section='violins', bright=0.15)
+    strings(midi('E6'), 2.5, 5.5, 0.18, attack=2.0, section='violins', bright=0.15)
+    choir(midi('A4'), 4, 4.5, 0.3)
     reverse_cymbal(8, beats=6, vel=0.7)
     riser(2, 6, 0.45)
 
     # ── 마디 2~5: 팡파르 (8~24박). 8박 = 6.4초 로고 타격 ──
     impact(8, 1.0)
-    pad(8, 4, 'D3 A3 D4 F#4', 'D2', 0.75, attack=0.08)
-    pad(12, 2, 'F3 Bb3 D4 F4', 'Bb1', 0.7, attack=0.1)
-    pad(14, 2, 'G3 C4 E4 G4', 'C2', 0.7, attack=0.1)
-    pad(16, 2, 'E4 G#4 B4', 'D2', 0.7, attack=0.1)        # Lydian II (E/D) — 밝게 떠오르는 색
-    pad(18, 2, 'D3 A3 D4 F#4', 'D2', 0.7, attack=0.1)
-    pad(20, 2, 'F#3 B3 D4', 'B1', 0.65, attack=0.12)
-    pad(22, 1, 'E3 A3 D4', 'A1', 0.6, attack=0.12)          # Asus4 → A
-    pad(23, 1, 'E3 A3 C#4', 'A1', 0.6, attack=0.12)
-    lead = 'A4 1.5 D5 0.5 E5 1 F#5 1   F5 1.5 D5 0.5 E5 1.5 G5 0.5   G#5 2 F#5 1.5 E5 0.5   D5 1 F#5 1 E5 2'
-    melody(brass, lead, 8, 0.9)
-    melody(horn, lead, 8, 0.6, shift=-12)   # 한 옥타브 아래 호른 겹침
-    for m, b, v in (('D3', 8, 0.8), ('F2', 12, 0.6), ('C3', 14, 0.6), ('D3', 16, 0.6), ('D3', 18, 0.55),
-                    ('B2', 20, 0.5), ('A2', 22, 0.6)):
-        brass(midi(m), b, 2 if b != 8 else 4, v, max_bright=0.7, attack=0.05)
+    # 호른 3성부: 화음을 성부 진행으로 받친다 (왼쪽 뒤)
+    for part in voice_lead(progression[:8], 8, voices=3, low=50, high=67):
+        horn_legato(part, 0.42, attack=0.1, release=0.8)
+    # 트럼펫 주제 (혀로 끊어 부는 금관이라 음마다 어택) — 마디 2~3 은 홀로
+    theme = 'A4 1.5 D5 0.5 E5 1 F#5 1   F5 1.5 D5 0.5 E5 1.5 G5 0.5   G#5 2 F#5 1.5 E5 0.5   D5 1 F#5 1 E5 2'
+    for m, b, beats in line(theme, 8):
+        trumpet(m, b, beats * 1.05, 0.9)
+    # 반복 구간(마디 4~5): 바이올린 대선율(길게, 위) + 첼로 진행(4분, 아래) — 둘 다 레가토
+    string_legato('violins', line('B5 2 A5 2   B5 2 A5 1 C#6 1', 16), 0.45, attack=0.15)
+    string_legato('celli', line('D3 1 E3 1 F#3 1 G3 1   G3 1 F#3 1 E3 1 C#3 1', 16), 0.5, attack=0.08, release=0.6)
     for b in (12, 16, 20):
         taiko(b, 0.6)
     for b in (10, 14, 18, 22):
@@ -496,98 +698,91 @@ def score():
     timpani_roll(midi('A2'), 22.5, 1.5, 0.3, 0.7)
     crash(16, 0.4)
 
-    # ── 마디 6~17: 크롤 (24~72박) — 차분하게 ──
-    phrase_a = (('D3 A3 D4 F#4', 'D2', 'D4 F#4 A4 D5'),
-                ('D3 G3 B3 D4', 'D2', 'G4 B4 D5 G5'),
-                ('D3 F#3 B3 D4', 'B1', 'B3 D4 F#4 B4'),
-                ('D3 G3 B3 D4', 'G1', 'G3 B3 D4 G4'),
-                ('D3 G3 B3 E4', 'E2', 'E4 G4 B4 D5'),
-                ('E3 A3 D4', 'A1', 'A3 D4 E4 A4'))
-    phrase_b = (('D3 A3 D4 F#4', 'D2', 'D4 F#4 A4 D5'),
-                ('C#3 F#3 A3 C#4', 'F#1', 'F#4 A4 C#5 F#5'),
-                ('D3 G3 B3 D4', 'G1', 'G4 B4 D5 G5'),
-                ('D3 G3 Bb3 D4', 'G1', 'G4 Bb4 D5 G5'),     # 단조 iv — 잠깐 쓸쓸한 색
-                ('D3 F#3 A3 D4', 'A1', 'D4 F#4 A4 D5'),
-                ('E3 G3 A3 C#4', 'A1', 'A3 C#4 E4 G4'))
-    for i, (voicing, root, arp) in enumerate(phrase_a + phrase_b):
-        beat = 24 + i * 4
-        pad(beat, 4, voicing, root, 0.5 if i < 6 else 0.56, attack=0.6)
-        ostinato(arp, beat, 4, vel=0.38 if i < 6 else 0.45)
-        if i >= 6:
-            for k in range(8):
-                low_strings(midi(root) + 12, beat + k * 0.5, 0.5, 0.3 if k % 2 else 0.4)
-    horn_a = ('F#4 2 E4 1 D4 1   G4 3 F#4 1   F#4 2 D4 1 B3 1   D4 2 E4 1 G4 1   B4 3 A4 1   A4 2 E4 2')
-    horn_b = ('A4 2 F#4 1 A4 1   C#5 3 B4 1   B4 2 D5 1 B4 1   Bb4 3 A4 1   F#4 2 A4 1 D5 1   E5 2 C#5 2')
-    melody(horn, horn_a, 24, 0.6)
-    melody(horn, horn_b, 48, 0.66)
-    melody(strings, horn_b, 48, 0.3, shift=12)
-    choir(midi('A4'), 48, 8, 0.25)
-    choir(midi('F#4'), 56, 8, 0.22)
-    reverse_cymbal(48, 4, 0.35)
-    for b in range(48, 72, 4):
-        taiko(b, 0.35)
+    # ── 마디 6~9: 크롤 A (24~40박) — 하프 오스티나토(높게) + 비올라(가운데) + 호른 선율(아래) ──
+    beat = 24
+    for beats, arp in ((4, 'D5 F#5 A5 D6'), (4, 'D5 G5 B5 D6'), (4, 'D5 F#5 B5 D6'), (2, 'E5 A5 D6 E6'), (2, 'E5 A5 C#6 E6')):
+        ostinato(arp, beat, beats, vel=0.38)
+        beat += beats
+    horn_legato(line('F#4 2 E4 1 D4 1   G4 3 F#4 1   F#4 2 D4 1 B3 1   E4 2 C#4 1 E4 1', 24), 0.62)
 
-    # ── 마디 18~19: 빌드업 (72~80박) ──
-    pad(72, 4, 'D3 F3 Bb3 D4', 'Bb1', 0.6, attack=0.3)
-    pad(76, 4, 'E3 G3 C4 E4', 'C2', 0.7, attack=0.3)
-    ostinato('Bb4 D5 F5 Bb5', 72, 4, step=0.25, vel=0.42)
-    ostinato('C5 E5 G5 C6', 76, 4, step=0.25, vel=0.5)
-    for k in range(16):
-        low_strings(midi('Bb2') if k < 8 else midi('C3'), 72 + k * 0.5, 0.5, 0.45 + 0.02 * k)
-    run = 'C4 D4 E4 F4 G4 A4 B4 C5 D5 E5 F5 G5 A5 B5 C6 D6'.split()
+    # ── 마디 10~13: 크롤 B (40~56박) — 선율은 바이올린, 호른은 긴 대선율, 하프 대신 첼로 스타카토 + 합창·타이코 ──
+    beat = 40
+    for beats, low, roll in ((4, 'D3', ('D5', 'A5', 'D6')), (4, 'F#2', ('F#5', 'C#6', 'F#6')), (2, 'G2', ('G5', 'D6', 'G6')),
+                             (2, 'G2', ()), (2, 'A2', ('A5', 'E6', 'A6')), (2, 'A2', ())):
+        for k in range(int(beats * 2)):
+            celli_staccato(midi(low) + (12 if k % 2 else 0), beat + k * 0.5, 0.5, 0.42 if k % 2 == 0 else 0.32)
+        for k, name in enumerate(roll):     # 하프는 화음 첫 박 아르페지오만 남긴다
+            harp(midi(name), beat + k * 0.25, 0.4)
+        beat += beats
+    string_legato('violins', line('A5 2 F#5 1 A5 1   C#6 3 B5 1   B5 2 Bb5 2   A5 2 G5 1 E5 1', 40), 0.5, attack=0.2)
+    horn_legato(line('D4 4   C#4 4   D4 4   E4 2 C#4 2', 40), 0.5)
+    choir(midi('F#4'), 48, 4, 0.22)
+    choir(midi('A4'), 48, 8, 0.24)
+    reverse_cymbal(40, 4, 0.3)
+    for b in range(40, 56, 4):
+        taiko(b, 0.32)
+        taiko(b + 2.5, 0.2, 0.15)
+
+    # ── 마디 14~15: 빌드업 (56~64박) — 2박마다 한 겹씩 ──
+    for k in range(16):                                                        # 56: 첼로 8분
+        celli_staccato(midi('Bb2') if k < 8 else midi('C3'), 56 + k * 0.5, 0.5, 0.45 + 0.02 * k)
+    ostinato('D5 F5 Bb5 D6', 58, 2, step=0.25, vel=0.4)                        # 58: 하프 16분
+    ostinato('E5 G5 C6 E6', 60, 4, step=0.25, vel=0.48)
+    run = 'C4 D4 E4 F4 G4 A4 B4 C5 D5 E5 F5 G5 A5 B5 C6 D6'.split()          # 60: 바이올린 상행 (빠른 음계는 활을 따로)
     for k, name in enumerate(run):
-        strings(midi(name), 76 + k * 0.25, 0.35, 0.35 + 0.02 * k, attack=0.02, release=0.3)
-    timpani_roll(midi('D2'), 76, 4, 0.2, 1.0)
-    riser(72, 8, 0.6)
-    reverse_cymbal(80, 4, 0.6)
+        strings(midi(name), 60 + k * 0.25, 0.35, 0.35 + 0.02 * k, attack=0.02, release=0.3, section='violins')
+    timpani_roll(midi('D2'), 60, 4, 0.2, 1.0)                                 # 60: 팀파니 롤
+    for b, voicing in ((56, 'D4 F4 Bb4'), (60, 'E4 G4 C5')):                   # 화음 첫 박 트럼펫 찌르기
+        for m in notes(voicing):
+            trumpet(m, b, 0.6, 0.6, max_bright=0.8, attack=0.03, release=0.25)
+    riser(56, 8, 0.6)
+    reverse_cymbal(64, 4, 0.6)
 
-    # ── 마디 20~21: 행성 (80~88박) — 어둡게 ──
-    braam(notes('D2 A2 D3 F3'), 80, 0.9)
-    crash(80, 0.5)
-    pad(80, 4, 'D3 F3 A3 D4', 'D2', 0.55, attack=0.5)
-    pad(84, 4, 'D3 F3 Bb3 D4', 'Bb1', 0.55, attack=0.5)
-    choir(midi('D4'), 80, 8, 0.45)
-    choir(midi('F4'), 80, 8, 0.4)
-    choir(midi('A4'), 80, 4, 0.35)
-    choir(midi('Bb4'), 84, 4, 0.35)
+    # ── 마디 16~17: 행성 (64~72박) — i – VI·VII ──
+    braam(notes('D2 A2 D3 A3'), 64, 0.9)
+    crash(64, 0.5)
+    choir(midi('D4'), 64, 8, 0.45)
+    choir(midi('F4'), 64, 4, 0.4)
+    choir(midi('A4'), 64, 4, 0.35)
+    choir(midi('F4'), 68, 2, 0.4)
+    choir(midi('G4'), 70, 2, 0.4)
     pulse = 'D3 D3 D3 D3 F3 D3 E3 D3'.split()
     for k in range(16):
-        low_strings(midi(pulse[k % 8]), 80 + k * 0.5, 0.5, 0.6 if k % 4 == 0 else 0.45)
-    for b in (80, 82, 83.5, 84, 86, 87, 87.5):
+        celli_staccato(midi(pulse[k % 8]), 64 + k * 0.5, 0.5, 0.6 if k % 4 == 0 else 0.45)
+    for b in (64, 66, 67.5, 68, 70, 71, 71.5):
         taiko(b, 0.7 if b % 2 == 0 else 0.5, rng.uniform(-0.3, 0.3))
-    horn(midi('A3'), 82, 2, 0.5)
-    horn(midi('Bb3'), 84, 2, 0.55)
-    horn(midi('C4'), 86, 2, 0.6)
-    riser(85, 3, 0.5, 400, 9000)
+    horn_legato(line('A3 2 Bb3 2 C4 2', 66), 0.55)
+    string_legato('violins', [(midi('A5'), 64, 8)], 0.3, attack=1.5)              # 높은 지속음 — 긴장
+    riser(69, 3, 0.5, 400, 9000)
 
-    # ── 마디 22~23: 격추 (88~96박). 88박 = 70.4초 피격 ──
-    braam(notes('D2 A2 Eb3'), 88, 1.0)
-    impact(88, 1.0)
-    choir(midi('Eb5'), 88, 4, 0.35)
-    choir(midi('D5'), 88, 4, 0.35)
-    pad(88, 4, 'D3 G3 Bb3 D4', 'D2', 0.6, attack=0.2)
-    pad(92, 2, 'D3 F3 Bb3 D4', 'Bb1', 0.6, attack=0.2)
-    pad(94, 2, 'E3 G3 A3 C#4', 'A1', 0.65, attack=0.2)
+    # ── 마디 18~19: 격추 (72~80박). 72박 = 57.6초 피격 ──
+    braam(notes('D2 A2 Eb3'), 72, 1.0)
+    impact(72, 1.0)
+    choir(midi('Eb5'), 72, 4, 0.35)
+    choir(midi('D5'), 72, 4, 0.35)
     fall = 'D6 1 C6 1 Bb5 1 A5 1 G5 1 F5 1 E5 1 C#5 1'
-    melody(strings, fall, 88, 0.45)
-    melody(horn, fall, 88, 0.5, shift=-24)
-    for b in (90, 92, 93, 94, 95, 95.5):
+    string_legato('violins', line(fall, 72), 0.45, attack=0.08)
+    horn_legato(line(fall, 72, shift=-24), 0.5)
+    for b in (74, 76, 77, 78, 79, 79.5):
         taiko(b, 0.55, rng.uniform(-0.3, 0.3))
-    timpani_roll(midi('A2'), 94, 2, 0.3, 0.9)
-    reverse_cymbal(96, 3, 0.55)
+    timpani_roll(midi('A2'), 78, 2, 0.3, 0.9)
+    reverse_cymbal(80, 3, 0.55)
 
-    # ── 마디 24: 종지 (96박 = 76.8초) — D 장조로 해결, 길게 울린다 ──
-    impact(96, 0.9)
-    for m in notes('D3 A3 D4 F#4 A4'):
-        strings(m, 96, 5, 0.6, attack=0.1, release=3.5)
-    for m in notes('D3 F#3 A3 D4'):
-        brass(m, 96, 4, 0.75, max_bright=0.8, release=2.5)
-    bass(midi('D2'), 96, 6, 0.7)
-    choir(midi('A4'), 96, 6, 0.45)
-    choir(midi('D5'), 96, 6, 0.4)
-    harp(midi('D5'), 96.0, 0.5)
-    harp(midi('A5'), 96.25, 0.45)
-    harp(midi('D6'), 96.5, 0.4)
+    # ── 마디 20: 종지 (80박 = 64.0초) — D 장조(피카르디)로 해결, 섹션 전체가 함께 ──
+    impact(80, 0.9)
+    for m in notes('A4 D5 F#5'):
+        string_legato('violins', [(m, 80, 6)], 0.55, attack=0.1, release=3.5)
+    for m in notes('D3 A3'):
+        string_legato('celli', [(m, 80, 6)], 0.6, attack=0.1, release=3.5)
+    for m in notes('D4 F#4 A4'):
+        trumpet(m, 80, 4, 0.75, max_bright=0.8, release=2.5)
+    horn_legato([(midi('D3'), 80, 6), ], 0.6, release=2.5)
+    horn_legato([(midi('A3'), 80, 6), ], 0.6, release=2.5)
+    choir(midi('A4'), 80, 6, 0.45)
+    choir(midi('D5'), 80, 6, 0.4)
+    harp(midi('D5'), 80.0, 0.5)
+    harp(midi('A5'), 80.25, 0.45)
+    harp(midi('D6'), 80.5, 0.4)
 
 
 # ───────────────────────── 믹스·마스터 ─────────────────────────
@@ -681,14 +876,18 @@ def limit(x, ceiling_db):
 
 def master():
     ir = hall_ir()
-    sends = {'strings': 0.35, 'brass': 0.28, 'horn': 0.4, 'choir': 0.55, 'harp': 0.45, 'low': 0.15, 'bass': 0.0, 'perc': 0.22, 'fx': 0.35}
-    levels = {'strings': 1.0, 'brass': 0.9, 'horn': 0.85, 'choir': 0.9, 'harp': 0.8, 'low': 0.8, 'bass': 0.9, 'perc': 0.9, 'fx': 0.7}
-    duck = duck_curve([(8, 5, 0.5), (80, 4, 0.5), (88, 5, 0.6), (96, 4, 0.5)])
+    # 오스티나토·스타카토(하프·첼로)는 리버브를 적게 → 앞에, 패드·합창·호른은 많이 → 뒤에
+    sends = {'violins': 0.35, 'violas': 0.45, 'celli': 0.2, 'brass': 0.28, 'horn': 0.45, 'choir': 0.6, 'harp': 0.28,
+             'bass': 0.0, 'perc': 0.22, 'fx': 0.35}
+    levels = {'violins': 1.0, 'violas': 0.85, 'celli': 0.95, 'brass': 0.9, 'horn': 0.85, 'choir': 0.85, 'harp': 0.9,
+              'bass': 0.9, 'perc': 0.9, 'fx': 0.7}
+    duck = duck_curve([(8, 5, 0.5), (64, 4, 0.5), (72, 5, 0.6), (80, 4, 0.5)])
 
     # 저음은 bass·타악이 맡고, 화음 악기는 저역을 비워 탁해지지 않게
-    for name, cut in (('strings', 110), ('brass', 70), ('horn', 90), ('choir', 150), ('harp', 150), ('low', 60)):
+    # 섹션마다 아래 대역을 비워 자기 음역에 머물게 (바이올린 위 · 비올라 가운데 · 첼로 아래)
+    for name, cut in (('violins', 220), ('violas', 140), ('celli', 60), ('brass', 70), ('horn', 90), ('choir', 150), ('harp', 180)):
         bus[name] = highpass(bus[name], cut)
-    for name in ('strings', 'choir', 'harp', 'horn', 'low'):
+    for name in ('violins', 'violas', 'celli', 'choir', 'harp', 'horn'):
         bus[name] *= duck[:, None]
 
     dry = sum(bus[n] * levels[n] for n in BUSES)
@@ -705,8 +904,10 @@ def master():
     mix *= 10 ** (gain_db / 20)
     mix = limit(mix, CEILING_DBTP - 0.3)
 
-    fade_in = np.clip(np.arange(N) / (0.01 * SR), 0, 1)
-    fade_out = np.clip((LENGTH - np.arange(N) / SR) / 2.5, 0, 1) ** 2
+    # 페이드 인 (처음 FADE_IN 초, sin² 곡선) · 페이드 아웃 (종지 화음이 FADE_OUT_START 초까지 울린 뒤 끝까지, cos² 곡선)
+    t = np.arange(N) / SR
+    fade_in = np.sin(0.5 * np.pi * np.clip(t / FADE_IN, 0, 1)) ** 2
+    fade_out = np.cos(0.5 * np.pi * np.clip((t - FADE_OUT_START) / (LENGTH - FADE_OUT_START), 0, 1)) ** 2
     return mix * (fade_in * fade_out)[:, None]
 
 

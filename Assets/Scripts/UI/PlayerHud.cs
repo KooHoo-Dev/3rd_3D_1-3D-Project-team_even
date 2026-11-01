@@ -183,8 +183,10 @@ namespace HybridShooter.UI
 
         private void Update()
         {
-            rootGroup.alpha = stateHidden ? 0f : 1f;
-            if (stateHidden) return;
+            // 연출(보스 등장·최후 시네마틱) 중에는 숨긴다
+            bool hidden = stateHidden || (player != null && player.IsInCinematic);
+            rootGroup.alpha = hidden ? 0f : 1f;
+            if (hidden) return;
             UpdateLives(); // 사망·부활 중에도 보인다 (곧 부활할지 알려야 하므로)
 
             bool alive = player == null || player.IsAlive;

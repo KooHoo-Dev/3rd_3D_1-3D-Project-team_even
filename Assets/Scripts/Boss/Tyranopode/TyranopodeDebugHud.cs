@@ -61,6 +61,8 @@ namespace HybridShooter.Boss.Tyranopode
             GUILayout.Label($"현재 패턴 {boss.CurrentAttackName}");
             GUILayout.Label($"난이도 보정 {boss.Struggle:0.00} (공격 간격 ×{boss.AssistDelayMultiplier:0.00})");
             if (boss.ShieldHp > 0f) GUILayout.Label($"보호막 {boss.ShieldHp:0}/{boss.ShieldMax:0}");
+            var minions = boss.Minions;
+            GUILayout.Label($"소환 자리 버림: NavMesh 없음 {minions.RejectedNoNavMesh} · 길 끊김 {minions.RejectedDisconnected} · 크게 돎 {minions.RejectedDetour}");
             foreach (var (type, hp, max, broken) in boss.PartStatus())
                 GUILayout.Label(broken ? $"  {type}: 파괴됨" : $"  {type}: {hp}/{max}");
 

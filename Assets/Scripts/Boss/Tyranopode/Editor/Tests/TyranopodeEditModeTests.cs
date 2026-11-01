@@ -240,6 +240,30 @@ namespace HybridShooter.Boss.TyranopodeEditor.Tests
         }
 
         [Test]
+        public void 벽_감지는_오를_수_있는_경사를_벽으로_보지_않는다()
+        {
+            // 구덩이 안에서 바깥으로 올라가는 35도 경사면 (기본 wallMinSteepness 50도보다 완만)
+            var origin = new Vector3(70000f, 0f, 70000f);
+            var go = new GameObject("SlopeProbeTest");
+            var slope = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            try
+            {
+                go.transform.position = origin;
+                var locomotion = go.AddComponent<TyranopodeLocomotion>();
+                slope.transform.SetPositionAndRotation(origin + new Vector3(0f, 0f, 14f), Quaternion.Euler(-35f, 0f, 0f));
+                slope.transform.localScale = new Vector3(20f, 1f, 30f);
+                Physics.SyncTransforms();
+
+                Assert.IsFalse(locomotion.ProbeWall(Vector3.forward, 8f), "35도 경사는 오를 수 있다");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(slope);
+            }
+        }
+
+        [Test]
         public void 경계가_없으면_그대로()
         {
             var go = new GameObject("LocomotionTest");

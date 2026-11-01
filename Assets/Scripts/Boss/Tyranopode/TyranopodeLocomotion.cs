@@ -12,7 +12,8 @@ namespace HybridShooter.Boss.Tyranopode
     ///    돌진이 경계에 닿으면 벽에 부딪힌 것으로 본다
     /// 회전은 항상 여기서 한다 (agent.updateRotation 끔)
     ///  - MoveFree: 돌진·도약용. NavMesh 의 작은 틈·돌멩이 구멍에 멈추지 않도록 transform 을 직접 옮기고 높이는 바닥에 맞춘다.
-    ///    멈추는 것은 몸 높이에 걸리는 진짜 벽(Wall)·경기장 경계(Bounds)·근처에 NavMesh 가 없는 낭떠러지(Edge)뿐. EndFree 로 NavMesh 에 되돌린다
+    ///    멈추는 것은 몸 높이에 걸리는 가파른 벽(Wall)·경기장 경계(Bounds)·그 자리 바닥 근처에 NavMesh 가 없는 낭떠러지(Edge)뿐.
+    ///    높이 차이는 막지 않는다: 이어진 경사(구덩이 안팎)는 오르내린다. EndFree 로 NavMesh 에 되돌린다
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent))]
     public sealed class TyranopodeLocomotion : MonoBehaviour
@@ -36,6 +37,13 @@ namespace HybridShooter.Boss.Tyranopode
         [SerializeField, Min(0f)] private float bodyReach = 3f;
         [Tooltip("이 거리 안에 NavMesh 가 있으면 틈·구멍으로 보고 지나간다. 없으면 낭떠러지")]
         [SerializeField, Min(0.1f)] private float gapTolerance = 2.5f;
+        [Tooltip("이보다 완만한 면(도)은 벽이 아니라 오를 수 있는 경사 (구덩이 벽·언덕)")]
+        [SerializeField, Range(10f, 89f)] private float wallMinSteepness = 50f;
+        [Tooltip("높이가 바닥을 따라가는 빠르기 (클수록 바로 붙는다)")]
+        [SerializeField, Min(1f)] private float heightFollow = 20f;
+
+        /// <summary>바닥보다 이만큼 넘게 파고들지 않는다 (가파른 오르막에서 지형 속으로 들어가지 않게)</summary>
+        private const float MaxSink = 0.4f;
 
         private NavMeshAgent agent;
         private TyranopodeView view;
@@ -149,11 +157,13 @@ namespace HybridShooter.Boss.Tyranopode
             Vector3 target = before + delta;
             Vector3 inside = ClampToBounds(target);
             var stop = (inside - target).sqrMagnitude > 0.0001f ? MoveStop.Bounds : MoveStop.None;
-            if (NavMesh.SamplePosition(inside, out _, gapTolerance, agent.areaMask) == false) return MoveStop.Edge;
-
-            // 바위 위로 툭 튀지 않게 높이는 움직인 거리만큼만 따라간다
+            // NavMesh 는 지금 높이가 아니라 그 자리 바닥 높이에서 찾는다 (구덩이 가장자리처럼 높이 차가 커도 이어져 있으면 지나간다)
             float ground = TyranopodeGround.Height(inside, before.y);
-            inside.y = Mathf.MoveTowards(before.y, ground, distance * 1.2f + 0.05f);
+            if (NavMesh.SamplePosition(new Vector3(inside.x, ground, inside.z), out _, gapTolerance, agent.areaMask) == false) return MoveStop.Edge;
+
+            // 높이는 바닥을 부드럽게 따라가되(바위 위로 툭 튀지 않게), 가파른 오르막에서도 지형 속으로 파고들지 않는다
+            float follow = 1f - Mathf.Exp(-heightFollow * Time.deltaTime);
+            inside.y = Mathf.Max(Mathf.Lerp(before.y, ground, follow), ground - MaxSink);
             transform.position = inside;
             agent.nextPosition = inside;
             moved = new Vector2(inside.x - before.x, inside.z - before.z).magnitude;
@@ -165,14 +175,18 @@ namespace HybridShooter.Boss.Tyranopode
         {
             if (free == false) return;
             free = false;
-            if (NavMesh.SamplePosition(transform.position, out var hit, gapTolerance * 2f, agent.areaMask)) agent.Warp(hit.position);
-            else agent.Warp(transform.position);
+            // 지금 수평 자리의 바닥에서 가장 가까운 NavMesh (3D 로 가장 가까운 곳을 찾으면 구덩이 바닥으로 되돌아갈 수 있다)
+            Vector3 position = transform.position;
+            position.y = TyranopodeGround.Height(position, position.y);
+            if (NavMesh.SamplePosition(position, out var hit, gapTolerance * 2f, agent.areaMask)) agent.Warp(hit.position);
+            else agent.Warp(position);
             agent.updatePosition = true;
             Stop();
         }
 
         /// <summary>
         /// 몸 높이(wallProbeHeight)에서 direction 으로 bodyReach + distance 안에 벽이 있나. 낮은 돌멩이·바닥은 이 높이에 걸리지 않는다.
+        /// wallMinSteepness 보다 완만한 면은 오를 수 있는 경사라 벽이 아니다 (구덩이 안에서 바깥 경사면을 보는 경우).
         /// 보스 자신·플레이어·몬스터(IDamageable)·트리거·처음부터 겹친 것은 건너뛴다
         /// </summary>
         public bool ProbeWall(Vector3 direction, float distance)
@@ -183,10 +197,12 @@ namespace HybridShooter.Boss.Tyranopode
             LastProbeEnd = origin + direction * length;
             LastWallPoint = null;
             int count = Physics.SphereCastNonAlloc(origin, wallProbeRadius, direction, wallHits, length, ~0, QueryTriggerInteraction.Ignore);
+            float slopeLimit = Mathf.Cos(wallMinSteepness * Mathf.Deg2Rad);
             for (int i = 0; i < count; i++)
             {
                 var hit = wallHits[i];
                 if (hit.distance <= 0f) continue;
+                if (hit.normal.y >= slopeLimit) continue; // 완만한 경사
                 if (hit.collider.transform.IsChildOf(transform)) continue;
                 if (hit.collider.GetComponentInParent<IDamageable>() != null) continue;
                 LastWallPoint = hit.point;

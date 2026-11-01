@@ -329,18 +329,19 @@ namespace HybridShooter.Player
         /// <summary>
         /// 상체 자세: Aim 을 조준 여부에 맞춰 aimBlendTime 에 걸쳐 0 ↔ 1 로. 공중에서는 조준이 풀리므로(PlayerController) 들고 다니기 자세.
         /// 상체 자세 상태(UpperPoseWeight)는 총이 있으면 켜고, 사망·구르기·벽넘기 중에는 끈다 (그 동작은 전신이 맞다).
+        /// 연출(시네마틱) 중에는 조준을 풀고 총을 내린다 (컷신과 같은 편한 자세).
         /// 실제 레이어 가중치 = 상태 × 움직임 계수 (UpperPoseMotionTarget)
         /// </summary>
         private void UpdateUpperPose(float dt)
         {
             bool hasGun = gunSlot != null && gunSlot.CurrentGun != null;
-            bool wantAim = hasGun && (gunSlot.IsAiming || Time.time < aimPoseUntil);
+            bool wantAim = hasGun && player.IsInCinematic == false && (gunSlot.IsAiming || Time.time < aimPoseUntil);
             float aimStep = profile.aimBlendTime > 0f ? dt / profile.aimBlendTime : 1f;
             aimWeight = Mathf.MoveTowards(aimWeight, wantAim ? 1f : 0f, aimStep);
             animator.SetFloat(PlayerAnimNames.Hash.Aim, aimWeight);
 
             if (upperPoseLayer < 0) return;
-            bool on = hasGun && player.IsAlive && player.IsRolling == false && player.IsExternallyControlled == false;
+            bool on = hasGun && player.IsAlive && player.IsRolling == false && player.IsExternallyControlled == false && player.IsInCinematic == false;
             float stateStep = profile.upperPoseBlendTime > 0f ? dt / profile.upperPoseBlendTime : 1f;
             upperPoseState = Mathf.MoveTowards(upperPoseState, on ? 1f : 0f, stateStep);
 

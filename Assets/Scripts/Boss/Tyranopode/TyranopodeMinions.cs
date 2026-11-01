@@ -22,6 +22,8 @@ namespace HybridShooter.Boss.Tyranopode
     ///  - 소환 위치에서 그때 플레이어까지 거리 × approachRatio 만큼은 approachMultiplier 로 빠르게 달려와 멀리서도 다가오는 게 보이고, 그 뒤 느려진다
     ///  - 무리가 살아 있는 동안은 포효 패턴이 이어지는 것으로 본다 (TyranopodeController 가 플레이어 사망 시 무리를 흡수)
     /// 등장 연출에서는 씬에 남은 웨이브 몬스터도 넘겨받는다 (AdoptWaveMonsters → 기절 → DrainAdopted 로 하나둘 쓰러짐)
+    /// 소환 자리는 모두 TryFindSpawnPoint 로 고른다: 근처 NavMesh 에서 플레이어까지 걸어서 이어지는 자리만
+    /// (맵 밖·구덩이처럼 끊긴 곳, 바깥으로 크게 돌아오는 곳은 버리고 다른 자리로 다시 시도)
     /// </summary>
     public sealed class TyranopodeMinions
     {
@@ -29,6 +31,11 @@ namespace HybridShooter.Boss.Tyranopode
         private const float MeasureHeight = 1.5f;
         private const float MeasureRange = 120f;
         private const float WallInset = 3f;
+        private const float SpawnSample = 3f;     // 후보에서 NavMesh 를 찾는 반경(m)
+        private const float PlayerSample = 4f;    // 점프 중인 플레이어 발밑 NavMesh 를 찾는 반경(m)
+        private const float MaxDetour = 3f;       // 길 길이가 직선 거리의 이 배 + DetourSlack 을 넘으면 바깥으로 도는 길
+        private const float DetourSlack = 10f;
+        private const int SpawnTries = 6;
 
         private enum KillStyle { Fling, Collapse }
 
@@ -87,6 +94,7 @@ namespace HybridShooter.Boss.Tyranopode
         private readonly float approachMultiplier;
         private readonly float approachRatio;
         private readonly RaycastHit[] hits = new RaycastHit[16];
+        private readonly NavMeshPath path = new NavMeshPath();
         private readonly Transform ignoreRoot;
         private readonly GameObject spawnVfx;
         private readonly GameObject deathVfx;
@@ -97,6 +105,11 @@ namespace HybridShooter.Boss.Tyranopode
         public int AliveCount => alive.Count;
         /// <summary>살아 있는 포효 무리 수. 0 보다 크면 포효 패턴이 이어지는 중</summary>
         public int CohortAliveCount => cohort.Count;
+
+        /// <summary>버린 소환 후보 수 (디버그 HUD): NavMesh 없음 / 플레이어까지 길이 끊김 / 바깥으로 크게 도는 길</summary>
+        public int RejectedNoNavMesh { get; private set; }
+        public int RejectedDisconnected { get; private set; }
+        public int RejectedDetour { get; private set; }
 
         public TyranopodeMinions(Transform ignoreRoot, GameObject spawnVfx, GameObject deathVfx, FlingSettings fling,
             float speedMultiplier, float approachMultiplier, float approachRatio)
@@ -177,11 +190,9 @@ namespace HybridShooter.Boss.Tyranopode
             int spawned = 0;
             for (int i = 0; i < count && AliveCount < maxAlive; i++)
             {
-                Vector3 dir = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f) * Vector3.forward;
-                Vector3 point = Center + dir * Mathf.Max(1f, Radius - WallInset);
+                if (TryWallPoint(playerPosition, out Vector3 point, out Vector3 dir) == false) continue;
                 int id = monsterIds[UnityEngine.Random.Range(0, monsterIds.Count)];
                 var monster = Spawn(id, point, Quaternion.LookRotation(-dir));
-                if (monster == null) continue;
                 cohort.Add(monster);
                 var state = speeds.Find(s => s.Monster == monster);
                 state.Approaching = true;
@@ -191,13 +202,67 @@ namespace HybridShooter.Boss.Tyranopode
             return spawned;
         }
 
-        /// <summary>position 주변에 count 마리 (알 부화)</summary>
-        public void SpawnAround(int monsterId, Vector3 position, int count)
+        /// <summary>
+        /// 벽 바로 안쪽 소환 자리: 무작위 방향의 실제 벽까지 재서(원형이 아닌 경기장도 벽 너머로 나가지 않게) 그 안쪽 WallInset.
+        /// 플레이어까지 길이 이어지는 자리가 나올 때까지 SpawnTries 번 방향을 바꾼다
+        /// </summary>
+        private bool TryWallPoint(Vector3 playerPosition, out Vector3 point, out Vector3 dir)
+        {
+            for (int t = 0; t < SpawnTries; t++)
+            {
+                dir = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f) * Vector3.forward;
+                float wall = TryRayToWall(Center + Vector3.up * MeasureHeight, dir, out float distance) ? distance : Radius;
+                Vector3 candidate = Center + dir * Mathf.Max(1f, wall - WallInset);
+                if (TryFindSpawnPoint(candidate, playerPosition, out point)) return true;
+            }
+            point = Center;
+            dir = Vector3.forward;
+            return false;
+        }
+
+        /// <summary>
+        /// 소환 자리 검사: candidate 근처 NavMesh 위로 옮기고, 그 자리에서 플레이어 발밑까지 걸어서 끝까지 이어지는지(맵 밖·구덩이 X),
+        /// 길이 직선보다 지나치게 돌아가지 않는지(벽 바깥을 크게 도는 길 X) 본다. 플레이어가 높이 떠 있어 발밑을 못 찾으면 NavMesh 위면 된다
+        /// </summary>
+        public bool TryFindSpawnPoint(Vector3 candidate, Vector3 playerPosition, out Vector3 point)
+        {
+            point = candidate;
+            if (NavMesh.SamplePosition(candidate, out var hit, SpawnSample, NavMesh.AllAreas) == false)
+            {
+                RejectedNoNavMesh++;
+                return false;
+            }
+            point = hit.position;
+            if (NavMesh.SamplePosition(playerPosition, out var feet, PlayerSample, NavMesh.AllAreas) == false) return true;
+
+            if (NavMesh.CalculatePath(point, feet.position, NavMesh.AllAreas, path) == false || path.status != NavMeshPathStatus.PathComplete)
+            {
+                RejectedDisconnected++;
+                return false;
+            }
+            float length = 0f;
+            var corners = path.corners;
+            for (int i = 1; i < corners.Length; i++) length += Vector3.Distance(corners[i - 1], corners[i]);
+            if (length > Flat(feet.position - point).magnitude * MaxDetour + DetourSlack)
+            {
+                RejectedDetour++;
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>position 주변에 count 마리 (알 부화). 갈 수 없는 자리면 알 자리에서</summary>
+        public void SpawnAround(int monsterId, Vector3 position, int count, Vector3 playerPosition)
         {
             for (int i = 0; i < count; i++)
             {
                 Vector2 offset = UnityEngine.Random.insideUnitCircle * 1.5f;
-                Vector3 point = position + new Vector3(offset.x, 0f, offset.y);
+                if (TryFindSpawnPoint(position + new Vector3(offset.x, 0f, offset.y), playerPosition, out Vector3 point) == false
+                    && TryFindSpawnPoint(position, playerPosition, out point) == false)
+                {
+                    Debug.LogWarning($"[Tyranopode] 알 자리 {position} 에서 플레이어까지 길이 없어 부화하지 못했습니다.");
+                    continue;
+                }
                 Vector3 look = Center - point;
                 look.y = 0f;
                 Spawn(monsterId, point, look.sqrMagnitude > 0.01f ? Quaternion.LookRotation(look) : Quaternion.identity);
@@ -205,16 +270,16 @@ namespace HybridShooter.Boss.Tyranopode
         }
 
         /// <summary>디버그: 웨이브 몬스터처럼 경기장에 흩어 놓는다 (보스 잡몹으로 관리하지 않는다)</summary>
-        public void SpawnLoose(IReadOnlyList<int> monsterIds, int count)
+        public void SpawnLoose(IReadOnlyList<int> monsterIds, int count, Vector3 playerPosition)
         {
             var factory = ServiceLocator.Get<IMonsterFactory>();
             for (int i = 0; i < count; i++)
             {
                 Vector3 dir = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f) * Vector3.forward;
-                Vector3 point = Center + dir * UnityEngine.Random.Range(6f, Mathf.Max(7f, Radius - WallInset));
-                if (NavMesh.SamplePosition(point, out var navHit, 6f, NavMesh.AllAreas) == false) continue;
+                Vector3 candidate = Center + dir * UnityEngine.Random.Range(6f, Mathf.Max(7f, Radius - WallInset));
+                if (TryFindSpawnPoint(candidate, playerPosition, out Vector3 point) == false) continue;
                 var def = DataManager.Monsters.Get(monsterIds[UnityEngine.Random.Range(0, monsterIds.Count)]);
-                factory.Spawn(def, navHit.position, Quaternion.LookRotation(-dir));
+                factory.Spawn(def, point, Quaternion.LookRotation(-dir));
             }
         }
 
@@ -254,16 +319,14 @@ namespace HybridShooter.Boss.Tyranopode
             adopted.Clear();
         }
 
-        /// <summary>반환 = 부른 잡몹 (NavMesh 가 없는 자리면 null — 벽 둘레는 무작위라 그 자리만 건너뛴다)</summary>
+        /// <summary>point = TryFindSpawnPoint 로 고른 NavMesh 위 자리</summary>
         private MonsterController Spawn(int monsterId, Vector3 point, Quaternion rotation)
         {
             var factory = ServiceLocator.Get<IMonsterFactory>(); // 씬에 MonsterPool 이 없으면 기본 ResourcesMonsterFactory
             var def = DataManager.Monsters.Get(monsterId);
-            if (NavMesh.SamplePosition(point, out var navHit, 6f, NavMesh.AllAreas) == false) return null;
-
-            var monster = factory.Spawn(def, navHit.position, rotation).GetComponent<MonsterController>();
+            var monster = factory.Spawn(def, point, rotation).GetComponent<MonsterController>();
             Track(monster, tuneSpeed: true);
-            SpawnVfx(spawnVfx, navHit.position);
+            SpawnVfx(spawnVfx, point);
             return monster;
         }
 
