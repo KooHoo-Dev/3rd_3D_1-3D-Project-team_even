@@ -26,6 +26,10 @@ namespace HybridShooter.Core.Contracts
     {
         /// <summary>군중 생성 위치. Herd 는 같은 groupSeed 끼리 한 방향에 모인다. false = 이번 점은 소환 불가 (플레이어 안전 반경 안 등), 다시 요청하면 된다</summary>
         bool TryGetSpawnPose(SpawnPattern pattern, int groupSeed, out Vector3 position, out Quaternion rotation);
+        /// <summary>Nest 묶음의 둥지 중심 (링 위 한 점). false = 이번 점은 경계 밖·장애물·안전 반경 안 등이라 못 씀, 다시 요청하면 된다</summary>
+        bool TryGetNestCenter(out Vector3 center);
+        /// <summary>둥지 중심 주위 원 안의 소환 위치. false = 이번 점은 못 씀, 다시 요청하면 된다</summary>
+        bool TryGetSpawnPoseAroundNest(Vector3 nestCenter, out Vector3 position, out Quaternion rotation);
         /// <summary>보급 낙하 위치 (BL-018)</summary>
         bool TryGetSupplyDropPosition(out Vector3 position);
     }
