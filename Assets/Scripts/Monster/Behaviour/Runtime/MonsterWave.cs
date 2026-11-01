@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 
 namespace HybridShooter.Monster.Behaviour
@@ -25,18 +26,39 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// 웨이브의 스포너를 전부 만들어 함께 시작한다. 첫 소환은 다음 Tick 부터다.
+        /// 같은 StartDelay 의 Nest 스포너들에는 둥지(SpawnNest) 하나를 나눠 줘서, 몬스터 종류가 달라도 한 지점 주위에서 나오게 한다.
         /// </summary>
         /// <param name="wave">실행할 웨이브 행 (Spawners 가 Link 된 것)</param>
         /// <param name="monsterFactory">스포너에 그대로 넘길 팩토리</param>
-        /// <param name="spawnZones">스포너에 그대로 넘길 소환 위치 계산</param>
+        /// <param name="spawnZones">스포너·둥지에 그대로 넘길 소환 위치 계산</param>
         public MonsterWave(WaveDef wave, IMonsterFactory monsterFactory, ISpawnZoneProvider spawnZones)
         {
+            var nestsByStartDelay = new Dictionary<float, SpawnNest>();
+
             foreach (WaveSpawnerDef spawner in wave.Spawners)
             {
-                var runningSpawner = new MonsterSpawner(spawner, monsterFactory, spawnZones);
+                SpawnNest nest = FindOrCreateNest(spawner, nestsByStartDelay, spawnZones);
+                var runningSpawner = new MonsterSpawner(spawner, monsterFactory, spawnZones, nest);
                 runningSpawner.Finished += OnSpawnerFinished;
                 runningSpawners.Add(runningSpawner);
             }
+        }
+
+        /// <summary>
+        /// Nest 스포너가 쓸 둥지를 찾는다. 같은 StartDelay 의 둥지가 이미 있으면 그것을, 없으면 새로 만들어 등록한다.
+        /// </summary>
+        /// <param name="spawner">스포너 행</param>
+        /// <param name="nestsByStartDelay">이 웨이브에서 만든 둥지 (키 = StartDelay 초)</param>
+        /// <param name="spawnZones">새 둥지에 넘길 소환 위치 계산</param>
+        /// <returns>공유할 둥지. Nest 패턴이 아니면 null</returns>
+        private static SpawnNest FindOrCreateNest(WaveSpawnerDef spawner, Dictionary<float, SpawnNest> nestsByStartDelay, ISpawnZoneProvider spawnZones)
+        {
+            if (spawner.SpawnPattern != SpawnPattern.Nest) return null;
+            if (nestsByStartDelay.TryGetValue(spawner.StartDelay, out SpawnNest existingNest)) return existingNest;
+
+            var nest = new SpawnNest(spawnZones);
+            nestsByStartDelay.Add(spawner.StartDelay, nest);
+            return nest;
         }
 
         /// <summary>
