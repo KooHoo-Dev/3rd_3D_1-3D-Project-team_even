@@ -42,6 +42,7 @@ namespace HybridShooter.Monster.Behaviour
             // 피해로 플레이어 사망 이벤트가 발생해도 폭발 완료가 취소로 바뀌지 않게 먼저 주기를 닫는다.
             EndEarly(AttackResult.Completed);
             NotifyBodyContacted(Body.Position); // 기존 ImpactSfx 경로로 폭발음을 재생한다.
+            NotifyMonsterHit(area, Body.Position, Body.Forward, isInBlast);
             PlayExplosionEffect();
             if (isInBlast) Hit(target, Body.Position);
             return true;
@@ -54,6 +55,7 @@ namespace HybridShooter.Monster.Behaviour
         private void PlayExplosionEffect()
         {
             GameObject effect = Object.Instantiate(settings.ExplosionEffectPrefab, Body.Position, Quaternion.identity);
+            effect.transform.localScale = Spec.Radius > 3 ? Vector3.one : Vector3.one * Spec.Radius / 3;
             Object.Destroy(effect, settings.EffectLifetime);
         }
     }

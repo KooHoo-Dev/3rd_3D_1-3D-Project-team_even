@@ -115,7 +115,7 @@ namespace HybridShooter.Monster.Behaviour
                 desired = below;
             Vector3 ground = ResolveGround(desired);
             if (IsBodyClear(ground + rootOffset) == false)
-                throw new InvalidOperationException($"도약 취소 복구 지점에 몸체가 들어갈 수 없다: {ground}");
+                Debug.LogWarning($"도약 취소 복구 지점에 몸체가 들어갈 수 없다: {ground}");
             return ground;
         }
 

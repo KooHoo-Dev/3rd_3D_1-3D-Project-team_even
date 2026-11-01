@@ -288,7 +288,6 @@ namespace HybridShooter.Monster.Behaviour
             => MonsterHitEvent?.Invoke(this, area, origin, forward, didHit);
 
         /// <summary>대상에게 Damage × HitCount 피해. 대상이 이미 죽었으면 주지 않는다</summary>
-        /// <remarks>아직 전투시스템 관련 적용되지 않았음</remarks>
         /// <param name="target">피해를 받을 대상</param>
         /// <param name="from">공격 위치. 피해 방향(수평) 계산에 쓴다</param>
         /// <exception cref="InvalidOperationException">대상에서 IDamageable 을 찾지 못했을 때</exception>

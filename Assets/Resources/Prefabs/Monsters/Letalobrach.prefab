@@ -175,7 +175,7 @@ GameObject:
   - component: {fileID: 8182058156753446464}
   - component: {fileID: 4691132091533479145}
   - component: {fileID: 517540784849940430}
-  - component: {fileID: -7263888492720412358}
+  - component: {fileID: 6040918561269513848}
   m_Layer: 15
   m_Name: Letalobrach
   m_TagString: Untagged
@@ -347,7 +347,7 @@ CapsuleCollider:
   m_Height: 4.23
   m_Direction: 1
   m_Center: {x: 0.022333503, y: 2.4972677, z: 0.55911064}
---- !u!114 &-7263888492720412358
+--- !u!114 &6040918561269513848
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -356,7 +356,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1438301292820702486}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4607b74028a507a4ca90f96559fed09e, type: 3}
+  m_Script: {fileID: 11500000, guid: c85f4e92e9b67884f980d017806180da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Monster.Tester.MonsterHitAreaVisualizer
   hitFlashSeconds: 0.3
