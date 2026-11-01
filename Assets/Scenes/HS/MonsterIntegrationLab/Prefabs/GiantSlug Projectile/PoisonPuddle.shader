@@ -1,9 +1,10 @@
 // 독장판(PoisonZone) 전용 셰이더. URP Unlit + 반투명 (아래 지형이 비쳐 보이는 독 웅덩이).
-// PoisonZone.Begin 이 구를 (지름, 1, 지름) 으로 납작하게 누르므로, 스케일에 끌려가지 않도록 계산을 월드 기준으로 한다.
+// 메시는 TerrainDiscMesh 가 만든 지름 1m 원판(Terrain 곡면을 따름)이고, PoisonZone.Begin 이 (지름, 1, 지름) 으로 넓힌다.
+// 무늬는 스케일에 끌려가지 않도록 월드 기준, 테두리·들썩임은 오브젝트 XZ 반경 비율(0 = 중심, 1 = 가장자리) 기준으로 계산한다.
 //   1. 끓는 독액 무늬: 월드 XZ 좌표로 노이즈를 계산 → 장판 반경이 달라도 무늬 크기가 같다.
 //   2. 거품 반점   : 잘게 끓는 노이즈의 높은 곳만 밝고 진하게 → 표면에서 터지는 독 거품.
-//   3. 꿀렁임      : 윗면(월드 법선 Y 가 큰 곳)만 위아래로 조금 들썩인다. 가장자리는 땅에 붙어 있다.
-//   4. 테두리 발광 : 법선이 옆을 향하는 돔 가장자리를 밝게 → 피해 범위 경계가 잘 보인다.
+//   3. 꿀렁임      : 중심 쪽일수록 위아래로 조금 들썩인다. 가장자리는 땅에 붙어 있다.
+//   4. 테두리 발광 : 원판 가장자리를 밝게 → 피해 범위 경계가 잘 보인다 (예전 돔 가장자리와 같은 곡선).
 // 색 값이 1 을 넘으면(HDR) 카메라 Post Processing + Bloom 을 켰을 때 빛이 번진다.
 Shader "HybridShooter/PoisonPuddle"
 {
@@ -70,14 +71,13 @@ Shader "HybridShooter/PoisonPuddle"
             struct Attributes
             {
                 float4 positionOS : POSITION;
-                float3 normalOS : NORMAL;
             };
 
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD0;
-                float3 normalWS : TEXCOORD1;
+                float2 positionXZ : TEXCOORD1;  // 오브젝트 공간 XZ. 픽셀마다 반경 비율을 구해야 테두리가 매끈하다
             };
 
             // 3D 좌표 → 0~1 의사 난수. 같은 좌표는 항상 같은 값. (PoisonBlob.shader 와 같은 함수)
@@ -112,20 +112,25 @@ Shader "HybridShooter/PoisonPuddle"
                 return ValueNoise3D(float3(positionXZ * scale, _Time.y * speed));
             }
 
+            // 반경 비율: 0 = 중심, 1 = 가장자리 (오브젝트 XZ 거리 ÷ 원판 반지름 0.5)
+            float RadiusRatio(float2 positionXZ)
+            {
+                return saturate(length(positionXZ) / 0.5);
+            }
+
             Varyings Vertex(Attributes input)
             {
                 Varyings output;
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
-                float3 normalWS = TransformObjectToWorldNormal(input.normalOS);  // 비균일 스케일을 반영한 법선
 
-                // 윗면만 들썩임: 월드 법선 Y 가 1(꼭대기)이면 최대, 0(가장자리) 이하면 0.
-                float topAmount = saturate(normalWS.y);
+                // 중심 쪽만 들썩임: 중심이면 최대, 가장자리면 0.
+                float topAmount = 1.0 - RadiusRatio(input.positionOS.xz);
                 float wobble = BoilingNoise(positionWS.xz, _WobbleScale, _WobbleSpeed) * 2.0 - 1.0;
                 positionWS.y += wobble * _WobbleStrength * topAmount;
 
                 output.positionWS = positionWS;
                 output.positionCS = TransformWorldToHClip(positionWS);
-                output.normalWS = normalWS;
+                output.positionXZ = input.positionOS.xz;
                 return output;
             }
 
@@ -142,9 +147,10 @@ Shader "HybridShooter/PoisonPuddle"
                 float bubble = smoothstep(_BubbleThreshold, _BubbleThreshold + 0.08, bubbleNoise);
                 color += _ToxicColor.rgb * bubble * _BubbleBrightness;
 
-                // 3) 테두리 발광: 법선이 옆을 향할수록(돔 가장자리) 1 에 가깝다. 시점과 무관하게 경계가 보인다.
-                float3 normalWS = normalize(input.normalWS);
-                float edge = pow(1.0 - abs(normalWS.y), _EdgePower);
+                // 3) 테두리 발광: 가장자리에 가까울수록 1. 예전 돔(반구) 가장자리의 "1 - 법선 Y" 곡선을 반경 비율로 그대로 계산한다.
+                float radiusRatio = RadiusRatio(input.positionXZ);
+                float domeSideAmount = 1.0 - sqrt(1.0 - radiusRatio * radiusRatio);
+                float edge = pow(domeSideAmount, _EdgePower);
                 color += _EdgeColor.rgb * edge;
 
                 half alpha = saturate(_BaseAlpha + edge + bubble * 0.5);

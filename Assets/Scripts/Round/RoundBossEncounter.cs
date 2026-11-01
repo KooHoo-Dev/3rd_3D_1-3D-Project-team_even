@@ -84,6 +84,21 @@ namespace HybridShooter.Round
             // 보스 이벤트의 MonsterDef는 현재 테이블 이전 중이라 null일 수 있다.
             EventBus<BossAppearedEvent>.Publish(new BossAppearedEvent(eventBoss, boss.gameObject));
         }
+        
+        private bool TryResolveBoss(int id, out BossController prefab, out BossDef def)
+        {
+            prefab = null;
+            if (DataManager.Bosses.TryGet(id, out def) == false) return false;
+            if (id == bossId && bossPrefab != null)
+            {
+                prefab = bossPrefab;
+                return true;
+            }
+            var loaded = string.IsNullOrEmpty(def.Prefab) ? null : Resources.Load<GameObject>(def.Prefab);
+            if (loaded != null) prefab = loaded.GetComponent<BossController>();
+            if (prefab == null) Debug.LogWarning($"[RoundBossEncounter] BossTable {id} 의 Prefab '{def.Prefab}' 을 찾지 못해 인스펙터 보스로 대신합니다.", this);
+            return prefab != null;
+        }
 
         /// <summary>
         /// 방금 생성한 보스를 SpawnPointFinder 가 플레이어 기준으로 고른 위치로 옮기고, 플레이어를 바라보게 한다.

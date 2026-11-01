@@ -23,10 +23,10 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// MonsterAttackFactory 가 ZonePressure 역할에 만든다.
         /// </summary>
-        /// <param name="spec">공격 값 묶음. Radius = 장판 반경, ProjectileSpeed = 포탄 수평 속도</param>
+        /// <param name="spec">공격 값 묶음. Radius = 장판 반경, ProjectileSpeed = 포탄 수평 속도, Damage = 장판 틱 1회 피해</param>
         /// <param name="body">공격자 몸체. 발사 위치와 조준 방향</param>
         /// <param name="findDamageable">대상에서 피해를 줄 IDamageable 을 찾는 방법. 장판이 쓴다</param>
-        /// <param name="settings">원거리 프리팹의 설정 (풀·발사 높이·장판 틱 피해·간격·지속·피해 높이 허용값)</param>
+        /// <param name="settings">원거리 프리팹의 설정 (풀·발사 높이·장판 틱 간격·지속·피해 높이 허용값·표시 높이)</param>
         /// <exception cref="ArgumentNullException">body, settings 중 하나가 null 일 때 (프리팹에 PoisonAreaSettings 가 없을 때 등). body 는 기반 생성자가 던진다</exception>
         public PoisonAreaAttack(in AttackSpec spec, MonsterBody body, Func<IPlayerTarget, IDamageable> findDamageable,
                                 PoisonAreaSettings settings)
@@ -38,14 +38,13 @@ namespace HybridShooter.Monster.Behaviour
             this.findDamageable = findDamageable;
         }
 
-        /// <summary>예고 시작: 조준점(AimPoint) 아래 Terrain 지면점을 목표로 확정하고 표식을 켠다. 그쪽으로 도는 것은 예고 중 Tick 이 한다</summary>
+        /// <summary>예고 시작: 조준점(AimPoint) 아래 Terrain 지면점을 목표로 확정하고, 표식을 켜서 그 주변 Terrain 곡면에 맞춘다. 그쪽으로 도는 것은 예고 중 Tick 이 한다</summary>
         protected override void OnWindup()
         {
             targetPoint = TerrainGround.PointUnder(AimPoint);
 
-            float diameter = Spec.Radius * 2f;
             marker = settings.MarkerPool.Get(targetPoint);
-            marker.localScale = new Vector3(diameter, marker.localScale.y, diameter);
+            TerrainDiscMesh.FitToTerrain(marker, Spec.Radius * 2f, settings.SurfaceLift);
         }
 
         /// <summary>공격 순간: 포탄을 1발 쏘고 표식을 포탄에 넘긴다</summary>
@@ -54,8 +53,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             Vector3 launchPoint = Body.Position + Vector3.up * settings.LaunchHeight + Body.Forward * settings.LaunchWidth;
             PoisonProjectile projectile = settings.ProjectilePool.Get(launchPoint);
-            projectile.Launch(settings, launchPoint, targetPoint, Spec.ProjectileSpeed, marker,
-                              Target, Spec.Radius, findDamageable, Spec.SourceDefId);
+            projectile.Launch(settings, Spec, launchPoint, targetPoint, marker, Target, findDamageable);
             marker = null;
             return true;
         }
