@@ -1,24 +1,25 @@
 using System;
 using HybridShooter.Boss;
 using HybridShooter.Boss.Clypeosaurus;
+using HybridShooter.Core.Battlefield;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.Services;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace HybridShooter.Round
 {
-    /// <summary>
-    /// 한 라운드의 보스를 생성·초기화하고, 사망을 기존 보상 이벤트에 연결한다.
-    /// 보스는 RoundTable.BossId → BossTable 행의 Prefab(Resources 경로)으로 고른다.
-    /// 인스펙터 bossId 와 같은 보스는 인스펙터 bossPrefab 을 쓰고, 찾지 못하면 인스펙터 보스로 대신한다.
-    /// </summary>
+    /// <summary>한 라운드의 보스를 SpawnPointFinder 가 고른 위치에 생성·초기화하고, 사망을 기존 보상 이벤트에 연결한다.</summary>
     public sealed class RoundBossEncounter : MonoBehaviour
     {
         [SerializeField] private BossController bossPrefab;
+        [Tooltip("자동 위치 선택에 실패했을 때 쓰는 대체 스폰 위치. 비면 이 컴포넌트 위치")]
         [SerializeField] private Transform spawnPoint;
+        [Tooltip("플레이어 기준으로 보스 스폰 위치를 고르는 탐색기")]
+        [SerializeField] private SpawnPointFinder spawnPointFinder;
         [SerializeField] private int bossId = 1;
 
         private BossController boss;
@@ -38,6 +39,11 @@ namespace HybridShooter.Round
             {
                 var prefab = Resources.Load<GameObject>("Boss/Clypeosaurus/Prefab/Clypeosaurus");
                 if (prefab != null) bossPrefab = prefab.GetComponent<BossController>();
+            }
+            if (spawnPointFinder == null)
+            {
+                Debug.LogError("[RoundBossEncounter] SpawnPointFinder를 연결해주세요.", this);
+                return false;
             }
             if (bossPrefab == null || DataManager.Bosses.TryGet(bossId, out bossDef) == false || ServiceLocator.TryGet(out player) == false || player?.Root == null)
             {
@@ -63,6 +69,7 @@ namespace HybridShooter.Round
             Transform point = spawnPoint != null ? spawnPoint : transform;
             boss = Instantiate(prefab, point.position, point.rotation);
             boss.gameObject.SetActive(true);
+            MoveToFoundSpawnPoint();
             boss.Died += OnBossDied;
             entrance = boss.GetComponent<EntranceAttack>();
             if (entrance != null) entrance.Impacted += OnEntranceImpacted;
@@ -78,20 +85,30 @@ namespace HybridShooter.Round
             EventBus<BossAppearedEvent>.Publish(new BossAppearedEvent(eventBoss, boss.gameObject));
         }
 
-        /// <summary>BossTable 에서 보스와 프리팹을 찾는다. 인스펙터 보스와 같은 Id 면 인스펙터 프리팹을 쓴다</summary>
-        private bool TryResolveBoss(int id, out BossController prefab, out BossDef def)
+        /// <summary>
+        /// 방금 생성한 보스를 SpawnPointFinder 가 플레이어 기준으로 고른 위치로 옮기고, 플레이어를 바라보게 한다.
+        /// Begin 이 Initialize·입장 연출 구독 전에 부른다. 못 찾으면 에러를 남기고 생성 위치(대체 스폰 위치)에 그대로 둔다.
+        /// </summary>
+        /// <remarks>보스 루트의 몸통 Collider 크기를 쓰므로 활성화된 인스턴스에서만 부른다.</remarks>
+        private void MoveToFoundSpawnPoint()
         {
-            prefab = null;
-            if (DataManager.Bosses.TryGet(id, out def) == false) return false;
-            if (id == bossId && bossPrefab != null)
+            Vector3 playerPosition = player.Root.position;
+            Collider bossCollider = boss.GetComponent<Collider>();
+
+            bool isFound = spawnPointFinder.TryFindSpawnPoint(playerPosition, bossCollider, out Vector3 foundPoint);
+            if (isFound == false)
             {
-                prefab = bossPrefab;
-                return true;
+                Debug.LogError("[RoundBossEncounter] 보스를 놓을 평탄한 위치를 찾지 못해 대체 스폰 위치를 씁니다.", this);
+                return;
             }
-            var loaded = string.IsNullOrEmpty(def.Prefab) ? null : Resources.Load<GameObject>(def.Prefab);
-            if (loaded != null) prefab = loaded.GetComponent<BossController>();
-            if (prefab == null) Debug.LogWarning($"[RoundBossEncounter] BossTable {id} 의 Prefab '{def.Prefab}' 을 찾지 못해 인스펙터 보스로 대신합니다.", this);
-            return prefab != null;
+
+            Vector3 flatDirectionToPlayer = playerPosition - foundPoint;
+            flatDirectionToPlayer.y = 0f;
+            Quaternion facePlayer = Quaternion.LookRotation(flatDirectionToPlayer);
+
+            // NavMeshAgent 는 transform 만 옮기면 내부 위치가 어긋나므로 Warp 로 먼저 맞춘다
+            if (boss.TryGetComponent<NavMeshAgent>(out var agent) && agent.isOnNavMesh) agent.Warp(foundPoint);
+            boss.transform.SetPositionAndRotation(foundPoint, facePlayer);
         }
 
         private void OnEntranceImpacted(BossAttack attack, Vector3 position) => RequestMonsterWipe(position);
