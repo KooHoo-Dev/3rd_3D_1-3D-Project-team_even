@@ -7,7 +7,8 @@ namespace HybridShooter.Core.Data.Dtos
     public sealed class MonsterPartDto
     {
         public int Id;
-        public int MonsterId;  // MonsterTable.Id
+        public int MonsterId;  // MonsterTable.Id (0 = 보스 부위)
+        public int BossId;  // BossTable.Id (0 = 일반 몬스터 부위)
         public string PartKey = "";
         public string Name = "";
         public float DamageMultiplier;

@@ -281,7 +281,13 @@ namespace HybridShooter.Core.Data
 
             foreach (var p in monsterParts)
             {
-                if (monsters.TryGet(p.MonsterId, out var m)) p.Owner = m;
+                // 보스 부위(BossId)는 BossTable 에, 일반 부위는 MonsterTable 에 붙는다
+                if (p.BossId != 0)
+                {
+                    if (bosses.TryGet(p.BossId, out var boss)) p.BossOwner = boss;
+                    else r.Error(MonsterPartDef.Table, p.Id, $"BossId {p.BossId} 가 BossTable 에 없습니다");
+                }
+                else if (monsters.TryGet(p.MonsterId, out var m)) p.Owner = m;
                 else r.Error(MonsterPartDef.Table, p.Id, $"MonsterId {p.MonsterId} 가 MonsterTable 에 없습니다");
 
                 if (p.LinkedAttackId != 0)
@@ -346,6 +352,16 @@ namespace HybridShooter.Core.Data
                     r.Error(MonsterAttackDef.Table, $"Monster {m.Id}", "Entrance 공격은 1개만 가능합니다");
                 if (m.IsBoss == false && (attacks.Any(a => a.IsSpecial) || phases.Count > 0))
                     r.Error(MonsterAttackDef.Table, $"Monster {m.Id}", "일반 몬스터는 기본 공격(PatternTag None)만 가질 수 있고 BossPhase 도 가질 수 없습니다");
+            }
+
+            var partsByBoss = monsterParts.Where(p => p.BossOwner != null).GroupBy(p => p.BossId).ToDictionary(g => g.Key, g => g.ToList());
+            foreach (var boss in bosses)
+            {
+                var parts = partsByBoss.TryGetValue(boss.Id, out var bossParts) ? bossParts : new List<MonsterPartDef>();
+                boss.SetParts(parts);
+
+                foreach (var g in parts.GroupBy(p => p.PartKey).Where(g => g.Count() > 1))
+                    r.Error(MonsterPartDef.Table, $"Boss {boss.Id}", $"Key '{g.Key}' 가 한 보스 안에서 중복됩니다");
             }
         }
 
