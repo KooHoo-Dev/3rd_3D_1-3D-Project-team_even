@@ -1,5 +1,5 @@
 Id	MonsterId	Count	StartDelay	SpawnInterval	SpawnPattern
-# MonsterId: MonsterTable.Id (보스 불가)  ·  StartDelay: 웨이브 시작 후 첫 스폰까지(초)  ·  SpawnInterval: 한 마리씩 간격(초), 0 = 동시 스폰  ·  SpawnPattern: Surround(여러 방향)/Flank(측면)/Air(공중)/Herd(한 방향 무리)
+# MonsterId: MonsterTable.Id (보스 불가)  ·  StartDelay: 웨이브 시작 후 첫 스폰까지(초)  ·  SpawnInterval: 한 마리씩 간격(초), 0 = 동시 스폰  ·  SpawnPattern: Surround(여러 방향)/Flank(측면)/Air(공중)/Herd(한 방향 무리)/Nest(같은 웨이브·같은 StartDelay 의 Nest 줄끼리 링 위 한 지점 주위에서 종류를 섞어 계속 스폰)
 201	1002	7	0	1.18	Surround
 202	1002	8	0	0.78	Surround
 203	1003	3	0	1.57	Air
