@@ -1066,6 +1066,7 @@ MonoBehaviour:
   groundSnapDistance: 0.4
   wallProbeDistance: 0.05
   steepSlideMaxSpeed: 4
+  steepDownhillMaxSpeed: 12
   steepSlideAcceleration: 20
   steepSlideSteer: 0.5
   viewMode: 0
