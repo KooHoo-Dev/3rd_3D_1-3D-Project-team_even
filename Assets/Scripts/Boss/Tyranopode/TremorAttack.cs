@@ -52,6 +52,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             Vector3 center = transform.position;
             Owner.PlayShockwave(center, Data.TremorRadius);
+            Owner.RaiseSoundCue(TyranopodeSoundCue.Tremor, center);
             if (PlayerInCircle(center, Data.TremorNearRadius)) HitPlayer(Data.TremorNearDamage, center);
 
             bool applied = PlayerInCircle(center, Data.TremorRadius)

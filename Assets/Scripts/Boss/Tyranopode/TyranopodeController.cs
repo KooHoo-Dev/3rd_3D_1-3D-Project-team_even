@@ -23,6 +23,15 @@ namespace HybridShooter.Boss.Tyranopode
     [RequireComponent(typeof(BossController), typeof(TyranopodeView), typeof(TyranopodeLocomotion))]
     public sealed class TyranopodeController : MonoBehaviour, IBossEncounterInitializer, IBossCameraProfile
     {
+        /// <summary>
+        /// 소리 신호 (지역 이벤트). 패턴 단계(BossAttack.PhaseChanged)로 알 수 없는 순간만 알린다.
+        /// 받는 쪽은 Audio.TyranopodeSoundEmitter (보스 동작은 이 알림과 무관)
+        /// </summary>
+        public event Action<TyranopodeSoundCue, Vector3> SoundCue;
+
+        /// <summary>소리 신호 발행 (패턴·알이 부른다)</summary>
+        public void RaiseSoundCue(TyranopodeSoundCue cue, Vector3 position) => SoundCue?.Invoke(cue, position);
+
         /// <summary>이번 실행에서 등장 연출을 본 적이 있나 (두 번째부터 짧은 연출)</summary>
         private static bool introPlayed;
 
@@ -548,6 +557,7 @@ namespace HybridShooter.Boss.Tyranopode
             locomotion.Stop();
             state = State.Groggy;
             stateEndTime = Time.time + seconds;
+            RaiseSoundCue(TyranopodeSoundCue.Groggy, mouth.position);
             view.PlayGroggy();
             groggyVfx.SetActive(true);
             Debug.Log($"[Tyranopode] 그로기 {seconds:0.#}초", this);
@@ -574,6 +584,7 @@ namespace HybridShooter.Boss.Tyranopode
             view.SetEmissionTint(phase2EmissionTint);
             view.Play(TyranopodeView.Roar, 0.9f, 0.2f);
             PlayRoarVfx();
+            RaiseSoundCue(TyranopodeSoundCue.Roar, mouth.position);
             EventBus<CameraShakeRequestedEvent>.Publish(new CameraShakeRequestedEvent(CameraShakePresets.BossAppear));
             Debug.Log($"[Tyranopode] 페이즈 2 전환 | HP {boss.HpRatio:P0} | 부서진 부위 {BrokenCount}", this);
         }
@@ -804,6 +815,7 @@ namespace HybridShooter.Boss.Tyranopode
             introDrainTime = duration;
             view.Play(TyranopodeView.TentacleSmash, 1f, 0.15f);
             view.SetEmissionTint(introEmissionTint);
+            RaiseSoundCue(TyranopodeSoundCue.Absorb, mouth.position);
 
             var veins = Instantiate(introVeinsVfx, transform.position + Vector3.up * 0.05f, Quaternion.identity);
             veins.transform.localScale = Vector3.one * (Minions.Radius / VeinsBaseRadius);
@@ -824,6 +836,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             view.Play(TyranopodeView.Roar, 0.9f, 0.25f);
             PlayRoarVfx();
+            RaiseSoundCue(TyranopodeSoundCue.Roar, mouth.position);
             StopGroundEnergy();
             analysis.ShowIntroCard(introAbsorbed, introShieldGiven > 0f);
         }
@@ -917,6 +930,7 @@ namespace HybridShooter.Boss.Tyranopode
             {
                 nextRicochetTime = Time.time + ricochetInterval;
                 PlayVfx(ricochetVfx, point, 1f);
+                RaiseSoundCue(TyranopodeSoundCue.ImmuneHit, point);
                 analysis.PopImmune(point);
             }
             immuneHits++;
@@ -993,6 +1007,8 @@ namespace HybridShooter.Boss.Tyranopode
         /// </summary>
         private void SpawnEnergyOrbs(List<Vector3> positions, float shield, bool ground, float flightTime)
         {
+            // 등장 연출(ground)의 흡수음은 IntroDrain 시작에서 한 번
+            if (ground == false && shield > 0f) RaiseSoundCue(TyranopodeSoundCue.Absorb, mouth.position);
             int count = Mathf.Min(Mathf.Max(0, maxEnergyOrbs - orbs.Count), positions.Count);
             if (count == 0)
             {
@@ -1085,6 +1101,7 @@ namespace HybridShooter.Boss.Tyranopode
             shieldHp -= absorbed;
             shield.Hit(info.HitPoint);
             shield.SetRatio(shieldHp / shieldMax);
+            if (shieldHp > 0f) RaiseSoundCue(TyranopodeSoundCue.ShieldHit, info.HitPoint);
             // 히트마커·타격음은 그대로 (막혀도 맞혔다는 피드백)
             var blocked = new DamageInfo(Mathf.RoundToInt(absorbed), info.Kind, info.AttackerFaction, info.Attacker, info.HitPoint, info.Direction, info.SourceDefId);
             EventBus<DamageDealtEvent>.Publish(new DamageDealtEvent(shield.gameObject, blocked, false));
@@ -1096,6 +1113,7 @@ namespace HybridShooter.Boss.Tyranopode
                 shieldMax = 0f;
                 shieldLayersLeft = 0;
                 shield.Shatter();
+                RaiseSoundCue(TyranopodeSoundCue.ShieldBreak, mouth.position);
                 EventBus<CameraShakeRequestedEvent>.Publish(new CameraShakeRequestedEvent(CameraShakePresets.Impact.At(transform.position, 80f)));
                 Debug.Log("[Tyranopode] 보호막 파괴 → 그로기", this);
                 EnterGroggy(Def.ShieldBreakGroggyTime);

@@ -116,6 +116,7 @@ namespace HybridShooter.Boss.Tyranopode
                 owner.TargetDamageable.TakeDamage(new DamageInfo(damage, DamageKind.MonsterSkill, Faction.Monster, owner.gameObject, point, dir.normalized));
             }
 
+            owner.RaiseSoundCue(TyranopodeSoundCue.SpitImpact, point);
             marker.Detonate(BurstColor);
             var vfx = Instantiate(burstVfx, point, Quaternion.identity);
             vfx.transform.localScale = Vector3.one * (radius / BurstBaseRadius);

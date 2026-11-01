@@ -71,6 +71,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             shotsLeft--;
             nextShotTime = Time.time + Interval;
+            Owner.RaiseSoundCue(TyranopodeSoundCue.Spit, Owner.Mouth.position);
 
             bool sacBroken = Owner.IsBroken(TyranopodePartType.Sac);
             int damage = Mathf.RoundToInt(Data.SpitDamage * (sacBroken ? Data.SacBrokenSpitDamageMultiplier : 1f) * Owner.DamageScale);
