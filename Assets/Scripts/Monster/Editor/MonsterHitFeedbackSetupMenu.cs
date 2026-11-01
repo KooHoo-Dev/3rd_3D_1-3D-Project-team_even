@@ -18,7 +18,7 @@ namespace HybridShooter.Monster.EditorTools
     ///  2. Monster Base Controller 에 Additive "Hit" 레이어(Empty + HitFront/Back/Left/Right) 추가
     ///  3. 몬스터별 Override Controller 의 Hit 슬롯에 GetHit 클립 연결 (방향 클립이 없으면 Front 로 대신)
     ///  4. 몬스터 프리팹 9종에 MonsterDamageFeedback(피 이펙트 연결)·MonsterCorpse 추가. 강화 개체는 변형 프리팹이라 따라온다
-    ///  5. GiantSlug 왼쪽 등 분비샘 뼈 1곳에 약점 콜라이더(MonsterWeakPoint, PartKey Gland) 추가
+    ///  5. GiantSlug 양쪽 등 분비샘 뼈 2곳에 약점 콜라이더(MonsterWeakPoint, PartKey Gland) 추가
     /// </summary>
     public static class MonsterHitFeedbackSetupMenu
     {
@@ -47,7 +47,7 @@ namespace HybridShooter.Monster.EditorTools
             "Muscomorph_Air", "Muscomorph_Ground", "Muscomorph_Heavy", "Pardathrox",
         };
 
-        private static readonly string[] GiantSlugWeakPointBones = { "GiantSlug_WeakPointLeft" };
+        private static readonly string[] GiantSlugWeakPointBones = { "GiantSlug_WeakPointLeft", "GiantSlug_WeakPointRight" };
 
         // Override Controller 이름 → 맞은 쪽(HitSide 순서: Front, Back, Left, Right)별 GetHit FBX (ClipRoot 기준).
         // 방향 클립이 없는 몬스터는 Front, 방향 구분이 없는 몬스터는 같은 클립을 쓴다
