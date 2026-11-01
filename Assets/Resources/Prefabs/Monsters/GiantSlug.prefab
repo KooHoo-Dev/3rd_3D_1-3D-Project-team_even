@@ -983,7 +983,7 @@ MonoBehaviour:
   hitBloodPrefab: {fileID: 510622085489733283, guid: 665226fbabe43ce498e273ee4bf3bfb7, type: 3}
   weakPointBloodPrefab: {fileID: 8088368675690151471, guid: 3a6b499a245a26a4c83e35754d05c03e, type: 3}
   deathBloodPrefab: {fileID: 8886302763132874894, guid: e7b3b17905d1a9d4dbe573130e85bf78, type: 3}
-  hitAnimationCooldown: 0.3
+  hitAnimationCooldown: 0.5
   hitAnimationBlend: 0.05
   lowHealthTint: {r: 1, g: 0.55, b: 0.55, a: 1}
   bodyCollider: {fileID: 18421219675180418}
