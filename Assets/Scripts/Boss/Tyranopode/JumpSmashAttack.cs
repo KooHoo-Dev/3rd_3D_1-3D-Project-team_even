@@ -15,6 +15,7 @@ namespace HybridShooter.Boss.Tyranopode
 
         private Vector3 from;
         private Vector3 landing;
+        private float plannedLeap;
         private GroundTelegraph telegraph;
         private bool impacted;
 
@@ -32,7 +33,9 @@ namespace HybridShooter.Boss.Tyranopode
         {
             impacted = false;
             float leap = Mathf.Min(DistanceToTarget, Data.SmashMaxLeap);
-            landing = Move.ClampToBounds(transform.position + DirectionToTarget * leap);
+            // 착지점은 NavMesh 위로 (바위 구멍·가파른 경사·맵 밖이면 보스 쪽으로 당긴다)
+            landing = Move.FindLanding(transform.position, transform.position + DirectionToTarget * leap);
+            plannedLeap = Flat(landing - transform.position).magnitude;
             View.Play(TyranopodeView.Idle, 1.6f);
             // 예고 + 공중 시간까지 채운다
             telegraph = Telegraph();
@@ -55,12 +58,15 @@ namespace HybridShooter.Boss.Tyranopode
             {
                 float t = Mathf.InverseLerp(jumpStartTime, impactTime, n);
                 // 공중이라 NavMesh 의 틈·돌멩이에 걸리지 않게 직접 옮긴다
-                Move.MoveFree(Vector3.Lerp(from, landing, t) - transform.position, probeWalls: false, out _);
+                Move.MoveFree(Vector3.Lerp(from, landing, t) - transform.position, airborne: true, out _);
             }
 
             if (impacted == false && n >= impactTime)
             {
                 impacted = true;
+                float leapt = Flat(transform.position - from).magnitude;
+                if (plannedLeap > 3f && leapt < plannedLeap * 0.5f)
+                    Debug.Log($"[Tyranopode] 내려찍기 도약이 짧음: {leapt:0.#}/{plannedLeap:0.#}m (출발 {from}, 착지 예정 {landing})", this);
                 Move.EndFree();
                 Detonate(telegraph);
                 if (PlayerInCircle(landing, Radius)) HitPlayer(Data.SmashDamage, landing);

@@ -63,8 +63,9 @@ namespace HybridShooter.Player
         }
 
         /// <summary>
-        /// 급경사 미끄럼: 면을 따라 내려가는 속도는 steepSlideMaxSpeed 까지만 붙고,
-        /// 이동 입력은 좌우·내리막 쪽만 받는다 (오르막 성분은 지움 → 급경사를 기어오를 수 없음)
+        /// 급경사 미끄럼. 이동 입력은 좌우·내리막 쪽만 받는다 (오르막 성분은 지움 → 급경사를 기어오를 수 없음)
+        ///  - 내리막 쪽 입력: SlideDownhill (중력으로 가속, 상한 steepDownhillMaxSpeed)
+        ///  - 그 밖(입력 없음·좌우·오르막): 면을 따라 steepSlideMaxSpeed 까지만 천천히 미끄러진다
         /// </summary>
         private void UpdateSlide(float dt)
         {
@@ -75,13 +76,47 @@ namespace HybridShooter.Player
             float uphill = Vector3.Dot(steer, -downhillFlat);
             if (uphill > 0f) steer += downhillFlat * uphill;
             steer = Vector3.ProjectOnPlane(steer, groundNormal);
-
-            Vector3 target = downhill * steepSlideMaxSpeed + steer;
             motorTargetVelocity = new Vector3(steer.x, 0f, steer.z); // 미끄러져 내려가는 몫은 조작이 아니다
-            Vector3 velocity = Vector3.ProjectOnPlane(rb.linearVelocity, groundNormal);
-            rb.linearVelocity = Vector3.MoveTowards(velocity, target, steepSlideAcceleration * dt);
+
+            if (Vector3.Dot(moveDirection, downhillFlat) > 0f)
+            {
+                SlideDownhill(downhill, downhillFlat, steer, dt);
+            }
+            else
+            {
+                Vector3 target = downhill * steepSlideMaxSpeed + steer;
+                Vector3 velocity = Vector3.ProjectOnPlane(rb.linearVelocity, groundNormal);
+                rb.linearVelocity = Vector3.MoveTowards(velocity, target, steepSlideAcceleration * dt);
+            }
             appliedSnapDown = 0f;
             velocityAlongGround = false;
+        }
+
+        /// <summary>
+        /// 급경사를 내리막 쪽으로 움직임: 내리막 성분은 중력(g·sinθ)으로 가속해 steepDownhillMaxSpeed 까지 (넘으면 천천히 줄인다),
+        /// 좌우 성분은 조작을 따른다. 내리막 쪽으로 가던 속도는 크기를 유지한 채 면을 따라 돌린다
+        /// (그냥 투영하면 70° 에서 달려 들어온 속도가 1/3 로 깎인다)
+        /// </summary>
+        private void SlideDownhill(Vector3 downhill, Vector3 downhillFlat, Vector3 steer, float dt)
+        {
+            // 걷기 → 미끄럼 첫 프레임이면 걷기가 더한 스냅 몫을 뺀다 (미끄럼 중에는 0)
+            Vector3 previous = rb.linearVelocity + Vector3.up * appliedSnapDown;
+            Vector3 velocity = Vector3.ProjectOnPlane(previous, groundNormal);
+            bool headingDownhill = Vector3.Dot(new Vector3(previous.x, 0f, previous.z), downhillFlat) > 0f;
+            if (headingDownhill && velocity.sqrMagnitude > 0.000001f) velocity = velocity.normalized * previous.magnitude;
+
+            float downSpeed = Vector3.Dot(velocity, downhill);
+            Vector3 lateral = velocity - downhill * downSpeed;
+            Vector3 steerLateral = steer - downhill * Vector3.Dot(steer, downhill);
+
+            float gravityAlong = Mathf.Abs(Physics.gravity.y) * -downhill.y; // g·sinθ
+            // 그냥 미끄러지는 속도(steepSlideMaxSpeed)까지는 그 가속도로 붙어, 멈춰 있다 출발해도 조작 없을 때보다 느리지 않게
+            float accel = downSpeed < steepSlideMaxSpeed ? Mathf.Max(gravityAlong, steepSlideAcceleration) : gravityAlong;
+            downSpeed = downSpeed > steepDownhillMaxSpeed
+                ? Mathf.MoveTowards(downSpeed, steepDownhillMaxSpeed, steepSlideAcceleration * dt)
+                : Mathf.Min(downSpeed + accel * dt, steepDownhillMaxSpeed);
+            lateral = Vector3.MoveTowards(lateral, steerLateral, steepSlideAcceleration * dt);
+            rb.linearVelocity = downhill * downSpeed + lateral;
         }
 
         private void UpdateWalk(float dt)

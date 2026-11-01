@@ -12,7 +12,9 @@ namespace HybridShooter.Boss.Tyranopode
 {
     /// <summary>
     /// 보스가 부른 잡몹만 따로 관리한다 (포효 소환·알 부화). 웨이브 잡몹은 건드리지 않는다.
-    ///  - 경기장: 중심·반지름을 인스펙터로 받거나, 없으면 보스 위치에서 사방으로 레이를 쏴 벽까지 거리로 잰다
+    ///  - 경기장: 씬의 TyranopodeArena 로 받거나, 없으면 보스 발밑 NavMesh 에서 사방으로 NavMesh.Raycast 를 쏴
+    ///    걸을 수 있는 바닥이 끝나는 곳(벽·절벽·맵 끝)까지로 잰다. 언덕·구덩이 경사는 바닥을 따라 넘으므로 벽으로 보지 않는다.
+    ///    절반 넘는 방향이 MeasureRange 까지 막히지 않으면 열린 맵 → 경계 없음(HasBounds false), 소환 둘레는 기본 반지름
     ///  - SpawnAtWall: 벽 바로 안쪽 NavMesh 위에서 소환 (벽을 넘어온 것처럼)
     ///  - WaveKill: 진원에서 퍼지는 파동이 닿는 순서대로 날려 보내며 보상 없이 처치
     ///  - CollapseCohort: 포효 무리를 시간 차를 두고 그 자리에 쓰러뜨리고 쓰러진 자리를 기록 (플레이어 사망 → 에너지 흡수)
@@ -28,8 +30,11 @@ namespace HybridShooter.Boss.Tyranopode
     public sealed class TyranopodeMinions
     {
         private const int MeasureRays = 24;
-        private const float MeasureHeight = 1.5f;
         private const float MeasureRange = 120f;
+        private const float MeasureSample = 6f;   // 측정 시작점(보스 발밑)에서 NavMesh 를 찾는 반경(m)
+        private const float SkipGap = 6f;         // 막힌 곳 너머 이만큼에서 바닥이 이어지면 바위 같은 작은 장애물로 보고 넘는다
+        private const float SkipDetour = 1.6f;    // 그때 돌아가는 길이 SkipGap 의 이 배 + 2m 안이어야 (벽 너머 바깥은 크게 돌아야 하므로 넘지 않는다)
+        private const int MaxSkips = 8;
         private const float WallInset = 3f;
         private const float SpawnSample = 3f;     // 후보에서 NavMesh 를 찾는 반경(m)
         private const float PlayerSample = 4f;    // 점프 중인 플레이어 발밑 NavMesh 를 찾는 반경(m)
@@ -93,15 +98,18 @@ namespace HybridShooter.Boss.Tyranopode
         private readonly float speedMultiplier;
         private readonly float approachMultiplier;
         private readonly float approachRatio;
-        private readonly RaycastHit[] hits = new RaycastHit[16];
         private readonly NavMeshPath path = new NavMeshPath();
-        private readonly Transform ignoreRoot;
         private readonly GameObject spawnVfx;
         private readonly GameObject deathVfx;
         private readonly FlingSettings flingSettings;
 
         public Vector3 Center { get; private set; }
+        /// <summary>경기장 반지름. 열린 맵이면 기본 반지름 (소환 둘레·파동 범위용)</summary>
         public float Radius { get; private set; }
+        /// <summary>벽(걸을 수 있는 바닥의 끝)으로 둘러싸인 경기장인가. false = 열린 맵 → 이동 경계를 두지 않는다</summary>
+        public bool HasBounds { get; private set; }
+        /// <summary>측정 결과 (초기화 로그)</summary>
+        public string ArenaSource { get; private set; } = "-";
         public int AliveCount => alive.Count;
         /// <summary>살아 있는 포효 무리 수. 0 보다 크면 포효 패턴이 이어지는 중</summary>
         public int CohortAliveCount => cohort.Count;
@@ -111,74 +119,121 @@ namespace HybridShooter.Boss.Tyranopode
         public int RejectedDisconnected { get; private set; }
         public int RejectedDetour { get; private set; }
 
-        public TyranopodeMinions(Transform ignoreRoot, GameObject spawnVfx, GameObject deathVfx, FlingSettings fling,
+        public TyranopodeMinions(GameObject spawnVfx, GameObject deathVfx, FlingSettings fling,
             float speedMultiplier, float approachMultiplier, float approachRatio)
         {
             this.speedMultiplier = speedMultiplier;
             this.approachMultiplier = approachMultiplier;
             this.approachRatio = approachRatio;
-            this.ignoreRoot = ignoreRoot;
             this.spawnVfx = spawnVfx;
             this.deathVfx = deathVfx;
             flingSettings = fling;
         }
 
-        /// <summary>경기장을 정한다. radius &lt;= 0 이면 from 근처에서 잰다 (fallbackRadius = 잴 수 없을 때)</summary>
-        public void SetupArena(Vector3 from, float radius, float fallbackRadius)
+        /// <summary>씬에서 정한 경기장 (TyranopodeArena)</summary>
+        public void SetArena(Vector3 center, float radius)
         {
-            if (radius > 0f)
-            {
-                Center = from;
-                Radius = radius;
-                return;
-            }
-
-            // 두 번 잰다: 처음 맞은 벽 점들의 중심에서 다시 재면 원형 경기장의 중심에 가까워진다
-            Vector3 center = from;
-            float measured = 0f;
-            for (int pass = 0; pass < 2; pass++)
-            {
-                if (TryMeasure(center, out Vector3 hitCenter, out measured) == false) break;
-                center = new Vector3(hitCenter.x, from.y, hitCenter.z);
-            }
             Center = center;
-            Radius = measured > 0f ? measured : fallbackRadius;
+            Radius = radius;
+            HasBounds = true;
+            ArenaSource = $"씬 지정 (반지름 {radius:0.#}m)";
         }
 
-        private bool TryMeasure(Vector3 center, out Vector3 hitCenter, out float radius)
+        /// <summary>
+        /// from(보스 발밑)에서 경기장을 잰다. 두 번 잰다: 처음 막힌 점들의 중심에서 다시 재면 원형 경기장의 중심에 가까워진다.
+        /// 열린 맵이면 경계 없이 중심 = from, 반지름 = openRadius
+        /// </summary>
+        public void MeasureArena(Vector3 from, float openRadius)
         {
-            var distances = new List<float>(MeasureRays);
-            Vector3 sum = Vector3.zero;
-            Vector3 origin = center + Vector3.up * MeasureHeight;
-            for (int i = 0; i < MeasureRays; i++)
+            if (NavMesh.SamplePosition(from, out var start, MeasureSample, NavMesh.AllAreas) == false)
+                throw new InvalidOperationException($"[Tyranopode] 보스 위치 {from} 근처에 NavMesh 가 없어 경기장을 잴 수 없습니다. 보스 생성 위치를 확인해주세요.");
+
+            Center = start.position;
+            HasBounds = false;
+            Radius = openRadius;
+            int blocked = 0;
+            for (int pass = 0; pass < 2; pass++)
             {
-                Vector3 dir = Quaternion.Euler(0f, 360f * i / MeasureRays, 0f) * Vector3.forward;
-                if (TryRayToWall(origin, dir, out float distance) == false) continue;
-                distances.Add(distance);
-                sum += origin + dir * distance;
+                var distances = new List<float>(MeasureRays);
+                Vector3 sum = Vector3.zero;
+                for (int i = 0; i < MeasureRays; i++)
+                {
+                    Vector3 dir = Quaternion.Euler(0f, 360f * i / MeasureRays, 0f) * Vector3.forward;
+                    if (TryNavEdge(Center, dir, MeasureRange, out Vector3 edge, out float distance) == false) continue;
+                    distances.Add(distance);
+                    sum += edge;
+                }
+                // 두 번째 측정이 열린 맵으로 나오면(중심이 문 쪽으로 옮겨진 경우 등) 첫 번째 결과를 쓴다
+                if (TryArenaRadius(distances, MeasureRays, out float radius) == false)
+                {
+                    if (pass == 0) blocked = distances.Count;
+                    break;
+                }
+                blocked = distances.Count;
+                HasBounds = true;
+                Radius = radius;
+                if (pass == 1) break;
+                if (NavMesh.SamplePosition(sum / distances.Count, out var moved, MeasureSample, NavMesh.AllAreas)) Center = moved.position;
             }
 
-            hitCenter = center;
+            ArenaSource = HasBounds
+                ? $"NavMesh 측정 (막힌 방향 {blocked}/{MeasureRays}, 반지름 {Radius:0.#}m)"
+                : $"열린 맵 (막힌 방향 {blocked}/{MeasureRays}) → 경계 없음, 소환 둘레 {openRadius:0.#}m";
+        }
+
+        /// <summary>
+        /// 경기장 반지름: 막힌 방향 거리들의 중앙값 (바위 구멍처럼 짧게 막힌 방향 몇 개는 흔들지 않는다).
+        /// 막힌 방향이 전체 rays 의 절반에 못 미치면 열린 맵 → false
+        /// </summary>
+        public static bool TryArenaRadius(List<float> blockedDistances, int rays, out float radius)
+        {
             radius = 0f;
-            if (distances.Count < MeasureRays / 2) return false;
-            distances.Sort();
-            radius = distances[distances.Count / 2];
-            hitCenter = sum / distances.Count;
+            if (blockedDistances.Count < rays / 2) return false;
+            var sorted = new List<float>(blockedDistances);
+            sorted.Sort();
+            radius = sorted[sorted.Count / 2];
             return true;
         }
 
-        private bool TryRayToWall(Vector3 origin, Vector3 dir, out float distance)
+        /// <summary>
+        /// from 에서 dir 로 걸을 수 있는 바닥을 따라 maxDistance 까지(수평 거리). 바닥이 끝나는 곳(벽·절벽·맵 끝)에 닿으면 true 와 그 자리.
+        /// 바위 둘레의 NavMesh 구멍처럼 너머에서 바닥이 바로 이어지고 짧게 돌아갈 수 있으면 넘어서 계속 잰다
+        /// </summary>
+        private bool TryNavEdge(Vector3 from, Vector3 dir, float maxDistance, out Vector3 edge, out float distance)
         {
-            distance = float.MaxValue;
-            int count = Physics.RaycastNonAlloc(origin, dir, hits, MeasureRange, ~0, QueryTriggerInteraction.Ignore);
-            for (int i = 0; i < count; i++)
+            Vector3 origin = from;
+            distance = 0f;
+            for (int skip = 0; skip <= MaxSkips; skip++)
             {
-                var col = hits[i].collider;
-                if (ignoreRoot != null && col.transform.IsChildOf(ignoreRoot)) continue;
-                if (col.TryGetDamageable(out _)) continue; // 플레이어·몬스터는 벽이 아니다
-                if (hits[i].distance < distance) distance = hits[i].distance;
+                float remaining = maxDistance - distance;
+                if (NavMesh.Raycast(origin, origin + dir * remaining, out var hit, NavMesh.AllAreas) == false)
+                {
+                    edge = hit.position;
+                    distance = maxDistance;
+                    return false;
+                }
+                distance += Flat(hit.position - origin).magnitude;
+                edge = hit.position;
+                if (distance + SkipGap >= maxDistance || TrySkipObstacle(hit.position, dir, out Vector3 beyond) == false) return true;
+                distance += Flat(beyond - hit.position).magnitude;
+                origin = beyond;
             }
-            return distance < float.MaxValue;
+            edge = origin;
+            return true;
+        }
+
+        /// <summary>막힌 자리 너머 SkipGap 에 바닥이 있고, 거기까지 짧게 돌아갈 수 있으면(작은 장애물) true</summary>
+        private bool TrySkipObstacle(Vector3 blocked, Vector3 dir, out Vector3 beyond)
+        {
+            beyond = blocked;
+            if (NavMesh.SamplePosition(blocked + dir * SkipGap, out var next, 2f, NavMesh.AllAreas) == false) return false;
+            if (NavMesh.CalculatePath(blocked, next.position, NavMesh.AllAreas, path) == false || path.status != NavMeshPathStatus.PathComplete) return false;
+            float length = 0f;
+            var corners = path.corners;
+            for (int i = 1; i < corners.Length; i++) length += Vector3.Distance(corners[i - 1], corners[i]);
+            if (length > SkipGap * SkipDetour + 2f) return false;
+            beyond = next.position;
+            return true;
         }
 
         /// <summary>
@@ -203,7 +258,8 @@ namespace HybridShooter.Boss.Tyranopode
         }
 
         /// <summary>
-        /// 벽 바로 안쪽 소환 자리: 무작위 방향의 실제 벽까지 재서(원형이 아닌 경기장도 벽 너머로 나가지 않게) 그 안쪽 WallInset.
+        /// 벽 바로 안쪽 소환 자리: 무작위 방향으로 걸을 수 있는 바닥이 끝나는 곳까지 재서(원형이 아닌 경기장도 벽 너머로 나가지 않게)
+        /// 그 안쪽 WallInset. 열린 맵이거나 그 방향이 Radius 안에서 막히지 않으면 Radius 둘레.
         /// 플레이어까지 길이 이어지는 자리가 나올 때까지 SpawnTries 번 방향을 바꾼다
         /// </summary>
         private bool TryWallPoint(Vector3 playerPosition, out Vector3 point, out Vector3 dir)
@@ -211,7 +267,7 @@ namespace HybridShooter.Boss.Tyranopode
             for (int t = 0; t < SpawnTries; t++)
             {
                 dir = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f) * Vector3.forward;
-                float wall = TryRayToWall(Center + Vector3.up * MeasureHeight, dir, out float distance) ? distance : Radius;
+                TryNavEdge(Center, dir, Radius, out _, out float wall);
                 Vector3 candidate = Center + dir * Mathf.Max(1f, wall - WallInset);
                 if (TryFindSpawnPoint(candidate, playerPosition, out point)) return true;
             }
