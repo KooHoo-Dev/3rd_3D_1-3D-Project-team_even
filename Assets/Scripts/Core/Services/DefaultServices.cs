@@ -87,6 +87,7 @@ namespace HybridShooter.Core.Services
         {
             GetPlayer(out var playerPosition, out var forward);
             Vector3 ringPoint = PickRingPoint(pattern, groupSeed, playerPosition, forward);
+            ringPoint = MoveIntoMapWhenOutside(ringPoint, playerPosition);
             bool isAir = pattern == SpawnPattern.Air;
             return TryMakeSpawnPose(ringPoint, isAir, playerPosition, out position, out rotation);
         }
@@ -102,6 +103,7 @@ namespace HybridShooter.Core.Services
             GetPlayer(out var playerPosition, out _);
             float ringRadius = DataManager.Config.GetFloat(GameConfig.SpawnRingRadius, 35f);
             Vector3 ringPoint = PointOnCircle(playerPosition, Random.Range(0f, 360f), ringRadius);
+            ringPoint = MoveIntoMapWhenOutside(ringPoint, playerPosition);
             return TryMakeSpawnPose(ringPoint, false, playerPosition, out center, out _);
         }
 
@@ -117,6 +119,30 @@ namespace HybridShooter.Core.Services
             GetPlayer(out var playerPosition, out _);
             Vector3 point = PickPointInCircle(nestCenter, GetNestRadius());
             return TryMakeSpawnPose(point, false, playerPosition, out position, out rotation);
+        }
+
+        /// <summary>
+        /// 링 포인트가 맵 경계 밖이면, 맵 경계 안쪽에 접하는 새 스폰 원(반지름 = 링 반지름) 안의 한 점으로 바꾼다.
+        /// 새 원 중심은 맵 중심에서 플레이어 방향으로 (mapRadius - 원 반지름) 만큼 간 곳이다. 플레이어에서 가장 가까운 경계 쪽 지역이 된다.
+        /// TryGetSpawnPose·TryGetNestCenter 가 링 포인트를 뽑은 직후 부른다.
+        /// </summary>
+        /// <param name="ringPoint">플레이어 링에서 뽑은 점</param>
+        /// <param name="playerPosition">플레이어 위치. 새 원이 놓일 방향 기준</param>
+        /// <returns>경계 안이거나 SpawnPointFinder 가 없으면 ringPoint 그대로, 밖이면 새 원 안의 점</returns>
+        private static Vector3 MoveIntoMapWhenOutside(Vector3 ringPoint, Vector3 playerPosition)
+        {
+            bool hasFinder = ServiceLocator.TryGet(out SpawnPointFinder finder);
+            if (hasFinder == false) return ringPoint;
+            if (finder.IsInsideMap(ringPoint)) return ringPoint;
+
+            float ringRadius = DataManager.Config.GetFloat(GameConfig.SpawnRingRadius, 35f);
+            float fallbackRadius = Mathf.Min(ringRadius, finder.MapRadius);
+            Vector3 centerToPlayer = playerPosition - finder.MapCenter;
+            centerToPlayer.y = 0f;
+            Vector3 fallbackCenter = finder.MapCenter + centerToPlayer.normalized * (finder.MapRadius - fallbackRadius);
+            fallbackCenter.y = playerPosition.y;
+
+            return PickPointInCircle(fallbackCenter, fallbackRadius);
         }
 
         /// <summary>
