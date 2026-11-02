@@ -1945,7 +1945,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
   profile: {fileID: 11400000, guid: c619edd1badc47247a173191b35665e2, type: 2}
-  coordinator: {fileID: 0}
+  assignedController: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
   destinationFollowRate: 5
@@ -1979,7 +1979,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterController
   monsterId: 1002
-  despawnDelay: 2
   moveClipSpeed: 3
   idleSpeedThreshold: 0.1
   useCooldownOverride: 0
@@ -2079,11 +2078,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterCorpse
   corpseLayerName: MonsterCorpse
+  bodyCollider: {fileID: 0}
   mass: 60
   angularDamping: 0.5
-  hitPushSpeed: 3
+  hitPushSpeed: 5
   upwardKickSpeed: 1.5
   randomSpinSpeed: 2
+  lyingSeconds: 2.5
+  sinkSeconds: 1.5
+  extraSinkDepth: 0.5
 --- !u!1 &7960356510021968820
 GameObject:
   m_ObjectHideFlags: 0

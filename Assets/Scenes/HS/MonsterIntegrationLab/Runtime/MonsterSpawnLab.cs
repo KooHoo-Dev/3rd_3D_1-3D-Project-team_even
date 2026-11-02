@@ -94,7 +94,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
         }
 
         /// <summary>
-        /// 살아 있는 소환 몬스터를 보상 없이 전부 죽인다. 사망 연출(despawnDelay) 뒤 각자 Despawn → 이 클래스의 풀로 반납된다.
+        /// 살아 있는 소환 몬스터를 보상 없이 전부 죽인다. 사망 연출(시체 누움·침강) 뒤 각자 Despawn → 이 클래스의 풀로 반납된다.
         /// </summary>
         [ContextMenu("전체 제거")]
         public void KillAll()

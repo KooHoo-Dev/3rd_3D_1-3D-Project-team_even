@@ -140,7 +140,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
 
         /// <summary>
         /// 실행 중 웨이브의 남은 소환을 취소하고, 살아 있는 몬스터를 보상 없이 전부 죽인다.
-        /// 사망 연출(despawnDelay) 뒤 각자 풀로 반납된다.
+        /// 사망 연출(시체 누움·침강) 뒤 각자 풀로 반납된다.
         /// </summary>
         [ContextMenu("전체 제거")]
         public void KillAll()

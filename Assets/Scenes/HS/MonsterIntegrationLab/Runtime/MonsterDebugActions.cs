@@ -24,7 +24,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
             monster = GetComponent<MonsterController>();
         }
 
-        /// <summary>damageAmount 만큼 피해. 체력이 0 이 되면 실제 사망 흐름(사망 이벤트, despawnDelay 뒤 회수)을 탄다</summary>
+        /// <summary>damageAmount 만큼 피해. 체력이 0 이 되면 실제 사망 흐름(사망 이벤트, 시체 누움·침강 뒤 회수)을 탄다</summary>
         [ContextMenu("피해 주기")]
         private void Damage() => ApplyDamage(damageAmount);
 
