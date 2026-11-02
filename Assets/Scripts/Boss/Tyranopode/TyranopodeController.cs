@@ -175,6 +175,7 @@ namespace HybridShooter.Boss.Tyranopode
         private float stateEndTime;
         private float nextAttackTime;
         private bool wasAttacking;
+        private bool skipNextCombo;
         private TyranopodeAttack currentAttack;
         private TyranopodeAttack lastAttack;
         private TyranopodeAttack forcedAttack;
@@ -499,6 +500,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             state = State.Fight;
             wasAttacking = false;
+            skipNextCombo = false;
             currentAttack = null;
             nextAttackTime = Time.time + delay;
         }
@@ -507,15 +509,20 @@ namespace HybridShooter.Boss.Tyranopode
         {
             bool special = currentAttack is SummonRoarAttack || currentAttack is TentacleStormAttack;
             currentAttack = null;
+            bool noCombo = skipNextCombo;
+            skipNextCombo = false;
 
             float combo = (IsPhase2 ? Def.Phase2ComboChance : Def.ComboChance) * assist.ComboMultiplier;
-            if (special == false && Random.value < combo)
+            if (special == false && noCombo == false && Random.value < combo)
             {
                 nextAttackTime = Time.time + ComboDelay;
                 return;
             }
             nextAttackTime = Time.time + Random.Range(Def.CircleTimeMin, Def.CircleTimeMax) * assist.DelayMultiplier;
         }
+
+        /// <summary>지금 공격이 끝나면 콤보로 잇지 않고 평소처럼 맴돌다 다음 공격 (제대로 펼치지 못하고 끝난 공격이 부른다)</summary>
+        public void SkipNextCombo() => skipNextCombo = true;
 
         /// <summary>seconds 동안 공격하지 않고 멀찍이 맴돈다 (알을 깰 틈)</summary>
         public void BeginQuiet(float seconds)

@@ -370,13 +370,21 @@ namespace HybridShooter.Boss.Tyranopode
         public WallContact ProbeWall(Vector3 direction, float distance, out Vector3 wallNormal)
         {
             Vector3 origin = transform.position + Vector3.up * (wallProbeHeight + wallProbeRadius);
-            float length = bodyReach + distance;
             LastProbeOrigin = origin;
-            LastProbeEnd = origin + direction * length;
-            LastWallPoint = null;
-            LastContact = WallContact.None;
-            LastWallCollider = null;
+            LastProbeEnd = origin + direction * (bodyReach + distance);
+            LastContact = CastWall(origin, direction, distance, out wallNormal, out var hit);
+            LastWallPoint = hit.collider != null ? hit.point : (Vector3?)null;
+            LastWallCollider = hit.collider;
+            return LastContact;
+        }
+
+        /// <summary>ProbeWall 의 판정만 (기즈모·로그용 Last* 값은 그대로 둔다). nearestHit.collider 가 null 이면 벽 없음</summary>
+        private WallContact CastWall(Vector3 origin, Vector3 direction, float distance, out Vector3 wallNormal, out RaycastHit nearestHit)
+        {
+            float length = bodyReach + distance;
             wallNormal = Vector3.zero;
+            nearestHit = default;
+            var contact = WallContact.None;
             int count = Physics.SphereCastNonAlloc(origin, wallProbeRadius, direction, wallHits, length, ~0, QueryTriggerInteraction.Ignore);
             float slopeLimit = Mathf.Cos(wallMinSteepness * Mathf.Deg2Rad);
             float headOn = Mathf.Cos(HeadOnAngle * Mathf.Deg2Rad);
@@ -393,11 +401,33 @@ namespace HybridShooter.Boss.Tyranopode
                 if (normal.sqrMagnitude < 0.0001f) continue;
                 nearest = hit.distance;
                 wallNormal = normal.normalized;
-                LastWallPoint = hit.point;
-                LastWallCollider = hit.collider;
-                LastContact = Vector3.Dot(-wallNormal, direction) >= headOn ? WallContact.HeadOn : WallContact.Graze;
+                nearestHit = hit;
+                contact = Vector3.Dot(-wallNormal, direction) >= headOn ? WallContact.HeadOn : WallContact.Graze;
             }
-            return LastContact;
+            return contact;
+        }
+
+        /// <summary>
+        /// 움직이지 않고 지금 자리에서 direction 으로 distance 만큼 땅으로 기어갈 수 있는지 미리 본다 (돌진을 고르기·출발하기 전).
+        /// MoveFree(땅) 와 같은 기준: 몸통이 정면으로 박을 벽이면 Wall, 길 위 바닥 근처에 NavMesh 가 없으면 Edge. 스치는 벽은 미끄러지므로 막힘이 아니다
+        /// </summary>
+        public MoveStop ProbePath(Vector3 direction, float distance)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f || distance <= 0f) return MoveStop.None;
+            direction.Normalize();
+
+            Vector3 origin = transform.position + Vector3.up * (wallProbeHeight + wallProbeRadius);
+            if (CastWall(origin, direction, distance, out _, out _) == WallContact.HeadOn) return MoveStop.Wall;
+
+            int mask = agent != null ? agent.areaMask : NavMesh.AllAreas;
+            for (float along = gapTolerance; along <= distance + 0.01f; along += gapTolerance)
+            {
+                Vector3 point = transform.position + direction * Mathf.Min(along, distance);
+                float ground = TyranopodeGround.Height(point, point.y);
+                if (NavMesh.SamplePosition(new Vector3(point.x, ground, point.z), out _, gapTolerance, mask) == false) return MoveStop.Edge;
+            }
+            return MoveStop.None;
         }
 
         /// <summary>point 쪽으로 돈다. 다 돌았으면 true</summary>
