@@ -144,6 +144,7 @@ namespace HybridShooter.Boss.Tyranopode
             nextDustTime = 0f;
             View.Play(fromLeft ? TyranopodeView.TentacleLeft : TyranopodeView.TentacleRight, 1.4f, 0.05f);
             Shake(slamShake, transform.position, Data.StormRadius * 2f);
+            Owner.RaiseSoundCue(TyranopodeSoundCue.StormSweep, transform.position);
         }
 
         private void BeginRetract()

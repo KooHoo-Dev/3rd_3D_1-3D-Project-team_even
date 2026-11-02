@@ -111,10 +111,17 @@ namespace HybridShooter.Core.Battlefield
         /// <exception cref="System.ArgumentException">zoneRadius 가 mapRadius 보다 클 때 (ZonePlacement 가 던짐)</exception>
         /// <remarks>장애물은 obstacleLayers 에 지정한 Collider 만 본다. 호출 전에 움직인 Collider 는 Physics.SyncTransforms 가 반영돼 있어야 한다.</remarks>
         public bool TryFindSpawnPoint(Vector3 playerPosition, Collider monsterCollider, out Vector3 spawnPoint)
+            => TryFindSpawnPoint(playerPosition, monsterCollider.bounds, out spawnPoint);
+
+        /// <summary>
+        /// Collider 대신 월드 Bounds 크기로 찾는다. 루트에 Collider 가 없고 부위 Collider 만 있는 보스(티라노포드)는 부위들을 합친 Bounds 를 넘긴다.
+        /// </summary>
+        /// <param name="monsterBounds">스폰할 몬스터의 월드 Bounds (크기만 쓴다)</param>
+        public bool TryFindSpawnPoint(Vector3 playerPosition, Bounds monsterBounds, out Vector3 spawnPoint)
         {
             Vector3 zoneCenter = ZonePlacement.FindClosestCenter(playerPosition, mapCenter.position, mapRadius, zoneRadius);
-            Vector2 footprintSize = new Vector2(monsterCollider.bounds.size.x, monsterCollider.bounds.size.z);
-            float monsterHeight = monsterCollider.bounds.size.y;
+            Vector2 footprintSize = new Vector2(monsterBounds.size.x, monsterBounds.size.z);
+            float monsterHeight = monsterBounds.size.y;
             Vector3 flatPlayerPosition = new Vector3(playerPosition.x, 0f, playerPosition.z);
 
             List<Vector3> candidates = BuildCandidates(zoneCenter, zoneRadius, footprintSize);

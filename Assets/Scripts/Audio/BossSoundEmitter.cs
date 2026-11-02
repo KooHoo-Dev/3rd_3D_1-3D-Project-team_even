@@ -15,7 +15,7 @@ namespace HybridShooter.Audio
     ///
     ///   예고     BossAttack.PhaseChanged(Windup) → WindupKey (회피 신호. 바로 취소된 공격은 알림이 오지 않는다)
     ///   루프     Active 동안 ActiveLoopKey (흡입), Recover·Idle(완료·취소) 에서 정지
-    ///   타격     BossAttack.Impacted → ImpactKey (짓밟기 착지 지점)
+    ///   타격     BossAttack.Impacted → ImpactKey (짓밟기·등장 착지 지점) + ImpactVoiceKey (등장 착지 포효, 몬스터·BGM 덕킹)
     ///   걸음     BossMovement.IsMoving 동안 walkLoopKey 루프 (패턴 중 멈추면 정지)
     ///   사망     BossController.Died → 루프 전부 정지 + deathKey
     /// 마그마 착탄음은 투사체 자기 효과라 MagmaProjectile 이 직접 낸다. 보스 BGM·경고·처치 연출음은 GameSoundRouter 담당.
@@ -37,6 +37,8 @@ namespace HybridShooter.Audio
             public Transform LoopPoint;
             [Tooltip("타격 지점에서 (BossAttack.Impacted)")]
             public string ImpactKey;
+            [Tooltip("타격 순간 보스 목소리 (등장 착지 포효 등). voicePoint 에서")]
+            public string ImpactVoiceKey;
         }
 
         [SerializeField] private AttackSound[] attacks = Array.Empty<AttackSound>();
@@ -45,6 +47,10 @@ namespace HybridShooter.Audio
         [SerializeField] private string walkLoopKey = "mon_clypeosaurus_walk_loop";
         [Tooltip("예고음·사망음 위치 (머리 등). 비우면 이 오브젝트")]
         [SerializeField] private Transform voicePoint;
+        [Tooltip("ImpactVoiceKey(등장 포효)가 울리는 동안 몬스터·BGM 볼륨 배율 (1 = 낮추지 않음)")]
+        [SerializeField, Range(0f, 1f)] private float voiceDuckLevel = 0.35f;
+        [Tooltip("몬스터·BGM 을 낮춰 두는 시간(초)")]
+        [SerializeField, Min(0f)] private float voiceDuckTime = 2.5f;
 
         private BossController boss;
         private BossMovement movement;
@@ -118,7 +124,11 @@ namespace HybridShooter.Audio
         private void OnImpacted(BossAttack attack, Vector3 point)
         {
             int i = IndexOf(attack);
-            if (i >= 0) Play(attacks[i].ImpactKey, point);
+            if (i < 0) return;
+            Play(attacks[i].ImpactKey, point);
+            if (string.IsNullOrEmpty(attacks[i].ImpactVoiceKey)) return;
+            Play(attacks[i].ImpactVoiceKey, Point.position);
+            DuckOthers();
         }
 
         private void OnDied()
@@ -173,6 +183,14 @@ namespace HybridShooter.Audio
             if (string.IsNullOrEmpty(key) == false && ServiceLocator.TryGet<ISoundService>(out var service)) service.PlaySfx(key, position);
         }
 
+        /// <summary>몬스터·BGM 을 잠시 낮춰 포효가 묻히지 않게 한다 (등장 포효 키는 Sfx 라 낮아지지 않는다)</summary>
+        private void DuckOthers()
+        {
+            if (voiceDuckLevel >= 1f || ServiceLocator.TryGet<ISoundService>(out var service) == false) return;
+            service.Duck(SoundCategory.Monster, voiceDuckLevel, voiceDuckTime);
+            service.Duck(SoundCategory.Bgm, voiceDuckLevel, voiceDuckTime);
+        }
+
         /// <summary>테이블 키와 달리 로드 시 검증되지 않으므로, 시작할 때 SoundTable 에 없는 키를 알린다</summary>
         private void WarnMissingKeys()
         {
@@ -184,6 +202,7 @@ namespace HybridShooter.Audio
                 Check(a.WindupKey, label + ".WindupKey");
                 Check(a.ActiveLoopKey, label + ".ActiveLoopKey");
                 Check(a.ImpactKey, label + ".ImpactKey");
+                Check(a.ImpactVoiceKey, label + ".ImpactVoiceKey");
             }
         }
 
@@ -221,6 +240,10 @@ namespace HybridShooter.Audio
                         entry.WindupKey = "mon_clypeosaurus_shout";
                         entry.ActiveLoopKey = "mon_clypeosaurus_suction_loop";
                         entry.LoopPoint = new UnityEditor.SerializedObject(suction).FindProperty("inhaleCenter")?.objectReferenceValue as Transform;
+                        break;
+                    case EntranceAttack _:
+                        entry.ImpactKey = "mon_clypeosaurus_entrance_land";
+                        entry.ImpactVoiceKey = "mon_clypeosaurus_entrance_roar";
                         break;
                 }
                 attacks[i] = entry;

@@ -47,6 +47,7 @@ namespace HybridShooter.Boss.Tyranopode
 
         private void Throw()
         {
+            Owner.RaiseSoundCue(TyranopodeSoundCue.EggThrow, Owner.Mouth.position);
             int count = Data.EggCount
                         + (Owner.IsPhase2 ? Data.Phase2EggBonus : 0)
                         - (Owner.IsBroken(TyranopodePartType.Sac) ? Data.SacBrokenEggReduce : 0);

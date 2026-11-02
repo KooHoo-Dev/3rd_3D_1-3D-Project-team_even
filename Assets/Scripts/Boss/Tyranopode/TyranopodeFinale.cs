@@ -168,7 +168,9 @@ namespace HybridShooter.Boss.Tyranopode
             Destroy(energy);
             Destroy(Instantiate(assets.StrikeVfx, focus, Quaternion.identity), 8f);
             rig.Shake(1f, 1.6f);
-            if (boss != null) boss.FinaleKill();
+            if (boss == null) return;
+            boss.RaiseSoundCue(TyranopodeSoundCue.OrbitalBeam, focus);
+            boss.FinaleKill();
         }
 
         private void UpdateBeam(float since)

@@ -110,13 +110,17 @@ namespace HybridShooter.Round
         /// 방금 생성한 보스를 SpawnPointFinder 가 플레이어 기준으로 고른 위치로 옮기고, 플레이어를 바라보게 한다.
         /// Begin 이 Initialize·입장 연출 구독 전에 부른다. 못 찾으면 에러를 남기고 생성 위치(대체 스폰 위치)에 그대로 둔다.
         /// </summary>
-        /// <remarks>보스 루트의 몸통 Collider 크기를 쓰므로 활성화된 인스턴스에서만 부른다.</remarks>
+        /// <remarks>보스 몸통 Collider 크기를 쓰므로 활성화된 인스턴스에서만 부른다.</remarks>
         private void MoveToFoundSpawnPoint()
         {
             Vector3 playerPosition = player.Root.position;
-            Collider bossCollider = boss.GetComponent<Collider>();
+            if (TryGetBossBounds(out Bounds bossBounds) == false)
+            {
+                Debug.LogError("[RoundBossEncounter] 보스에 Collider 가 없어 대체 스폰 위치를 씁니다.", this);
+                return;
+            }
 
-            bool isFound = spawnPointFinder.TryFindSpawnPoint(playerPosition, bossCollider, out Vector3 foundPoint);
+            bool isFound = spawnPointFinder.TryFindSpawnPoint(playerPosition, bossBounds, out Vector3 foundPoint);
             if (isFound == false)
             {
                 Debug.LogError("[RoundBossEncounter] 보스를 놓을 평탄한 위치를 찾지 못해 대체 스폰 위치를 씁니다.", this);
@@ -125,6 +129,30 @@ namespace HybridShooter.Round
 
             WarpAgent(foundPoint);
             boss.transform.SetPositionAndRotation(foundPoint, FacePlayer(foundPoint, playerPosition));
+        }
+
+        /// <summary>
+        /// 보스 몸 크기. 루트 Collider 가 있으면 그것을 쓰고(클리페오사우루스),
+        /// 없으면 자식 부위 Collider(트리거 제외)를 합친다(티라노포드는 부위 Collider 만 있다)
+        /// </summary>
+        private bool TryGetBossBounds(out Bounds bounds)
+        {
+            if (boss.TryGetComponent<Collider>(out var root))
+            {
+                bounds = root.bounds;
+                return true;
+            }
+
+            bool found = false;
+            bounds = default;
+            foreach (var part in boss.GetComponentsInChildren<Collider>())
+            {
+                if (part.isTrigger) continue;
+                if (found) bounds.Encapsulate(part.bounds);
+                else bounds = part.bounds;
+                found = true;
+            }
+            return found;
         }
 
         /// <summary>

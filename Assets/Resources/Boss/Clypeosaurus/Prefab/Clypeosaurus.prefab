@@ -2346,6 +2346,12 @@ MonoBehaviour:
     ActiveLoopKey: mon_clypeosaurus_suction_loop
     LoopPoint: {fileID: 2970032289995159653}
     ImpactKey: 
+  - Attack: {fileID: 7874530854670405339}
+    WindupKey: 
+    ActiveLoopKey: 
+    LoopPoint: {fileID: 0}
+    ImpactKey: mon_clypeosaurus_entrance_land
+    ImpactVoiceKey: mon_clypeosaurus_entrance_roar
   deathKey: mon_clypeosaurus_hurt
   walkLoopKey: mon_clypeosaurus_walk_loop
   voicePoint: {fileID: 0}
