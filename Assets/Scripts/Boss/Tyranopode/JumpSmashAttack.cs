@@ -49,6 +49,7 @@ namespace HybridShooter.Boss.Tyranopode
             from = transform.position;
             Move.FaceInstant(landing);
             View.Play(TyranopodeView.JumpSmash, Owner.SpeedScale);
+            Owner.RaiseSoundCue(TyranopodeSoundCue.JumpSmash, Owner.Mouth.position);
         }
 
         protected override void OnActiveTick(float deltaTime)
@@ -69,6 +70,7 @@ namespace HybridShooter.Boss.Tyranopode
                     Debug.Log($"[Tyranopode] 내려찍기 도약이 짧음: {leapt:0.#}/{plannedLeap:0.#}m (출발 {from}, 착지 예정 {landing})", this);
                 Move.EndFree();
                 Detonate(telegraph);
+                Owner.RaiseSoundCue(TyranopodeSoundCue.SmashImpact, landing);
                 if (PlayerInCircle(landing, Radius)) HitPlayer(Data.SmashDamage, landing);
                 Owner.BreakEggsNear(landing, Radius);
                 Owner.PlayShockwave(landing, Radius);

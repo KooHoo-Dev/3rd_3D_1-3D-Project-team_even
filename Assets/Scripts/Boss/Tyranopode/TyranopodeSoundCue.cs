@@ -6,7 +6,7 @@ namespace HybridShooter.Boss.Tyranopode
     /// </summary>
     public enum TyranopodeSoundCue
     {
-        /// <summary>등장 포효 · 페이즈 2 전환 포효</summary>
+        /// <summary>페이즈 2 전환 포효 (등장·최후 연출 포효는 CinematicRoar)</summary>
         Roar,
         /// <summary>돌진하다 벽·경기장 경계에 박힘 (위치 = 부딪힌 앞쪽)</summary>
         WallHit,
@@ -44,5 +44,17 @@ namespace HybridShooter.Boss.Tyranopode
         SporeBreak,
         /// <summary>포자 시간 초과 폭발 (위치 = 포자)</summary>
         SporeFail,
+        /// <summary>등장 착지 (위치 = 착지점)</summary>
+        IntroLand,
+        /// <summary>연출 포효: 등장 포효 · 죽기 전 최후 연출 울부짖음 (멀리서도 크게 들리는 연출음)</summary>
+        CinematicRoar,
+        /// <summary>내려찍기 도약 (위치 = 입)</summary>
+        JumpSmash,
+        /// <summary>내려찍기 착지 타격 (위치 = 착지점)</summary>
+        SmashImpact,
+        /// <summary>부위 파괴 (위치 = 맞은 곳)</summary>
+        PartBreak,
+        /// <summary>최후 연출 궤도 빔 타격 (위치 = 보스)</summary>
+        OrbitalBeam,
     }
 }

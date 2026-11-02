@@ -52,6 +52,21 @@ namespace HybridShooter.Audio
         [SerializeField] private string sporePulseKey = "mon_tyranopode_spore_pulse";
         [SerializeField] private string sporeBreakKey = "mon_tyranopode_spore_break";
         [SerializeField] private string sporeFailKey = "mon_tyranopode_spore_fail";
+        [Tooltip("등장 착지 (2D·Sfx 라 멀리서도 크게. 전용 클립이 없어 테이블은 Tremor 클립을 쓴다)")]
+        [SerializeField] private string introLandKey = "mon_tyranopode_intro_land";
+        [SerializeField] private string jumpSmashKey = "mon_tyranopode_jump_smash";
+        [SerializeField] private string smashImpactKey = "mon_tyranopode_smash_impact";
+        [SerializeField] private string partBreakKey = "mon_tyranopode_part_break";
+        [Tooltip("최후 연출 궤도 빔 (2D·Sfx)")]
+        [SerializeField] private string orbitalBeamKey = "mon_tyranopode_orbital_beam";
+
+        [Header("연출 포효 (CinematicRoar = 등장 포효 · 최후 연출 울부짖음)")]
+        [Tooltip("2D·Sfx 키라 거리와 보스 경고 덕킹에 상관없이 크게 들린다")]
+        [SerializeField] private string cinematicRoarKey = "mon_tyranopode_cinematic_roar";
+        [Tooltip("포효 동안 몬스터·BGM 볼륨 배율 (1 = 낮추지 않음)")]
+        [SerializeField, Range(0f, 1f)] private float cinematicRoarDuckLevel = 0.35f;
+        [Tooltip("몬스터·BGM 을 낮춰 두는 시간(초)")]
+        [SerializeField, Min(0f)] private float cinematicRoarDuckTime = 2.5f;
 
         [Header("이동·사망")]
         [Tooltip("맴돌기 이동 루프 (SoundTable.Key, 비우면 없음)")]
@@ -126,7 +141,11 @@ namespace HybridShooter.Audio
             }
         }
 
-        private void OnSoundCue(TyranopodeSoundCue cue, Vector3 position) => Play(KeyOf(cue), position);
+        private void OnSoundCue(TyranopodeSoundCue cue, Vector3 position)
+        {
+            Play(KeyOf(cue), position);
+            if (cue == TyranopodeSoundCue.CinematicRoar) DuckOthers(cinematicRoarDuckLevel, cinematicRoarDuckTime);
+        }
 
         private string KeyOf(TyranopodeSoundCue cue)
         {
@@ -151,6 +170,12 @@ namespace HybridShooter.Audio
                 case TyranopodeSoundCue.SporePulse: return sporePulseKey;
                 case TyranopodeSoundCue.SporeBreak: return sporeBreakKey;
                 case TyranopodeSoundCue.SporeFail: return sporeFailKey;
+                case TyranopodeSoundCue.IntroLand: return introLandKey;
+                case TyranopodeSoundCue.CinematicRoar: return cinematicRoarKey;
+                case TyranopodeSoundCue.JumpSmash: return jumpSmashKey;
+                case TyranopodeSoundCue.SmashImpact: return smashImpactKey;
+                case TyranopodeSoundCue.PartBreak: return partBreakKey;
+                case TyranopodeSoundCue.OrbitalBeam: return orbitalBeamKey;
                 default: return null;
             }
         }
@@ -185,6 +210,14 @@ namespace HybridShooter.Audio
         private static void Play(string key, Vector3 position)
         {
             if (string.IsNullOrEmpty(key) == false && ServiceLocator.TryGet<ISoundService>(out var service)) service.PlaySfx(key, position);
+        }
+
+        /// <summary>몬스터·BGM 을 잠시 낮춰 포효가 묻히지 않게 한다 (포효는 Sfx 라 낮아지지 않는다)</summary>
+        private static void DuckOthers(float level, float holdTime)
+        {
+            if (level >= 1f || ServiceLocator.TryGet<ISoundService>(out var service) == false) return;
+            service.Duck(SoundCategory.Monster, level, holdTime);
+            service.Duck(SoundCategory.Bgm, level, holdTime);
         }
 
         /// <summary>테이블 키와 달리 로드 시 검증되지 않으므로, 시작할 때 SoundTable 에 없는 키를 알린다</summary>

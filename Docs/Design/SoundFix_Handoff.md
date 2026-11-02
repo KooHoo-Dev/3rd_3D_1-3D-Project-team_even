@@ -59,12 +59,12 @@ Audio/TyranopodeSoundEmitter  (GameSoundRouter 가 자동 부착 — 프리팹 �
 
 | SoundTable 키 | 클립 | 재생 시점 | 경로 |
 |---|---|---|---|
-| `mon_tyranopode_roar` | Roar | 등장 포효(`IntroRoar`), 페이즈 2 전환(`BeginTransition`), 포효 소환 예고 | Cue + PhaseChanged |
+| `mon_tyranopode_roar` | Roar | 페이즈 2 전환(`BeginTransition`), 포효 소환 예고 | Cue + PhaseChanged |
 | `mon_tyranopode_crawl_loop` | CrawlLoop | 맴돌기 이동 중 반복 | 속도 감시 |
 | `mon_tyranopode_bite` | Bite | 물기 예고 | PhaseChanged |
 | `mon_tyranopode_bite_impact` | BiteImpact (mp3) | 물기 타격 순간 | Cue |
 | `mon_tyranopode_charge_start` | ChargeStart | 돌진 예고 | PhaseChanged |
-| `mon_tyranopode_charge_loop` | ChargeLoop | 돌진하는 동안 반복 | PhaseChanged |
+| `mon_tyranopode_charge_loop` | ChargeTentacleLoop (합성, 촉수로 달리는 소리) | 돌진하는 동안 반복 | PhaseChanged |
 | `mon_tyranopode_wall_hit` | WallHit | 돌진 중 벽 충돌 | Cue |
 | `mon_tyranopode_groggy` | Groggy | 그로기 시작 (벽 충돌·포자 파괴·보호막 파괴 공통) | Cue |
 | `mon_tyranopode_spit` | Spit | 침 한 발마다 | Cue |
@@ -84,18 +84,28 @@ Audio/TyranopodeSoundEmitter  (GameSoundRouter 가 자동 부착 — 프리팹 �
 | `mon_tyranopode_shield_break` | ShieldBreak | 보호막이 완전히 깨짐 | Cue |
 | `mon_tyranopode_immune_hit` | ImmuneHit | 포자 무적 중 피격 (튕김 표시 간격) | Cue |
 | `mon_tyranopode_death` | Death | 사망 (`BossController.Died`) | Died |
+| `mon_tyranopode_intro_land` | Tremor (임시) | 등장 착지 (`IntroLand`) | Cue |
+| `mon_tyranopode_cinematic_roar` | Roar | 등장 포효(`IntroRoar`), 죽기 전 최후 연출 울부짖음(`BeginFinale`) | Cue `CinematicRoar` |
+
+클리페오사우루스 등장(`EntranceAttack`) 착지 순간에는 프리팹의 `BossSoundEmitter`가 `mon_clypeosaurus_entrance_land`(착지, StompGround 클립)와 `mon_clypeosaurus_entrance_roar`(포효, `ImpactVoiceKey`)를 재생합니다. 짓밟기 공격의 착지음(`mon_clypeosaurus_stomp_impact`)은 그대로 3D입니다.
+
+**연출음은 크게:** 등장 착지·등장 포효·최후 울부짖음 키(`mon_clypeosaurus_entrance_land`, `mon_clypeosaurus_entrance_roar`, `mon_tyranopode_intro_land`, `mon_tyranopode_cinematic_roar`)는 **Sfx·2D**입니다. 플레이어와의 거리에 상관없이 같은 크기로 들리고, 보스 경고 때의 Monster 덕킹(3초간 30%)도 받지 않습니다. 포효하는 동안에는 Monster·BGM을 2.5초간 35%로 낮춥니다. 이 값은 각 이미터의 인스펙터(`voiceDuckLevel`·`voiceDuckTime`, `cinematicRoarDuckLevel`·`cinematicRoarDuckTime`)에서 바꿀 수 있습니다. Sfx 카테고리라서 옵션의 몬스터 볼륨이 아니라 효과음 볼륨을 따릅니다.
 
 ## 4. 남은 일
 
-### 클립이 아직 없는 것 (5종) — 파일을 넣으면 위 "소리 추가하는 법"대로 진행
+### 합성으로 만든 임시 클립 (5종)
+아래 5개는 외부 소리 없이 `tools/audio/TyranopodeSfx`(C# 합성기)로 만들어 연결했습니다. 녹음 소리보다 단순하므로 더 좋은 소리를 구하면 같은 파일명으로 덮어쓰면 됩니다(테이블·코드는 그대로). 다시 만들 때는 `dotnet run --project tools/audio/TyranopodeSfx -- Assets/Resources/Audio/Monster/Tyranopode [이름]` (이름을 주면 그 소리만). 등장 착지용 합성음(IntroLand)은 어색해서 빼고 Tremor 클립으로 되돌렸습니다.
 
-| 파일명 | 우선순위 | 연결 후보 지점 |
-|---|---|---|
-| `Tyranopode_JumpSmash` | 필수 | `JumpSmashAttack` 도약 시점 (예고는 `PhaseChanged(Windup)`도 가능) |
-| `Tyranopode_SmashImpact` | 필수 | `JumpSmashAttack` 착지 타격 지점 |
-| `Tyranopode_PartBreak` | 권장 | 부위 파괴 → `EnterFlinch` 쪽 |
-| `Tyranopode_IntroLand` | 선택 | `TyranopodeController.IntroLand` |
-| `Tyranopode_OrbitalBeam` | 선택 | `TyranopodeFinale` 궤도 빔 |
+| 파일명 | SoundTable 키 | 재생 시점 | 설정 |
+|---|---|---|---|
+| `Tyranopode_JumpSmash` | `mon_tyranopode_jump_smash` | `JumpSmashAttack` 도약 (`OnActiveStarted`). Roar 0.05~1.4초를 0.8배 음높이로 낮춘 힘주는 소리 (약 1.8초) | Monster·3D |
+| `Tyranopode_SmashImpact` | `mon_tyranopode_smash_impact` | `JumpSmashAttack` 착지 타격 | Monster·3D |
+| `Tyranopode_PartBreak` | `mon_tyranopode_part_break` | 부위 파괴 (`BreakPart`). Roar 1.25~1.85초를 1.35배 음높이로 올린 비명 | Monster·3D |
+| `Tyranopode_ChargeTentacleLoop` | `mon_tyranopode_charge_loop` | 돌진하는 동안 반복 (여러 촉수가 땅을 짚으며 달리는 소리, 2초 끊김 없는 루프). 원래 ChargeLoop 클립은 남겨 둠 | Monster·3D 루프 |
+| `Tyranopode_OrbitalBeam` | `mon_tyranopode_orbital_beam` | 최후 연출 궤도 빔 타격 (`TyranopodeFinale.Strike`) | Sfx·2D |
+
+### 보스 바로 부르기 (`Round/BossCallTester`)
+게임 씬(`Monster Player Integration`)의 아무 오브젝트에 붙입니다. 런이 진행 중일 때 **F10 = 1스테이지 보스(클리페오사우루스), F11 = 2스테이지 보스(티라노포드)**입니다. 지금 라운드를 정리하고 그 라운드를 시작한 뒤, 0.5초 뒤 군중전을 건너뛰고 보스 경고·등장으로 넘어갑니다. 키·대기 시간은 인스펙터에서 바꿉니다. 지금 라운드에서 바로 보스만 부르려면 기존 F12를 씁니다.
 
 ### 플레이 테스트 때 확인할 것
 - `Roar`(6.3초)가 등장 포효 구간(2초, 두 번째 등장부터는 1.1초)보다 깁니다. 거슬리면 클립을 자르거나, 연출이 끝날 때 멈추는 처리를 추가합니다.

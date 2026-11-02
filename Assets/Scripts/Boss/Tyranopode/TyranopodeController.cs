@@ -676,6 +676,7 @@ namespace HybridShooter.Boss.Tyranopode
             foreach (var part in partState.Parts) part.Sever();
 
             PlayVfx(partBreakVfx, point, BodyScale);
+            RaiseSoundCue(TyranopodeSoundCue.PartBreak, point);
             EventBus<CameraShakeRequestedEvent>.Publish(new CameraShakeRequestedEvent(CameraShakePresets.Impact.At(point, 80f)));
             // 발광은 거의 주머니에서 나온다 → 주머니가 부서지면 빛을 잃는다. 다른 부위는 상처 연출(TyranopodePart.stumpVfx)로
             if (type == TyranopodePartType.Sac) view.SetEmissionLevel(sacBrokenEmission);
@@ -727,6 +728,7 @@ namespace HybridShooter.Boss.Tyranopode
             view.SetEmissionTint(finaleEmissionTint);
             view.Play(TyranopodeView.Roar, 0.5f, 0.3f);
             PlayRoarVfx();
+            RaiseSoundCue(TyranopodeSoundCue.CinematicRoar, mouth.position);
 
             var threat = RentTelegraph();
             threat.ShowCircle(transform.position, finaleThreatRadius * BodyScale, finale.StrikeTime, new Color(1f, 0.1f, 0.05f, 0.5f));
@@ -802,6 +804,7 @@ namespace HybridShooter.Boss.Tyranopode
             introShadow.Detonate(new Color(1f, 0.55f, 0.2f, 0.8f));
             PlayImpactVfx(introLanding, IntroLandRadius);
             PlayShockwave(introLanding, IntroLandRadius * 2.5f);
+            RaiseSoundCue(TyranopodeSoundCue.IntroLand, introLanding);
             Minions.WaveKill(introLanding, 40f, IntroLandRadius);
         }
 
@@ -837,7 +840,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             view.Play(TyranopodeView.Roar, 0.9f, 0.25f);
             PlayRoarVfx();
-            RaiseSoundCue(TyranopodeSoundCue.Roar, mouth.position);
+            RaiseSoundCue(TyranopodeSoundCue.CinematicRoar, mouth.position);
             StopGroundEnergy();
             analysis.ShowIntroCard(introAbsorbed, introShieldGiven > 0f);
         }
