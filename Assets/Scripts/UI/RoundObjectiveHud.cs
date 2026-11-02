@@ -19,7 +19,8 @@ namespace HybridShooter.UI
     {
         private static readonly Color PanelColor = new Color(0.02f, 0.06f, 0.09f, 0.6f);
         private static readonly Color BarBackColor = new Color(1f, 1f, 1f, 0.15f);
-        private static readonly Vector2 PanelSize = new Vector2(520f, 150f);
+        private static readonly Vector2 PanelSize = new Vector2(520f, 180f);
+        // 라벨 상자 높이는 글자 크기 × 1.45 이상 (NotoSansKR 줄 높이). 작으면 Ellipsis 가 줄을 통째로 숨긴다
 
         [Tooltip("한글 글자용 (NotoSansKR SDF). 비워 두면 GameFlowUiSkin 의 글꼴")]
         [SerializeField] private TMP_FontAsset textFont;
@@ -122,14 +123,14 @@ namespace HybridShooter.UI
             HudFactory.NewImage(panel, null, PanelColor);
 
             titleText = HudFactory.Label(panel, "Title", textFont, 20f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -8f), new Vector2(PanelSize.x - 20f, 28f));
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -6f), new Vector2(PanelSize.x - 20f, 32f));
             titleText.color = HudFactory.Amber;
             objectiveText = HudFactory.Label(panel, "Objective", textFont, 22f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(PanelSize.x - 20f, 30f));
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -38f), new Vector2(PanelSize.x - 20f, 34f));
             valueText = HudFactory.Label(panel, "Value", textFont, 40f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -66f), new Vector2(PanelSize.x - 20f, 50f));
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -72f), new Vector2(PanelSize.x - 20f, 60f));
             detailText = HudFactory.Label(panel, "Detail", textFont, 18f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 8f), new Vector2(PanelSize.x - 20f, 24f));
+                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 8f), new Vector2(PanelSize.x - 20f, 28f));
 
             // 생존전 남은 시간 막대 (패널 아래 가장자리)
             timeBar = HudFactory.Rect(panel, "TimeBar", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 12f), new Vector2(PanelSize.x - 60f, 6f));
