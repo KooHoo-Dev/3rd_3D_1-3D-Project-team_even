@@ -13,7 +13,7 @@ namespace HybridShooter.Monster.Behaviour
     /// </summary>
     public sealed class DiveAttack : MonsterAttack
     {
-        // 바로 머리 위에서 시작할 때 쓰는 최소 시작 거리 (m). 0 나눗셈 방지와 최대 위치 보정량
+        // 바로 머리 위에서 시작할 때 쓰는 최소 시작 거리 (m). 0 나눗셈 방지와 최대 위치 보정량. 랜덤 보정한 급강하 시작 거리의 하한이기도 하다
         private const float MinStartDistance = 0.5f;
 
         /// <summary>급강하 진행 단계. Diving → Leaving</summary>
@@ -22,10 +22,11 @@ namespace HybridShooter.Monster.Behaviour
         private readonly MonsterMovement movement;
         private readonly DiveSettings settings;
         private readonly FlyingMoveExecutor flyer;
+        private readonly float entryDistance; // m, 이 개체의 급강하 시작 거리. 생성 때 랜덤 보정을 더해 고정한다
 
         // ── 이번 주기 (OnWindup 에서 초기화) ──
         private DiveStage stage;
-        private Vector3 diveCenter;        // P, 예고 시작 때 플레이어 위치 (월드)
+        private Vector3 diveCenter;        // P, 예고 시작 때 조준점(AimPoint) 수평 위치 + 플레이어 높이 (월드)
         private Vector3 diveDirection;     // ĥ, 몬스터 → P 수평 단위 방향
         private float startOffset;         // s₀ (m, 음수). 시작 위치의 ĥ 축 좌표
         private float startHeight;         // y₀ (월드 y, m). 시작 높이
@@ -36,11 +37,14 @@ namespace HybridShooter.Monster.Behaviour
         private float leaveEndTime = float.NegativeInfinity; // 이탈을 마친 시각 (s)
 
         public override AfterAttack After => AfterAttack.RepositionInChase;
-        public override float Range => settings.EntryDistance;
+        public override float Range => entryDistance;
         public override bool UsesMoveAnimation => true;
         public override float BodyMoveSpeed => settings.DiveSpeed;
 
-        /// <summary>MonsterAttackFactory 가 Air 역할에 만든다</summary>
+        /// <summary>
+        /// MonsterAttackFactory 가 Air 역할에 만든다. 급강하 시작 거리는 여기서 개체별 랜덤 보정을 더해 1회 고정한다.
+        /// MonsterController 가 Start·Respawn 마다 공격을 새로 만드므로 풀 재사용 때 다시 뽑힌다.
+        /// </summary>
         /// <param name="spec">공격 값 묶음. Range = 스침 피해 거리(3D)</param>
         /// <param name="body">공격자 몸체</param>
         /// <param name="findDamageable">대상에서 피해를 줄 IDamageable 을 찾는 방법</param>
@@ -59,6 +63,10 @@ namespace HybridShooter.Monster.Behaviour
             this.movement = movement;
             this.settings = settings;
             this.flyer = flyer;
+
+            float randomRange = settings.EntryDistanceRandomRange;
+            float randomOffset = UnityEngine.Random.Range(-randomRange, randomRange);
+            entryDistance = Mathf.Max(MinStartDistance, settings.EntryDistance + randomOffset);
         }
 
         /// <summary>
@@ -103,12 +111,13 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 예고 시작: 급강하 중심 P, 방향 ĥ, 시작 좌표 s₀, 시작 높이 y₀ 를 고정한다. 플레이어 쪽 회전은 기반 Tick 이 예고 내내 한다.
+        /// 예고 시작: 급강하 중심 P(조준점 수평 위치, 플레이어 높이), 방향 ĥ, 시작 좌표 s₀, 시작 높이 y₀ 를 고정한다. 조준점 쪽 회전은 기반 Tick 이 예고 내내 한다.
         /// 바로 머리 위(수평 0.5m 미만)면 ĥ = 몸 정면, s₀ = −0.5m 로 둔다.
         /// </summary>
         protected override void OnWindup()
         {
-            diveCenter = Target.PlayerTrackingInfo.Position;
+            diveCenter = AimPoint;
+            diveCenter.y = Target.PlayerTrackingInfo.Position.y; // 조준 offset 의 높이는 버린다 (땅에 박히지 않게)
             Vector3 toCenter = HitAreas.Flat(diveCenter - Body.Position);
             float horizontalDistance = toCenter.magnitude;
             if (horizontalDistance < MinStartDistance)
@@ -164,13 +173,18 @@ namespace HybridShooter.Monster.Behaviour
             if (reachedExit) stage = DiveStage.Leaving;
         }
 
-        /// <summary>이탈 1틱: 몸을 수평으로 되돌리고 ĥ 방향으로 높이를 유지한 채 직진한다. P 와 수평 거리가 이탈 거리 이상이면 종료 시각을 기록한다</summary>
+        /// <summary>
+        /// 이탈 1틱: 몸을 수평으로 서서히 되돌리고 ĥ 방향으로 높이를 유지한 채 직진한다. P 와 수평 거리가 이탈 거리 이상이면 종료 시각을 기록한다.
+        /// 출구에서는 위로 크게 기울어 있으므로, 한 틱에 수평으로 바꾸지 않고 levelOutSpeed 로 지수 보간한다 (MonsterMovement.ApplyLookRotation 과 같은 공식).
+        /// </summary>
         /// <param name="now">현재 시각 (s)</param>
         /// <param name="deltaTime">지난 틱부터 경과 시간 (s)</param>
         /// <returns>true = 이탈 거리에 닿았다</returns>
         private bool TickLeaving(float now, float deltaTime)
         {
-            movement.transform.rotation = Quaternion.LookRotation(diveDirection);
+            Quaternion levelRotation = Quaternion.LookRotation(diveDirection);
+            float blend = 1f - Mathf.Exp(-settings.LevelOutSpeed * deltaTime);
+            movement.transform.rotation = Quaternion.Slerp(movement.transform.rotation, levelRotation, blend);
             movement.MoveDuringAttack(diveDirection * settings.DiveSpeed * deltaTime);
             float distanceFromCenter = HitAreas.Flat(Body.Position - diveCenter).magnitude;
             if (distanceFromCenter < settings.LeaveDistance) return false;

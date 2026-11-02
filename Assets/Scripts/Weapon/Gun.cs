@@ -56,7 +56,7 @@ namespace HybridShooter.Weapon
     ///    장전이 "끝나는 순간"에만 예비 탄창 1개를 써서 탄창을 가득 채운다 (남은 탄은 버림). 취소되면 아무것도 바뀌지 않는다.
     ///    예비 탄창이 없으면 장전할 수 없다 (infiniteMagazines 면 줄지 않음). 보충은 AddMagazines (보급 → GunSlot → 지금 든 총)
     ///  - 장전 취소: 무기 교체, 쏠 수 없는 상태(CanUseWeapon: 구르기·투척·사망·벽넘기), GunSlot.InterruptReload(넉백 피격 등)
-    ///  - 처음부터 재시작(RoundCleanupEvent.FullReset)이면 탄창·예비 탄창을 시작값으로
+    ///  - 라운드 정리(RoundCleanupEvent): 처음부터 재시작이면 탄창·예비 탄창을 시작값으로, 다음 라운드면 탄창 가득 + 아껴 둔 예비 탄창 유지(시작값 이상)
     ///
     /// 무기별 기본 튜닝 값은 하위 클래스 생성자에서 정한다.
     /// (필드 초기값과 같은 시점이라, 씬/프리팹에 저장된 인스펙터 값이 있으면 그 값이 덮어쓴다)
@@ -146,6 +146,8 @@ namespace HybridShooter.Weapon
         private float lastShotTime = float.NegativeInfinity;
         private bool aimZoomApplied;
         private bool subscribed;
+        /// <summary>처음부터 재시작(FullReset) 정리를 받았으면 다음 RoundStartedEvent 에서 타이머·반동·탄약을 초기화</summary>
+        private bool resetOnRoundStart;
 
         protected static readonly RaycastHit[] SharedHits = new RaycastHit[32];
         /// <summary>다음 SpawnTracer 의 총알이 도착할 때 생성할 탄착 자리 (SpawnImpact 가 쌓는다)</summary>
@@ -208,6 +210,8 @@ namespace HybridShooter.Weapon
         public int MaxMagazines => Stats.maxMagazines;
         public bool InfiniteMagazines => infiniteMagazines;
         public bool HasSpareMagazine => infiniteMagazines || SpareMagazines > 0;
+        /// <summary>AddSupplyMagazines 로 예비 탄창이 늘어나는지 (무한 탄창·비율 0·이미 최대면 false)</summary>
+        public bool CanAddSupplyMagazines => infiniteMagazines == false && SupplyMagazineRatio > 0f && SpareMagazines < Stats.maxMagazines;
         /// <summary>지금 재장전을 시작할 수 있는지 (장전 중 아님 + 탄창이 가득 차지 않음 + 예비 탄창 있음)</summary>
         public bool CanReload => IsReloading == false && Ammo < Stats.magazineSize && HasSpareMagazine;
         /// <summary>탄창도 예비 탄창도 비었다 (더 쏠 수 없음)</summary>
@@ -298,6 +302,15 @@ namespace HybridShooter.Weapon
             OnTriggerUp();
         }
 
+        /// <summary>라운드 전환 시 방아쇠·조준·장전·점사 예약을 취소한다 (RunDirector 입력 차단·라운드 정리)</summary>
+        public void CancelActions()
+        {
+            TriggerUp();
+            AimUp();
+            CancelReload();
+            OnUnequipped();
+        }
+
         public void AimDown()
         {
             if (IsAiming) return;
@@ -345,6 +358,38 @@ namespace HybridShooter.Weapon
             SpareMagazines = Mathf.Min(SpareMagazines + amount, Stats.maxMagazines);
             PublishAmmo();
             return true;
+        }
+
+        /// <summary>
+        /// 보급 1회분 예비 탄창 충전. MaxMagazines × WeaponDef.SupplyMagazineRatio 를 내림 (최소 1, 비율 0 이면 충전 안 함).
+        /// 테이블 행이 없으면 FallbackSupplyMagazineRatio. 반환: 실제로 늘어난 개수
+        /// </summary>
+        public int AddSupplyMagazines()
+        {
+            float ratio = SupplyMagazineRatio;
+            if (ratio <= 0f) return 0;
+            int before = SpareMagazines;
+            AddMagazines(Mathf.Max(1, Mathf.FloorToInt(Stats.maxMagazines * ratio)));
+            return SpareMagazines - before;
+        }
+
+        /// <summary>새로 주웠거나 버려질 때(보급 무기): 장전 취소 + 탄창·예비 탄창을 시작값으로 + 사격 모드 등 초기화</summary>
+        public void ResetForPickup()
+        {
+            CancelReload();
+            ResetAmmo();
+            OnInitialized();
+        }
+
+        /// <summary>
+        /// 부활: 장전 취소 + 탄창 가득 + 예비 탄창을 최소 시작값까지 (시작값보다 많이 모아 둔 탄창은 그대로).
+        /// 탄이 바닥난 채 부활해 바로 죽는 일을 막는다
+        /// </summary>
+        public void RestoreAmmoForRevive()
+        {
+            CancelReload();
+            SpareMagazines = Mathf.Max(SpareMagazines, Mathf.Clamp(Stats.startMagazines, 0, Stats.maxMagazines));
+            SetAmmo(Stats.magazineSize);
         }
 
         /// <summary>재장전 동작 없이 탄창과 예비 탄창을 바로 가득 채운다 (디버그 무한 탄약 등)</summary>
@@ -395,6 +440,10 @@ namespace HybridShooter.Weapon
 
         /// <summary>탄창 강화(+N발) 중 이 총이 받는 비율. 탄창이 작은 총은 낮게</summary>
         protected virtual float MagazineUpgradeRate => 1f;
+        /// <summary>WeaponTable 행이 없을 때(fallbackStats) 보급 1회 예비 탄창 충전 비율</summary>
+        protected virtual float FallbackSupplyMagazineRatio => 0.5f;
+        /// <summary>보급 1회 예비 탄창 충전 비율 (테이블 값, 행이 없으면 FallbackSupplyMagazineRatio)</summary>
+        private float SupplyMagazineRatio => Def != null ? Def.SupplyMagazineRatio : FallbackSupplyMagazineRatio;
         /// <summary>장전 중에 쏘면 장전을 끊고 쏠 수 있는지 (산탄총 한 발씩 장전)</summary>
         protected virtual bool CanInterruptReload => false;
         /// <summary>지금 화면 확대를 걸지. 저격총은 노리쇠 당기는 동안 끈다</summary>
@@ -444,6 +493,7 @@ namespace HybridShooter.Weapon
                 if (Owner == null) return 0f;
                 float spread = moveSpreadPenalty * Owner.MoveRatio;
                 if (Owner.IsGrounded == false) spread += airSpreadPenalty;
+                spread += Owner.TremorSpread; // 땅울림 (조준·스코프에서도 남도록 이동 퍼짐에 넣는다)
                 return spread;
             }
         }
@@ -687,12 +737,20 @@ namespace HybridShooter.Weapon
 
         private void OnUpgradePurchased(UpgradePurchasedEvent evt) => RefreshStats();
 
-        /// <summary>처음부터 재시작이면 탄창·예비 탄창을 시작값으로. 다음 라운드 진행이면 유지</summary>
+        /// <summary>
+        /// 라운드(스테이지) 정리. 장전 취소 + 사격 모드 등 초기화, 탄약은:
+        ///   처음부터 재시작(FullReset) = 시작값 / 다음 라운드 = 탄창 가득 + 예비 탄창 max(현재, 시작값) (아껴 둔 탄창 유지)
+        /// 보급 무기는 GunSlot 이 칸에서 빼며 시작값으로 되돌린다
+        /// </summary>
         private void OnRoundCleanup(RoundCleanupEvent evt)
         {
-            if (evt.FullReset == false) return;
-            CancelReload();
-            ResetAmmo();
+            if (evt.FullReset)
+            {
+                ResetForPickup();
+                return;
+            }
+            RestoreAmmoForRevive();
+            OnInitialized();
         }
 
         private void ResetAmmo()

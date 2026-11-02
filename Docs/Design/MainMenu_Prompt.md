@@ -195,3 +195,94 @@ Assets/Scripts/Core/Settings/
 - 게임 타이틀 문구 (로고 텍스트)
 
 ---
+
+## 구현 진행 (2026-10-28)
+
+### 확정 사항
+| 항목 | 결정 |
+|---|---|
+| 씬 생성 | 에디터 빌더 스크립트 (`Tools > MainMenu > ...`). 다시 실행하면 새로 만든다 |
+| 씬 위치 | 작업 중 `Assets/Scenes/GU/Test_MainMenu.unity` → 완료 후 `Assets/Scenes/BuildScenes/Boot`·`MainMenu` |
+| 로고 문구 | `TEAM EVEN` |
+| 진행 | 단계별 확인 후 커밋 |
+
+### 매핑 변경 (데모 프리팹 확인 결과)
+| 용도 | 위 매핑 | 변경 | 이유 |
+|---|---|---|---|
+| 옵션 탭 | `Toggle_PageTag` | `Btn_SettingsMenuCyan/Yellow` 스프라이트로 만든 Toggle | PageTag 는 40px 점(페이지 표시)이라 글자를 넣을 수 없음 |
+| 옵션 팝업 | `Popup_Settings.prefab` 복제 | `Popup_Settings.png` (9-slice) 배경 + 팩 컨트롤 중첩 프리팹 | 프리팹은 데모 내용(Music·Vibration·Language)이 고정 배치 |
+| 메뉴 버튼 3개 | StartMenu / SettingMenu / MainMenu 섞어 사용 | 셋 다 `Btn_MainMenuCyan` (선택·GAME START 는 `Btn_MainMenuYellow`) — 4단계에서 확정 | StartMenu(524×264)는 카드형 큰 상자, SettingMenu 는 탭 모양. MainMenu(609×134)가 좌측 세로 목록용 |
+| 한글 폰트 | 팩 폰트에 Fallback | 본문은 `NotoSansKR-Regular SDF` 직접 사용, 영문 제목만 `Aldrich` | 팩 폰트 에셋을 고치지 않기 위해. 현재 `Assets/StudySample/` 안에 있어 정식 폴더로 옮길 필요 (TODO) |
+
+### 문서와 실제 코드가 다른 점
+- **키 안내**: 플레이어는 `InputSystem_Actions` 가 아니라 `PlayerController.InputPlayerSettings` 의 키를 직접 읽는다 → `KeyGuideList` 도 그 기본값을 읽어 표시 (InputActions 의 Player 맵은 템플릿 그대로라 실제 키와 다름)
+- **감도**: 플레이어는 `PlayerDef.LookSensitivity` 가 아니라 `PlayerController.mouseSensitivity`(0.12) × `aimSensitivity` 를 쓰고, 1인칭/3인칭 구분이 없다. `invertY` 는 Inspector 값. → `GameSettings` 에 1인칭·3인칭 배율과 Y 반전만 저장하고, 연결은 Player 담당과 협의 (TODO, `GameSettings.cs` 주석)
+- **마스터 볼륨**: `ISoundService` 에 `MasterVolume` 이 없어 계약에 추가 (`SoundService` 는 원래 공개 속성이 있어 그대로, `NullSoundService` 만 1줄)
+
+### 사운드 보완 (사운드 리팩토링 v3.1 재점검)
+1. 옵션 볼륨 유지: `GameSettings` 가 `SceneManager.sceneLoaded` (OnEnable 뒤·Start 전)에서 새 씬 SoundService 에 저장값을 넣는다 → SoundService·씬 수정 없음
+2. Reward 스냅샷 잔류: `SoundService.Start` 에서 Default 스냅샷으로 즉시 전환
+3. 씬 전환 BGM 끊김: `SceneTransition.LoadAsync` — BGM 페이드아웃과 다음 씬 미리 로드를 함께 하고 둘 다 끝나면 활성화 (6·7단계에서 사용)
+
+### 단계 현황
+- [x] 1. 프리팹 확정 (위 매핑 변경)
+- [x] 2. `GameSettings` + 옵션 팝업 — `Tools > MainMenu > Build Options Popup` → `Assets/Prefabs/UI/OptionsPopup.prefab`, `Create Test Scene` → `Test_MainMenu`
+- [x] 3. 디오라마 — `Tools > MainMenu > Rebuild Diorama` (Test_MainMenu 의 Environment·Diorama·CM_Menu 만 다시 만듦). 씬에서 조정한 환경 값을 빌더에 반영
+- [x] 4. 메뉴 UI + PRESS ANY KEY + 키보드/패드 내비게이션 — `Tools > MainMenu > Rebuild Menu UI` (Test_MainMenu 의 Canvas 만 다시 만듦, 임시 OPTIONS 버튼 제거)
+- [x] 5. 호버 연동 연출 + 환경 파티클 — `Rebuild Diorama` 가 함께 만든다 (Environment 의 Atmosphere·Hover Volume, Diorama 의 `MenuBackdropDirector`)
+- [ ] 6~7
+
+### 3단계 디오라마 구성
+- **디스플레이 프리팹** `Assets/Prefabs/MainMenu/Display/*_Display.prefab`: 게임 프리팹(`Resources/Prefabs/Monsters`, 보스, `MS/Prefabs/Player`)을 풀어서 Transform·렌더러·Animator·파티클만 남긴다 (게임 스크립트·물리·이미터 제거, RequireComponent 순서대로). 게임 프리팹이 없는 부포모프·덴솝테르는 에셋 팩 프리팹 사용 → `TestMonster` 자리 표시는 필요 없음
+- **애니메이션**: 게임 컨트롤러는 파라미터로 움직이므로, 몬스터는 에셋 팩 컨트롤러로 바꾸고 `DisplayActor` 가 상태 이름을 직접 재생 (Idle 랜덤 시작 위치·속도 0.9~1.1, 비행형 호버링, `PlayThreat` 위협·포효). 플레이어는 `Player_AC` 그대로 (Locomotion 정지 = 소총 대기, `Aim` 파라미터로 조준 — 5단계)
+- **무리**: 처음엔 고정 시드로 35마리를 부채꼴 고리에 흩뿌렸고, 2026-10-29 씬에서 직접 옮긴 배치를 `MainMenuDioramaBuilder.Placements` 표(종류·위치·방향)로 고정 — 무스코모프 지상 9(4~12m)·파르다트록스 4·레탈로브라크 3·자이언트 슬러그 1, 공중 무스코모프 4·덴솝테르 3 (24마리), 부포모프는 빠짐. 원경 50m 에 클리페오사우루스. 씬에서 다시 옮기면 표를 그 값으로 바꾼다. 오른쪽 원경(15.7, 2.2, 30.6)에 추락한 우주선 `Assets/Scenes/GU/Prefabs/Spaceship_Broken.prefab` (연출 전용 소품이라 디스플레이 프리팹 없이 그대로, 빌더 `ShipPosition`·`ShipRotation`). 바위는 고리 바깥(양옆·원경)
+- **환경**: 인게임 맵(건물 단지)은 쓰지 않고, 인게임 씬(`Monster Player Integration`)을 기준으로 만든다. 땅 = 300m 바닥에 인게임 지형 레이어 텍스처(`Creepy_Cat .../Textures/Sand_01.png`, 30m 타일, `Assets/Materials/MainMenu/MainMenuGround.mat`, 콜라이더 없음) + 원경 안개 속 바위 3개(150m 이상, 씬에서 조정한 값). 하늘·조명 = 기본 스카이박스, 스카이박스 주변광, 흰색 Directional 1.2(인게임과 같은 방향, 그림자 Soft). 연출로 더한 것: 같은 방향 보조광 1.0, 몬스터 뒤 약한 역광 0.8, 원경 안개(지수² 0.022, 스카이박스 지평선과 비슷한 회청색 → 땅 끝이 하늘로 녹아들고 50m 보스는 실루엣). 볼륨(`Assets/Settings/MainMenuVolumeProfile`)은 인게임과 같은 Neutral 톤매핑에 Bloom 0.4·Vignette 0.28
+- **카메라**: Main Camera 에 CinemachineBrain, `CM_Menu`(우측 어깨 오버숄더, FOV 45) + Noise(Handheld_normal_mild 약하게) + `MenuCameraSway`(12초 좌우 흔들림)
+- 구도 수치는 `MainMenuDioramaBuilder` 상단 상수 (CameraPosition·CameraTarget·Crowd 표)
+- 메뉴 씬에는 GameSoundRouter 가 없으므로 디오라마에 사운드 이미터가 붙지 않는다
+
+### 4단계 메뉴 UI 구성
+- **흐름** `MainMenuController`: PressAnyKey → Menu → (Options) → StartingGame. 게임에서 돌아올 때 `MainMenuController.SkipPressAnyKey = true` 면 바로 메뉴
+- **PRESS ANY KEY**: 좌상단 로고(`TEAM EVEN`, Aldrich, 항상 표시) + 하단 중앙 "PRESS ANY KEY" 깜빡임(알파 0.3↔1, 1.2s). `InputSystem.onAnyButtonPress` 한 번 → 메뉴 슬라이드인(왼쪽 700px 밖에서 0.4s, 버튼 0.06s 순차) + 카메라가 플레이어 쪽으로 0.6m (`MenuCameraSway.SetBase`, 흔들림은 계속). 버튼은 다 들어온 뒤에 눌린다 (PRESS ANY KEY 를 누른 클릭·Enter 가 버튼까지 누르지 않게)
+- **레이아웃** (1920×1080, Match 0.5): 버튼 487×107(원본 80%), 좌측 여백 120, 간격 24. 뒤에 왼쪽→오른쪽 투명해지는 검은 패널(폭 900, 알파 0.75, 텍스처 없이 `HorizontalFade` 정점 알파). 좌하단 `v{Application.version}`, 우하단 `[Enter] 선택    [Esc] 뒤로`. 수치는 `MainMenuUIBuilder` 상단 상수
+- **버튼 색**: GAME START = `Btn_MainMenuYellow`, OPTIONS·QUIT = `Btn_MainMenuCyan` 에 선택(호버·Pressed) 스프라이트만 `Btn_MainMenuYellow_p` 로 → 기본 Cyan, 선택 Yellow. 팩의 `TMTextColorControl` 은 마우스에만 반응해 끄고 `MainMenuButtonFx` 가 선택 시 글자색·크기(1.04)를 보간
+- **내비게이션**: 첫 선택 GAME START, 위아래 Explicit(끝에서 처음으로 돈다). 마우스 호버 = 선택. 빈 곳 클릭으로 선택이 비면 마지막 버튼을 다시 선택. 옵션을 닫으면 OPTIONS 선택
+- **임시 동작 (6단계에서 교체)**: GAME START → 연출 없이 `SceneTransition.LoadAsync(gameSceneName)`, QUIT → 확인 없이 종료, 메인에서 Esc → 아무 것도 안 함 (종료 팝업 자리)
+- 디오라마를 다시 만들면(`Rebuild Diorama`) 새 CM_Menu 를 메뉴 컨트롤러에 다시 연결한다
+- 기존 코드 수정: `OptionsPopup.CancelPressed` 공개(메인 메뉴 Esc 판정 공유), `OptionsPopupBuilder` 공용 도우미 internal
+
+### 5단계 호버 연출·분위기 구성
+- **흐름**: `MainMenuController` 가 선택된 버튼을 `MenuBackdropDirector.SetHover` 로 넘긴다 (옵션 팝업이 열린 동안은 OPTIONS 반응 유지). 호버가 바뀔 때마다 모든 값을 지금 값에서 새 목표로 0.6s 보간하고 이전 트윈은 Kill → 빠르게 옮겨 다녀도 튀지 않음
+- **GAME START**: 플레이어 `Aim` 0→1 (Player_AC 상체 조준 블렌드), FOV −4, 카메라 앞으로 0.25m
+- **OPTIONS**: 카메라 오른쪽으로 0.7m, `Hover Volume (Options)` 가중치 1 (채도 −45, 노출 −0.15)
+- **QUIT**: `Hover Volume (Quit)` 가중치 1 (붉은 비네트 0.45), 무리 중 4마리가 0.5s 안에 엇갈려 포효(애니+소리, 4초 쿨다운), 몬스터 발광 2.5→5배
+- **카메라 이동 분리**: `MenuCameraSway` 에 `Offset` 추가 — 메뉴 진입 이동은 `SetBase`, 호버는 `Offset` 이라 서로 덮어쓰지 않음
+- **몬스터 눈 발광**: 대부분의 몬스터 머티리얼은 Emission 맵(눈·발광부)이 이미 켜져 있어 `DisplayActor.emissionBoost`(기본 2.5, 플레이어는 1 — 소총만 발광)로 MaterialPropertyBlock 배율만 올린다. 부포모프·레탈로브라크는 Emission 이 꺼진 머티리얼이라 변화 없음
+- **분위기** (Environment/Atmosphere):
+  - GroundFog: 팩 `Smoke.png` 연기 덩어리(8~14m, 알파 0.18)가 바닥(z 7~37)에서 천천히 오른쪽으로 흐름 — `Assets/Materials/MainMenu/MainMenuFog.mat`
+  - Embers: `T_Glow` 가산 블렌드 불씨(HDR 주황 → Bloom)가 바람 따라 오른쪽 위로 — `MainMenuEmber.mat`
+  - DistantFlash: 무리 너머 안개 속 Point Light 가 4~10초마다 번쩍임 (35% 확률로 두 번 연속, 위치 4곳 중 무작위)
+- 파티클 재질은 셰이더 GUI 를 거치지 않으므로 블렌드 값·키워드를 빌더가 직접 맞춘다 (`CrashedShipSmoke.mat` 와 같은 투명 설정)
+- 볼륨 프로필: `Assets/Settings/MainMenuHoverOptionsProfile.asset`, `MainMenuHoverQuitProfile.asset` (Priority 1, 다시 만들 때마다 새로 씀)
+- 수치는 `MenuBackdropDirector`·`DistantFlash` Inspector, 파티클·섬광 위치는 `MainMenuDioramaBuilder` (`FlashPoints`, `CreateAtmosphere`)
+
+### 어두운 분위기·UI 디자인 개선 (2026-10-30)
+게임 본편 분위기(팀 외계 행성 대기, `Assets/Scenes/MS/Docs/AtmosphereGuide.md`)에 맞춰 메뉴를 어둡게 바꾸고 UI 를 그 톤에 맞췄다.
+- **팀 분위기 시스템 가져옴**: develop 에서 `Assets/Scripts/Atmosphere`·`Assets/Prefabs/Atmosphere` 만 (다른 파일은 그대로). 밤하늘 셰이더와 `AtmospherePreset` 클래스를 쓰고, 팀 프리셋·볼륨(게임 씬용)은 건드리지 않는다
+- **메뉴 전용 프리셋** `Assets/Settings/MainMenuAtmospherePreset.asset`: 없을 때만 빌더가 만들고 이후엔 직접 조정한 값 유지 (팀 프리셋 기준으로 안개·하늘·환경광을 어둡게, 달 반지름 14→9°, 눈동자 0.6→0.75)
+- **하늘·조명** (`Rebuild Diorama`):
+  - 하늘 = 팀 밤하늘 셰이더의 메뉴 전용 재질 `Assets/Materials/MainMenu/MainMenuSky.mat` (별·성운·붉은 눈동자 같은 거대한 달)
+  - 달빛 = 무리 너머 오른쪽 위(고도 12°, 오른쪽 14°)에서 오는 차가운 빛 0.9 → 하늘의 달이 화면 오른쪽에 뜨고 몬스터는 달을 등진 실루엣
+  - 카메라 뒤 차가운 보조광 0.6 (처음 0.35 는 플레이어가 검은 실루엣), 이전의 흰 태양·보조광·주황 역광은 제거
+  - 무리 위 20m 포인트 조명 `Overhead Light` (밝기 1000, 범위 100, 연노랑 흰색) — 너무 어두워서 씬에서 직접 단 값을 빌더로 옮김
+  - 원경 바위가 어두운 하늘에서 검은 산처럼 달을 가려 가운데 2→1.3, 오른쪽 4→2.6 으로 낮춤
+  - 환경광 Gradient 3색, 안개 = 어두운 청회색 (밀도 0.022 그대로)
+- **팀 파일 범위**: develop 에서 처음엔 폴더째 가져왔으나 `SupplyBeaconOverride` 등이 develop 에만 있는 보급 필드를 써서 컴파일 오류 → 메뉴에 필요한 `AtmospherePreset.cs` 와 밤하늘 셰이더만 남김
+- **포스트 프로세싱** `MainMenuVolumeProfile`: 팀 외계 대기 볼륨과 같은 색감(ACES, 채도 −20·대비 +20, 그림자 청록·밝은 곳 옅은 보라 Split Toning, HDR 만 번지는 Bloom, 필름 그레인)에 노출 −0.25, 비네트 0.38
+- 바닥 안개는 달빛 받은 청회색, 불씨는 달 눈동자와 같은 붉은 주황
+- **UI** (`Rebuild Menu UI`): 차가운 청회색 + 붉은 포인트
+  - 버튼: 팩 버튼 상자 대신 글자 중심의 얇은 메뉴 (투명 클릭 영역 + Aldrich 글자). 평소 청회색(GAME START 만 흰색·더 크게), 선택하면 달빛 흰색 + 왼쪽 붉은 표식 + 글자 16px 밀림 + 붉은 밑줄이 그어짐 (`MainMenuButtonFx`)
+  - 로고: 72pt 넓은 자간 + 붉은 선, PRESS ANY KEY: 넓은 자간 + 양옆 가는 선, 조작 힌트는 키 이름(ENTER·ESC)만 붉게
+  - 메뉴 뒤 그라데이션 패널은 더 어둡고 넓게 (폭 1000, 남색 검정 0.85)
+  - 옵션 팝업은 아직 SCI-FI 팩(시안) 그대로 — 같은 톤으로 맞추는 건 다음 작업
+- **미리보기 캡처** `Tools > MainMenu > Capture Preview` (batchmode: `MainMenuPreviewCapture.CaptureBatch -captureDir 폴더`): 메뉴 카메라 시점으로 PRESS ANY KEY 단계·메뉴 단계 PNG 두 장 (씬 저장 안 함)

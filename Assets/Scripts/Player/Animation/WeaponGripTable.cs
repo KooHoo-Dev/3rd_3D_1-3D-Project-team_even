@@ -7,9 +7,9 @@ namespace HybridShooter.Player
 {
     /// <summary>
     /// 총별 손 위치 데이터 (총 종류 = Gun 클래스 이름으로 찾는다). PlayerAnimationProfile.gripTable 에 연결한다.
-    /// 에셋이라 Play 모드에서 바꾼 값이 Play 를 끝내도 남는다 → IK Pose Lab 창에서 IK 가 도는 모습을 보며 고친다.
+    /// 에셋이라 Play 모드에서 바꾼 값이 Play 를 끝내도 남는다.
     ///  - 총 위치·회전 (WeaponSocket 기준, 소켓은 오른손 뼈 아래) = 오른손이 쥐는 자리
-    ///  - 손잡이 지점 (총 기준) → Lab 의 "총을 오른손에 붙이기"가 이 지점을 오른손 바닥에 맞춘다
+    ///  - 손잡이 지점 (총 기준) = 오른손 바닥이 올 자리
     ///  - 왼손 손목 자리 (총 기준) → PlayerBodyIK 가 왼팔 LimbIK 로 붙인다
     ///  - 조준기 (총 기준) → 1인칭 조준 때 눈이 이 뒤에 온다
     ///  - 1인칭 평소 조준기 자리 · 조준 거리 → PlayerFirstPersonIK (비워 두면 그 컴포넌트의 기본값)
@@ -137,15 +137,6 @@ namespace HybridShooter.Player
             foreach (Entry entry in entries)
                 if (entry.gunType == key) return entry;
             return null;
-        }
-
-        public Entry GetOrAdd(Gun gun)
-        {
-            Entry entry = Find(gun);
-            if (entry != null) return entry;
-            entry = new Entry { gunType = Key(gun) };
-            entries.Add(entry);
-            return entry;
         }
     }
 }

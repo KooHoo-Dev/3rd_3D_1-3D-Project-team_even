@@ -1,6 +1,7 @@
 ﻿using System;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data.Defs;
+using HybridShooter.Core.GameFlow;
 using HybridShooter.Core.Services;
 using UnityEngine;
 
@@ -11,19 +12,28 @@ namespace HybridShooter.Boss.Clypeosaurus
     {
         private const string WindupState = "Base Layer.IdleLookAround";
         private const string StartState = "Base Layer.SuctionStart";
-        private const string EndState = "Base Layer.SuctionEnd";
-        private const string IdleState = "Base Layer.IdleBreathe";
+        private const string AttackState = "Base Layer.ClawStrike";
         
         [SerializeField] private Transform inhaleCenter;
         [SerializeField, Min(0f)] private float stopRadius = 2.5f;
         [SerializeField, Min(0f)] private float fadeIn = 0.3f;
-
+        
+        [SerializeField] private Transform rangePrefab;
+        [SerializeField] private Transform dangerRangePrefab;
+        [SerializeField] private GameObject attackEffectPrefab;
+        
+        private readonly BossAttackRange dangerRange = new();
+        
         private BossView view;
         private ClypeosaurusDef data;
         private InhaleSettings settings;
         private InhaleSource activeInhale;
         private IPlayerExternalVelocity receiver;
 
+        private bool attacking;
+        private bool hitApplied;
+        private int attackStartedFrame;
+        
         protected override void Awake()
         {
             base.Awake();
@@ -53,6 +63,16 @@ namespace HybridShooter.Boss.Clypeosaurus
             };
         }
         
+        private void LateUpdate()
+        {
+            if (inhaleCenter == null) return;
+            
+            Vector3 center = inhaleCenter.position;
+            
+            Range.SetPosition(center);
+            dangerRange.SetPosition(center);
+        }
+        
         protected override bool MeetsStartCondition()
         {
             Vector3 offset = TargetRoot.position - transform.position;
@@ -64,6 +84,20 @@ namespace HybridShooter.Boss.Clypeosaurus
 
         protected override void OnWindup()
         {
+            attacking = false;
+            hitApplied = false;
+
+            if (inhaleCenter == null)
+            {
+                Cancel();
+                return;
+            }
+
+            Vector3 center = inhaleCenter.position;
+
+            Range.Show(rangePrefab, center, data.SuctionNearRadius);
+            dangerRange.Show(dangerRangePrefab, center, data.SuctionDamageRadius, 0.04f);
+
             view.PlayState(WindupState);
         }
         
@@ -92,40 +126,111 @@ namespace HybridShooter.Boss.Clypeosaurus
         
         protected override void OnActiveTick(float deltaTime)
         {
-            if (activeInhale == null || TargetDamageable.CanBeHitBy(Boss.Faction) == false)
+            if (TargetDamageable.CanBeHitBy(Boss.Faction) == false)
             {
                 Cancel();
                 return;
             }
 
+            if (attacking)
+            {
+                if (Time.frameCount <= attackStartedFrame) return;
+                if (view.IsStateFinished(AttackState) == false) return;
+
+                if (hitApplied == false)
+                {
+                    Debug.LogWarning("[Suction] OnSuctionAttackHit 이벤트를 확인해주세요.", this);
+                }
+
+                dangerRange.Clear();
+                view.PlayIdle();
+                CompleteActive();
+                return;
+            }
+            
+            if (activeInhale == null)
+            {
+                Cancel();
+                return;
+            }
+            
             if (activeInhale.IsRunning) return;
 
             InhaleEndReason reason = activeInhale.EndReason;
             StopInhale();
 
-            // 시간 또는 체류 조건으로 끝난 경우에 정상 회복으로 진행한다.
             if (reason != InhaleEndReason.Timeout && reason != InhaleEndReason.NearDwell)
             {
                 Cancel();
                 return;
             }
 
-            view.PlayState(EndState);
-            CompleteActive();
+            attacking = true;
+            attackStartedFrame = Time.frameCount;
+
+            view.PlayState(AttackState);
             
             Debug.Log($"[Suction] 흡입 종료: {reason}, 회복 {data.SuctionRecoveryTime}초", this);
+        }
+        
+        public void OnSuctionAttackHit()
+        {
+            if (isActiveAndEnabled == false || Phase != SkillPhase.Active || attacking == false || hitApplied 
+                || Boss == null || Boss.IsAlive == false || Boss.isActiveAndEnabled == false || inhaleCenter == null)
+                return;
+
+            hitApplied = true;
+
+            Vector3 center = inhaleCenter.position;
+
+            Range.Clear();
+            dangerRange.Clear();
+
+            if (attackEffectPrefab != null)
+            {
+                GameObject effect = Instantiate(attackEffectPrefab, center, Quaternion.identity);
+                Destroy(effect, 3f);
+            }
+
+            RaiseImpacted(center);
+
+            if (TargetRoot == null || TargetDamageable.CanBeHitBy(Boss.Faction) == false) return;
+
+            Vector3 offset = TargetRoot.position - center;
+            offset.y = 0f;
+
+            float radius = data.SuctionDamageRadius;
+            if (offset.sqrMagnitude > radius * radius) return;
+
+            Vector3 direction = offset.sqrMagnitude > 0.001f
+                ? offset.normalized
+                : transform.forward;
+
+            TargetDamageable.TakeDamage(new DamageInfo(data.SuctionDamage, DamageKind.MonsterSkill, Boss.Faction, Boss.gameObject, TargetRoot.position, direction));
         }
         
         protected override void OnCancelled()
         {
             StopInhale();
+            dangerRange.Clear();
 
+            attacking = false;
+            hitApplied = false;
+            
             if (view != null && Boss != null && Boss.IsAlive && gameObject.activeInHierarchy)
             {
-                view.PlayState(IdleState);
+                view.PlayIdle();
             }
         }
 
+        protected override void OnDestroy()
+        {
+            StopInhale();
+            dangerRange.Clear();
+
+            base.OnDestroy();
+        }
+        
         private void StopInhale()
         {
             if (activeInhale != null)
@@ -137,6 +242,5 @@ namespace HybridShooter.Boss.Clypeosaurus
             activeInhale = null;
             receiver = null;
         }
-        
     }
 }

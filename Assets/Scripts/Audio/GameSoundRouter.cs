@@ -7,16 +7,16 @@ namespace HybridShooter.Audio
     /// 게임 이벤트(EventBus) → 소리. 다른 파트 코드를 고치지 않고 소리를 붙이는 곳.
     /// 이 파일은 필드·구독만, 이벤트 처리는 영역별 partial 파일에 있다.
     ///   .Round   게임 상태(강화 화면 스냅샷)·라운드 시작·게임오버
-    ///   .Combat  몬스터 이미터 자동 부착, 총기 피격·처치 피드백
-    ///   .Boss    보스 경고·등장(BGM)·처치(BGM 정지·클리어·아나운서)
-    ///   .Items   보급 획득, 강화 구매
+    ///   .Combat  플레이어·몬스터 이미터 자동 부착, 총기 피격·처치 피드백
+    ///   .Boss    보스 경고·등장(BGM·티라노포드 이미터 부착)·처치(BGM 정지·클리어·아나운서)
+    ///   .Items   보급 투하(투하음·안내 방송)·획득(랜덤 장전음)·다음 라운드 지급, 강화 구매
     ///   .Ui      저체력 경고 반복, 아나운서
     ///
     /// 소리 하나에 재생 경로는 하나만 둔다. 아래 소리는 발행하는 쪽이 이미 직접 재생하므로 여기서 다루지 않는다.
-    ///   WeaponFiredEvent·Reload·빈 탄창 (Gun), 폭발 (GunProjectile), SupplyDroppedEvent (SupplyDropper), 마그마 착탄 (MagmaProjectile)
+    ///   WeaponFiredEvent·Reload·빈 탄창 (Gun), 폭발 (GunProjectile), 마그마 착탄 (MagmaProjectile)
     /// 객체 자기 몸 소리는 그 객체의 지역 이벤트를 받는 이미터 담당 (전역 이벤트로 받지 않는다):
     ///   플레이어(발소리·점프·착지·피격·사망·숨·투척) PlayerSoundEmitter / 일반 몬스터(울음·루프·공격·기절·사망) MonsterSoundEmitter
-    ///   보스(패턴 예고·흡입 루프·타격·사망) BossSoundEmitter
+    ///   보스(패턴 예고·흡입 루프·타격·사망) BossSoundEmitter / 티라노포드(포효·돌진·침·알·흡수 등) TyranopodeSoundEmitter
     /// </summary>
     [RequireComponent(typeof(SoundService))]
     public sealed partial class GameSoundRouter : MonoBehaviour
@@ -32,6 +32,8 @@ namespace HybridShooter.Audio
         [SerializeField] private string gameOverKey = "ui_game_over";
         [SerializeField] private string stageClearKey = "ui_stage_clear";
         [SerializeField] private string upgradeSelectKey = "ui_upgrade_select";
+        [Tooltip("보스 클리어 후 다음 라운드 시작 지급 (2D)")]
+        [SerializeField] private string roundSupplyKey = "sfx_supply_reload";
         [SerializeField] private string healthWarningKey = "ui_health_warning";
 
         [Header("아나운서 (최소 사용: 라운드 시작·보스 처치·게임오버)")]
@@ -61,8 +63,13 @@ namespace HybridShooter.Audio
         /// <summary>같은 오브젝트의 SoundService 사용 (RequireComponent)</summary>
         private void Awake() => service = GetComponent<SoundService>();
 
-        /// <summary>씬에 직접 둔 몬스터에 이미터 자동 부착 (생성되는 몬스터는 MonsterSpawnedEvent 에서)</summary>
-        private void Start() => AttachEmittersInScene();
+        /// <summary>씬의 플레이어·직접 둔 몬스터·보스에 이미터 자동 부착 (생성되는 몬스터는 MonsterSpawnedEvent, 보스는 BossAppearedEvent 에서)</summary>
+        private void Start()
+        {
+            AttachPlayerEmitters();
+            AttachEmittersInScene();
+            AttachBossEmittersInScene();
+        }
 
         /// <summary>저체력 경고 반복·예약된 아나운서 재생 (강화 화면 timeScale 0 에서도 진행)</summary>
         private void Update()
@@ -86,7 +93,9 @@ namespace HybridShooter.Audio
             EventBus<BossAppearedEvent>.Subscribe(OnBossAppeared);
             EventBus<BossDefeatedEvent>.Subscribe(OnBossDefeated);
             EventBus<UpgradePurchasedEvent>.Subscribe(OnUpgradePurchased);
+            EventBus<SupplyDroppedEvent>.Subscribe(OnSupplyDropped);
             EventBus<SupplyCollectedEvent>.Subscribe(OnSupplyCollected);
+            EventBus<RoundSupplyGrantedEvent>.Subscribe(OnRoundSupplyGranted);
         }
 
         /// <summary>구독 해제</summary>
@@ -104,7 +113,9 @@ namespace HybridShooter.Audio
             EventBus<BossAppearedEvent>.Unsubscribe(OnBossAppeared);
             EventBus<BossDefeatedEvent>.Unsubscribe(OnBossDefeated);
             EventBus<UpgradePurchasedEvent>.Unsubscribe(OnUpgradePurchased);
+            EventBus<SupplyDroppedEvent>.Unsubscribe(OnSupplyDropped);
             EventBus<SupplyCollectedEvent>.Unsubscribe(OnSupplyCollected);
+            EventBus<RoundSupplyGrantedEvent>.Unsubscribe(OnRoundSupplyGranted);
         }
     }
 }

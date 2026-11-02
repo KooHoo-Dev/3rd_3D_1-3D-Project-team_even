@@ -63,8 +63,9 @@ namespace HybridShooter.Player
         }
 
         /// <summary>
-        /// 급경사 미끄럼: 면을 따라 내려가는 속도는 steepSlideMaxSpeed 까지만 붙고,
-        /// 이동 입력은 좌우·내리막 쪽만 받는다 (오르막 성분은 지움 → 급경사를 기어오를 수 없음)
+        /// 급경사 미끄럼. 이동 입력은 좌우·내리막 쪽만 받는다 (오르막 성분은 지움 → 급경사를 기어오를 수 없음)
+        ///  - 내리막 쪽 입력: SlideDownhill (중력으로 가속, 상한 steepDownhillMaxSpeed)
+        ///  - 그 밖(입력 없음·좌우·오르막): 면을 따라 steepSlideMaxSpeed 까지만 천천히 미끄러진다
         /// </summary>
         private void UpdateSlide(float dt)
         {
@@ -75,11 +76,47 @@ namespace HybridShooter.Player
             float uphill = Vector3.Dot(steer, -downhillFlat);
             if (uphill > 0f) steer += downhillFlat * uphill;
             steer = Vector3.ProjectOnPlane(steer, groundNormal);
-
-            Vector3 target = downhill * steepSlideMaxSpeed + steer;
             motorTargetVelocity = new Vector3(steer.x, 0f, steer.z); // 미끄러져 내려가는 몫은 조작이 아니다
-            Vector3 velocity = Vector3.ProjectOnPlane(rb.linearVelocity, groundNormal);
-            rb.linearVelocity = Vector3.MoveTowards(velocity, target, steepSlideAcceleration * dt);
+
+            if (Vector3.Dot(moveDirection, downhillFlat) > 0f)
+            {
+                SlideDownhill(downhill, downhillFlat, steer, dt);
+            }
+            else
+            {
+                Vector3 target = downhill * steepSlideMaxSpeed + steer;
+                Vector3 velocity = Vector3.ProjectOnPlane(rb.linearVelocity, groundNormal);
+                rb.linearVelocity = Vector3.MoveTowards(velocity, target, steepSlideAcceleration * dt);
+            }
+            appliedSnapDown = 0f;
+            velocityAlongGround = false;
+        }
+
+        /// <summary>
+        /// 급경사를 내리막 쪽으로 움직임: 내리막 성분은 중력(g·sinθ)으로 가속해 steepDownhillMaxSpeed 까지 (넘으면 천천히 줄인다),
+        /// 좌우 성분은 조작을 따른다. 내리막 쪽으로 가던 속도는 크기를 유지한 채 면을 따라 돌린다
+        /// (그냥 투영하면 70° 에서 달려 들어온 속도가 1/3 로 깎인다)
+        /// </summary>
+        private void SlideDownhill(Vector3 downhill, Vector3 downhillFlat, Vector3 steer, float dt)
+        {
+            // 걷기 → 미끄럼 첫 프레임이면 걷기가 더한 스냅 몫을 뺀다 (미끄럼 중에는 0)
+            Vector3 previous = rb.linearVelocity + Vector3.up * appliedSnapDown;
+            Vector3 velocity = Vector3.ProjectOnPlane(previous, groundNormal);
+            bool headingDownhill = Vector3.Dot(new Vector3(previous.x, 0f, previous.z), downhillFlat) > 0f;
+            if (headingDownhill && velocity.sqrMagnitude > 0.000001f) velocity = velocity.normalized * previous.magnitude;
+
+            float downSpeed = Vector3.Dot(velocity, downhill);
+            Vector3 lateral = velocity - downhill * downSpeed;
+            Vector3 steerLateral = steer - downhill * Vector3.Dot(steer, downhill);
+
+            float gravityAlong = Mathf.Abs(Physics.gravity.y) * -downhill.y; // g·sinθ
+            // 그냥 미끄러지는 속도(steepSlideMaxSpeed)까지는 그 가속도로 붙어, 멈춰 있다 출발해도 조작 없을 때보다 느리지 않게
+            float accel = downSpeed < steepSlideMaxSpeed ? Mathf.Max(gravityAlong, steepSlideAcceleration) : gravityAlong;
+            downSpeed = downSpeed > steepDownhillMaxSpeed
+                ? Mathf.MoveTowards(downSpeed, steepDownhillMaxSpeed, steepSlideAcceleration * dt)
+                : Mathf.Min(downSpeed + accel * dt, steepDownhillMaxSpeed);
+            lateral = Vector3.MoveTowards(lateral, steerLateral, steepSlideAcceleration * dt);
+            rb.linearVelocity = downhill * downSpeed + lateral;
         }
 
         private void UpdateWalk(float dt)
@@ -90,7 +127,10 @@ namespace HybridShooter.Player
             motorTargetVelocity = target;
 
             Vector3 velocity = rb.linearVelocity;
-            Vector3 horizontal = new Vector3(velocity.x, 0f, velocity.z);
+            // 지상: 지난 프레임에 경사를 따라 눕힌 속도를 같은 크기의 수평 속도로 되돌려 읽는다 (스냅 몫은 먼저 뺀다)
+            Vector3 horizontal = isGrounded && velocityAlongGround
+                ? HorizontalFromGround(velocity + Vector3.up * appliedSnapDown)
+                : new Vector3(velocity.x, 0f, velocity.z);
 
             float accel = isGrounded ? (target.sqrMagnitude > 0.0001f ? groundAcceleration : groundDeceleration) : airAcceleration;
             horizontal = Vector3.MoveTowards(horizontal, target, accel * dt);
@@ -100,6 +140,8 @@ namespace HybridShooter.Player
                 rb.linearVelocity = AlongGround(horizontal) + Vector3.down * snapDownSpeed;
             else
                 rb.linearVelocity = new Vector3(horizontal.x, velocity.y, horizontal.z);
+            appliedSnapDown = isGrounded ? snapDownSpeed : 0f;
+            velocityAlongGround = isGrounded;
         }
 
         /// <summary>
@@ -180,6 +222,8 @@ namespace HybridShooter.Player
                 float y = rb.linearVelocity.y;
                 rb.linearVelocity = new Vector3(horizontal.x, y, horizontal.z);
             }
+            appliedSnapDown = isGrounded ? snapDownSpeed : 0f;
+            velocityAlongGround = isGrounded;
         }
 
         /// <summary>최대 하강 속도. 공기 저항처럼 일정 속도 이상으로는 빨라지지 않게</summary>
@@ -223,6 +267,18 @@ namespace HybridShooter.Player
             float magnitude = horizontal.magnitude;
             if (magnitude < 0.0001f) return Vector3.zero;
             return Vector3.ProjectOnPlane(horizontal, groundNormal).normalized * magnitude;
+        }
+
+        /// <summary>
+        /// AlongGround 의 반대: 경사면을 따라 움직이는 속도를 같은 크기의 수평 속도로 되돌린다.
+        /// 수평 성분만 읽으면 매 프레임 cos(경사각)만큼 깎여, 가파르면 가속이 따라잡지 못해 걷기·달리기가 같은 속도로 묶인다
+        /// </summary>
+        private Vector3 HorizontalFromGround(Vector3 velocity)
+        {
+            Vector3 along = Vector3.ProjectOnPlane(velocity, groundNormal);
+            Vector3 flat = new Vector3(along.x, 0f, along.z);
+            if (flat.sqrMagnitude < 0.000001f) return Vector3.zero;
+            return flat.normalized * along.magnitude;
         }
 
         /// <summary>몸 정면과 이동 방향이 어긋날수록 느려짐: 정면/옆 1.0 → 정반대 backwardMultiplier</summary>

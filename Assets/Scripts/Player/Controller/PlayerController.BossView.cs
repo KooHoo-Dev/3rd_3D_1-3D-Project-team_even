@@ -13,6 +13,7 @@ namespace HybridShooter.Player
     ///  - GameState.BossIntro: 3인칭으로 자동 전환 + 보스전 카메라(멀고 높게, FOV 추가) + F1 잠금
     ///  - 보스전이 끝나고 Ready / CrowdBattle: 1인칭으로 복귀 + 잠금 해제 (BossBattle·Reward 동안은 그대로)
     ///  - CameraModeRequestedEvent: 연출·디버그용 요청 (Duration &lt; 0 = ConfigTable.CameraTransitionTime, 0 = 즉시)
+    ///  - BossAppearedEvent: 보스에 IBossCameraProfile 이 있으면 보스전 카메라 거리를 그 배율로 (큰 보스가 화면에 다 들어오게)
     /// 전환 시작·완료는 SwitchViewMode 가 CameraModeChangedEvent 로 알린다 → 보스는 IsComplete 를 받고 등장 공격
     /// </summary>
     public partial class PlayerController
@@ -25,7 +26,8 @@ namespace HybridShooter.Player
         /// <summary>3인칭 FOV. 보스전 카메라가 켜진 만큼 bossFovAdd 를 더한다</summary>
         private float TpFov => tpFov + bossFovAdd * bossBlend;
         /// <summary>3인칭 카메라 팔 기본 위치. 어깨 시점 ↔ 보스전 카메라 사이를 bossBlend 로 섞는다</summary>
-        private Vector3 TpArmHome => Vector3.Lerp(tpArmHomePos, bossArmPosition, bossBlend);
+        private Vector3 TpArmHome => Vector3.Lerp(tpArmHomePos, bossArmPosition * bossCameraScale, bossBlend);
+        private const float BossCameraScaleSpeed = 0.4f; // 배율이 초당 바뀌는 양
 
         /// <summary>ConfigTable 값이 있으면 인스펙터 값 대신 쓴다</summary>
         private void LoadBossViewConfig()
@@ -41,6 +43,7 @@ namespace HybridShooter.Player
             ServiceLocator.Register<IPlayerTarget>(this);
             EventBus<GameStateChangedEvent>.Subscribe(OnGameStateChanged);
             EventBus<CameraModeRequestedEvent>.Subscribe(OnCameraModeRequested);
+            EventBus<BossAppearedEvent>.Subscribe(OnBossAppearedCamera);
             SubscribeShakeEvents();
         }
 
@@ -49,11 +52,13 @@ namespace HybridShooter.Player
             ServiceLocator.Unregister<IPlayerTarget>(this);
             EventBus<GameStateChangedEvent>.Unsubscribe(OnGameStateChanged);
             EventBus<CameraModeRequestedEvent>.Unsubscribe(OnCameraModeRequested);
+            EventBus<BossAppearedEvent>.Unsubscribe(OnBossAppearedCamera);
             UnsubscribeShakeEvents();
         }
 
         private void OnGameStateChanged(GameStateChangedEvent e)
         {
+            SetFlowInputBlocked(e.Current == GameState.Ready || e.Current == GameState.Reward || e.Current == GameState.GameOver || e.Current == GameState.Paused);
             if (e.Current == GameState.BossIntro) EnterBossView();
             else if (e.Current == GameState.Ready || e.Current == GameState.CrowdBattle) ExitBossView();
         }
@@ -62,6 +67,13 @@ namespace HybridShooter.Player
         {
             var mode = e.Mode == CameraMode.FirstPerson ? ViewMode.FirstPerson : ViewMode.ThirdPerson;
             SwitchViewMode(mode, e.Duration < 0f ? autoTransitionTime : e.Duration);
+        }
+
+        private void OnBossAppearedCamera(BossAppearedEvent e)
+        {
+            bossCameraScaleTarget = e.Instance != null && e.Instance.TryGetComponent(out IBossCameraProfile profile)
+                ? profile.CameraDistanceScale
+                : 1f;
         }
 
         private void EnterBossView()
@@ -76,6 +88,7 @@ namespace HybridShooter.Player
         {
             if (bossView == false && viewLocked == false) return;
             viewLocked = false;
+            bossCameraScaleTarget = 1f;
             SetBossFraming(false, autoTransitionTime);
             SwitchViewMode(ViewMode.FirstPerson, autoTransitionTime);
         }
@@ -103,6 +116,7 @@ namespace HybridShooter.Player
         /// <summary>LateUpdate: bossBlend 를 목표로. 1인칭으로 돌아가는 연출 중에는 출발점(3인칭 카메라)이 흔들리지 않게 멈춘다</summary>
         private void UpdateBossFraming(float dt)
         {
+            bossCameraScale = Mathf.MoveTowards(bossCameraScale, bossCameraScaleTarget, BossCameraScaleSpeed * dt);
             if (Mathf.Approximately(bossBlend, bossBlendTarget)) return;
             if (CameraChanging && transitionTarget == ViewMode.FirstPerson) return;
             if (viewMode == ViewMode.FirstPerson && CameraChanging == false)

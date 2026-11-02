@@ -24,6 +24,7 @@ namespace HybridShooter.Player
                 frictionCombine = PhysicsMaterialCombine.Minimum,
                 bounceCombine = PhysicsMaterialCombine.Minimum,
             };
+            InitMonsterContact();
 
             lockedYaw = rb.rotation.eulerAngles.y;
             lookYaw = lockedYaw;
@@ -34,8 +35,10 @@ namespace HybridShooter.Player
             if (bodyVisual == transform) bodyVisual = null; // 리지드바디 자신은 돌리면 안 된다
             if (gunSlot == null) gunSlot = GetComponent<GunSlot>();
             items = GetComponent<PlayerItems>();
-            // 씬·프리팹·빌더 어디서 만든 플레이어든 1인칭 목 숨김이 빠지지 않게
+            // 씬·프리팹 어디서 만든 플레이어든 1인칭 목 숨김이 빠지지 않게
             if (GetComponent<PlayerFirstPersonNeck>() == null) gameObject.AddComponent<PlayerFirstPersonNeck>();
+            interactor = GetComponent<PlayerInteractor>();
+            if (interactor == null) interactor = gameObject.AddComponent<PlayerInteractor>();
             stamina = maxStamina;
             InitLives();
 
@@ -64,6 +67,9 @@ namespace HybridShooter.Player
             SubscribeViewEvents();
             SubscribeLifeEvents();
             SubscribeExternalVelocityEvents();
+            SubscribeGroundTremor();
+            SubscribeMonsterContact();
+            SubscribeCinematic();
         }
 
         private void OnDisable()
@@ -71,6 +77,9 @@ namespace HybridShooter.Player
             UnsubscribeViewEvents();
             UnsubscribeLifeEvents();
             UnsubscribeExternalVelocityEvents();
+            UnsubscribeGroundTremor();
+            UnsubscribeMonsterContact();
+            UnsubscribeCinematic();
         }
 
         private void OnDestroy()
@@ -80,19 +89,20 @@ namespace HybridShooter.Player
 
         private void OnApplicationFocus(bool hasFocus)
         {
-            if (hasFocus) SetCursorLocked(true);
+            if (hasFocus && IsGameplayInputBlocked == false) SetCursorLocked(true);
         }
 
         private void Update()
         {
             lookInputPitchDelta = 0f; // 입력을 읽지 않고 return 하는 프레임에 지난 값이 남지 않게
             UpdateLifeCycle();
-            if (externalControl || DebugBlockInput || isReviving) return;
+            if (externalControl || isReviving) return;
             InputHandle();
         }
 
         private void FixedUpdate()
         {
+            ScanNearbyMonsters(); // 외부 제어 중에도 몬스터에 눌려 땅 밑으로 빠지지 않게
             if (externalControl) return;
             float dt = Time.fixedDeltaTime;
 

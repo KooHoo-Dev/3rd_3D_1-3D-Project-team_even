@@ -105,9 +105,10 @@ namespace HybridShooter.Player
             Mode = gun == null ? WeaponGripTable.AimMode.Sight
                 : table != null ? table.AimModeFor(gun) : WeaponGripTable.DefaultAimMode(WeaponGripTable.Key(gun));
 
-            // 조준 중: 실제 조준(우클릭) 또는 IK Pose Lab 의 조준 고정. 재장전·꺼내기·사망·시점 전환 중에는 아님
-            bool aiming = gun != null && (gun.IsAiming || driver.DebugAimOverride == true)
-                          && driver.ActionBlend > 0.5f && player.IsAlive && player.IsReviving == false && player.CameraChanging == false;
+            // 조준 중: 실제 조준(우클릭). 재장전·꺼내기·사망·시점 전환 중에는 아님
+            bool aiming = gun != null && gun.IsAiming
+                          && driver.ActionBlend > 0.5f && player.IsAlive && player.IsReviving == false && player.CameraChanging == false
+                          && player.IsInCinematic == false;
 
             // scopeBlend: 0 평소, 0.5 가장 어두움(화면 교체), 1 스코프
             //  - 들어갈 때: 스코프로 바뀌기 전까지는 조준 동작 진행도에 묶는다 → 동작 중간에 바뀐다. 바뀐 뒤엔 시간으로 밝아짐
@@ -133,8 +134,9 @@ namespace HybridShooter.Player
         /// <summary>허리 사격 조준선: 보일 정도와 퍼짐 원 크기 (지금 카메라 세로 FOV 로 각도 → 픽셀)</summary>
         private void UpdateHipReticle(Gun gun, float launcher, float flash)
         {
+            // 연출(시네마틱) 중에는 조준선을 숨긴다
             bool show = gun != null && player.IsAlive && player.IsReviving == false && player.CameraChanging == false
-                        && scopeBlend <= 0f && flash <= 0f && launcher <= 0f;
+                        && player.IsInCinematic == false && scopeBlend <= 0f && flash <= 0f && launcher <= 0f;
             float alpha = show ? Mathf.Clamp01(driver.ActionBlend) : 0f;
             if (player.IsFirstPerson) alpha *= 1f - driver.AimWeight; // 1인칭 조준 = 조준기가 화면 중앙
             if (alpha <= 0.01f)

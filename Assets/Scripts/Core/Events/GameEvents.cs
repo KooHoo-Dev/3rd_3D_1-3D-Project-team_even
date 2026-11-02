@@ -27,7 +27,7 @@ namespace HybridShooter.Core.Events
     /// <summary>
     /// 라운드 정리 요청. 받으면 각 파트는 자기 몬스터·투사체·보급·예약된 코루틴/타이머를 전부 정리한다.
     /// FullReset = true 이면 처음부터 재시작(BL-033): 플레이어 위치·체력, 강화, 재화까지 초기화.
-    /// FullReset = false 이면 다음 라운드 진행(BL-032): 강화·재화·수류탄 수는 유지.
+    /// FullReset = false 이면 다음 라운드 진행(BL-032): 강화·재화·수류탄 수는 유지. 총 탄약은 시작값으로, 보급 무기는 사라진다 (둘 다 공통).
     /// </summary>
     public readonly struct RoundCleanupEvent
     {
@@ -46,6 +46,22 @@ namespace HybridShooter.Core.Events
     {
         public readonly int ReachedRound;
         public GameOverEvent(int reachedRound) { ReachedRound = reachedRound; }
+    }
+
+    /// <summary>
+    /// [최종 보스 최후 연출(Tyranopode)] → 코어(RoundSequencer). 최후 연출이 시작됨 = 이 보스를 처치하면 게임 클리어.
+    /// 코어는 보급 투하를 멈추고, 보스가 죽어도 보상 단계(Reward)로 가지 않는다 (연출이 클리어 화면 → 메인 메뉴로 이끈다)
+    /// </summary>
+    public readonly struct BossFinaleStartedEvent { }
+
+    /// <summary>[최종 보스 최후 연출(Tyranopode)] → 게임 클리어. 클리어 화면은 연출이 직접 띄운다 (다른 파트가 기록·사운드 등에 쓸 수 있게 알림만)</summary>
+    public readonly struct GameClearedEvent { }
+
+    /// <summary>[코어(RunDirector)] → 무기 해금 등. 보스를 처치하고 보상 단계(Reward)에 들어감 = 스테이지 클리어. 라운드마다 한 번</summary>
+    public readonly struct StageClearedEvent
+    {
+        public readonly int Round;
+        public StageClearedEvent(int round) { Round = round; }
     }
 
     // ── 플레이어 (E1) ──  [플레이어] → UI·사운드, 코어
@@ -234,18 +250,41 @@ namespace HybridShooter.Core.Events
         public BossDefeatedEvent(MonsterDef boss, Vector3 position) { Boss = boss; Position = position; }
     }
 
-    // ── 보급 (E7) ──  [보급] → UI(낙하 위치 표시)·사운드
+    // ── 보급 (E7) ──  [보급] → UI(낙하 위치 표시)·사운드(투하음·안내 방송)·빛기둥
     public readonly struct SupplyDroppedEvent
     {
         public readonly SupplyDef Def;
+        /// <summary>착지 예정 위치</summary>
         public readonly Vector3 Position;
-        public SupplyDroppedEvent(SupplyDef def, Vector3 position) { Def = def; Position = position; }
+        /// <summary>투하된 상자 (빛기둥 교체 등). 발행 직후에는 항상 살아 있다</summary>
+        public readonly GameObject Crate;
+        public SupplyDroppedEvent(SupplyDef def, Vector3 position, GameObject crate) { Def = def; Position = position; Crate = crate; }
     }
 
+    // [보급] → UI(획득 알림)·사운드(랜덤 장전음)·분석
     public readonly struct SupplyCollectedEvent
     {
         public readonly SupplyDef Def;
-        public SupplyCollectedEvent(SupplyDef def) { Def = def; }
+        /// <summary>실제로 늘어난 아이템(수류탄·회복 팩) 개수. 가득 차 있었으면 0. 보급 무기(SupplyType.Weapon) 는 장착했으면 1, 같은 무기라 탄창만 받았으면 0</summary>
+        public readonly int ItemAmount;
+        /// <summary>슬롯의 모든 총에 실제로 채운 예비 탄창 합. 모두 가득 차 있었으면 0</summary>
+        public readonly int MagazinesAdded;
+        public readonly Vector3 Position;
+        public SupplyCollectedEvent(SupplyDef def, int itemAmount, int magazinesAdded, Vector3 position)
+        {
+            Def = def; ItemAmount = itemAmount; MagazinesAdded = magazinesAdded; Position = position;
+        }
+    }
+
+    /// <summary>[보급(RoundStartSupply)] → UI(지급 알림)·사운드. 보스 클리어 후 다음 라운드 시작 지급. 값은 실제로 늘어난 양 (하나도 안 늘면 발행 안 함)</summary>
+    public readonly struct RoundSupplyGrantedEvent
+    {
+        public readonly int Round;
+        public readonly int Grenades, HealPacks, MagazinesAdded;
+        public RoundSupplyGrantedEvent(int round, int grenades, int healPacks, int magazinesAdded)
+        {
+            Round = round; Grenades = grenades; HealPacks = healPacks; MagazinesAdded = magazinesAdded;
+        }
     }
 
     // ── 보상·강화 (E8) ──  [보상] → UI, 무기(능력치 갱신)
@@ -263,4 +302,34 @@ namespace HybridShooter.Core.Events
 
     /// <summary>[UI(강화 선택 화면)] → 코어. 강화 선택 종료, 다음 라운드 시작 요청 (BL-032)</summary>
     public readonly struct RewardSelectionFinishedEvent { }
+
+    // ── 상호작용·보급 무기 ──  [플레이어] → UI(상호작용 프롬프트·슬롯 HUD), 사운드, 분석
+    /// <summary>상호작용 대상(조준 중인 상자 등)이 바뀌었거나 프롬프트 내용이 바뀜. HasTarget = false 면 프롬프트 숨김</summary>
+    public readonly struct InteractFocusChangedEvent
+    {
+        public readonly bool HasTarget;
+        public readonly InteractPrompt Prompt;
+        public InteractFocusChangedEvent(bool hasTarget, InteractPrompt prompt) { HasTarget = hasTarget; Prompt = prompt; }
+    }
+
+    /// <summary>
+    /// 보급 칸(4번) 무기가 바뀜. Id 0 = 비어 있음 (처음부터 재시작 시 New = 0).
+    /// Depleted = 탄을 모두 써서 사라짐 (라운드 정리·다른 보급 무기로 교체와 구분. 보급 확률이 무기 상자를 올리는 데 쓴다)
+    /// </summary>
+    public readonly struct SupplyWeaponChangedEvent
+    {
+        public readonly int PreviousWeaponId, NewWeaponId;
+        public readonly bool Depleted;
+        public SupplyWeaponChangedEvent(int previousWeaponId, int newWeaponId, bool depleted = false)
+        {
+            PreviousWeaponId = previousWeaponId; NewWeaponId = newWeaponId; Depleted = depleted;
+        }
+    }
+
+    /// <summary>[코어(WeaponUnlockLedger)] → UI(해금 알림). 무기가 영구 해금됨 (다음 출발 때 무기 선택 화면에서 고를 수 있다)</summary>
+    public readonly struct WeaponUnlockedEvent
+    {
+        public readonly WeaponDef Weapon;
+        public WeaponUnlockedEvent(WeaponDef weapon) { Weapon = weapon; }
+    }
 }

@@ -10,7 +10,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
 {
     /// <summary>
     /// 테스트 전용. 스테이지 전환(B5)이 생기기 전에 MonsterWaveStage 를 손으로 돌려 본다.
-    /// F6~F8 = stageIds 0~2번 스테이지 실행. Inspector 메뉴로 스테이지 1 실행·전체 중단.
+    /// 숫자 8·9·0 = stageIds 0~2번 스테이지 실행. Inspector 메뉴로 스테이지 1 실행·전체 중단.
     /// </summary>
     /// <remarks>
     /// 소환은 ServiceLocator 의 IMonsterFactory(씬에 MonsterPool 이 있으면 풀), 위치는 ISpawnZoneProvider(기본 링)가 한다.
@@ -19,7 +19,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
     public sealed class WaveLab : MonoBehaviour
     {
         [Header("실행할 스테이지")]
-        [Tooltip("WaveStageTable Id. 0~2번이 F6~F8 에 대응")]
+        [Tooltip("WaveStageTable Id. 0~2번이 숫자 8·9·0 에 대응")]
         [SerializeField] private int[] stageIds = { 1, 2, 3 };
 
         private static readonly Key[] RunKeys =
@@ -35,7 +35,7 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
             TickRunningStages();
         }
 
-        /// <summary>F6~F8 중 이번 프레임 눌린 키의 번호로 스테이지를 시작한다. 배열에 없는 번호는 무시한다</summary>
+        /// <summary>숫자 8·9·0 중 이번 프레임 눌린 키의 번호로 스테이지를 시작한다. 배열에 없는 번호는 무시한다</summary>
         private void RunPressedStages()
         {
             var keyboard = Keyboard.current;

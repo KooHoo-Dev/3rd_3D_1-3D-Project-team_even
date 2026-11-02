@@ -66,6 +66,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             movement = monster.AddComponent<MonsterMovement>();
             profile = ScriptableObject.CreateInstance<MovementProfile>();
             movement.ConfigureDirect(profile, target);
+            movement.SetCombatTuning(3.5f, 1.8f); // 이전 MovementProfile 기본 속도·사거리
             var settings = monster.AddComponent<PounceSettings>();
             monster.SetActive(true);
             yield return null;
@@ -386,7 +387,9 @@ namespace HybridShooter.Monster.Behaviour.Tests
             brain.Update(Landing, 6.201f);
             brain.Update(Landing + 1.21f, 1.21f);
             Assert.IsFalse(attack.IsAttacking);
-            brain.Update(8.1f, 0.1f);
+            Assert.AreSame(brain.Chase, brain.Current, "쿨다운 동안 Chase (ChaseUntilReady)");
+            brain.Update(8.08f, 0.059f); // 쿨다운 끝(≈8.071s) → Attack
+            brain.Update(8.1f, 0.02f);
             Assert.AreEqual(SkillPhase.Windup, attack.Phase);
             brain.Update(8.71f, 0.61f);
             brain.Update(8.72f, 0.01f);

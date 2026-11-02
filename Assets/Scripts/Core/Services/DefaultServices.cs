@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using HybridShooter.Core.Battlefield;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
@@ -22,6 +23,10 @@ namespace HybridShooter.Core.Services
             ServiceLocator.SetFallback<ISpawnZoneProvider>(new RingSpawnZoneProvider());
             ServiceLocator.SetFallback<ICurrencyWallet>(new CurrencyWallet());
             ServiceLocator.SetFallback<IUpgradeState>(new UpgradeLedger());
+
+            var weaponUnlocks = new WeaponUnlockLedger();
+            weaponUnlocks.BindEvents();
+            ServiceLocator.SetFallback<IWeaponUnlocks>(weaponUnlocks);
         }
     }
 
@@ -35,6 +40,7 @@ namespace HybridShooter.Core.Services
         public void StopLoop(SoundHandle handle) { }
         public void PlayBgm(string key) { }
         public void StopBgm() { }
+        public float MasterVolume { get => 1f; set { } }
         public float GetVolume(SoundCategory category) => 1f;
         public void SetVolume(SoundCategory category, float volume) { }
         public void Duck(SoundCategory category, float level, float holdTime) { }
@@ -60,23 +66,95 @@ namespace HybridShooter.Core.Services
     /// 전장 담당 구현 전까지 쓰는 기본 생성 위치: 플레이어 주변 원형 링.
     /// Config.SpawnRingRadius 거리에서 생성하므로 "시작 직후 플레이어 주변은 비우기"(BL-015)도 기본 충족.
     /// 지상 패턴은 NavMesh 위로 옮기고, 옮긴 점이 Config.SpawnSafeRadius 안이면 false 를 돌려준다 (B3).
+    /// 씬에 SpawnPointFinder 가 켜져 있으면 링 포인트를 받아들이기 전에 그 맵 경계·장애물·NavMesh 판정을 통과해야 한다.
+    /// 없으면 (테스트·실험 씬) 경계 판정 없이 NavMesh 위로만 옮긴다.
     /// </summary>
     public sealed class RingSpawnZoneProvider : ISpawnZoneProvider
     {
         private const float AirHeight = 8f;
-        private const float NavMeshSampleDistance = 5f;  // m, 링 위 점에서 NavMesh 를 찾는 반경
+        private const float NavMeshSampleDistance = 5f;  // m, SpawnPointFinder 없는 씬에서 링 위 점에서 NavMesh 를 찾는 반경
+        private const float NestRadiusWithoutFinder = 6f;  // m, SpawnPointFinder 없는 씬의 둥지 반경
 
         /// <summary>
-        /// MonsterSpawner 가 1마리 소환마다 부른다. 패턴별 링 위 점 → 지상이면 NavMesh 위로 → 안전 반경 검사 → Air 면 띄움.
+        /// MonsterSpawner 가 1마리 소환마다 부른다 (Nest 제외). 패턴별 링 포인트 → 경계·지면 판정 → 안전 반경 검사 → Air 면 띄움.
         /// </summary>
         /// <param name="pattern">소환 방향 규칙</param>
         /// <param name="groupSeed">Herd 방향을 정하는 값. 같은 값이면 같은 방향</param>
         /// <param name="position">소환 위치</param>
         /// <param name="rotation">플레이어를 바라보는 회전</param>
-        /// <returns>false = 이번 점이 안전 반경 안이라 소환 불가. 다시 부르면 다른 점을 뽑는다</returns>
+        /// <returns>false = 이번 점이 경계 밖·장애물·안전 반경 안이라 소환 불가. 다시 부르면 다른 점을 뽑는다</returns>
         public bool TryGetSpawnPose(SpawnPattern pattern, int groupSeed, out Vector3 position, out Quaternion rotation)
         {
-            GetPlayer(out var center, out var forward);
+            GetPlayer(out var playerPosition, out var forward);
+            Vector3 ringPoint = PickRingPoint(pattern, groupSeed, playerPosition, forward);
+            ringPoint = MoveIntoMapWhenOutside(ringPoint, playerPosition);
+            bool isAir = pattern == SpawnPattern.Air;
+            return TryMakeSpawnPose(ringPoint, isAir, playerPosition, out position, out rotation);
+        }
+
+        /// <summary>
+        /// Nest 묶음의 둥지 중심을 뽑는다. 링 위 아무 방향 한 점을 지상 소환점과 같은 판정으로 확정한다.
+        /// SpawnNest 가 아직 중심이 없을 때 부르고, 성공하면 그 중심을 묶음 끝까지 쓴다.
+        /// </summary>
+        /// <param name="center">둥지 중심 (NavMesh 위)</param>
+        /// <returns>false = 이번 점은 못 씀. 다시 부르면 다른 방향을 뽑는다</returns>
+        public bool TryGetNestCenter(out Vector3 center)
+        {
+            GetPlayer(out var playerPosition, out _);
+            float ringRadius = DataManager.Config.GetFloat(GameConfig.SpawnRingRadius, 35f);
+            Vector3 ringPoint = PointOnCircle(playerPosition, Random.Range(0f, 360f), ringRadius);
+            ringPoint = MoveIntoMapWhenOutside(ringPoint, playerPosition);
+            return TryMakeSpawnPose(ringPoint, false, playerPosition, out center, out _);
+        }
+
+        /// <summary>
+        /// 둥지 중심 주위 원 안에서 면적 균등하게 한 점을 뽑아 지상 소환 위치로 확정한다. SpawnNest 가 1마리 소환마다 부른다.
+        /// </summary>
+        /// <param name="nestCenter">SpawnNest 가 저장한 둥지 중심</param>
+        /// <param name="position">소환 위치</param>
+        /// <param name="rotation">플레이어를 바라보는 회전</param>
+        /// <returns>false = 이번 점은 못 씀. 다시 부르면 다른 점을 뽑는다</returns>
+        public bool TryGetSpawnPoseAroundNest(Vector3 nestCenter, out Vector3 position, out Quaternion rotation)
+        {
+            GetPlayer(out var playerPosition, out _);
+            Vector3 point = PickPointInCircle(nestCenter, GetNestRadius());
+            return TryMakeSpawnPose(point, false, playerPosition, out position, out rotation);
+        }
+
+        /// <summary>
+        /// 링 포인트가 맵 경계 밖이면, 맵 경계 안쪽에 접하는 새 스폰 원(반지름 = 링 반지름) 안의 한 점으로 바꾼다.
+        /// 새 원 중심은 맵 중심에서 플레이어 방향으로 (mapRadius - 원 반지름) 만큼 간 곳이다. 플레이어에서 가장 가까운 경계 쪽 지역이 된다.
+        /// TryGetSpawnPose·TryGetNestCenter 가 링 포인트를 뽑은 직후 부른다.
+        /// </summary>
+        /// <param name="ringPoint">플레이어 링에서 뽑은 점</param>
+        /// <param name="playerPosition">플레이어 위치. 새 원이 놓일 방향 기준</param>
+        /// <returns>경계 안이거나 SpawnPointFinder 가 없으면 ringPoint 그대로, 밖이면 새 원 안의 점</returns>
+        private static Vector3 MoveIntoMapWhenOutside(Vector3 ringPoint, Vector3 playerPosition)
+        {
+            bool hasFinder = ServiceLocator.TryGet(out SpawnPointFinder finder);
+            if (hasFinder == false) return ringPoint;
+            if (finder.IsInsideMap(ringPoint)) return ringPoint;
+
+            float ringRadius = DataManager.Config.GetFloat(GameConfig.SpawnRingRadius, 35f);
+            float fallbackRadius = Mathf.Min(ringRadius, finder.MapRadius);
+            Vector3 centerToPlayer = playerPosition - finder.MapCenter;
+            centerToPlayer.y = 0f;
+            Vector3 fallbackCenter = finder.MapCenter + centerToPlayer.normalized * (finder.MapRadius - fallbackRadius);
+            fallbackCenter.y = playerPosition.y;
+
+            return PickPointInCircle(fallbackCenter, fallbackRadius);
+        }
+
+        /// <summary>
+        /// 패턴별 방향 규칙으로 플레이어 주변 링 위 한 점을 뽑는다. 판정은 하지 않는다.
+        /// </summary>
+        /// <param name="pattern">소환 방향 규칙 (Surround·Air = 아무 방향, Flank = 측면~후방, Herd = groupSeed 방향)</param>
+        /// <param name="groupSeed">Herd 방향을 정하는 값</param>
+        /// <param name="playerPosition">링 중심</param>
+        /// <param name="forward">플레이어 시선 방향 (Flank 기준)</param>
+        /// <returns>링 위 점. Y = 플레이어 높이</returns>
+        private static Vector3 PickRingPoint(SpawnPattern pattern, int groupSeed, Vector3 playerPosition, Vector3 forward)
+        {
             float radius = DataManager.Config.GetFloat(GameConfig.SpawnRingRadius, 35f);
             float baseAngle = Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg;
             float angle;
@@ -95,24 +173,106 @@ namespace HybridShooter.Core.Services
                     break;
             }
 
-            float rad = angle * Mathf.Deg2Rad;
-            position = center + new Vector3(Mathf.Sin(rad), 0f, Mathf.Cos(rad)) * radius;
-            if (pattern != SpawnPattern.Air) position = SnapToNavMesh(position);
-            if (IsInsideSafeRadius(position, center))
-            {
-                rotation = Quaternion.identity;
-                return false;
-            }
-            if (pattern == SpawnPattern.Air) position.y += AirHeight;
+            return PointOnCircle(playerPosition, angle, radius);
+        }
 
-            Vector3 look = center - position;
-            look.y = 0f;
-            rotation = look.sqrMagnitude > 0.001f ? Quaternion.LookRotation(look) : Quaternion.identity;
+        /// <summary>
+        /// 후보 점을 소환 위치로 확정한다: 지상이면 NavMesh·경계·장애물 판정, 공중이면 경계 판정 → 안전 반경 검사 → 공중이면 띄움 → 플레이어를 바라보는 회전.
+        /// </summary>
+        /// <param name="point">링·둥지에서 뽑은 후보 점</param>
+        /// <param name="isAir">공중 소환이면 true (NavMesh·장애물 판정 없이 AirHeight 만큼 띄움)</param>
+        /// <param name="playerPosition">안전 반경·바라볼 방향 기준</param>
+        /// <param name="position">소환 위치</param>
+        /// <param name="rotation">플레이어를 바라보는 회전. 실패 시 identity</param>
+        /// <returns>모든 판정을 통과하면 true</returns>
+        private static bool TryMakeSpawnPose(Vector3 point, bool isAir, Vector3 playerPosition, out Vector3 position, out Quaternion rotation)
+        {
+            position = point;
+            rotation = Quaternion.identity;
+
+            bool isPlaced;
+            if (isAir) isPlaced = IsInsideMapWhenKnown(point);
+            else isPlaced = TryPlaceOnGround(point, out position);
+            if (isPlaced == false) return false;
+            if (IsInsideSafeRadius(position, playerPosition)) return false;
+
+            if (isAir) position.y += AirHeight;
+            rotation = FacePlayer(position, playerPosition);
             return true;
         }
 
         /// <summary>
+        /// 지상 후보 점을 설 수 있는 점으로 옮긴다. 씬에 SpawnPointFinder 가 있으면 그 판정(NavMesh·맵 경계·장애물)을 따르고, 없으면 NavMesh 위로만 옮긴다.
+        /// </summary>
+        /// <param name="point">후보 점</param>
+        /// <param name="groundPoint">NavMesh 위로 옮긴 점</param>
+        /// <returns>SpawnPointFinder 판정 실패면 false. Finder 가 없으면 항상 true</returns>
+        private static bool TryPlaceOnGround(Vector3 point, out Vector3 groundPoint)
+        {
+            if (ServiceLocator.TryGet(out SpawnPointFinder finder)) return finder.TryGetGroundSpawnPoint(point, out groundPoint);
+
+            groundPoint = SnapToNavMesh(point);
+            return true;
+        }
+
+        /// <summary>
+        /// 공중 후보 점이 맵 경계 안인지 본다. 씬에 SpawnPointFinder 가 없으면 경계를 모르므로 true.
+        /// </summary>
+        /// <param name="point">후보 점 (Y는 무시)</param>
+        /// <returns>경계 안이거나 경계를 모르면 true</returns>
+        private static bool IsInsideMapWhenKnown(Vector3 point)
+        {
+            if (ServiceLocator.TryGet(out SpawnPointFinder finder)) return finder.IsInsideMap(point);
+            return true;
+        }
+
+        /// <summary>둥지 반경. 씬 SpawnPointFinder Inspector 값, 없으면 NestRadiusWithoutFinder</summary>
+        /// <returns>반경 (m)</returns>
+        private static float GetNestRadius()
+        {
+            if (ServiceLocator.TryGet(out SpawnPointFinder finder)) return finder.NestRadius;
+            return NestRadiusWithoutFinder;
+        }
+
+        /// <summary>
+        /// 원 안에서 면적 기준 균등하게 한 점을 뽑는다 (반지름을 그대로 Random 하면 안쪽에 몰려서 √ 를 씌운다).
+        /// 둥지 주위 소환점을 뽑을 때 쓴다.
+        /// </summary>
+        /// <param name="center">원 중심</param>
+        /// <param name="radius">원 반지름 (m)</param>
+        /// <returns>원 안의 점. Y = center.y</returns>
+        private static Vector3 PickPointInCircle(Vector3 center, float radius)
+        {
+            float distance = radius * Mathf.Sqrt(Random.value);
+            return PointOnCircle(center, Random.Range(0f, 360f), distance);
+        }
+
+        /// <summary>center 에서 수평으로 angle 방향(0 = +Z, 시계 방향)으로 distance 만큼 떨어진 점</summary>
+        /// <param name="center">기준점</param>
+        /// <param name="angle">방향 (도)</param>
+        /// <param name="distance">거리 (m)</param>
+        /// <returns>Y = center.y 인 점</returns>
+        private static Vector3 PointOnCircle(Vector3 center, float angle, float distance)
+        {
+            float radians = angle * Mathf.Deg2Rad;
+            return center + new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians)) * distance;
+        }
+
+        /// <summary>소환 위치에서 플레이어를 수평으로 바라보는 회전</summary>
+        /// <param name="position">소환 위치</param>
+        /// <param name="playerPosition">플레이어 위치</param>
+        /// <returns>회전. 두 점이 수평으로 겹치면 identity</returns>
+        private static Quaternion FacePlayer(Vector3 position, Vector3 playerPosition)
+        {
+            Vector3 look = playerPosition - position;
+            look.y = 0f;
+            if (look.sqrMagnitude <= 0.001f) return Quaternion.identity;
+            return Quaternion.LookRotation(look);
+        }
+
+        /// <summary>
         /// 지상 소환점을 가장 가까운 NavMesh 점으로 옮긴다. NavMeshAgent 가 NavMesh 밖에서 켜지면 움직이지 못하기 때문이다.
+        /// SpawnPointFinder 가 없는 씬에서만 쓴다.
         /// </summary>
         /// <param name="point">링 위 소환점</param>
         /// <returns>반경 NavMeshSampleDistance 안의 NavMesh 점. 못 찾으면 원래 점 (NavMesh 없는 테스트 씬)</returns>
@@ -140,8 +300,8 @@ namespace HybridShooter.Core.Services
         public bool TryGetSupplyDropPosition(out Vector3 position)
         {
             GetPlayer(out var center, out _);
-            float min = DataManager.Config.GetFloat(GameConfig.SupplyDropMinDistance, 30f);
-            float max = Mathf.Max(min, DataManager.Config.GetFloat(GameConfig.SupplyDropMaxDistance, 150f));
+            float min = DataManager.Config.GetFloat(GameConfig.SupplyDropMinDistance, 20f);
+            float max = Mathf.Max(min, DataManager.Config.GetFloat(GameConfig.SupplyDropMaxDistance, 60f));
             // 면적 기준 균등 분포 (반지름을 그대로 Random 하면 안쪽에 몰린다)
             float distance = Mathf.Sqrt(Random.Range(min * min, max * max));
             float rad = Random.Range(0f, Mathf.PI * 2f);

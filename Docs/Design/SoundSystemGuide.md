@@ -46,10 +46,8 @@
 1. **사운드 담당 오브젝트 만들기** — 씬을 열고 상단 메뉴 **Tools → Audio → Create Sound Service** 를 누릅니다.
    - 씬에 `SoundService` 오브젝트가 생기고, 볼륨 믹서(`GameMixer`)까지 자동으로 연결됩니다.
    - **씬마다 1개만** 있으면 됩니다. 이미 있으면 메뉴가 그것을 선택해 줍니다.
-2. **플레이어에 소리 붙이기** — 아래 둘 중 하나.
-   - (권장, 플레이어 담당) `Scenes/MS/Prefabs/Player.prefab` 에 `PlayerSoundEmitter` 컴포넌트를 하나 추가 → 모든 씬에 한 번에 적용.
-   - (지금 당장) 씬의 플레이어를 `Scenes/GU/Prefabs/Player_Sound.prefab` 으로 바꿔 놓기. 원본 Player 를 그대로 따라가는 복사본(Variant)이라 원본이 바뀌면 같이 바뀝니다.
-3. **몬스터는 할 일 없음** — 몬스터가 생성될 때 소리 부품이 자동으로 붙습니다. 몬스터 프리팹을 고칠 필요가 없습니다.
+2. **플레이어는 할 일 없음** — 게임 시작 시 `GameSoundRouter` 가 씬의 플레이어에 `PlayerSoundEmitter` 를 자동으로 붙입니다 (프리팹에 이미 있으면 그대로 사용).
+3. **몬스터·티라노포드도 할 일 없음** — 몬스터는 생성될 때, 티라노포드는 보스 등장 때 소리 부품(`MonsterSoundEmitter`·`TyranopodeSoundEmitter`)이 자동으로 붙습니다. 프리팹을 고칠 필요가 없습니다. (클리페오사우루스는 프리팹의 `BossSoundEmitter`)
 4. **무기·보급·UI도 할 일 없음** — 표(TSV)에 적힌 소리가 자동으로 나옵니다.
 5. **Build Settings 확인** — 그 씬이 File → Build Settings 의 목록에 들어 있는지 확인합니다. 소리 파일은 `Resources` 폴더에 있어 빌드에 자동으로 포함됩니다.
 
@@ -59,6 +57,7 @@
 - 몬스터에 맞는 판정(Collider)이 있어야 총에 맞고 죽습니다 (몬스터 담당).
 
 옵션 화면을 만들 때 (UI 담당): 볼륨은 `ISoundService.SetVolume(SoundCategory.Bgm, 0.8f)` 처럼 0~1 값으로 넣으면 믹서에 반영됩니다. 카테고리는 `Bgm` · `Sfx` · `Monster` · `Ui` 네 가지입니다.
+전체 볼륨은 `ISoundService.MasterVolume` 입니다. 저장된 옵션 볼륨은 `GameSettings`(`Core/Settings`)가 씬이 열릴 때마다 (`SceneManager.sceneLoaded`, SoundService.Start 보다 먼저) 넣어 주므로, 씬에 SoundService 만 두면 따로 연결할 것이 없습니다. 이때 SoundService Inspector 의 볼륨 값은 저장값으로 덮어써집니다. SoundService 는 시작할 때 믹서를 Default 스냅샷으로 되돌립니다 (강화 화면 중에 씬을 나가도 다음 씬이 먹먹하지 않게).
 
 ---
 
@@ -105,7 +104,8 @@
 | 볼륨 믹서 | `GameMixer` 추가 (Bgm/Sfx/Monster/Ui 그룹, 볼륨 조절, 강화 화면 효과) | `Resources/Audio/GameMixer.mixer`, `SoundService.cs` |
 | 사운드 엔진 | 배경음 처리 분리, 1·3인칭 카메라 전환 시 듣는 위치 다시 찾기 | `SoundService.cs`, `BgmPlayer.cs` |
 | 이벤트 → 소리 | 교환원 코드를 영역별 파일 5개로 나눔 + 게임오버·강화·저체력·스테이지 클리어·보급 획득·아나운서 추가 | `GameSoundRouter*.cs` |
-| 플레이어 | 발소리·점프·착지·사망·숨소리·투척·무기 교체 소리 부품 신설 | `PlayerSoundEmitter.cs` |
+| 플레이어 | 발소리·점프·착지·사망·숨소리·투척·무기 교체 소리 부품 신설 (라우터가 자동 부착) | `PlayerSoundEmitter.cs` |
+| 티라노포드 | 보스 지역 이벤트(`SoundCue`) + 전용 소리 부품, 25종 연결 (자세한 내용 `SoundFix_Handoff.md`) | `TyranopodeSoundEmitter.cs`, `TyranopodeSoundCue.cs` |
 | 몬스터 | 공격 예고·기절·도약 착지 알림 추가, 소리 부품 자동 부착, 사망 시 조용히 | `MonsterController.cs`, `MonsterSoundEmitter.cs` |
 | 무기 | 장전 3단계, 빈 탄창음, 로켓·유탄 폭발음을 표에서 | `Gun.cs`, `ShotGun.cs`, `RocketLauncher.cs`, `GrenadeLauncher.cs` |
 | 독가스 | 착탄음, 장판 반복음, 장판 피해는 "지속 피해(Status)"로 구분 → 기침 | `PoisonProjectile.cs`, `PoisonZone.cs` |
@@ -156,7 +156,7 @@
 **플레이어 담당**
 
 - [ ] **`PlayerController` 가 몬스터의 목표(`IPlayerTarget`)로 등록되지 않음** → 실제 플레이어로는 몬스터가 쫓아오지 않음. `OnEnable` 에서 `ServiceLocator.Register<IPlayerTarget>(this)` 필요 (테스트 씬은 임시 컴포넌트로 우회 중)
-- [ ] `Player.prefab` 에 `PlayerSoundEmitter` 추가 여부 (2장 2번)
+- [x] ~~`Player.prefab` 에 `PlayerSoundEmitter` 추가 여부~~ → 라우터 자동 부착으로 해결 (2026-11-02)
 
 **무기 담당**
 

@@ -1,3 +1,5 @@
+using DG.Tweening;
+using HybridShooter.Core.Data;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
 using HybridShooter.Player;
@@ -13,6 +15,7 @@ namespace HybridShooter.UI
     ///  - 왼쪽 아래 맨 위: 남은 목숨 ×n / 최대 (PlayerLivesChangedEvent). 줄면 깜빡이고 마지막이면 빨강. 사망·부활 중에도 보인다
     ///  - 왼쪽 아래: 체력 바·숫자 (PlayerHpChangedEvent). 저체력이면 빨갛게 깜빡임
     ///  - 체력 아래: 수류탄·회복 팩 개수/최대 (GrenadeCountChangedEvent, HealPackCountChangedEvent). 1개 이상일 때만
+    ///  - 보급으로 수류탄·회복 팩·예비 탄창을 받으면 해당 아이콘이 통 튀고 "+N" 이 떠오른다 (SupplyCollectedEvent, RoundSupplyGrantedEvent — 실제 지급량, DOTween)
     ///  - 가운데 아래: 스태미나 (PlayerStaminaChangedEvent). 움직이는 동안, 또는 가득 찰 때까지만. 가득 차면 서서히 사라짐
     ///  - 오른쪽 아래: 무기 이름·사격 모드, 탄창 안 탄약/탄창 크기 (AmmoChangedEvent), 예비 탄창 칸·개수/최대 (별도 줄), 탄창 눈금 바.
     ///    재장전 중엔 바가 차오르고, 취소되면 바로 원래대로 (ReloadStarted/FinishedEvent). 예비 탄창 없이 R → 예비 탄창 줄이 빨갛게 깜빡임 (ReloadDeniedEvent)
@@ -68,12 +71,21 @@ namespace HybridShooter.UI
         [Tooltip("멈춰 있고 가득 찼을 때 사라지는 시간(초)")]
         [SerializeField] private float staminaFadeTime = 0.5f;
 
+        [Header("보급 획득 피드백")]
+        [Tooltip("아이콘이 튀는 크기 (1 + 이 값 배)")]
+        [SerializeField, Range(0f, 1f)] private float gainPunch = 0.35f;
+        [Tooltip("튀는 시간 / \"+N\" 이 떠올라 사라지는 시간(초, 실제 시간)")]
+        [SerializeField, Min(0.1f)] private float gainDuration = 0.5f;
+        [Tooltip("\"+N\" 이 떠오르는 높이(px)")]
+        [SerializeField] private float gainRise = 36f;
+
         private Canvas canvas;
         private CanvasGroup rootGroup, mainGroup, vitalsGroup, staminaGroup, livesGroup;
         private Image hpBar, ammoBar, staminaBar;
         private TextMeshProUGUI hpText, ammoText, infoText, statusText, grenadeText, healText, livesText;
         private Image livesIcon;
         private GameObject grenadeSlot, healSlot;
+        private RectTransform grenadeIconRect, healIconRect;
         private TextMeshProUGUI spareText;
         private Image[] sparePips;
 
@@ -141,6 +153,8 @@ namespace HybridShooter.UI
             EventBus<HealPackCountChangedEvent>.Subscribe(OnHealPackCountChanged);
             EventBus<PlayerLivesChangedEvent>.Subscribe(OnLivesChanged);
             EventBus<GameStateChangedEvent>.Subscribe(OnGameStateChanged);
+            EventBus<SupplyCollectedEvent>.Subscribe(OnSupplyCollected);
+            EventBus<RoundSupplyGrantedEvent>.Subscribe(OnRoundSupplyGranted);
             if (gunSlot != null) gunSlot.GunChanged += OnGunChanged;
             if (canvas != null) canvas.gameObject.SetActive(true);
         }
@@ -157,6 +171,8 @@ namespace HybridShooter.UI
             EventBus<HealPackCountChangedEvent>.Unsubscribe(OnHealPackCountChanged);
             EventBus<PlayerLivesChangedEvent>.Unsubscribe(OnLivesChanged);
             EventBus<GameStateChangedEvent>.Unsubscribe(OnGameStateChanged);
+            EventBus<SupplyCollectedEvent>.Unsubscribe(OnSupplyCollected);
+            EventBus<RoundSupplyGrantedEvent>.Unsubscribe(OnRoundSupplyGranted);
             if (gunSlot != null) gunSlot.GunChanged -= OnGunChanged;
             if (canvas != null) canvas.gameObject.SetActive(false);
         }
@@ -183,8 +199,10 @@ namespace HybridShooter.UI
 
         private void Update()
         {
-            rootGroup.alpha = stateHidden ? 0f : 1f;
-            if (stateHidden) return;
+            // 연출(보스 등장·최후 시네마틱) 중에는 숨긴다
+            bool hidden = stateHidden || (player != null && player.IsInCinematic);
+            rootGroup.alpha = hidden ? 0f : 1f;
+            if (hidden) return;
             UpdateLives(); // 사망·부활 중에도 보인다 (곧 부활할지 알려야 하므로)
 
             bool alive = player == null || player.IsAlive;
@@ -408,6 +426,53 @@ namespace HybridShooter.UI
 
         private void OnHealPackCountChanged(HealPackCountChangedEvent e) => SetItem(healSlot, healText, e.Current, e.Max);
 
+        // ── 보급 획득 피드백 (실제 지급량만. 개수 변경 이벤트는 재시작 초기화·무기 교체에도 바뀌어 쓰지 않는다) ──
+
+        private void OnSupplyCollected(SupplyCollectedEvent e)
+        {
+            if (e.Def != null && e.ItemAmount > 0)
+            {
+                if (e.Def.SupplyType == SupplyType.Grenade) PlayGain(grenadeIconRect, e.ItemAmount);
+                else if (e.Def.SupplyType == SupplyType.Heal) PlayGain(healIconRect, e.ItemAmount);
+            }
+            if (e.MagazinesAdded > 0) PlayGain(spareText != null ? spareText.rectTransform : null, e.MagazinesAdded);
+        }
+
+        private void OnRoundSupplyGranted(RoundSupplyGrantedEvent e)
+        {
+            if (e.Grenades > 0) PlayGain(grenadeIconRect, e.Grenades);
+            if (e.HealPacks > 0) PlayGain(healIconRect, e.HealPacks);
+            if (e.MagazinesAdded > 0) PlayGain(spareText != null ? spareText.rectTransform : null, e.MagazinesAdded);
+        }
+
+        /// <summary>아이콘이 한 번 통 튀고, 그 옆에서 "+N" 이 떠오르며 사라진다 (실제 시간 — 일시정지와 무관)</summary>
+        private void PlayGain(RectTransform icon, int amount)
+        {
+            if (icon == null || icon.gameObject.activeInHierarchy == false) return;
+
+            icon.DOKill(true);
+            icon.localScale = Vector3.one;
+            icon.DOPunchScale(Vector3.one * gainPunch, gainDuration, 6, 0.6f).SetUpdate(true);
+
+            var label = Label(icon.parent, "Gain", numberFont, 24f, TextAlignmentOptions.Center, Vector2.zero, new Vector2(80f, 30f));
+            var rt = label.rectTransform;
+            rt.anchorMin = rt.anchorMax = icon.anchorMin;
+            rt.pivot = new Vector2(0.5f, 0f);
+            // 아이콘 중심 바로 위에서 시작 (피벗과 무관하게)
+            Vector2 center = icon.anchoredPosition + Vector2.Scale(new Vector2(0.5f, 0.5f) - icon.pivot, icon.rect.size);
+            Vector2 start = center + new Vector2(0f, icon.rect.height * 0.5f);
+            rt.anchoredPosition = start;
+            label.text = $"+{amount}";
+            label.color = AimReticleHud.Cyan;
+
+            DOTween.Sequence()
+                .Join(DOTween.To(() => rt.anchoredPosition, p => rt.anchoredPosition = p, start + Vector2.up * gainRise, gainDuration).SetEase(Ease.OutCubic))
+                .Join(DOTween.To(() => label.alpha, a => label.alpha = a, 0f, gainDuration).SetEase(Ease.InQuad))
+                .SetUpdate(true)
+                .SetTarget(label)
+                .OnComplete(() => { if (label != null) Destroy(label.gameObject); });
+        }
+
         private void OnLivesChanged(PlayerLivesChangedEvent e)
         {
             if (e.Current < lives) livesFlashUntil = Time.time + livesFlashTime;
@@ -484,7 +549,9 @@ namespace HybridShooter.UI
             row.childControlWidth = row.childControlHeight = false;
             row.childForceExpandWidth = row.childForceExpandHeight = false;
             grenadeSlot = ItemSlot(items, "Grenade", GrenadeSprite(), out grenadeText);
+            grenadeIconRect = (RectTransform)grenadeSlot.transform.Find("Icon");
             healSlot = ItemSlot(items, "HealPack", healIcon, out healText);
+            healIconRect = (RectTransform)healSlot.transform.Find("Icon");
             grenadeSlot.SetActive(false);
             healSlot.SetActive(false);
 
@@ -518,6 +585,9 @@ namespace HybridShooter.UI
                 sparePips[i].gameObject.SetActive(false);
             }
             spareText = Label(weapon, "Spare", numberFont, 26f, TextAlignmentOptions.MidlineRight, new Vector2(236f, 28f), new Vector2(124f, 32f));
+            // 획득 피드백이 가운데 기준으로 튀도록 피벗을 가운데로 (위치는 그대로)
+            spareText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            spareText.rectTransform.anchoredPosition += spareText.rectTransform.sizeDelta * 0.5f;
 
             ammoBar = Bar(weapon, "Magazine", ammoBack, ammoFill, new Vector2(20f, 0f), new Vector2(340f, 20f));
         }

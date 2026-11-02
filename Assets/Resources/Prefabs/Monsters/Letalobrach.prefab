@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3693138554123243401}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ R HorseLink
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -41,7 +41,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5591588639209097}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ R Foot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -72,7 +72,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6275028072837156511}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ R Forearm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -104,7 +104,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4647515226987302433}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_Tongue1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136,7 +136,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8716934045170630762}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ R Clavicle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -175,7 +175,10 @@ GameObject:
   - component: {fileID: 8182058156753446464}
   - component: {fileID: 4691132091533479145}
   - component: {fileID: 517540784849940430}
-  m_Layer: 0
+  - component: {fileID: 6040918561269513848}
+  - component: {fileID: 8425689769912185956}
+  - component: {fileID: 1317588972261714542}
+  m_Layer: 15
   m_Name: Letalobrach
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -230,10 +233,10 @@ NavMeshAgent:
   m_GameObject: {fileID: 1438301292820702486}
   m_Enabled: 1
   m_AgentTypeID: 0
-  m_Radius: 0.5
+  m_Radius: 2.16
   m_Speed: 3.5
   m_Acceleration: 8
-  avoidancePriority: 50
+  avoidancePriority: 40
   m_AngularSpeed: 120
   m_StoppingDistance: 0
   m_AutoTraverseOffMeshLink: 1
@@ -242,7 +245,7 @@ NavMeshAgent:
   m_Height: 2
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
-  m_ObstacleAvoidanceType: 4
+  m_ObstacleAvoidanceType: 1
 --- !u!114 &7009483942553203710
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -259,6 +262,7 @@ MonoBehaviour:
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
+  destinationFollowRate: 5
 --- !u!114 &6933845040553831818
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -274,8 +278,8 @@ MonoBehaviour:
   repathDistance: 0.5
   minRepathInterval: 0.25
   sampleRadius: 4
-  engagedPriority: 30
-  defaultPriority: 60
+  engagedPriority: 40
+  defaultPriority: 50
 --- !u!114 &8182058156753446464
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -296,7 +300,14 @@ MonoBehaviour:
   cooldownOverrideSeconds: 3
   activeSeconds: 0.5
   hitTimeRatio: 0.5
+  hitEndRatio: 0.5
+  maxHitsPerAttack: 1
+  hitIntervalSeconds: 0
+  aimOffsetRadius: 2.25
+  hitRangeRatio: 1.05
   windupTurnSpeed: 360
+  lowHealthRatio: 0.3
+  lowHealthSpeedRatio: 0.6
 --- !u!114 &4691132091533479145
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -309,12 +320,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae35386ff291046488f8124707f8d7d4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.ChargeSettings
-  chargeSpeed: 12
-  chargeTurnSpeed: 10
-  brakeDeceleration: 5
+  chargeSpeed: 16
+  chargeTurnSpeed: 25
+  brakeDeceleration: 15
   maxChargeDistance: 60
+  chargeClipSpeed: 18
   prepTurnSpeed: 90
-  prepMoveSpeed: 1.5
+  prepMoveSpeed: 2.5
+  avoidancePriority: 30
 --- !u!136 &517540784849940430
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -334,10 +347,63 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.74294317
-  m_Height: 3.5244312
+  m_Radius: 2.15
+  m_Height: 4.23
   m_Direction: 1
   m_Center: {x: 0.022333503, y: 2.4972677, z: 0.55911064}
+--- !u!114 &6040918561269513848
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1438301292820702486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c85f4e92e9b67884f980d017806180da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Monster.Tester.MonsterHitAreaVisualizer
+  hitFlashSeconds: 0.3
+  previewColor: {r: 0.2, g: 0.8, b: 1, a: 0.25}
+  hitColor: {r: 1, g: 0.15, b: 0.1, a: 0.6}
+  missColor: {r: 1, g: 0.9, b: 0.1, a: 0.5}
+--- !u!114 &8425689769912185956
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1438301292820702486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a8a8c10198544568d8fe4cdeb019dc6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterDamageFeedback
+  hitBloodPrefab: {fileID: 510622085489733283, guid: 665226fbabe43ce498e273ee4bf3bfb7, type: 3}
+  weakPointBloodPrefab: {fileID: 8088368675690151471, guid: 3a6b499a245a26a4c83e35754d05c03e, type: 3}
+  deathBloodPrefab: {fileID: 8886302763132874894, guid: e7b3b17905d1a9d4dbe573130e85bf78, type: 3}
+  hitAnimationCooldown: 0.5
+  hitAnimationBlend: 0.05
+  lowHealthTint: {r: 1, g: 0.55, b: 0.55, a: 1}
+  bodyCollider: {fileID: 0}
+--- !u!114 &1317588972261714542
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1438301292820702486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f0f10b5145c43d8bfb3da9fd7887ba0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterCorpse
+  corpseLayerName: MonsterCorpse
+  mass: 60
+  angularDamping: 0.5
+  hitPushSpeed: 3
+  upwardKickSpeed: 1.5
+  randomSpinSpeed: 2
 --- !u!1 &1905092912942143356
 GameObject:
   m_ObjectHideFlags: 0
@@ -347,7 +413,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1710638946430155219}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ L Hand
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -378,7 +444,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2882810396090059681}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ R Hand
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -409,7 +475,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 854855368075603187}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ L UpperArm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -441,7 +507,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2446741059257391323}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ Tail
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -473,7 +539,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1069010941463085640}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ Tail1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -505,7 +571,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3374246435313702556}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ L Forearm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -537,7 +603,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4514887436067921124}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ L Foot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -568,7 +634,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4194791675921537601}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ Tail2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -600,7 +666,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 461264230210944764}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -631,7 +697,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3665685478301398541}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ Tail3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -664,7 +730,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4878741594117024016}
   - component: {fileID: 5615500690725062124}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: SK_Letalobrach
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -786,7 +852,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7666862622253608656}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -809,6 +875,73 @@ Transform:
   - {fileID: 6534947921604733674}
   m_Father: {fileID: 9069896505416824339}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5326008953529612867
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3087034819689832331}
+  - component: {fileID: 862114235037915083}
+  - component: {fileID: 3438445699420021215}
+  m_Layer: 15
+  m_Name: WeakPoint_Mouth
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3087034819689832331
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5326008953529612867}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.953, y: 1.324, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 761027778978897864}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &862114235037915083
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5326008953529612867}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.47
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3438445699420021215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5326008953529612867}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10567a424f984f28b776978aa00c0274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
+  partKey: Mouth
 --- !u!1 &6299833028197622902
 GameObject:
   m_ObjectHideFlags: 0
@@ -818,7 +951,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4716855239108739071}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ Spine1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -852,7 +985,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4752601851299954989}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_Tongue2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -884,7 +1017,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2470182728050623845}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ Spine
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -916,7 +1049,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8020248333320999408}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_Tongue3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -947,7 +1080,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 761027778978897864}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_Jaw
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -966,7 +1099,8 @@ Transform:
   m_LocalPosition: {x: 0.10146587, y: 1.2225337, z: 0.0000015258788}
   m_LocalScale: {x: 0.99999994, y: 0.9999998, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 3087034819689832331}
   m_Father: {fileID: 671453987816746816}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7095907652350947092
@@ -978,7 +1112,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6534947921604733674}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1011,7 +1145,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2570018692392333871}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ L Clavicle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1043,7 +1177,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2735292125314853752}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ R Calf
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1075,7 +1209,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 436085819000787311}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ Tail4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1107,7 +1241,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7311943283456566148}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ Tail5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1138,7 +1272,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3364392601673860336}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ R Thigh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1170,7 +1304,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 671453987816746816}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ Neck
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1204,7 +1338,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7691976919896557561}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ L Thigh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1236,7 +1370,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6024151634428181303}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ R UpperArm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1268,7 +1402,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6388433081847340329}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ L Calf
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1300,7 +1434,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 946670427753615141}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ L HorseLink
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1332,7 +1466,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8292832448926155166}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Letalobrach_ Pelvis
   m_TagString: Untagged
   m_Icon: {fileID: 0}

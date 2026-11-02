@@ -19,10 +19,10 @@ TagManager:
   - FP_Weapon
   - TP_Body
   - MagmaProjectile
-  - 
-  - 
-  - 
-  - 
+  - MonsterPassThrough
+  - MonsterBlocking
+  - BossHitbox
+  - MonsterCorpse
   - 
   - 
   - 

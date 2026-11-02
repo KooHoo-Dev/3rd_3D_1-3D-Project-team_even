@@ -5,8 +5,7 @@ using UnityEngine;
 namespace HybridShooter.Player
 {
     /// <summary>
-    /// 플레이어 애니메이션 설정값. 무기 세트별 이동 클립 실제 속도(_RM 판으로 잰 m/s)와 공통 조정값.
-    /// 속도는 빌더 메뉴(Tools/HybridShooter/Build Player Animator)가 재서 채운다
+    /// 플레이어 애니메이션 설정값. 무기 세트별 이동 클립 실제 속도(_RM 판으로 잰 m/s)와 공통 조정값
     /// </summary>
     [CreateAssetMenu(menuName = "HybridShooter/Player Animation Profile", fileName = "PlayerAnimationProfile")]
     public class PlayerAnimationProfile : ScriptableObject
@@ -81,13 +80,13 @@ namespace HybridShooter.Player
         public float recoilMagnitude = 1f;
 
         [Header("IK")]
-        [Tooltip("총별 손 위치 데이터. IK Pose Lab 창이 만들고 연결한다")]
+        [Tooltip("총별 손 위치 데이터")]
         public WeaponGripTable gripTable;
-        [Tooltip("회복 팩 사용: 왼손을 가져가는 자리 (PlayerItemIK). IK Pose Lab 에서 고친다")]
+        [Tooltip("회복 팩 사용: 왼손을 가져가는 자리 (PlayerItemIK)")]
         public ItemHandPose healPose = new ItemHandPose();
         [Tooltip("손에 든 수류탄 모형 자리 (던지는 손 바닥 중심 기준, 손 뼈 축, m)")]
         public Vector3 grenadeInHandOffset;
-        [Tooltip("발 IK(GrounderFBBIK) 설정. 시작할 때 PlayerBodyIK 가 입힌다 (씬 컴포넌트 값 대신). IK Pose Lab 에서 고친다")]
+        [Tooltip("발 IK(GrounderFBBIK) 설정. 시작할 때 PlayerBodyIK 가 입힌다 (씬 컴포넌트 값 대신)")]
         public FootIKSettings footIK = new FootIKSettings();
 
         /// <summary>발 IK 설정 (Final IK Grounding 의 주요 값)</summary>

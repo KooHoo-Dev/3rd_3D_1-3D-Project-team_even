@@ -5,6 +5,7 @@ Key	Category	Path	Volume	Loop	Spatial	MaxInstances	Cooldown	PitchJitter	Priority
 # ── BGM ──
 bgm_crowd	Bgm	Audio/Bgm/Crowd	0.6	true	false	1	0	0	100	0
 bgm_boss	Bgm	Audio/Bgm/Boss	0.7	true	false	1	0	0	100	0
+bgm_intro	Bgm	Audio/Bgm/Intro	0.7	false	false	1	0	0	100	0
 # ── 무기: 발사 (WeaponTable.FireSfxKey) ──
 sfx_rifle_fire	Sfx	Audio/Weapon/AssaultRifle/AssaultRifle_Fire_01;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_02;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_03;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_04;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_05;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_06;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_07;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_08	0.8	false	true	6	0.03	0.04	80	80
 sfx_assault_rifle_fire	Sfx	Audio/Weapon/AssaultRifle/AssaultRifle_Fire_01;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_02;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_03;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_04;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_05;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_06;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_07;Audio/Weapon/AssaultRifle/AssaultRifle_Fire_08	0.8	false	true	6	0.03	0.05	80	80
@@ -39,10 +40,11 @@ sfx_grenade_explode	Sfx	Audio/Weapon/Grenade/Grenade_Explode	0.9	false	true	3	0.
 sfx_explosion_large	Sfx	Audio/Weapon/Explosion/Explosion_Large_01;Audio/Weapon/Explosion/Explosion_Large_02	1.0	false	true	3	0.05	0.05	90	150
 sfx_explosion_small	Sfx	Audio/Weapon/Explosion/Explosion_Small_01;Audio/Weapon/Explosion/Explosion_Small_02	0.9	false	true	3	0.05	0.05	85	100
 # ── 전투 피드백 ──
-sfx_hit_flesh	Sfx	Audio/Sfx/HitFlesh_01;Audio/Sfx/HitFlesh_02;Audio/Sfx/HitFlesh_03	0.6	false	true	4	0.04	0.1	50	60
+sfx_hit_flesh	Sfx	Audio/Sfx/HitFlesh_01;Audio/Sfx/HitFlesh_02	0.6	false	true	4	0.04	0.1	50	60
 sfx_boss_warning	Sfx	Audio/Sfx/BossWarning	1.0	false	false	1	1	0	100	0
 sfx_supply_drop	Sfx	Audio/Sfx/SupplyDrop	0.8	false	true	1	0.5	0	70	200
-sfx_supply_collect	Ui	Audio/UI/UI_MenuSelect	0.7	false	false	1	0.1	0	70	0
+sfx_supply_announce	Ui	Audio/Announce/Announce_SupplyDrop	1.0	false	false	1	1	0	95	0
+sfx_supply_reload	Sfx	Audio/Weapon/Reload/Reload_Rifle_Cock;Audio/Weapon/Reload/Reload_Pistol_Cock;Audio/Weapon/Reload/Reload_Rifle_MagIn;Audio/Weapon/Reload/Reload_SemiAuto_MagIn_01;Audio/Weapon/Reload/Reload_SemiAuto_MagIn_02;Audio/Weapon/Reload/Reload_SciFi	0.8	false	false	1	0.1	0.05	70	0
 # ── 플레이어 (자기 소리는 2D) ──
 sfx_player_hit	Sfx	Audio/Player/Voice/Voice_Hurt_01;Audio/Player/Voice/Voice_Hurt_02;Audio/Player/Voice/Voice_Hurt_03	0.8	false	false	1	0.15	0.05	90	0
 sfx_player_death	Sfx	Audio/Player/Voice/Voice_Death_01;Audio/Player/Voice/Voice_Death_02;Audio/Player/Voice/Voice_Death_03	1.0	false	false	1	1	0.03	100	0
@@ -77,7 +79,7 @@ ann_fury	Ui	Audio/Announce/Announce_Fury	1.0	false	false	1	0.5	0	95	0
 ann_maniac	Ui	Audio/Announce/Announce_Maniac	1.0	false	false	1	0.5	0	95	0
 ann_crazy	Ui	Audio/Announce/Announce_Crazy	1.0	false	false	1	0.5	0	95	0
 ann_humiliation	Ui	Audio/Announce/Announce_Humiliation	1.0	false	false	1	0.5	0	95	0
-ann_victory	Ui	Audio/Announce/Announce_Victory	1.0	false	false	1	1	0	100	0
+ann_victory	Ui	Audio/Announce/Announce_MissionAccomplished	1.0	false	false	1	1	0	100	0
 ann_defeat	Ui	Audio/Announce/Announce_Defeat	1.0	false	false	1	1	0	100	0
 ann_game_over	Ui	Audio/Announce/Announce_GameOver	1.0	false	false	1	1	0	100	0
 # ── 몬스터 ──
@@ -120,3 +122,36 @@ mon_clypeosaurus_suction_loop	Monster	Audio/Monster/Clypeosaurus/Clypeosaurus_Su
 mon_clypeosaurus_stomp_impact	Monster	Audio/Monster/Clypeosaurus/Clypeosaurus_StompGround	1.0	false	true	1	0.3	0.03	95	0
 mon_clypeosaurus_magma_impact	Monster	Audio/Monster/Clypeosaurus/Clypeosaurus_MagmaImpact	0.85	false	true	4	0.05	0.08	85	120
 mon_clypeosaurus_walk_loop	Monster	Audio/Monster/Clypeosaurus/Clypeosaurus_WalkLoop	0.8	true	true	1	0	0	90	0
+mon_clypeosaurus_entrance_roar	Sfx	Audio/Monster/Clypeosaurus/Clypeosaurus_Shout	1.0	false	false	1	1	0	100	0
+mon_clypeosaurus_entrance_land	Sfx	Audio/Monster/Clypeosaurus/Clypeosaurus_StompGround	1.0	false	false	1	1	0	100	0
+mon_tyranopode_roar	Monster	Audio/Monster/Tyranopode/Tyranopode_Roar	1.0	false	true	1	1	0	100	0
+mon_tyranopode_crawl_loop	Monster	Audio/Monster/Tyranopode/Tyranopode_CrawlLoop	0.8	true	true	1	0	0	90	0
+mon_tyranopode_bite	Monster	Audio/Monster/Tyranopode/Tyranopode_Bite	1.0	false	true	1	0.2	0.03	95	0
+mon_tyranopode_charge_start	Monster	Audio/Monster/Tyranopode/Tyranopode_ChargeStart	1.0	false	true	1	0.3	0.03	95	0
+mon_tyranopode_charge_loop	Monster	Audio/Monster/Tyranopode/Tyranopode_ChargeTentacleLoop	0.8	true	true	1	0	0	95	0
+mon_tyranopode_wall_hit	Monster	Audio/Monster/Tyranopode/Tyranopode_WallHit	1.0	false	true	1	0.5	0.03	95	0
+mon_tyranopode_groggy	Monster	Audio/Monster/Tyranopode/Tyranopode_Groggy	0.9	false	true	1	1	0.03	95	0
+mon_tyranopode_spit	Monster	Audio/Monster/Tyranopode/Tyranopode_Spit	0.9	false	true	2	0.1	0.06	90	0
+mon_tyranopode_egg_throw	Monster	Audio/Monster/Tyranopode/Tyranopode_EggThrow	0.9	false	true	1	0.3	0.04	90	0
+mon_tyranopode_egg_hatch	Monster	Audio/Monster/Tyranopode/Tyranopode_EggHatch	0.8	false	true	3	0.1	0.08	70	60
+mon_tyranopode_spore_launch	Monster	Audio/Monster/Tyranopode/Tyranopode_SporeLaunch	1.0	false	true	1	1	0	95	0
+mon_tyranopode_absorb	Monster	Audio/Monster/Tyranopode/Tyranopode_Absorb	0.8	false	true	1	1	0	90	0
+mon_tyranopode_death	Monster	Audio/Monster/Tyranopode/Tyranopode_Death	1.0	false	true	1	0	0	100	0
+mon_tyranopode_bite_impact	Monster	Audio/Monster/Tyranopode/Tyranopode_BiteImpact	1.0	false	true	1	0.2	0.04	95	0
+mon_tyranopode_swipe	Monster	Audio/Monster/Tyranopode/Tyranopode_Swipe	0.9	false	true	2	0.15	0.05	90	0
+mon_tyranopode_tremor	Monster	Audio/Monster/Tyranopode/Tyranopode_Tremor	1.0	false	true	1	0.5	0.03	95	0
+mon_tyranopode_storm_sweep	Monster	Audio/Monster/Tyranopode/Tyranopode_StormSweep	1.0	false	true	1	0.3	0.03	95	0
+mon_tyranopode_spit_impact	Monster	Audio/Monster/Tyranopode/Tyranopode_SpitImpact	0.8	false	true	3	0.08	0.08	80	60
+mon_tyranopode_egg_break	Monster	Audio/Monster/Tyranopode/Tyranopode_EggBreak	0.8	false	true	3	0.05	0.08	70	60
+mon_tyranopode_immune_hit	Monster	Audio/Monster/Tyranopode/Tyranopode_ImmuneHit	0.6	false	true	2	0.15	0.1	60	0
+mon_tyranopode_shield_hit	Monster	Audio/Monster/Tyranopode/Tyranopode_ShieldHit	0.6	false	true	3	0.08	0.1	70	0
+mon_tyranopode_shield_break	Monster	Audio/Monster/Tyranopode/Tyranopode_ShieldBreak	1.0	false	true	1	1	0	100	0
+mon_tyranopode_spore_pulse	Monster	Audio/Monster/Tyranopode/Tyranopode_SporePulse	0.8	false	true	1	0.5	0.03	85	0
+mon_tyranopode_spore_break	Monster	Audio/Monster/Tyranopode/Tyranopode_SporeBreak	1.0	false	true	1	1	0	100	0
+mon_tyranopode_spore_fail	Monster	Audio/Monster/Tyranopode/Tyranopode_SporeFail	1.0	false	true	1	1	0	100	0
+mon_tyranopode_intro_land	Sfx	Audio/Monster/Tyranopode/Tyranopode_Tremor	1.0	false	false	1	1	0	100	0
+mon_tyranopode_cinematic_roar	Sfx	Audio/Monster/Tyranopode/Tyranopode_Roar	1.0	false	false	1	1	0	100	0
+mon_tyranopode_jump_smash	Monster	Audio/Monster/Tyranopode/Tyranopode_JumpSmash	1.0	false	true	1	0.3	0.03	95	0
+mon_tyranopode_smash_impact	Monster	Audio/Monster/Tyranopode/Tyranopode_SmashImpact	1.0	false	true	1	0.3	0.03	95	0
+mon_tyranopode_part_break	Monster	Audio/Monster/Tyranopode/Tyranopode_PartBreak	1.0	false	true	2	0.2	0.04	95	0
+mon_tyranopode_orbital_beam	Sfx	Audio/Monster/Tyranopode/Tyranopode_OrbitalBeam	1.0	false	false	1	1	0	100	0

@@ -83,12 +83,19 @@ flowchart TB
 | `ISoundService` (PlaySfx·PlayLoop·PlayBgm) | UI·사운드 (`Audio/SoundService`) | 전원 — 같은 소리를 직접 호출과 이벤트 구독 양쪽에서 재생하지 않는다 | 기본: `NullSoundService` |
 | `ICurrencyWallet` | 보상 | 재화 획득, 강화 구매 | 기본: `CurrencyWallet` |
 | `IUpgradeState` | 보상 | 무기(능력치 계산), 강화 화면 | 기본: `UpgradeLedger` |
+| `IInteractable` + `InteractPrompt` | 보급 상자 등 상호작용 대상 | 플레이어(`PlayerInteractor`, 에임 + F) | 컴포넌트 (`GetComponentInParent`) |
+| `IProximityInteractable : IInteractable` (표식) | 보급 상자 (`SupplyCrate`, 반경 2m 트리거 영역) | 플레이어(`PlayerInteractor`: 조준 대상이 없으면 영역 안의 가장 가까운 대상) · UI(`SupplyInfoCardHud` 조준 카드) | 컴포넌트 (영역 콜라이더의 `GetComponentInParent`) |
+| `IPlayerAmmo` (AddSupplyMagazines, **AddMagazinesToAll → 실제 증가량 int**, **CanAddSupplyMagazines**) | 플레이어(`GunSlot`, 보급 칸 제외) | 보급 상자, 다음 라운드 지급(`RoundStartSupply`) | `ServiceLocator.Register` + 플레이어 루트 컴포넌트 |
+| `ISupplyWeaponUser` (보급 칸 장착, 1회용 — 탄을 다 쓰면 사라짐) | 플레이어(`GunSlot`) | 보급 무기 상자 (`SupplyCrate`, SupplyType.Weapon) | `ServiceLocator.Register` + 플레이어 루트 컴포넌트 |
+| `IWeaponUnlocks` | 코어 `WeaponUnlockLedger` (CoreBootstrap 기본 등록) | 출발 전 무기 선택·`GunSlot` 시작 배치 | WeaponTable.UnlockOrder 순서로 스테이지 클리어마다 1개 영구 해금 (PlayerPrefs `Unlock.Weapons`) |
+| `IRoundStartGate` | UI `LoadoutPanel` (무기 선택 화면) | `RunDirector` | `HoldsStart` 동안 자동 시작·다음 라운드 진행을 미룸. 미등록이면 바로 진행 |
 
 ## 6. 이벤트 (`Scripts/Core/Events/GameEvents.cs`)
 
 | 이벤트 | 발행 | 구독 |
 |---|---|---|
 | `GameStateChangedEvent`, `RoundStartedEvent`, `GameOverEvent` | 코어 | 전원 (입력 잠금, BGM, 화면 전환) |
+| `StageClearedEvent(Round)` | 코어(`RunDirector`, 보스 처치 후 Reward 진입) | 무기 해금 |
 | **`RoundCleanupEvent(FullReset)`** | 코어 | **전원** — 자기 몬스터·투사체·보급·타이머 정리 |
 | `BossWarningEvent` | 코어 | 몬스터(보스 준비), UI·사운드(지진음·조명) |
 | `PlayerHpChangedEvent`, `PlayerDamagedEvent` | 플레이어 | UI·사운드(피격 표현) |
@@ -97,16 +104,22 @@ flowchart TB
 | `PlayerFinalDeathEvent` (최종 사망) | 플레이어 | **코어(게임오버)**, UI |
 | `PlayerLivesChangedEvent(Current, Max)` | 플레이어 | UI (목숨 표시) |
 | `CameraModeChangedEvent(Mode, IsComplete)` | 플레이어 | 보스(전환 완료 후 등장 공격), UI |
-| `AmmoChangedEvent`, `WeaponFiredEvent`, `ReloadStarted/Finished/DeniedEvent` | 무기 | UI(HUD) (발사·재장전 소리는 Gun 이 직접 재생) |
+| `AmmoChangedEvent`, `WeaponFiredEvent`, `ReloadStarted/Finished/DeniedEvent` | 무기 | UI(HUD, `SupplyInfoCardHud` — 사격 중 조준 카드 숨김) (발사·재장전 소리는 Gun 이 직접 재생) |
 | `GrenadeCountChangedEvent`, `GrenadeExplodedEvent` | 무기 | UI, 몬스터(돌진형 유인 아이디어) |
 | `HealPackCountChangedEvent` | 플레이어 | UI |
 | `DamageDealtEvent` | 피해를 준 쪽 — **아직 발행처 없음** (발행 위치는 몬스터 담당과 합의 필요) | UI(히트마커), 몬스터 피격 연출, 사운드(타격음·히트마커 — 처치한 발은 히트마커 없음) |
-| `MonsterSpawnedEvent`, `MonsterDiedEvent(GrantReward)` | 몬스터 | 군중 생성(카운트), 보상(재화), UI·사운드 |
+| `MonsterSpawnedEvent`, `MonsterDiedEvent(GrantReward)` | 몬스터 | 군중 생성(카운트), 보상(재화), UI·사운드, 보급 확률(`SupplyDropWeights`: 소환 급증 판정) |
 | `MonsterWipeRequestedEvent` | 보스(등장 공격) | 몬스터 |
 | `BossAppearedEvent`, `BossDefeatedEvent` | 보스 | 코어, UI·사운드, 보상 (패턴 단계·타격은 `BossAttack` 지역 이벤트) |
-| `SupplyDroppedEvent`, `SupplyCollectedEvent` | 보급 | UI(낙하 위치 표시) (낙하 소리는 SupplyDropper 가 직접 재생) |
+| `BossFinaleStartedEvent` | 보스(`TyranopodeFinale`, 최후 연출 시작) | 코어(`RoundSequencer`: 보급 정지, 처치해도 보상 단계로 가지 않음 → 클리어) |
+| `GameClearedEvent` | 보스(`TyranopodeFinale`, 클리어 화면) | 기록·사운드 등 |
+| `SupplyDroppedEvent`, `SupplyCollectedEvent(ItemAmount, MagazinesAdded)` | 보급 | UI(낙하 위치·지급량 표시, `SupplyInfoCardHud` 무기 획득 카드, `PlayerHud` 아이콘 피드백), 사운드(GameSoundRouter: 투하음·안내 방송·랜덤 장전음), 빛기둥, 분석. ItemAmount = 실제 증가 아이템 수 (보급 무기는 장착 1 / 탄창만 0) |
+| `RoundSupplyGrantedEvent(Round, Grenades, HealPacks, MagazinesAdded)` | 보급(`RoundStartSupply`, 보스 클리어 후 다음 라운드 시작 지급) | UI(`RoundSupplyToastHud` 배너, `PlayerHud` 아이콘 피드백), 사운드, 테스트 HUD |
 | `CurrencyChangedEvent`, `UpgradePurchasedEvent` | 보상 | UI, 무기(능력치 갱신) |
 | `RewardSelectionFinishedEvent` | UI(강화 화면) | 코어(다음 라운드) |
+| `InteractFocusChangedEvent(HasTarget, Prompt)` | 플레이어(`PlayerInteractor`) | UI(상호작용 프롬프트, `SupplyInfoCardHud` — 근처 프롬프트가 있으면 조준 카드 숨김) |
+| `SupplyWeaponChangedEvent(Previous, New, Depleted)` | 무기(`GunSlot`) | UI·사운드·분석, 보급 확률(`SupplyDropWeights`: Depleted = 탄을 다 써서 사라짐 → 무기 상자 확률 상승) |
+| `WeaponUnlockedEvent(Weapon)` | 코어(`WeaponUnlockLedger`) | UI(해금 알림 `UnlockToastHud`) |
 
 구독은 반드시 짝으로:
 

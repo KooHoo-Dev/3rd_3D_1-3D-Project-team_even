@@ -117,6 +117,19 @@ namespace HybridShooter.Monster.Behaviour
             }
         }
 
+        // Attack 유지 판정용 (수평 거리 ≤ 사거리 × HitRangeRatio, 대상 없으면 false). 진입은 IsTargetInAttackRange
+        public bool IsTargetInAttackHoldRange
+        {
+            get
+            {
+                if (HasTarget == false) return false;
+                Vector3 toTarget = Target.PlayerTrackingInfo.Position - body.Position;
+                toTarget.y = 0f;
+                float holdRange = CurrentAttack.Range * CurrentAttack.HitRangeRatio;
+                return toTarget.magnitude <= holdRange;
+            }
+        }
+
         /// <summary>
         /// 공격 대상을 바꾼다. MonsterController 가 대상 확보·상실 때 호출한다.
         /// 대상이 바뀌면 진행 중 공격을 취소하고, 대상이 없어지면 휴식·재정비를 해제하고 Attack/Chase 에서 Idle 로 돌아간다.
@@ -239,6 +252,23 @@ namespace HybridShooter.Monster.Behaviour
         internal void RepositionInChase()
         {
             IsRepositioning = true;
+            ChaseAgain();
+        }
+
+        /// <summary>
+        /// 쿨다운 동안 Chase 로 가서 슬롯까지 이동한다. AttackState.FinishAttackCycle 이 After = ChaseUntilReady 공격의 정상 완료 때 부른다.
+        /// 공격 슬롯 예약은 반환하지 않는다 (Attack 진입 때 StopForAttack 으로 유지한 예약을 Chase.Enter 의 ResumeMove 가 그대로 이어 쓴다).
+        /// ChaseState 가 쿨다운이 끝날 때까지 Attack 으로 가지 않는다.
+        /// </summary>
+        internal void ChaseUntilReady() => ChangeState(Chase);
+
+        /// <summary>
+        /// 군중 이동의 예약을 반환하고 Chase 로 간다 (Chase.Enter 가 다시 등록해 슬롯을 새로 경쟁한다).
+        /// AttackState 가 사거리 밖·공격 불허일 때와 RepositionInChase 가 부른다.
+        /// </summary>
+        internal void ChaseAgain()
+        {
+            StopMove();
             ChangeState(Chase);
         }
 

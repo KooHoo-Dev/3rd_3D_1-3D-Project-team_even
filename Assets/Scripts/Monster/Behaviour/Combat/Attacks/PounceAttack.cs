@@ -60,17 +60,19 @@ namespace HybridShooter.Monster.Behaviour
             }
             Land(ground);
             Vector3 player = Target.PlayerTrackingInfo.Position;
-            if (landingArea.Contains(ground, Body.Forward, player) &&
-                Mathf.Abs(player.y - ground.y) <= settings.HitHeightTolerance)
-                Hit(Target, ground);
+            bool isInLandingArea = landingArea.Contains(ground, Body.Forward, player);
+            bool isWithinHeight = Mathf.Abs(player.y - ground.y) <= settings.HitHeightTolerance;
+            bool isInArea = isInLandingArea && isWithinHeight;
+            NotifyMonsterHit(landingArea, ground, Body.Forward, isInArea);
+            if (isInArea) Hit(Target, ground);
             return true;
         }
 
-        /// <summary>이륙 순간 위치를 한 번 읽고 최대 사거리까지 제한한다. 유효 지면/궤적이 없으면 도약하지 않는다.</summary>
+        /// <summary>이륙 순간 조준점(AimPoint)을 한 번 읽고 최대 사거리까지 제한한다. 유효 지면/궤적이 없으면 도약하지 않는다.</summary>
         private bool Launch(float now)
         {
             startRoot = Body.Position;
-            Vector3 target = Target.PlayerTrackingInfo.Position;
+            Vector3 target = AimPoint;
             Vector3 destination = ClampDestination(startRoot, target, Spec.Range);
             if (TerrainGround.TryNavMeshPoint(Body.AttackGroundOrigin, settings.NavMeshTolerance, Body.AttackNavigationFilter,
                                               out Vector3 startGround) == false)
@@ -113,7 +115,7 @@ namespace HybridShooter.Monster.Behaviour
                 desired = below;
             Vector3 ground = ResolveGround(desired);
             if (IsBodyClear(ground + rootOffset) == false)
-                throw new InvalidOperationException($"도약 취소 복구 지점에 몸체가 들어갈 수 없다: {ground}");
+                Debug.LogWarning($"도약 취소 복구 지점에 몸체가 들어갈 수 없다: {ground}");
             return ground;
         }
 

@@ -29,8 +29,8 @@ namespace HybridShooter.Player
         public bool IsSliding => isSliding;
         /// <summary>발 → 발밑 땅 거리(m). 3m 보다 멀거나 땅이 없으면 무한대</summary>
         public float GroundDistance => groundDistance;
-        /// <summary>구르기 직후 짧은 시간 또는 부활 연출 중. (TakeDamage 는 지금 부활·디버그 무적만 막는다. 구르기 무적 적용은 Docs 계획 참고)</summary>
-        public bool IsInvulnerable => isReviving || (isRolling && Time.time - rollStartTime < rollInvulnerableTime);
+        /// <summary>구르기 직후 짧은 시간(rollInvulnerableTime) 또는 부활 연출 중. 이 동안 TakeDamage·땅울림을 받지 않는다</summary>
+        public bool IsInvulnerable => isReviving || cinematicActive || (isRolling && Time.time - rollStartTime < rollInvulnerableTime);
         /// <summary>입력도 있어야 한다 (가만히 끌려가는 중에 Shift 만 눌러도 전력질주로 보이지 않게)</summary>
         public bool IsSprinting => sprintRequested && CanSprint && isGrounded && isRolling == false
                                    && moveDirection.sqrMagnitude > 0.0001f && HorizontalSpeed > 0.1f;
@@ -80,21 +80,8 @@ namespace HybridShooter.Player
         /// <summary>현재 시선 회전 (yaw + pitch). 조준·발사 방향 계산에 쓰면 된다</summary>
         public Quaternion LookRotation => Quaternion.Euler(lookPitch, lookYaw, 0f);
 
-        /// <summary>디버그(애니메이션 떨림 측정): 키보드·마우스 입력을 읽지 않는다. 이동·시선은 바깥에서 SetMoveInput·DebugSetLook 으로 넣는다</summary>
-        public bool DebugBlockInput { get; set; }
         /// <summary>디버그(PlayerDebugMode): 피해를 받지 않는다</summary>
         public bool DebugInvincible { get; set; }
-        /// <summary>디버그(1인칭 목 측정): null 이 아니면 neckPivotWeight 대신 이 값</summary>
-        public float? DebugNeckPivotOverride { get; set; }
-
-        /// <summary>디버그: 시선(yaw·pitch)을 바로 정하고 몸도 그 yaw 로 고정한다 (입력을 막았을 때 쓴다)</summary>
-        public void DebugSetLook(float yaw, float pitch)
-        {
-            lookYaw = Mathf.Repeat(yaw, 360f);
-            lookPitch = Mathf.Clamp(pitch, minPitch, MaxPitch);
-            SyncRigRotationNow();
-            LockFacing(lookYaw);
-        }
 
         public Transform Root => rootTransform;
         public Transform AimPoint => aimPoint;
@@ -188,6 +175,8 @@ namespace HybridShooter.Player
             rb.position = position;
             rb.linearVelocity = Vector3.zero;
             appliedExternal = Vector3.zero; // 속도를 0 으로 만들었으니 다음 프레임에 뺄 몫도 없다
+            appliedSnapDown = 0f;
+            velocityAlongGround = false;
             isRolling = false;
         }
 
@@ -203,6 +192,8 @@ namespace HybridShooter.Player
             moveDirection = Vector3.zero;
             rb.linearVelocity = Vector3.zero;
             appliedExternal = Vector3.zero; // 외부 속도는 외부 제어 동안 멈춘다 (소스는 유지)
+            appliedSnapDown = 0f;
+            velocityAlongGround = false;
             savedInterpolation = rb.interpolation;
             // kinematic + 직접 위치 지정 시 보간이 켜져 있으면 한 프레임 늦게 따라와 떨린다
             rb.interpolation = RigidbodyInterpolation.None;
@@ -236,6 +227,8 @@ namespace HybridShooter.Player
             rb.interpolation = savedInterpolation;
             rb.linearVelocity = Vector3.zero;
             appliedExternal = Vector3.zero;
+            appliedSnapDown = 0f;
+            velocityAlongGround = false;
             jumpRequestedTime = float.NegativeInfinity;
         }
     }

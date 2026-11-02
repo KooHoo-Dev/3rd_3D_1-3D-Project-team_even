@@ -12,6 +12,7 @@ namespace HybridShooter.UI
     /// 보급 확인용 HUD (BL-019).
     ///  - 수류탄 / 회복 팩 보유 수량 (GrenadeCountChangedEvent, HealPackCountChangedEvent)
     ///  - 보급 투하·획득 알림 (SupplyDroppedEvent, SupplyCollectedEvent)
+    ///  - 보스 클리어 후 다음 라운드 시작 지급 알림 (RoundSupplyGrantedEvent)
     /// 이벤트만 구독하므로 플레이어·보급 구현을 직접 참조하지 않는다.
     /// Text 를 연결하지 않으면 실행 시 기본 레이아웃을 코드로 만든다.
     /// </summary>
@@ -23,7 +24,7 @@ namespace HybridShooter.UI
         [SerializeField] private Text helpText;
 
         [TextArea]
-        [SerializeField] private string help = "[1] 보급 투하   [W A S D] 이동   [Shift] 달리기   [G] 수류탄 사용   [V] 회복 팩 사용";
+        [SerializeField] private string help = "[1] 보급 투하   [F] 보급 획득   [W A S D] 이동   [Shift] 달리기   [G] 수류탄 사용   [V] 회복 팩 사용";
         [SerializeField] private float messageDuration = 4f;
         [SerializeField] private int maxMessages = 5;
         [SerializeField] private Color highlightColor = new Color(1f, 0.85f, 0.2f);
@@ -56,6 +57,7 @@ namespace HybridShooter.UI
             EventBus<HealPackCountChangedEvent>.Subscribe(OnHealPackCountChanged);
             EventBus<SupplyDroppedEvent>.Subscribe(OnSupplyDropped);
             EventBus<SupplyCollectedEvent>.Subscribe(OnSupplyCollected);
+            EventBus<RoundSupplyGrantedEvent>.Subscribe(OnRoundSupplyGranted);
         }
 
         private void OnDisable()
@@ -64,6 +66,7 @@ namespace HybridShooter.UI
             EventBus<HealPackCountChangedEvent>.Unsubscribe(OnHealPackCountChanged);
             EventBus<SupplyDroppedEvent>.Unsubscribe(OnSupplyDropped);
             EventBus<SupplyCollectedEvent>.Unsubscribe(OnSupplyCollected);
+            EventBus<RoundSupplyGrantedEvent>.Unsubscribe(OnRoundSupplyGranted);
         }
 
         private void Update()
@@ -103,18 +106,30 @@ namespace HybridShooter.UI
                 offset.y = 0f;
                 distance = $" — {offset.magnitude:0}m";
             }
-            PushMessage($"보급 투하: {GetSupplyName(e.Def.SupplyType)}{distance}");
+            PushMessage($"보급 투하: {e.Def.DisplayName}{distance}");
         }
 
+        /// <summary>실제 지급량 표시 (가득 차서 못 받은 쪽은 생략)</summary>
         private void OnSupplyCollected(SupplyCollectedEvent e)
-            => PushMessage($"{GetSupplyName(e.Def.SupplyType)} +{e.Def.Amount} 획득!");
+        {
+            string items = e.ItemAmount > 0 ? $" {e.Def.DisplayName} +{e.ItemAmount}" : string.Empty;
+            string magazines = e.MagazinesAdded > 0 ? $" 예비 탄창 +{e.MagazinesAdded}" : string.Empty;
+            PushMessage($"보급 획득!{items}{magazines}");
+        }
+
+        /// <summary>다음 라운드 시작 지급 (실제 지급량, 가득 차서 못 받은 쪽은 생략)</summary>
+        private void OnRoundSupplyGranted(RoundSupplyGrantedEvent e)
+        {
+            string grenades = e.Grenades > 0 ? $" 수류탄 +{e.Grenades}" : string.Empty;
+            string healPacks = e.HealPacks > 0 ? $" 회복 팩 +{e.HealPacks}" : string.Empty;
+            string magazines = e.MagazinesAdded > 0 ? $" 예비 탄창 +{e.MagazinesAdded}" : string.Empty;
+            PushMessage($"라운드 {e.Round} 보급 지급!{grenades}{healPacks}{magazines}");
+        }
 
         // ── 표시 ──
 
         private void SetGrenades(int current, int max) => grenadeText.text = $"수류탄   {current} / {max}";
         private void SetHealPacks(int current, int max) => healPackText.text = $"회복 팩   {current} / {max}";
-
-        private static string GetSupplyName(SupplyType type) => type == SupplyType.Grenade ? "수류탄" : "회복 팩";
 
         private void PushMessage(string text)
         {

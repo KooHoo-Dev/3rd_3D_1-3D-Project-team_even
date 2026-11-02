@@ -11,16 +11,17 @@ namespace HybridShooter.UI
     /// <summary>
     /// 라운드 보상·강화 선택 화면 (BL-030, BL-031, BL-032). 디자인: Docs/Design/UpgradeUI_Mockup.html
     ///  - A. Reward  : 이번 라운드 획득 재화(군중전 / 보스전 / 합계)와 보유 재화, [강화 선택]
-    ///  - B. Upgrade : 강화 카드 3장(효과·비용·레벨), 보유 재화, [다음 라운드] / [건너뛰기]
+    ///  - B. Upgrade : 강화 카드 3장(효과·비용·레벨), 보유 재화, [다음 라운드] / [건너뛰기]. 재화가 남아 있으면 카드를 계속 살 수 있다
     /// 표시만 담당한다. 상태와 규칙은 UpgradeManager 가 가지고, 이 화면은 Manager.Changed 를 받아 다시 그린다.
-    /// 레이아웃은 실행 시 코드로 만든다 (1920×1080 기준). 스프라이트는 Inspector 에 연결하고, 비어 있으면 단색으로 대신한다.
+    /// 레이아웃은 실행 시 코드로 만든다 (1920×1080 기준). 글꼴·스프라이트는 Resources/UI/UpgradeUiSkin 을 쓰고,
+    /// Inspector 칸에 연결한 값이 있으면 그 칸만 덮어쓴다. 둘 다 비어 있으면 단색으로 대신한다.
     /// </summary>
     public sealed class UpgradeScreen : MonoBehaviour
     {
         [Tooltip("비워 두면 씬에서 찾는다")]
         [SerializeField] private UpgradeManager manager;
 
-        [Header("글꼴 (비우면 LegacyRuntime. 숫자·영문용은 한글이 없는 글꼴도 가능)")]
+        [Header("글꼴·스프라이트: 비우면 UpgradeUiSkin 값 (스킨도 비면 LegacyRuntime 글꼴·단색)")]
         [SerializeField] private Font textFont;
         [SerializeField] private Font numberFont;
 
@@ -43,6 +44,9 @@ namespace HybridShooter.UI
         [SerializeField] private Sprite coinIcon;
         [Tooltip("UpgradeType 순서: ReloadSpeed, MagazineSize, GrenadeCapacity")]
         [SerializeField] private Sprite[] upgradeIcons = new Sprite[3];
+
+        /// <summary>배치(1920×1080 기준, 위 40 ~ 아래 1040) 축소 비율. 0.9 면 위아래로 약 60씩 여백</summary>
+        private const float PanelScale = 0.9f;
 
         private static readonly Color Cyan = new Color(0.2f, 0.9f, 1f);
         private static readonly Color Gold = new Color(1f, 0.8f, 0.2f);
@@ -76,12 +80,36 @@ namespace HybridShooter.UI
                 enabled = false;
                 return;
             }
+            ApplySkin(UpgradeUiSkin.Current);
             if (textFont == null) textFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (numberFont == null) numberFont = textFont;
 
             EnsureEventSystem();
             BuildLayout();
             root.SetActive(false);
+        }
+
+        /// <summary>Inspector 에서 비워 둔 칸을 스킨 값으로 채운다 (씬마다 연결하지 않아도 같은 겉모양)</summary>
+        private void ApplySkin(UpgradeUiSkin skin)
+        {
+            if (textFont == null) textFont = skin.textFont;
+            if (numberFont == null) numberFont = skin.numberFont;
+            if (rewardRibbon == null) rewardRibbon = skin.rewardRibbon;
+            if (victoryTitle == null) victoryTitle = skin.victoryTitle;
+            if (titleBar == null) titleBar = skin.titleBar;
+            if (coinBar == null) coinBar = skin.coinBar;
+            if (cardPanel == null) cardPanel = skin.cardPanel;
+            if (buyNormal == null) buyNormal = skin.buyNormal;
+            if (buyDisabled == null) buyDisabled = skin.buyDisabled;
+            if (ownedButton == null) ownedButton = skin.ownedButton;
+            if (starOn == null) starOn = skin.starOn;
+            if (starOff == null) starOff = skin.starOff;
+            if (mainButton == null) mainButton = skin.mainButton;
+            if (coinIcon == null) coinIcon = skin.coinIcon;
+
+            if (upgradeIcons == null || upgradeIcons.Length < skin.upgradeIcons.Length) System.Array.Resize(ref upgradeIcons, skin.upgradeIcons.Length);
+            for (int i = 0; i < skin.upgradeIcons.Length; i++)
+                if (upgradeIcons[i] == null) upgradeIcons[i] = skin.upgradeIcons[i];
         }
 
         private void OnEnable()
@@ -119,40 +147,38 @@ namespace HybridShooter.UI
             for (int i = 0; i < cards.Count; i++) RefreshCard(cards[i], manager.GetOption(manager.Types[i]));
 
             bool anyPurchasable = manager.AnyPurchasable;
-            bool skip = manager.HasPurchased == false && anyPurchasable == false;
             finishButton.interactable = manager.CanFinish;
-            finishLabel.text = skip ? "건너뛰기 ▶" : "다음 라운드 ▶";
-            subtitleText.text = manager.HasPurchased ? "강화 완료 · 다음 라운드를 시작하세요"
-                              : skip ? "구매할 수 있는 강화가 없습니다"
-                              : "하나를 선택하세요 · 다음 라운드까지 유지됩니다";
+            finishLabel.text = manager.HasPurchased ? "다음 라운드 ▶" : "건너뛰기 ▶";
+            subtitleText.text = anyPurchasable
+                ? (manager.HasPurchased ? $"강화 {manager.PurchaseCount}회 · 재화가 남아 있으면 계속 강화할 수 있습니다"
+                                        : "재화가 있는 만큼 강화할 수 있습니다 · 다음 라운드까지 유지됩니다")
+                : (manager.HasPurchased ? $"강화 {manager.PurchaseCount}회 완료 · 다음 라운드를 시작하세요"
+                                        : "구매할 수 있는 강화가 없습니다");
         }
 
         private void RefreshCard(CardView card, UpgradeManager.UpgradeOption option)
         {
-            bool purchasedThis = manager.HasPurchased && manager.PurchasedType == option.Type;
-            bool locked = manager.HasPurchased && purchasedThis == false;
             var shown = option.Next ?? option.Current;
 
             card.Name.text = shown != null ? shown.Name : option.Type.ToString();
             card.Description.text = shown != null ? shown.Description : "-";
             card.Level.text = option.IsMax ? $"Lv {option.Level} / {option.MaxLevel}"
                                            : $"Lv {option.Level} → {option.Level + 1} / {option.MaxLevel}";
-            card.Effect.text = purchasedThis ? $"{FormatValue(option.Type, option.CurrentValue)} 적용"
-                             : option.IsMax ? $"{FormatValue(option.Type, option.CurrentValue)} (최대)"
+            card.Effect.text = option.IsMax ? $"{FormatValue(option.Type, option.CurrentValue)} (최대)"
                              : $"<color=#7FA6B0>{FormatValue(option.Type, option.CurrentValue)}</color>  →  {FormatValue(option.Type, option.NextValue)}";
             SetStars(card, option.Level, option.MaxLevel);
 
-            card.Group.alpha = locked ? 0.45f : 1f;
-            card.Highlight.enabled = purchasedThis;
+            card.Group.alpha = option.IsMax || option.CanBuy ? 1f : 0.7f;
+            card.Highlight.enabled = option.CanBuy;
             card.Buy.interactable = option.CanBuy;
-            card.Shortage.gameObject.SetActive(locked == false && option.IsMax == false && option.CanBuy == false && manager.HasPurchased == false);
+            card.Shortage.gameObject.SetActive(option.IsMax == false && option.CanBuy == false);
 
-            if (purchasedThis || option.IsMax)
+            if (option.IsMax)
             {
                 SetSprite(card.BuyImage, ownedButton, new Color(0.05f, 0.4f, 0.45f));
                 card.BuyCoin.gameObject.SetActive(false);
-                card.Cost.text = purchasedThis ? "구매 완료" : "MAX";
-                card.Cost.font = purchasedThis ? textFont : numberFont;
+                card.Cost.text = "MAX";
+                card.Cost.font = numberFont;
                 card.Cost.color = Color.white;
             }
             else
@@ -213,7 +239,8 @@ namespace HybridShooter.UI
             var scaler = canvasGo.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
+            // Expand: 화면 비율과 상관없이 기준 해상도(1920×1080) 영역 전체가 항상 화면 안에 들어온다 (가로로 넓은 창에서 위아래 잘림 방지)
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             root = canvasGo;
 
             // 게임 화면을 어둡게 가리고 뒤쪽 클릭을 막는다
@@ -371,11 +398,18 @@ namespace HybridShooter.UI
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
         }
 
+        /// <summary>
+        /// 1920×1080 기준 배치를 담는 패널. 화면 가운데에 두고 PanelScale 로 줄여 위아래 여백을 남긴다
+        /// (배치 좌표는 기준 해상도 그대로 두고 크기만 한 곳에서 조절)
+        /// </summary>
         private static GameObject CreatePanel(string name, Transform parent)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
-            Stretch((RectTransform)go.transform);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(1920f, 1080f);
+            rect.localScale = Vector3.one * PanelScale;
             return go;
         }
 

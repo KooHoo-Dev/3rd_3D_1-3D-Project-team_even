@@ -51,8 +51,10 @@ namespace HybridShooter.Player
         [SerializeField] private float wallProbeDistance = 0.05f;
 
         [Header("급경사 미끄럼 (maxSlopeAngle 보다 가파른 면)")]
-        [Tooltip("면을 따라 미끄러지는 최고 속도(m/s)")]
+        [Tooltip("면을 따라 미끄러지는 최고 속도(m/s). 조작이 없거나 좌우·오르막 쪽일 때")]
         [SerializeField] private float steepSlideMaxSpeed = 4f;
+        [Tooltip("내리막 쪽으로 움직일 때 면을 따라 내려가는 최고 속도(m/s). 중력(g·sinθ)으로 가속하고, 달려 들어온 속도는 이어 간다")]
+        [SerializeField] private float steepDownhillMaxSpeed = 12f;
         [Tooltip("미끄럼 속도·방향이 목표로 바뀌는 가속도(m/s²)")]
         [SerializeField] private float steepSlideAcceleration = 20f;
         [Tooltip("미끄러지는 중 좌우·내리막 조작 비율 (걷기 속도 기준). 오르막 조작은 받지 않는다")]
@@ -209,6 +211,8 @@ namespace HybridShooter.Player
         private bool isGrounded;
         private bool isSliding;                // 급경사에 닿아 미끄러지는 중 (지상도 공중도 아님)
         private float snapDownSpeed;           // 지면 스냅: 이번 물리 프레임에 땅으로 끌어내리는 속도
+        private float appliedSnapDown;         // 지난 물리 프레임에 rb 속도에 실제로 더한 스냅 속도 (걷기가 속도를 읽기 전에 뺀다)
+        private bool velocityAlongGround;      // 지난 물리 프레임에 걷기·구르기가 속도를 땅을 따라 눕혔다 (착지 순간의 낙하 속도는 경사로 읽지 않게)
         private Vector3 motorTargetVelocity;   // 이번 물리 프레임 모터가 가려는 수평 속도 (외부 속도 소스에 넘긴다)
         private const float MaxSnapDownSpeed = 20f;
         private const float GroundProbeDepth = 3f;  // 발밑 땅 거리를 이 깊이까지 잰다
@@ -274,6 +278,8 @@ namespace HybridShooter.Player
         private float bossBlend;               // 0 = 어깨 시점, 1 = 보스전 카메라
         private float bossBlendTarget;
         private float bossBlendSpeed;
+        private float bossCameraScale = 1f;       // 보스별 카메라 거리 배율 (IBossCameraProfile). 천천히 따라간다
+        private float bossCameraScaleTarget = 1f;
 
         // 머리 숨김
         private Renderer[] headRendererCache = Array.Empty<Renderer>();
@@ -287,6 +293,7 @@ namespace HybridShooter.Player
 
         // 소모품 (수류탄 · 회복 팩). 같은 오브젝트의 PlayerItems
         private PlayerItems items;
+        private PlayerInteractor interactor;
 
         // 키 배치
         private InputPlayerSettings keySettings = new InputPlayerSettings();

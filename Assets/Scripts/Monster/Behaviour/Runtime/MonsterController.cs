@@ -13,7 +13,7 @@ namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
     /// 몬스터 1마리의 Unity 진입점 (Facade).
-    /// 체력(부위 없음, 단일 체력)을 직접 가지고(IDamageable), 매 프레임 상태 머신을 돌리고,
+    /// 체력(단일 체력. 약점은 배율만 곱해 같은 체력을 깎는다)을 직접 가지고(IDamageable), 매 프레임 상태 머신을 돌리고,
     /// 게임 이벤트(보스 정리·라운드 정리·플레이어 사망)를 상태 머신에 전달한다.
     /// </summary>
     /// <remarks>
@@ -44,16 +44,38 @@ namespace HybridShooter.Monster.Behaviour
         [SerializeField, Min(0.01f)] private float activeSeconds = 0.5f;
         [Tooltip("Active 구간 중 판정 시점 비율. 0 = Active 시작, 1 = Active 끝. 다음 공격 시작부터 반영")]
         [SerializeField, Range(0f, 1f)] private float hitTimeRatio = 0.5f;
+        [Tooltip("근접 판정 구간 끝 비율. 판정 구간 = Active 의 [판정 시점 비율, 이 값]. 판정 시점 비율 이하 = 판정 시점 1틱만. 근접(Strike)만 쓴다. 다음 공격 시작부터 반영")]
+        [SerializeField, Range(0f, 1f)] private float hitEndRatio = 0.5f;
+        [Tooltip("근접 판정 구간 동안 최대 명중 횟수. 1 = 1번만. 명중 1번 = 테이블 Damage × HitCount. 다음 판정부터 반영")]
+        [SerializeField, Min(1)] private int maxHitsPerAttack = 1;
+        [Tooltip("근접 판정 구간 안 반복 명중 사이 최소 간격 (s). 다음 판정부터 반영")]
+        [SerializeField, Min(0f)] private float hitIntervalSeconds = 0f;
+        [Tooltip("조준점 랜덤 반경 (m). 공격마다 플레이어 위치 + 이 반경 구 안 랜덤 점을 노린다 (도약 착지점·독 착탄점·돌진/급강하 방향). 피해 판정은 실제 플레이어 위치. 0 = 정확히 플레이어. 다음 공격 시작부터 반영")]
+        [SerializeField, Min(0f)] private float aimOffsetRadius = 0f;
+        [Tooltip("근접 판정 거리 = 테이블 Range × 이 비율. 1 = 진입 거리와 같음. 예고 동안 같은 방향으로 도망가는 플레이어를 맞히려면 (Range + 플레이어 속도 × 판정 시각 + 0.2) ÷ Range. 다음 판정부터 반영")]
+        [SerializeField, Min(1f)] private float hitRangeRatio = 1f;
         [Tooltip("예고 중 바라볼 지점으로 도는 속도 (도/초). 0 = 돌지 않는다. 다음 프레임부터 반영")]
         [SerializeField, Min(0f)] private float windupTurnSpeed = 360f;
+
+        [Header("저체력")]
+        [Tooltip("현재 체력이 최대 체력의 이 비율 이하면 저체력. 느려지고 붉어진다 (0~1)")]
+        [SerializeField, Range(0f, 1f)] private float lowHealthRatio = 0.3f;
+        [Tooltip("저체력일 때 이동 속도 배율. 테이블 MoveSpeed × 이 값. 돌진·급강하 같은 공격 이동은 그대로")]
+        [SerializeField, Range(0.05f, 1f)] private float lowHealthSpeedRatio = 0.6f;
 
         // Base Controller 의 Attack 상태 원본 클립 이름. Override 인덱서는 원본 클립 이름으로 슬롯을 찾는다
         private const string BaseAttackClipName = "Placeholder_Attack";
 
         private MonsterMovement movement;
+        private PounceSettings pounceSettings; // 측면 침투형(도약)만 있음. null = 원거리 접근 배율 없음
         private bool playerDead;
         private float despawnTime = -1f;   // 회수 예정 시각 (s, Time.time 기준). -1 = 아직 처치 안 됨
         private bool despawned;
+
+        // ── 피격·사망 표현 ──
+        private MonsterDamageFeedback damageFeedback;
+        private MonsterCorpse corpse;
+        private Vector3 lastHitDirection;  // 마지막 피격 방향 (공격자 → 몬스터, 월드). 0 = 아직 안 맞음. 시체를 미는 방향
 
         // ── 애니메이션 ──
         private Animator animator;
@@ -61,6 +83,8 @@ namespace HybridShooter.Monster.Behaviour
         public int MonsterId => monsterId;
         public MonsterDef Def { get; private set; }
         public MonsterStateMachine StateMachine { get; private set; }
+        // 공격 동작(예고·공격·회복)이 진행 중인가. MonsterWeakPoint 가 WhileAttacking 약점 노출을 판단할 때 쓴다
+        public bool IsAttacking => StateMachine.CurrentAttack.IsAttacking;
 
         // ── 소리 알림 (IMonsterSoundSource. MonsterSoundEmitter 가 구독) ──
         public event Action<MonsterAttackDef, SkillPhase> AttackPhaseChanged;
@@ -74,6 +98,7 @@ namespace HybridShooter.Monster.Behaviour
         public int CurrentHp { get; private set; }
         public Faction Faction => Faction.Monster;
         public bool IsAlive => CurrentHp > 0;
+        public bool IsLowHealth => CurrentHp <= MaxHp * lowHealthRatio;
 
         /// <summary>
         /// 컴포넌트 참조를 잡고, monsterId 로 테이블 Def 를 읽어 체력을 채운다.
@@ -83,6 +108,8 @@ namespace HybridShooter.Monster.Behaviour
         {
             movement = GetComponent<MonsterMovement>();
             animator = GetComponent<Animator>();
+            damageFeedback = GetComponent<MonsterDamageFeedback>();
+            corpse = GetComponent<MonsterCorpse>();
 
             Def = DataManager.Monsters.Get(monsterId);
             InitializeHealth(Def.MaxHp);
@@ -103,7 +130,8 @@ namespace HybridShooter.Monster.Behaviour
         /// 풀(팩토리)이 재사용 개체를 켠 직후 1번 부른다. 처음 만든 개체는 Start 가 조립하므로 부르지 않는다.
         /// </summary>
         /// <remarks>
-        /// Dead 는 상태 머신의 종료 상태라 상태 머신을 새로 만든다.
+        /// Dead 는 상태 머신의 종료 상태라 상태 머신을 새로 만든다. 시체 물리·붉은 기도 되돌린다.
+        /// 이동 속도는 AssembleStateMachine 의 SetCombatTuning 이 테이블 값으로 되돌린다 (저체력 감속 해제).
         /// 마지막에 enabled = true 로 OnEnable 을 태워 이동을 켜고 게임 이벤트를 다시 구독한다.
         /// Animator 는 GameObject 를 끄고 켤 때 초기화된다 (Keep Animator State On Disable 꺼짐 전제).
         /// </remarks>
@@ -113,7 +141,10 @@ namespace HybridShooter.Monster.Behaviour
             despawnTime = -1f;
             playerDead = false;
             InitializeHealth(Def.MaxHp);
-            foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = true; // OnStateMachineDied 가 끈 피격 판정 복구
+            lastHitDirection = Vector3.zero;
+            foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = true; // MonsterCorpse 가 끈 피격 판정 복구
+            corpse.Restore(); // 이동 재개(AssembleStateMachine) 전에 NavMeshAgent 를 켠다
+            damageFeedback.ResetForRespawn();
             AssembleStateMachine();
             enabled = true;
         }
@@ -126,10 +157,13 @@ namespace HybridShooter.Monster.Behaviour
         {
             // 모든 컴포넌트 Awake 이후 조립한다. Brain 생성 직후 Idle.Stop도 실행기를 안전하게 사용한다.
             var body = new MonsterBody(transform, GetComponent<NavMeshMoveExecutor>());
-            var attackSettings = new MonsterAttackSettings(GetComponent<PoisonAreaSettings>(),
-                                                          GetComponent<PounceSettings>(),
-                                                          GetComponent<ChargeSettings>(),
-                                                          GetComponent<DiveSettings>());
+            var attackSettings = GetComponents<MonsterAttackSettingsComponent>(); // 붙은 공격 설정 전부. 공격마다 필요한 타입만 꺼내 쓴다
+            
+            // 돌진형 개체 navmeshagent 우선순위 조정
+            var navMeshExecutor = GetComponent<NavMeshMoveExecutor>();
+            var chargeSettings = GetComponent<ChargeSettings>();
+            if (chargeSettings != null) navMeshExecutor.FixAvoidancePriority(chargeSettings.AvoidancePriority); // 돌진형은 슬롯 규칙 대신 고정 우선순위
+            
             var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
             var attacks = new List<MonsterAttack>();
             foreach (MonsterAttackDef attackDef in BasicAttackDefs(Def))
@@ -139,6 +173,8 @@ namespace HybridShooter.Monster.Behaviour
                                                               attackSettings, movement, flyingExecutor));
             }
             movement.SetCombatTuning(Def.MoveSpeed, attacks[0].Range); // 이동의 전투 사거리는 첫 공격 기준
+            pounceSettings = GetComponent<PounceSettings>();
+            if (pounceSettings != null) movement.SetFlankApproachSpeedMultiplier(pounceSettings.FarApproachSpeedMultiplier);
             StateMachine = new MonsterStateMachine(movement, body, attacks);
 
             StateMachine.Died += OnStateMachineDied;
@@ -207,10 +243,10 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 인스펙터의 쿨다운·Active 길이·판정 비율·예고 회전 속도를 이 몬스터의 모든 공격에 넣는다.
+        /// 인스펙터의 쿨다운·Active 길이·판정 비율·판정 끝 비율·최대 명중 횟수·명중 간격·판정 거리 비율·예고 회전 속도·조준 반경을 이 몬스터의 모든 공격에 넣는다.
         /// 덮어쓰기가 꺼져 있으면 쿨다운은 각 공격의 데이터 테이블 값을 쓴다.
         /// </summary>
-        /// <remarks>쿨다운·Active 길이·판정 비율은 Begin 때 고정하므로 실제 반영은 다음 공격부터다. 예고 회전 속도는 다음 프레임부터 반영된다.</remarks>
+        /// <remarks>쿨다운·Active 길이·판정 비율·판정 끝 비율·조준 반경은 Begin 때 고정하므로 실제 반영은 다음 공격부터다. 최대 명중 횟수·명중 간격·판정 거리 비율은 다음 판정부터, 예고 회전 속도는 다음 프레임부터 반영된다.</remarks>
         private void ApplyAttackTuning()
         {
             foreach (MonsterAttack attack in StateMachine.Attacks)
@@ -221,7 +257,12 @@ namespace HybridShooter.Monster.Behaviour
                 attack.Cooldown = cooldown;
                 attack.ActiveSeconds = activeSeconds;
                 attack.HitTimeRatio = hitTimeRatio;
+                attack.HitEndRatio = hitEndRatio;
+                attack.MaxHitsPerAttack = maxHitsPerAttack;
+                attack.HitIntervalSeconds = hitIntervalSeconds;
+                attack.HitRangeRatio = hitRangeRatio;
                 attack.WindupTurnSpeed = windupTurnSpeed;
+                attack.AimOffsetRadius = aimOffsetRadius;
             }
         }
 
@@ -294,6 +335,7 @@ namespace HybridShooter.Monster.Behaviour
         /// 이동 자체가 공격인 몬스터(돌진)는 Attack 중과 Idle 준비 동작 중에도 공격이 알려준 몸 이동 속도로 같은 일을 한다.
         /// Move 면 재생 배율을 (속도 ÷ 클립 기준 속도) 로 맞춰 발 미끄러짐을 줄인다.
         /// 클립 기준 속도는 Chase 면 moveClipSpeed, 공격 이동 중이면 공격의 MoveClipSpeedFor (돌진 = ChargeSettings.ChargeClipSpeed).
+        /// 측면 침투형이 Chase 중 원거리 시야 밖 접근이면 재생 배율에 PounceSettings.FarApproachClipSpeedMultiplier 를 더 곱한다.
         /// </summary>
         private void UpdateMoveAnimation()
         {
@@ -312,9 +354,13 @@ namespace HybridShooter.Monster.Behaviour
                 clipSpeed = currentAttack.MoveClipSpeedFor(moveClipSpeed);
             }
             bool shouldMove = speed >= idleSpeedThreshold;
+            bool isApproachingOutOfView = isChasing && pounceSettings != null && movement.IsApproachingOutOfView;
             animator.SetBool("IsMoving", shouldMove);
 
-            if (shouldMove) animator.speed = speed / clipSpeed;
+            float playbackRate = speed / clipSpeed;
+            if (isApproachingOutOfView) playbackRate *= pounceSettings.FarApproachClipSpeedMultiplier;
+
+            if (shouldMove) animator.speed = playbackRate;
             else animator.speed = 1f;
         }
 
@@ -336,11 +382,18 @@ namespace HybridShooter.Monster.Behaviour
         /// 대상이 없으면 ServiceLocator 의 플레이어를 상태 머신과 이동에 같은 값으로 넣는다.
         /// 플레이어가 죽었거나 아직 등록 전이면 아무것도 하지 않는다.
         /// </summary>
+        /// <remarks>
+        /// 사망 이벤트 뒤에 생성·재사용된 몬스터는 playerDead 가 false 라서, 플레이어의 IsAlive 를 직접 읽어 시체 재추적을 막는다.
+        /// </remarks>
         private void AcquireTarget()
         {
             if (playerDead) return;
             if (StateMachine.HasTarget) return;
             if (ServiceLocator.TryGet(out IPlayerTarget player) == false) return; // 플레이어 등록 전
+            var playerDamageable = player as IDamageable;
+            bool isPlayerDamageable = playerDamageable != null;
+            bool isPlayerDead = isPlayerDamageable && playerDamageable.IsAlive == false;
+            if (isPlayerDead) return;
             StateMachine.SetTarget(player);
             SetMovementTarget(player);
         }
@@ -348,7 +401,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// 이동(군중)에 목표를 넣는다. 지금 목표와 같으면 다시 넣지 않는다.
         /// </summary>
-        /// <remarks>CrowdCoordinator.SetTarget 은 호출마다 군중 전체의 슬롯 예약을 비우므로 중복 호출을 막는다.</remarks>
+        /// <remarks>CrowdController.SetTarget 은 호출마다 군중 전체의 슬롯 예약을 비우므로 중복 호출을 막는다.</remarks>
         /// <param name="target">새 목표. null = 대상 상실 (플레이어 사망 등)</param>
         private void SetMovementTarget(IPlayerTarget target)
         {
@@ -368,39 +421,84 @@ namespace HybridShooter.Monster.Behaviour
             CurrentHp = maxHp;
         }
 
+        /// <summary>무기가 IDamageable 로 호출한다 (몸통 명중). ApplyDamage 로 넘긴다</summary>
+        /// <param name="info">피해 정보. Amount 만큼 체력을 깎는다</param>
+        public void TakeDamage(in DamageInfo info) => ApplyDamage(info, false);
+
+        /// <summary>MonsterWeakPoint 가 부위 배율을 곱한 피해로 호출한다. 약점용 피를 튀긴다</summary>
+        /// <param name="info">배율을 곱한 피해 정보</param>
+        public void TakeWeakPointDamage(in DamageInfo info) => ApplyDamage(info, true);
+
         /// <summary>
-        /// 무기가 IDamageable 로 호출한다. 체력을 깎고 맞을 때마다 DamageDealtEvent 를 발행한다.
-        /// 체력이 0 이 된 순간 1번 상태 머신을 Dead 로 보낸다 (보상 지급).
-        /// 이미 죽었으면 무시한다.
+        /// 체력을 깎고 맞을 때마다 DamageDealtEvent 를 발행하고, 맞은 곳에 피를 튀긴다.
+        /// 체력이 0 이 된 순간 1번 상태 머신을 Dead 로 보낸다 (보상 지급). 아니면 피격 모션을 재생하고,
+        /// 저체력 기준을 처음 넘은 순간 1번 느려지고 붉어진다. 이미 죽었으면 무시한다.
         /// </summary>
         /// <param name="info">피해 정보. Amount 만큼 체력을 깎는다</param>
+        /// <param name="isWeakPoint">true = 약점 명중</param>
         /// <exception cref="InvalidOperationException">InitializeHealth 전에 호출됐을 때</exception>
-        public void TakeDamage(in DamageInfo info)
+        private void ApplyDamage(in DamageInfo info, bool isWeakPoint)
         {
             if (MaxHp == 0) throw new InvalidOperationException($"{nameof(InitializeHealth)} 전에 피해를 받았다");
             if (IsAlive == false) return;
 
+            bool wasLowHealth = IsLowHealth;
             CurrentHp = Mathf.Max(0, CurrentHp - info.Amount);
+            lastHitDirection = info.Direction;
             bool isKill = IsAlive == false;
+            bool becameLowHealth = wasLowHealth == false && IsLowHealth;
             Debug.Log($"{gameObject.name}: {info.Amount} 체력을 깎는다. 현재 체력: {CurrentHp}");
             EventBus<DamageDealtEvent>.Publish(new DamageDealtEvent(gameObject, info, isKill));
-            if (isKill) StateMachine.Die(true);
+            damageFeedback.PlayHitBlood(info.HitPoint, info.Direction, isWeakPoint);
+
+            if (isKill)
+            {
+                StateMachine.Die(true);
+                return;
+            }
+            damageFeedback.PlayHitAnimation(info.Direction);
+            if (becameLowHealth) EnterLowHealth();
+        }
+
+        /// <summary>
+        /// 저체력에 들어간다: 이동 속도를 테이블 값 × lowHealthSpeedRatio 로 낮추고 몸을 붉게 한다.
+        /// ApplyDamage 가 저체력 기준을 처음 넘은 순간 1번 부른다. Respawn 의 재조립이 속도를 되돌린다.
+        /// </summary>
+        private void EnterLowHealth()
+        {
+            float attackRange = StateMachine.Attacks[0].Range; // AssembleStateMachine 과 같은 첫 공격 기준
+            movement.SetCombatTuning(Def.MoveSpeed * lowHealthSpeedRatio, attackRange);
+            damageFeedback.ShowLowHealth();
         }
 
         /// <summary>
         /// 상태 머신이 Dead 에 들어갈 때 호출된다.
-        /// 대상을 놓고, 콜라이더를 끄고, 공중 몬스터면 낙하를 시작하고, MonsterDiedEvent 를 발행하고, 회수 시각을 정한다.
+        /// 대상을 놓고, 피를 터뜨리고, 몸을 물리 시체로 바꾸고, MonsterDiedEvent 를 발행하고, 회수 시각을 정한다.
         /// </summary>
         /// <param name="grantReward">true = 처치 보상 지급. MonsterDiedEvent 로 그대로 전달한다</param>
         private void OnStateMachineDied(bool grantReward)
         {
+            CurrentHp = 0; // 자폭처럼 체력 피해 없이 Dead 로 들어오는 경우에도 IsAlive 를 일치시킨다.
             StateMachine.SetTarget(null);
-            foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = false; // 시체는 피격 판정 없음
-            var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
-            if (flyingExecutor != null) flyingExecutor.StartFalling();
+            damageFeedback.PlayDeathBlood(); // 콜라이더가 바뀌기 전 몸통 중심에서
+            BecomeCorpse();
             Died?.Invoke();
             EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(Def, transform.position, gameObject, grantReward));
             despawnTime = Time.time + despawnDelay;
+        }
+
+        /// <summary>
+        /// 이동을 끄고 몸을 물리 시체로 넘긴다. 공중 몬스터는 죽는 순간의 비행 속도를 이어받아 떨어지고 구른다.
+        /// OnStateMachineDied 가 부른다. 이동은 Respawn 의 enabled = true(OnEnable)가 다시 켠다.
+        /// </summary>
+        private void BecomeCorpse()
+        {
+            Vector3 deathVelocity = Vector3.zero;
+            var flyingExecutor = GetComponent<FlyingMoveExecutor>(); // 공중 프리팹에만 있다. 없으면 null
+            if (flyingExecutor != null) deathVelocity = flyingExecutor.Velocity;
+
+            movement.enabled = false; // NavMeshAgent·비행 이동이 시체를 다시 옮기지 않게
+            corpse.BecomeCorpse(deathVelocity, lastHitDirection);
         }
 
         /// <summary>보스 등장 공격이 잡몹을 정리할 때 이 몬스터를 죽인다.</summary>

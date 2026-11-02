@@ -8,7 +8,7 @@ namespace HybridShooter.Core.Data
     public enum MonsterGrade { Weak, Mid, Boss }
 
     /// <summary>몬스터 AI 역할. Boss 는 Grade 가 Boss 인 몬스터에만 쓴다</summary>
-    public enum MonsterRole { Melee, Air, Rusher, Infiltrator, ZonePressure, Boss }
+    public enum MonsterRole { Melee, Air, Rusher, Infiltrator, ZonePressure, Boss, SelfDestruct }
 
     /// <summary>같은 프리팹의 메시 변종 (무스코모프 날개 ON/OFF)</summary>
     public enum MeshVariant { Default, WingsOff, WingsOn }
@@ -32,12 +32,21 @@ namespace HybridShooter.Core.Data
         Flank,     // 플레이어 측면/시야 밖
         Air,       // 공중
         Herd,      // 한 방향에 밀집한 무리
+        Nest,      // 둥지: 같은 웨이브·같은 StartDelay 의 Nest 스포너들이 링 위 한 지점 주위에서 종류를 섞어 계속 나온다
+        Crowd,     // 군중 묶음: 같은 웨이브·같은 StartDelay 의 Crowd 스포너들이 한 지점 주위에서 나오고, 묶음 전용 CrowdController 의 슬롯 포위 통제를 받는다
     }
 
-    public enum SupplyType { Grenade, Heal }
+    /// <summary>Weapon = 1회용 보급 무기 (SupplyTable.WeaponId)</summary>
+    public enum SupplyType { Grenade, Heal, Weapon }
 
     public enum UpgradeType { ReloadSpeed, MagazineSize, GrenadeCapacity }
 
     /// <summary>믹서 그룹·볼륨 단위. Monster 는 보스 포효 때 따로 줄이기(덕킹) 위해 Sfx 에서 분리</summary>
     public enum SoundCategory { Bgm, Sfx, Monster, Ui }
+
+    /// <summary>무기 슬롯 분류. Sidearm = 1번 칸 고정 권총 · Loadout = 출발 전 2·3번 칸 선택 · Supply = 4번 보급 칸 전용(1회용)</summary>
+    public enum WeaponCategory { Sidearm, Loadout, Supply }
+
+    /// <summary>군중전 스테이지 종류. Normal = StartTime 에 시작 · ClearBonus = EndTime 전에 본 웨이브를 전멸시키면 1번 시작하는 특수 웨이브</summary>
+    public enum WaveStageKind { Normal, ClearBonus }
 }

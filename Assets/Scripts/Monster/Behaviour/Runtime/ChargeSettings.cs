@@ -6,7 +6,7 @@ namespace HybridShooter.Monster.Behaviour
     /// 돌진형(Rusher) 몬스터 프리팹에 붙이는 돌진 튜닝 값. Play 에서 자주 바꾸는 값을 한곳에 모은다.
     /// MonsterController.Start 가 찾아 MonsterAttackFactory 로 넘기고, ChargeAttack 이 읽는다.
     /// </summary>
-    public sealed class ChargeSettings : MonoBehaviour
+    public sealed class ChargeSettings : MonsterAttackSettingsComponent
     {
         [Header("돌진")]
         [Tooltip("돌진 속도 (m/s)")]
@@ -26,6 +26,10 @@ namespace HybridShooter.Monster.Behaviour
         [Tooltip("휴식 중 정면으로 천천히 걷는 속도 (m/s)")]
         [SerializeField, Min(0f)] private float prepMoveSpeed = 1.5f;
 
+        [Header("회피")]
+        [Tooltip("NavMeshAgent 회피 우선순위 (낮을수록 우선). 상태와 무관하게 항상 이 값으로 고정한다. 슬롯 몬스터(40~60)보다 앞서도록 30대를 쓴다")]
+        [SerializeField, Range(0, 99)] private int avoidancePriority = 30;
+
         public float ChargeSpeed => chargeSpeed;
         public float ChargeTurnSpeed => chargeTurnSpeed;
         public float BrakeDeceleration => brakeDeceleration;
@@ -33,5 +37,6 @@ namespace HybridShooter.Monster.Behaviour
         public float ChargeClipSpeed => chargeClipSpeed;
         public float PrepTurnSpeed => prepTurnSpeed;
         public float PrepMoveSpeed => prepMoveSpeed;
+        public int AvoidancePriority => avoidancePriority;
     }
 }

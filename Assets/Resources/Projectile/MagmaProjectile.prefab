@@ -41,7 +41,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 674334884077541922}
-  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 4300000, guid: b14cf4a153fd21c479ecb3d2f45b7ba9, type: 2}
 --- !u!23 &7646980058890416462
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -67,7 +67,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 59ad2299fbce42ca9413fde0ac8d0cfc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -185,10 +185,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44a07fbe1d844c18b4da96c8481b9ff8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.MagmaProjectile
-  damageMask:
-    serializedVersion: 2
-    m_Bits: 1
   coverMask:
     serializedVersion: 2
     m_Bits: 393
-  maxLifetime: 10
+  rangePrefab: {fileID: 7329057322042179811, guid: 9234d485a63c9644595cbf8d4efdef78, type: 3}
+  explodeSfxKey: mon_clypeosaurus_magma_impact

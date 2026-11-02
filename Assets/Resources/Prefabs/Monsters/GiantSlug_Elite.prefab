@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &5947992687160554421
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -7821899813460665779, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: arcHeight
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: -7821899813460665779, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: tickDamage
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: -7821899813460665779, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: tickInterval
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: -7821899813460665779, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: zoneDuration
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 1546374712027911385, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: monsterId
+      value: 2103
+      objectReference: {fileID: 0}
+    - target: {fileID: 1546374712027911385, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: aimOffsetRadius
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2915691540627803409, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: profile
+      value: 
+      objectReference: {fileID: 11400000, guid: 8a82158a26be1a443abfcb499dec11b0, type: 2}
+    - target: {fileID: 3281474137550595047, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_Name
+      value: GiantSlug_Elite
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8272012598371720592, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8272012598371720592, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 708bd9fc5fb64a7c9670b3b07d8dfe9b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}

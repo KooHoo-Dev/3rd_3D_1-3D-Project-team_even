@@ -80,7 +80,7 @@ namespace HybridShooter.Core.Contracts
     ///  - 예비 탄창 = 탄창 단위 개수. 탄창 안 탄약(재장전 없이 쏠 수 있는 수)과 별개
     ///  - 예비 탄창이 무한인 총(권총)은 보충을 받지 않는다
     ///  - 변화는 AmmoChangedEvent 로 알린다 (지금 든 총만)
-    /// 예) 보급 상자: case SupplyType.Ammo: return other.GetComponentInParent&lt;IPlayerAmmo&gt;()?.AddMagazines(Def.Amount) ?? false;
+    /// 예) 보급 상자: int added = other.GetComponentInParent&lt;IPlayerAmmo&gt;()?.AddSupplyMagazines() ?? 0;
     /// </summary>
     public interface IPlayerAmmo
     {
@@ -89,10 +89,17 @@ namespace HybridShooter.Core.Contracts
         /// <summary>지금 든 총의 예비 탄창 최대 개수 (든 총이 없으면 0)</summary>
         int MaxMagazines { get; }
 
-        /// <summary>지금 든 총에 예비 탄창 amount 개 보충 (최대까지). 이미 최대·무한 탄창·총 없음이면 false</summary>
+        /// <summary>지금 든 총에 예비 탄창 amount 개 보충 (최대까지). 이미 최대·무한 탄창·총 없음·보급 무기면 false</summary>
         bool AddMagazines(int amount);
-        /// <summary>슬롯의 모든 총에 예비 탄창 amount 개씩 보충. 하나라도 보충됐으면 true</summary>
-        bool AddMagazinesToAll(int amount);
+        /// <summary>슬롯의 모든 총(보급 칸 제외 — 보급 무기는 1회용)에 예비 탄창 amount 개씩 보충. 반환: 실제로 늘어난 예비 탄창 합</summary>
+        int AddMagazinesToAll(int amount);
+        /// <summary>AddSupplyMagazines 로 한 개라도 늘어날 총이 있는지 (보급 상자 프롬프트의 가득 참 경고용)</summary>
+        bool CanAddSupplyMagazines { get; }
+        /// <summary>
+        /// 보급 1회분 충전. 슬롯의 모든 총(보급 칸 제외)에 각자 MaxMagazines × WeaponDef.SupplyMagazineRatio (내림·최소 1)개씩 최대까지 보충.
+        /// 반환: 실제로 늘어난 예비 탄창 합 (0 = 모두 가득·무한 탄창)
+        /// </summary>
+        int AddSupplyMagazines();
         /// <summary>진행 중인 재장전을 취소한다 (넉백·기절 등을 주는 공격·연출). 탄·예비 탄창은 그대로</summary>
         void InterruptReload();
     }
