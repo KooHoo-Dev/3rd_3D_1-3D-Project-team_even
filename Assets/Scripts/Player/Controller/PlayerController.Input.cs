@@ -110,7 +110,7 @@ namespace HybridShooter.Player
 
             for (int i = 0; i < keySettings.slotKeys.Length; i++)
                 if (SimpleInput.GetKeyDown(keySettings.slotKeys[i])) gunSlot.Select(i);
-            if (SimpleInput.GetKeyDown(keySettings.debugSwapPrimaryKey)) gunSlot.DebugCycleSupplyWeapon();
+            // if (SimpleInput.GetKeyDown(keySettings.debugSwapPrimaryKey)) gunSlot.DebugCycleSupplyWeapon();
 
             float scroll = SimpleInput.GetMouseScrollDeltaRaw();
             if (scroll > 0f) gunSlot.SelectNext(-1);
