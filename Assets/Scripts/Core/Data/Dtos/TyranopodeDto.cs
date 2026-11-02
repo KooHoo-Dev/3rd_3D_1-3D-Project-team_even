@@ -144,6 +144,8 @@ namespace HybridShooter.Core.Data.Dtos
         public int StormWaves;
         public float StormSectorAngle;
         public float StormRadius;
+        public float StormChaseMargin;
+        public float StormMaxRadius;
         public float StormTelegraph;
         public float StormInterval;
         public float StormSweepTime;

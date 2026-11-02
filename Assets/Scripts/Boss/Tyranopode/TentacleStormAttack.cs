@@ -9,6 +9,7 @@ namespace HybridShooter.Boss.Tyranopode
     ///  - 예고(StormTelegraph): 쓸 쪽 촉수가 들리며 늘어나고, 바닥 부채꼴이 쓸고 올 방향으로 차오른다
     ///  - 쓸기(StormSweepTime): 촉수가 StormSectorAngle 만큼 지나간다. 판정은 보이는 촉수·채찍 끝 그대로
     ///    (보스 → 끝 선이 플레이어를 지나가면 맞음). 점프로 StormJumpClear 이상 떠 있거나, 구르기 무적이거나, 끝보다 멀면 안 맞는다
+    ///  - 사거리: 예고 때 플레이어 거리 + StormChaseMargin (StormRadius ~ StormMaxRadius) → 뒤로 물러나서는 못 벗어난다
     ///  - 사이 간격(StormInterval): 촉수를 거두고 착지할 틈
     /// 쓸기는 항상 보스가 바라보는 쪽(플레이어 쪽) 반원에서 시작한다 → 화면 밖에서 오지 않는다.
     /// 처음 쓰는 촉수 폭풍: 첫 쓸기 예고를 StormFirstExtraTelegraph 만큼 늘이고 분석 화면이 회피 요령을 알려 준다.
@@ -42,6 +43,7 @@ namespace HybridShooter.Boss.Tyranopode
         private bool cued;
         private bool firstStorm = true;
         private float prevAngle;
+        private float reach;
         private float nextDustTime;
         private Vector3 forward;
         private GroundTelegraph telegraph;
@@ -78,6 +80,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             Move.FaceInstant(TargetPosition);
             forward = transform.forward;
+            reach = SweepReach();
             hitDone = false;
             cued = false;
             if (jumpLearned == false) Owner.ShowEvadePrompt();
@@ -87,7 +90,7 @@ namespace HybridShooter.Boss.Tyranopode
             Tentacle.Raise(fromLeft ? TyranopodeTentacleSweep.Side.Left : TyranopodeTentacleSweep.Side.Right,
                 Owner.IsBroken(TyranopodePartType.FrontTentacle));
             telegraph = Telegraph();
-            telegraph.ShowSweep(transform.position, forward, Data.StormRadius, Data.StormSectorAngle, time, DangerColor, fromLeft);
+            telegraph.ShowSweep(transform.position, forward, reach, Data.StormSectorAngle, time, DangerColor, fromLeft);
             View.Play(fromLeft ? TyranopodeView.TentacleLeft : TyranopodeView.TentacleRight, swingPlaySpeed, 0.2f);
         }
 
@@ -101,14 +104,14 @@ namespace HybridShooter.Boss.Tyranopode
             {
                 case Stage.Raise:
                     // 시작 쪽으로 들어 올리며 늘어난다 (끝 무렵 다 늘어남)
-                    Tentacle.SetAim(Direction(startAngle), Data.StormRadius * Mathf.SmoothStep(0.3f, 1f, k), Mathf.SmoothStep(0f, 1f, k * 1.5f), k);
+                    Tentacle.SetAim(Direction(startAngle), reach * Mathf.SmoothStep(0.3f, 1f, k), Mathf.SmoothStep(0f, 1f, k * 1.5f), k);
                     if (k >= 1f) BeginSweep(startAngle);
                     return;
 
                 case Stage.Sweep:
                 {
                     float angle = Mathf.Lerp(startAngle, endAngle, Mathf.SmoothStep(0f, 1f, k));
-                    Tentacle.SetAim(Direction(angle), Data.StormRadius, 1f, 1f);
+                    Tentacle.SetAim(Direction(angle), reach, 1f, 1f);
                     CueJump(prevAngle, angle, k);
                     CheckHit(prevAngle, angle);
                     prevAngle = angle;
@@ -122,7 +125,7 @@ namespace HybridShooter.Boss.Tyranopode
                 }
 
                 default:
-                    Tentacle.SetAim(Direction(endAngle), Data.StormRadius * (1f - k * 0.7f), 1f - k, 1f - k);
+                    Tentacle.SetAim(Direction(endAngle), reach * (1f - k * 0.7f), 1f - k, 1f - k);
                     if (k < 1f) return;
                     Tentacle.Release();
                     fromLeft = !fromLeft;
@@ -143,7 +146,7 @@ namespace HybridShooter.Boss.Tyranopode
             prevAngle = startAngle;
             nextDustTime = 0f;
             View.Play(fromLeft ? TyranopodeView.TentacleLeft : TyranopodeView.TentacleRight, 1.4f, 0.05f);
-            Shake(slamShake, transform.position, Data.StormRadius * 2f);
+            Shake(slamShake, transform.position, reach * 2f);
             Owner.RaiseSoundCue(TyranopodeSoundCue.StormSweep, transform.position);
         }
 
@@ -159,6 +162,20 @@ namespace HybridShooter.Boss.Tyranopode
             stage = next;
             stageStart = Time.time;
             stageTime = Mathf.Max(0.01f, time);
+        }
+
+        /// <summary>
+        /// 이번 쓸기 사거리: 플레이어 거리 + StormChaseMargin (StormRadius ~ StormMaxRadius) → 예고 동안 뒤로 물러나도 닿는다.
+        /// 경기장이 있으면 보스에서 가장 먼 벽까지만 (그보다 멀리 뻗을 필요가 없다)
+        /// </summary>
+        private float SweepReach()
+        {
+            float distance = Flat(TargetPosition - transform.position).magnitude;
+            float value = Mathf.Clamp(distance + Data.StormChaseMargin, Data.StormRadius, Data.StormMaxRadius);
+            var arena = Owner.Minions;
+            if (arena != null && arena.HasBounds)
+                value = Mathf.Min(value, Flat(arena.Center - transform.position).magnitude + arena.FarRadius);
+            return Mathf.Max(Data.StormRadius, value);
         }
 
         /// <summary>보스 정면에서 angle 도 돌린 수평 방향 (음수 = 왼쪽)</summary>
