@@ -688,23 +688,20 @@ namespace HybridShooter.Boss.Tyranopode
             if (state == State.Fight && willTransition == false && special == false) EnterFlinch();
         }
 
-        private int PartMaxHp(TyranopodePartType type) => type switch
-        {
-            TyranopodePartType.FrontTentacle => Def.FrontTentacleHp,
-            TyranopodePartType.LegTentacle => Def.LegTentacleHp,
-            TyranopodePartType.Sac => Def.SacHp,
-            TyranopodePartType.Head => Def.HeadHp,
-            _ => 0,
-        };
+        /// <summary>부위 최대 체력. MonsterPartTable 의 이 보스 행(PartKey = 부위 종류 이름)에서 읽는다</summary>
+        /// <param name="type">부위 종류</param>
+        /// <returns>최대 체력. 0 = 부서지지 않는 부위 (몸통)</returns>
+        private int PartMaxHp(TyranopodePartType type) => PartDef(type).PartHp;
 
-        private float PartDamageMultiplier(TyranopodePartType type) => type switch
-        {
-            TyranopodePartType.FrontTentacle => Def.FrontTentacleDamageMultiplier,
-            TyranopodePartType.LegTentacle => Def.LegTentacleDamageMultiplier,
-            TyranopodePartType.Sac => Def.SacDamageMultiplier,
-            TyranopodePartType.Head => Def.HeadDamageMultiplier,
-            _ => Def.BodyDamageMultiplier,
-        };
+        /// <summary>부위 피해 배율. MonsterPartTable 의 이 보스 행(PartKey = 부위 종류 이름)에서 읽는다</summary>
+        /// <param name="type">부위 종류</param>
+        /// <returns>총·수류탄 피해에 곱할 배율</returns>
+        private float PartDamageMultiplier(TyranopodePartType type) => PartDef(type).DamageMultiplier;
+
+        /// <summary>부위 종류의 MonsterPartTable 행. 행이 없으면 null → 호출한 쪽에서 NullReferenceException</summary>
+        /// <param name="type">부위 종류. 이름이 PartKey 와 같아야 한다</param>
+        /// <returns>부위 정의. 없으면 null</returns>
+        private MonsterPartDef PartDef(TyranopodePartType type) => boss.Def.FindPart(type.ToString());
 
         // ───────────────────────── 최후 연출 ─────────────────────────
 

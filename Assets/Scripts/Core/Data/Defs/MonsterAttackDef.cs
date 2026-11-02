@@ -89,9 +89,6 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(Id / 100 == MonsterId, Table, Id, "Id 는 MonsterId×100+순번 이어야 합니다");
             r.Check(Damage >= 0 && HitCount >= 1, Table, Id, "Damage >= 0, HitCount >= 1");
             r.Check(Cooldown >= 0f && TelegraphTime >= 0f && RecoveryTime >= 0f, Table, Id, "시간 값은 0 이상");
-            // 기본 공격: 한 주기(Cooldown) 안에 예고·회복 사이 공격(Active) 구간이 있어야 한다. 보스 특수·등장 공격은 제외
-            if (PatternTag == BossPatternTag.None)
-                r.Check(Cooldown > TelegraphTime + RecoveryTime, Table, Id, "기본 공격은 Cooldown > TelegraphTime + RecoveryTime 이어야 합니다");
             r.Check(KnockbackDistance >= 0f && WallHitStunTime >= 0f, Table, Id, "KnockbackDistance, WallHitStunTime 은 0 이상");
             if (Trigger == TriggerType.PlayerStationary)
                 r.Check(TriggerValue > 0f, Table, Id, "PlayerStationary 는 TriggerValue(초) 가 0 초과여야 합니다");

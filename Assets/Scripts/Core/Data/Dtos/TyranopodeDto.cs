@@ -21,16 +21,7 @@ namespace HybridShooter.Core.Data.Dtos
         public float Phase2DamageMultiplier;
         public float Phase2SpeedMultiplier;
 
-        // 부위
-        public float BodyDamageMultiplier;
-        public int FrontTentacleHp;
-        public float FrontTentacleDamageMultiplier;
-        public int LegTentacleHp;
-        public float LegTentacleDamageMultiplier;
-        public int SacHp;
-        public float SacDamageMultiplier;
-        public int HeadHp;
-        public float HeadDamageMultiplier;
+        // 부위 (부위별 피해 배율·Hp 는 MonsterPartTable 의 BossId 행)
         public float TentacleBrokenDamageMultiplier;
         public float LegBrokenSpeedMultiplier;
         public float LegBrokenJumpWeightMultiplier;

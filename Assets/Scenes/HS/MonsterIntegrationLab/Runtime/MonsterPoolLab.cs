@@ -15,9 +15,8 @@ namespace Scenes.HS.MonsterIntegrationLab.Runtime
     /// F5~F12 = monsterIds 0~7번 소환. 오른쪽 위 조작 창에서도 소환·웨이브 소환·전체 제거·스테이지 풀 보충을 한다.
     /// </summary>
     /// <remarks>
-    /// 소환·반납·회수는 전부 MonsterPool 이 한다. 이 클래스는 입력·조작 창과 실행 중 웨이브 목록의 Tick 만 맡는다.
-    /// 웨이브 소환 위치는 ISpawnZoneProvider(씬 SpawnPointFinder 가 있으면 경계·장애물 판정)가 정한다. Time.deltaTime 이라 timeScale 0 이면 멈춘다.
-    /// 대상(플레이어)과 군중 관리자는 몬스터가 스스로 찾는다 (ServiceLocator 의 IPlayerTarget, CrowdCoordinator.Active).
+    /// 소환·반납·회수는 전부 MonsterPool 이 한다. 이 클래스는 입력과 조작 창만 맡는다.
+    /// 대상(플레이어)은 몬스터가 스스로 찾는다 (ServiceLocator 의 IPlayerTarget). 군중 묶음을 배정하지 않으므로 몬스터는 직접 추적한다.
     /// </remarks>
     public sealed class MonsterPoolLab : MonoBehaviour
     {

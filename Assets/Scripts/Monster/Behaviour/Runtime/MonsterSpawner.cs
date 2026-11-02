@@ -2,6 +2,7 @@ using System;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
+using HybridShooter.Monster.Movement;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -14,7 +15,7 @@ namespace HybridShooter.Monster.Behaviour
     /// <remarks>
     /// 스스로 시간을 재지 않는다. Tick 에 Time.deltaTime 을 넘기면 강화 화면(timeScale 0)에서 저절로 멈춘다.
     /// 소환한 몬스터는 기억하지 않는다. 제거는 MonsterPool.WipeAll·RoundCleanupEvent 몫이다.
-    /// 첫 스폰 개체는 소환한 프레임에 StateMachine 이 null 이다 (MonsterPool.Spawn 참고). 그래서 반환값을 쓰지 않는다.
+    /// 첫 스폰 개체는 소환한 프레임에 StateMachine 이 null 이다 (MonsterPool.Spawn 참고). 그래서 반환값은 Crowd 묶음 배정(MonsterMovement.JoinCrowd)에만 쓴다.
     /// </remarks>
     public sealed class MonsterSpawner
     {
@@ -24,7 +25,8 @@ namespace HybridShooter.Monster.Behaviour
         private readonly IMonsterFactory monsterFactory;
         private readonly ISpawnZoneProvider spawnZones;
         private readonly int groupSeed;  // Herd 방향. 실행마다 무작위라 라운드마다 방향이 바뀐다
-        private readonly SpawnNest nest;  // Nest 패턴일 때만. 같은 웨이브·같은 StartDelay 의 Nest 스포너와 공유한다
+        private readonly SpawnNest nest;  // Nest·Crowd 패턴일 때만. 같은 웨이브·같은 StartDelay·같은 패턴의 스포너와 공유한다
+        private readonly CrowdController crowd;  // Crowd 패턴일 때만. 소환한 몬스터를 이 묶음에 배정한다 (null = 직접 추적)
 
         // ── 진행 상태 ──
         private float elapsedTime;  // 초, 이 실행이 시작된 뒤 지난 시간
@@ -33,6 +35,9 @@ namespace HybridShooter.Monster.Behaviour
 
         // Count 마리를 다 처리했거나 Stop 됐으면 true. 상태 조회와 자기 Tick 가드용 (부모는 Finished 로 안다)
         public bool IsFinished => isStopped || spawnedCount >= spawner.Count;
+
+        // 소환한 몬스터를 배정하는 군중 묶음. null = Crowd 패턴 아님. MonsterWave 가 묶음의 소환 완료를 판단할 때 읽는다
+        public CrowdController Crowd => crowd;
 
         // 마지막 소환 차례를 처리한 Tick 에서 정확히 한 번 발행. Stop 때는 발행하지 않는다 (멈춘 쪽이 이미 안다)
         public event Action<MonsterSpawner> Finished;
@@ -43,15 +48,23 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="spawner">실행할 스포너 행 (Monster 가 Link 된 것)</param>
         /// <param name="monsterFactory">소환에 쓸 팩토리 (보통 ServiceLocator 의 MonsterPool)</param>
         /// <param name="spawnZones">소환 위치 계산 (보통 ServiceLocator 의 RingSpawnZoneProvider)</param>
-        /// <param name="sharedNest">웨이브가 나눠 준 둥지 (Nest 패턴만). null 이고 Nest 패턴이면 이 스포너 혼자 쓰는 둥지를 만든다 (실험 씬처럼 스포너만 따로 돌릴 때)</param>
-        public MonsterSpawner(WaveSpawnerDef spawner, IMonsterFactory monsterFactory, ISpawnZoneProvider spawnZones, SpawnNest sharedNest = null)
+        /// <param name="sharedNest">웨이브가 나눠 준 둥지 (Nest·Crowd 패턴만). null 이고 Nest·Crowd 패턴이면 이 스포너 혼자 쓰는 둥지를 만든다 (실험 씬처럼 스포너만 따로 돌릴 때)</param>
+        /// <param name="crowd">웨이브가 나눠 준 군중 묶음 (Crowd 패턴만, 다른 패턴은 null)</param>
+        /// <exception cref="ArgumentNullException">Crowd 패턴인데 crowd 가 null 일 때</exception>
+        public MonsterSpawner(WaveSpawnerDef spawner, IMonsterFactory monsterFactory, ISpawnZoneProvider spawnZones, SpawnNest sharedNest = null, CrowdController crowd = null)
         {
+            bool isCrowdPattern = spawner.SpawnPattern == SpawnPattern.Crowd;
+            if (isCrowdPattern && crowd == null)
+                throw new ArgumentNullException(nameof(crowd), $"스포너 {spawner.Id}: Crowd 패턴은 군중 묶음(CrowdController)이 필요하다");
+
             this.spawner = spawner;
             this.monsterFactory = monsterFactory;
             this.spawnZones = spawnZones;
+            this.crowd = crowd;
             groupSeed = Random.Range(int.MinValue, int.MaxValue);
 
-            bool needsOwnNest = sharedNest == null && spawner.SpawnPattern == SpawnPattern.Nest;
+            bool usesNest = spawner.SpawnPattern == SpawnPattern.Nest || isCrowdPattern;
+            bool needsOwnNest = sharedNest == null && usesNest;
             if (needsOwnNest) nest = new SpawnNest(spawnZones);
             else nest = sharedNest;
         }
@@ -105,6 +118,7 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// 1마리 소환. 위치를 MaxPoseAttempts 번까지 다시 뽑고, 다 실패하면 경고를 남기고 이 차례를 건너뛴다.
+        /// Crowd 패턴이면 소환한 몬스터를 군중 묶음에 배정한다.
         /// </summary>
         private void SpawnOne()
         {
@@ -113,7 +127,8 @@ namespace HybridShooter.Monster.Behaviour
                 bool hasPose = TryGetSpawnPose(out Vector3 position, out Quaternion rotation);
                 if (hasPose == false) continue;
 
-                monsterFactory.Spawn(spawner.Monster, position, rotation);
+                GameObject monster = monsterFactory.Spawn(spawner.Monster, position, rotation);
+                if (crowd != null) monster.GetComponent<MonsterMovement>().JoinCrowd(crowd);
                 return;
             }
 
@@ -121,7 +136,7 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 소환 위치를 한 번 뽑는다. Nest 면 둥지 주위, 아니면 패턴별 링 포인트.
+        /// 소환 위치를 한 번 뽑는다. Nest·Crowd 면 둥지 주위, 아니면 패턴별 링 포인트.
         /// </summary>
         /// <param name="position">소환 위치</param>
         /// <param name="rotation">소환 회전</param>

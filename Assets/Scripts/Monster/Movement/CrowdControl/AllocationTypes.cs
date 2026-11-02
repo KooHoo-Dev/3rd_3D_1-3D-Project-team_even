@@ -4,7 +4,7 @@ namespace HybridShooter.Monster.Movement
 {
     /// <summary>
     /// 토큰 모드 배분 입력: 개체 1마리의 현재 상태.
-    /// CrowdCoordinator.Allocate 가 MonsterMovement.BuildAllocationAgent 로 모아 EngageAllocator.Allocate 에 넘긴다.
+    /// CrowdController.Allocate 가 MonsterMovement.BuildAllocationAgent 로 모아 EngageAllocator.Allocate 에 넘긴다.
     /// </summary>
     public struct AllocationAgent
     {
@@ -25,7 +25,7 @@ namespace HybridShooter.Monster.Movement
 
     /// <summary>
     /// 토큰 모드 배분 입력: 모든 개체에 공통인 전역 파라미터.
-    /// CrowdCoordinator.Allocate 가 CrowdSettings 와 목표 위치로 채워 EngageAllocator.Allocate 에 넘긴다.
+    /// CrowdController.Allocate 가 CrowdSettings 와 목표 위치로 채워 EngageAllocator.Allocate 에 넘긴다.
     /// </summary>
     public struct AllocationParams
     {
@@ -46,7 +46,7 @@ namespace HybridShooter.Monster.Movement
 
     /// <summary>
     /// 배분 출력 중 개체별 결과 외의 집계.
-    /// CrowdCoordinator 가 lastSummary 로 보관해 디버그·HUD 용 CrowdSnapshot 에 담는다.
+    /// CrowdController 가 lastSummary 로 보관해 디버그·HUD 용 CrowdSnapshot 에 담는다.
     /// </summary>
     public struct AllocationSummary
     {
@@ -61,7 +61,7 @@ namespace HybridShooter.Monster.Movement
 
     /// <summary>
     /// 배분 출력: 개체별 결과 (CrowdDirective + 다음 판단에 넘길 상태).
-    /// CrowdCoordinator 가 MonsterMovement.ApplyAllocation 으로 각 개체에 반영한다.
+    /// CrowdController 가 MonsterMovement.ApplyAllocation 으로 각 개체에 반영한다.
     /// </summary>
     public struct AllocationResult
     {

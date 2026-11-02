@@ -1,13 +1,14 @@
 using System;
 using HybridShooter.Core.Contracts;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace HybridShooter.Monster.Movement
 {
     /// <summary>
     /// 몬스터 1마리의 이동 진입점.
     /// 이동 상태를 가지고, 정책(IMovementPolicy)이 낸 의도를 실행기(IMoveExecutor)에 넘기며, 외부 정지 요청(SetSuspended)을 처리한다.
-    /// 군중 모드는 CrowdCoordinator 가, 직접 추적 모드는 자신의 Update 가 Think·TickMovement 를 호출한다.
+    /// 군중 모드는 CrowdController 가, 직접 추적 모드는 자신의 Update 가 Think·TickMovement 를 호출한다.
     /// </summary>
     /// <remarks>
     /// 같은 GameObject 에 IMoveExecutor 구현 컴포넌트가 있어야 한다.
@@ -18,8 +19,9 @@ namespace HybridShooter.Monster.Movement
         // ════════ 설정 (Inspector / Configure 로 주입) ════════
         [Header("설정")]
         [SerializeField] private MovementProfile profile;
-        [Tooltip("비우면 CrowdCoordinator.Active 사용")]
-        [SerializeField] private CrowdCoordinator coordinator;
+        [Tooltip("이 몬스터를 통제할 군중 묶음. 비우면 직접 추적 모드 (Crowd 형식 스폰만 스포너가 채운다)")]
+        [FormerlySerializedAs("coordinator")]
+        [SerializeField] private CrowdController assignedController;
         [Tooltip("군중 관리자 없는 직접 추적 모드의 IPlayerTarget")]
         [SerializeField] private MonoBehaviour directTargetSource;
 
@@ -40,7 +42,7 @@ namespace HybridShooter.Monster.Movement
         // profile 의 수치 복사본 (정책이 ScriptableObject 에 의존하지 않게)
         private MovementTuning tuning;
         // 슬롯·토큰을 나눠주는 군중 관리자 (직접 추적 모드면 null)
-        private CrowdCoordinator crowdCoordinator;
+        private CrowdController crowdController;
         // 추적 대상. 군중 모드에서는 Think(target) 인자로 받고, 직접 모드에서는 이 값을 쓴다
         private IPlayerTarget targetInfo;
         private bool isDirectMode;   // true = 군중 관리자 없이 targetInfo 를 직접 추적 (targetInfo 가 null 이어도 직접 모드)
@@ -55,7 +57,7 @@ namespace HybridShooter.Monster.Movement
         private Vector3 followDestination;  // 실행기에 실제로 넘기는 목적지 (월드)
         private bool hasFollowDestination;  // false = 다음 의도의 목적지로 바로 놓는다 (첫 이동·정지 뒤)
 
-        // ════════ 군중 배분 결과 (CrowdCoordinator 가 채워 넣고 정책이 읽는다) ════════
+        // ════════ 군중 배분 결과 (CrowdController 가 채워 넣고 정책이 읽는다) ════════
         private CrowdDirective directive;
         private bool hasToken;                // 근접 토큰 보유 여부 (토큰 모드)
         private float waitingSince = -1f;     // Wait 시작 시각 (음수 = 대기 아님)
@@ -64,7 +66,7 @@ namespace HybridShooter.Monster.Movement
 
         // ════════ 초기화 시점 ════════
         private bool started;                 // Start 를 거쳤는가 (첫 활성화는 Start, 이후 재활성화는 OnEnable 에서 초기화)
-        private bool registered;              // CrowdCoordinator 에 등록돼 있는가
+        private bool registered;              // CrowdController 에 등록돼 있는가
         private bool retainReservation;       // 정지 중에도 등록·슬롯·토큰을 유지하는가 (공격 중 정지만 true)
         private bool hasCombatTuning;         // SetCombatTuning 으로 개체별 속도·사거리를 받았는가
         private float combatSpeed;            // 개체별 이동 속도 (m/s)
@@ -97,7 +99,7 @@ namespace HybridShooter.Monster.Movement
         // ════════ 외부 공개 (읽기 전용) ════════
         public MovementProfile Profile => profile;
         
-        public IPlayerTarget Target => crowdCoordinator != null ? crowdCoordinator.Target : targetInfo;
+        public IPlayerTarget Target => crowdController != null ? crowdController.Target : targetInfo;
         // 거리와 별개인 현재 군중 허가 (MonsterStateMachine.CanAttack 이 읽음). 정지 중에도 실제 예약/토큰을 확인한다.
         // 직접 추적 모드는 지시가 Unrestricted 면 true
         public bool CanAttack
@@ -106,12 +108,12 @@ namespace HybridShooter.Monster.Movement
             {
                 if (isActiveAndEnabled == false) return false;
                 if (Target == null) return false;
-                if (crowdCoordinator == null) return directive.Kind == DirectiveKind.Unrestricted;
+                if (crowdController == null) return directive.Kind == DirectiveKind.Unrestricted;
                 if (registered == false) return false;
-                if (crowdCoordinator.Settings.EnableCrowdControl == false) return true;
+                if (crowdController.Settings.EnableCrowdControl == false) return true;
                 if (profile.UsesEngageToken == false) return true;
                 if (directive.Kind != DirectiveKind.Engage) return false;
-                if (crowdCoordinator.Settings.UseSlots) return crowdCoordinator.IsSlotReservedBy(this, directive.SlotId);
+                if (crowdController.Settings.UseSlots) return crowdController.IsSlotReservedBy(this, directive.SlotId);
                 return hasToken;
             }
         }
@@ -147,8 +149,8 @@ namespace HybridShooter.Monster.Movement
 
         /// <summary>재활성화 때만 여기서 바로 초기화(Activate)한다. 첫 활성화는 Start 로 미룬다.</summary>
         /// <remarks>
-        /// 씬에 미리 놓인 몬스터가 CrowdCoordinator.OnEnable(Active 지정)보다 먼저 활성화돼도,
-        /// 모든 OnEnable 이 끝난 Start 시점에는 Active 가 정해져 있다 (DefaultExecutionOrder 없이 순서 보장).
+        /// 첫 활성화를 Start 로 미뤄, 같은 프레임에 다른 컴포넌트가 OnEnable·Awake 에서 하는 준비가 끝난 뒤 모드를 정한다
+        /// (DefaultExecutionOrder 없이 순서 보장).
         /// </remarks>
         private void OnEnable()
         {
@@ -164,8 +166,8 @@ namespace HybridShooter.Monster.Movement
 
         /// <summary>
         /// 활성화 초기화: 동작 모드를 결정하고 정책·수치를 준비한다. Start(첫 활성화)와 OnEnable(재활성화)이 호출한다.
-        /// 군중 모드(CrowdCoordinator 에 등록) 또는 직접 추적 모드(목표를 직접 쥠) 중 하나가 성립해야 하며, 둘 다 없으면 비활성화.
-        /// profile 이 없어도 에러 로그 후 비활성화.
+        /// 배정된 CrowdController(assignedController)가 있으면 군중 모드로 소속·등록하고, 없으면 직접 추적 모드로 동작한다.
+        /// profile 이 없으면 에러 로그 후 비활성화.
         /// </summary>
         /// <exception cref="InvalidOperationException">directTargetSource 가 IPlayerTarget 이 아닐 때</exception>
         private void Activate()
@@ -177,25 +179,15 @@ namespace HybridShooter.Monster.Movement
                 return;
             }
 
-            // 1) 목표·군중 관리자 확인: 직접 목표가 있으면 군중 관리자 없이 동작, 없으면 Coordinator 필수
+            // 1) 동작 모드 결정: 배정된 컨트롤러가 있으면 군중 모드, 없으면 직접 추적 모드 (컨트롤러가 파괴됐어도 직접 추적)
             if (isDirectMode == false && directTargetSource != null)
             {
                 var directTarget = directTargetSource as IPlayerTarget;
                 if (directTarget == null)
                     throw new InvalidOperationException("directTargetSource 는 IPlayerTarget 이어야 한다");
                 targetInfo = directTarget;
-                isDirectMode = true;
             }
-            CrowdCoordinator coord;
-            if (coordinator != null) coord = coordinator;
-            else if (isDirectMode) coord = null;
-            else coord = CrowdCoordinator.Active;
-            if (coord == null && isDirectMode == false)
-            {
-                Debug.LogError($"[{nameof(MonsterMovement)}] CrowdCoordinator 없음 (직접 지정하거나 씬에 배치)", this);
-                enabled = false;
-                return;
-            }
+            isDirectMode = assignedController == null;
 
             // 2) 정책·수치 준비 (정책은 개체 하나당 인스턴스 하나, 재활성화 시 재사용)
             ApplyCombatTuning();
@@ -207,24 +199,80 @@ namespace HybridShooter.Monster.Movement
             hasReactionReference = false;
             executingSlotId = -1;
 
-            // 4) 군중 모드면 등록, 직접 모드면 제한 없음(Unrestricted) 지시를 고정
-            if (coord != null)
+            // 4) 군중 모드면 묶음에 소속 + 등록, 직접 모드면 제한 없음(Unrestricted) 지시를 고정
+            if (isDirectMode)
             {
-                crowdCoordinator = coord;
-                ValidateCombatSlots();
-                if (suspended == false || retainReservation) RegisterCrowd();
-            }
-            else
                 directive = new CrowdDirective(DirectiveKind.Unrestricted, default, 0, false, 0f);
+                return;
+            }
+            JoinAssignedCrowd();
+            RegisterAssignedCrowd();
+        }
+
+        /// <summary>
+        /// 배정된 묶음(assignedController)에 소속한다 (이미 소속이면 무시). 소속은 묶음 수명 판단용이다.
+        /// Activate(활성화 시 배정돼 있음)와 JoinCrowd(소환 직후 배정)가 부른다.
+        /// </summary>
+        private void JoinAssignedCrowd()
+        {
+            if (crowdController != null) return;
+            crowdController = assignedController;
+            crowdController.Join(this);
+        }
+
+        /// <summary>
+        /// 소속된 묶음의 배분 대상으로 등록하고 군중 모드로 동작한다. Activate 와 JoinCrowd(이미 활성인 개체)가 소속 뒤에 부른다.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">슬롯 모드에서 접근 슬롯 반경 + 여유가 공격 사거리 이상일 때 (ValidateCombatSlots)</exception>
+        private void RegisterAssignedCrowd()
+        {
+            isDirectMode = false;
+            ValidateCombatSlots();
+            if (suspended == false || retainReservation) RegisterCrowd();
+        }
+
+        /// <summary>
+        /// 이 몬스터를 군중 묶음에 배정하고 바로 소속시킨다. MonsterSpawner 가 Crowd 형식으로 소환한 직후 부른다.
+        /// 바로 소속시켜야 같은 Tick 에 스포너가 끝나도(MarkSpawnFinished) 묶음이 0마리로 보고 파괴되지 않는다.
+        /// 첫 활성화(Start) 전이면 배분 등록은 Activate 가 하고, 풀에서 꺼내 이미 직접 추적으로 활성화됐으면 지금 군중 모드로 바꾼다.
+        /// </summary>
+        /// <param name="controller">통제받을 묶음</param>
+        /// <exception cref="ArgumentNullException">controller 가 null 일 때</exception>
+        /// <exception cref="InvalidOperationException">이미 군중 묶음에 소속돼 있을 때</exception>
+        /// <remarks>직접 추적으로 쥐고 있던 목표는 묶음에 목표가 없을 때만 넘긴다 (묶음 SetTarget 은 예약을 모두 비우므로).</remarks>
+        public void JoinCrowd(CrowdController controller)
+        {
+            if (controller == null) throw new ArgumentNullException(nameof(controller));
+            if (crowdController != null) throw new InvalidOperationException("이미 군중 묶음에 소속돼 있다");
+
+            assignedController = controller;
+            JoinAssignedCrowd();
+            bool isActivated = started && isActiveAndEnabled;
+            if (isActivated == false) return;
+
+            IPlayerTarget directTarget = targetInfo;
+            RegisterAssignedCrowd();
+            bool shouldHandOverTarget = controller.Target == null && directTarget != null;
+            if (shouldHandOverTarget) controller.SetTarget(directTarget);
+        }
+
+        /// <summary>
+        /// 묶음 배정을 지운다. 다음 활성화는 직접 추적. MonsterPool 이 반납받은 몬스터를 끈 뒤 부른다 (재사용 때 옛 묶음에 다시 들어가지 않게).
+        /// </summary>
+        /// <exception cref="InvalidOperationException">활성 상태일 때 (소속 해제는 OnDisable 이 한다)</exception>
+        public void ClearCrowdAssignment()
+        {
+            if (isActiveAndEnabled) throw new InvalidOperationException("ClearCrowdAssignment 는 비활성 상태에서만 호출할 수 있다");
+            assignedController = null;
         }
 
         /// <summary>
         /// 직접 추적 모드만 스스로 갱신한다 (매 프레임 TickMovement, 0.1초마다 Think).
-        /// 군중 모드는 CrowdCoordinator.Update 가 Think 와 TickMovement 를 순서대로 호출하므로 여기서는 아무것도 하지 않는다.
+        /// 군중 모드는 CrowdController.Update 가 Think 와 TickMovement 를 순서대로 호출하므로 여기서는 아무것도 하지 않는다.
         /// </summary>
         private void Update()
         {
-            if (crowdCoordinator != null || isDirectMode == false) return;
+            if (crowdController != null || isDirectMode == false) return;
             TickMovement();
             if (Time.time < nextDirectThink) return;
             Think(targetInfo, Time.time);
@@ -255,7 +303,7 @@ namespace HybridShooter.Monster.Movement
         /// <summary>
         /// 프레임 갱신: 슬롯 예약이 사라졌으면 정지하고, 반응 지연이 끝난 의도를 실행기에 적용한 뒤,
         /// 추적 목적지를 최신 목적지 쪽으로 당겨 실행기에 다시 넘긴다.
-        /// 군중 모드는 CrowdCoordinator 가 Think 직후 호출, 직접 모드는 Update 가 호출.
+        /// 군중 모드는 CrowdController 가 Think 직후 호출, 직접 모드는 Update 가 호출.
         /// </summary>
         internal void TickMovement()
         {
@@ -317,8 +365,8 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 비활성화/파괴(몬스터 사망 포함) 시 정리: 군중 관리자 등록 해제(점유 중인 슬롯·토큰 반환) 후 이동 정지, 상태를 Idle 로 되돌린다.
-        /// 이 덕분에 몬스터가 중간에 제거돼도 슬롯이 다른 몬스터에게 돌아간다.
+        /// 비활성화/파괴(몬스터 사망 포함) 시 정리: 군중 관리자 등록 해제(점유 중인 슬롯·토큰 반환)·묶음 소속 해제 후 이동 정지, 상태를 Idle 로 되돌린다.
+        /// 이 덕분에 몬스터가 중간에 제거돼도 슬롯이 다른 몬스터에게 돌아가고, 마지막 소속이 빠지면 묶음이 정리된다.
         /// </summary>
         private void OnDisable()
         {
@@ -326,10 +374,11 @@ namespace HybridShooter.Monster.Movement
             hasReactionReference = false;
             executingSlotId = -1;
             hasLookTarget = false;
-            if (crowdCoordinator != null)
+            if (crowdController != null)
             {
                 UnregisterCrowd();
-                crowdCoordinator = null;
+                crowdController.Leave(this);
+                crowdController = null;
             }
             if (executor != null) executor.Stop();
             hasFollowDestination = false;
@@ -341,17 +390,17 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 런타임 생성 몬스터를 군중 모드로 설정한다. 이전 직접 추적 설정과 정책을 비우고, 다음 활성화 때 새 profile 로 정책을 만든다.
+        /// 런타임 생성 몬스터의 profile 과 군중 묶음을 설정한다. 이전 직접 추적 설정과 정책을 비우고, 다음 활성화 때 새 profile 로 정책을 만든다.
         /// </summary>
         /// <param name="profile">이동 수치·정책 종류</param>
-        /// <param name="coordinator">등록할 군중 관리자. null 이면 활성화 시 CrowdCoordinator.Active 사용</param>
+        /// <param name="controller">통제받을 군중 묶음. null 이면 활성화 시 직접 추적 모드</param>
         /// <exception cref="InvalidOperationException">이미 활성 상태일 때 (OnEnable 전에만 호출 가능)</exception>
-        public void Configure(MovementProfile profile, CrowdCoordinator coordinator)
+        public void Configure(MovementProfile profile, CrowdController controller)
         {
             if (isActiveAndEnabled)
                 throw new InvalidOperationException("Configure 는 비활성 상태에서만 호출할 수 있다");
             this.profile = profile;
-            this.coordinator = coordinator;
+            assignedController = controller;
             targetInfo = null;
             isDirectMode = false;
             directTargetSource = null;
@@ -374,7 +423,7 @@ namespace HybridShooter.Monster.Movement
             targetInfo = target;
             isDirectMode = true;
             directTargetSource = target as MonoBehaviour;
-            coordinator = null;
+            assignedController = null;
             policy = null;
         }
 
@@ -429,18 +478,18 @@ namespace HybridShooter.Monster.Movement
         private void ValidateCombatSlots()
         {
             bool hasTuning = hasCombatTuning;
-            bool hasCoordinator = crowdCoordinator != null;
+            bool hasController = crowdController != null;
             bool usesEngageToken = profile.UsesEngageToken;
 
-            bool crowdControlEnabled = hasCoordinator && crowdCoordinator.Settings.EnableCrowdControl;
-            bool slotsEnabled = hasCoordinator && crowdCoordinator.Settings.UseSlots;
+            bool crowdControlEnabled = hasController && crowdController.Settings.EnableCrowdControl;
+            bool slotsEnabled = hasController && crowdController.Settings.UseSlots;
 
             bool invalidApproachRadius = false;
 
             // 접근 슬롯 반경 + NavMesh 투영 반경 + 정지 여유가 사거리 안에 들어오는지 계산
-            if (hasCoordinator)
+            if (hasController)
             {
-                var slots = crowdCoordinator.Settings.Slots;
+                var slots = crowdController.Settings.Slots;
 
                 float approachRadius = slots.ApproachRadius;
                 float sampleRadius = slots.SampleRadius;
@@ -452,7 +501,7 @@ namespace HybridShooter.Monster.Movement
             }
 
             if (hasTuning &&
-                hasCoordinator &&
+                hasController &&
                 usesEngageToken &&
                 crowdControlEnabled &&
                 slotsEnabled &&
@@ -465,29 +514,22 @@ namespace HybridShooter.Monster.Movement
 
         /// <summary>
         /// 직접/군중 모드의 공유 목표를 연결한다. MonsterController 가 목표 확보·상실 시 호출한다.
-        /// 군중 관리자가 있으면 그쪽(CrowdCoordinator.SetTarget)에 넘기고, 없으면 직접 추적 모드로 전환한다.
-        /// 활성화 전에는 Configure를 사용한다.
+        /// 군중 묶음(활성화 전이면 배정된 묶음)이 있으면 그쪽(CrowdController.SetTarget)에 넘기고, 없으면 직접 추적 목표로 쥔다.
         /// </summary>
         /// <param name="target">추적할 목표. null = 목표 상실(사망 등)이며 정지한다</param>
         public void SetTarget(IPlayerTarget target)
         {
-            if (isDirectMode) targetInfo = target;
-            else if (crowdCoordinator != null) crowdCoordinator.SetTarget(target);
-            else if (coordinator != null) coordinator.SetTarget(target);
-            else if (CrowdCoordinator.Active != null) CrowdCoordinator.Active.SetTarget(target);
-            else
-            {
-                isDirectMode = true; // 군중 관리자가 없으면 직접 추적 모드
-                targetInfo = target;
-            }
+            if (crowdController != null) crowdController.SetTarget(target);
+            else if (assignedController != null) assignedController.SetTarget(target);
+            else targetInfo = target;
         }
 
         /// <summary>군중 관리자에 한 번만 등록한다 (이미 등록됐거나 군중 관리자가 없으면 무시). Activate 와 정지 해제 시 호출</summary>
         private void RegisterCrowd()
         {
-            if (crowdCoordinator == null) return;
+            if (crowdController == null) return;
             if (registered) return;
-            crowdCoordinator.Register(this);
+            crowdController.Register(this);
             registered = true;
         }
 
@@ -495,7 +537,7 @@ namespace HybridShooter.Monster.Movement
         private void UnregisterCrowd()
         {
             if (registered == false) return;
-            crowdCoordinator.Unregister(this);
+            crowdController.Unregister(this);
             registered = false;
         }
 
@@ -538,9 +580,9 @@ namespace HybridShooter.Monster.Movement
             return executor.MoveBy(displacement);
         }
 
-        // ── CrowdCoordinator 전용 (internal) ──
+        // ── CrowdController 전용 (internal) ──
 
-        /// <summary>토큰 배분 입력용 현재 상태를 만든다. CrowdCoordinator 가 배분 전에 호출한다</summary>
+        /// <summary>토큰 배분 입력용 현재 상태를 만든다. CrowdController 가 배분 전에 호출한다</summary>
         /// <returns>위치·토큰·대기 시각·선회 방향·슬롯 번호를 담은 배분 입력 값</returns>
         internal AllocationAgent BuildAllocationAgent() => new AllocationAgent
         {
@@ -553,7 +595,7 @@ namespace HybridShooter.Monster.Movement
             SlotIndex = slotIndex,
         };
 
-        /// <summary>배분 결과 반영 (지시·토큰·대기 시각·선회 방향·슬롯). CrowdCoordinator 가 배분 후 호출한다</summary>
+        /// <summary>배분 결과 반영 (지시·토큰·대기 시각·선회 방향·슬롯). CrowdController 가 배분 후 호출한다</summary>
         /// <param name="result">이 개체에 대한 배분 결과</param>
         internal void ApplyAllocation(in AllocationResult result)
         {
@@ -566,7 +608,7 @@ namespace HybridShooter.Monster.Movement
 
         /// <summary>
         /// 판단 1회: (슬롯 모드면 지시 갱신) → 정책 Evaluate → 실행기 Apply → 공격 사거리 갱신.
-        /// 군중 모드는 CrowdCoordinator.Update 가 라운드 로빈으로, 직접 모드는 Update 가 0.1초마다 호출한다. 정지 중이면 아무것도 하지 않는다.
+        /// 군중 모드는 CrowdController.Update 가 라운드 로빈으로, 직접 모드는 Update 가 0.1초마다 호출한다. 정지 중이면 아무것도 하지 않는다.
         /// </summary>
         /// <param name="target">추적 목표. null = 목표 무효 (정책이 Idle 정지를 낸다)</param>
         /// <param name="now">현재 시각 (s, Time.time 기준)</param>
@@ -582,10 +624,10 @@ namespace HybridShooter.Monster.Movement
             {
                 if (executingSlotId >= 0 && executor.ExecutionState == MoveExecutionState.Unreachable)
                 {
-                    crowdCoordinator.RejectSlot(this, executingSlotId, now);
+                    crowdController.RejectSlot(this, executingSlotId, now);
                     executingSlotId = -1;
                 }
-                directive = crowdCoordinator.RequestDirective(this, now);
+                directive = crowdController.RequestDirective(this, now);
             }
 
             // 2) 정책 입력(Context) 구성. 목표가 무효면 자기 위치를 목표로 둔다 (정책이 TargetValid 로 걸러냄)
@@ -639,11 +681,11 @@ namespace HybridShooter.Monster.Movement
         /// <returns>세 조건이 모두 참이면 true. 직접 추적 모드(군중 관리자 없음)면 false</returns>
         private bool IsSlotMode()
         {
-            if (crowdCoordinator == null) return false;
-            return crowdCoordinator.Settings.UseSlots && crowdCoordinator.Settings.EnableCrowdControl;
+            if (crowdController == null) return false;
+            return crowdController.Settings.UseSlots && crowdController.Settings.EnableCrowdControl;
         }
 
-        /// <summary>등록 해제 시 토큰·대기·슬롯·지시 상태 초기화 (선회 방향은 유지). CrowdCoordinator.Unregister 가 호출한다</summary>
+        /// <summary>등록 해제 시 토큰·대기·슬롯·지시 상태 초기화 (선회 방향은 유지). CrowdController.Unregister 가 호출한다</summary>
         internal void ResetCrowdState()
         {
             CancelPendingIntent();
@@ -664,7 +706,7 @@ namespace HybridShooter.Monster.Movement
         /// <param name="target">현재 목표. 기준점을 잡은 목표와 다르면 기준점을 새로 잡는다</param>
         /// <param name="targetValid">목표가 유효한가</param>
         /// <param name="now">현재 시각 (s). 지연 적용 시각 계산에 쓴다</param>
-        /// <remarks>지연을 시작하면 CrowdCoordinator.PauseSlotProgress 로 "슬롯으로 진행이 없다" 판정 시계를 지연 시간만큼 늦춘다.</remarks>
+        /// <remarks>지연을 시작하면 CrowdController.PauseSlotProgress 로 "슬롯으로 진행이 없다" 판정 시계를 지연 시간만큼 늦춘다.</remarks>
         private void SubmitIntent(in MoveIntent intent, IPlayerTarget target, bool targetValid, float now)
         {
             // 1) 지연 대상이 아닌 경우: 슬롯 모드가 아니거나, 목표/목적지/슬롯이 없거나, 예약이 이미 무효 → 즉시 실행
@@ -725,7 +767,7 @@ namespace HybridShooter.Monster.Movement
                     pendingIntent = intent;
                     hasPendingIntent = true;
                     pendingApplyAt = now + delay;
-                    crowdCoordinator.PauseSlotProgress(this, delay);
+                    crowdController.PauseSlotProgress(this, delay);
                     return;
                 }
             }
@@ -797,7 +839,7 @@ namespace HybridShooter.Monster.Movement
         /// <param name="slotId">확인할 슬롯 번호</param>
         /// <returns>내 예약이면 true. 슬롯이 무효화/회수됐거나 군중 관리자가 없으면 false</returns>
         private bool HasCurrentReservation(int slotId) =>
-            crowdCoordinator != null && crowdCoordinator.IsSlotReservedBy(this, slotId);
+            crowdController != null && crowdController.IsSlotReservedBy(this, slotId);
 
         /// <summary>예약 슬롯이 사라졌을 때(타겟 소실·NavMesh 변경 등) 이동을 멈추고 Idle 로 돌아간다. TickMovement 가 호출하며, 다음 Think 에서 새 슬롯을 받는다</summary>
         private void StopForInvalidReservation()
