@@ -139,7 +139,7 @@ namespace HybridShooter.Round
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.f12Key.wasPressedThisFrame && phase == GameState.CrowdBattle) BeginBossIntro();
+            if (keyboard != null && keyboard.f12Key.wasPressedThisFrame) SkipToBoss();
 #endif
 
             switch (phase)
@@ -170,6 +170,15 @@ namespace HybridShooter.Round
                     Completed?.Invoke();
                     break;
             }
+        }
+
+        /// <summary>테스트용 (F12·BossCallTester): 군중전 중이면 보스 시각을 기다리지 않고 바로 보스 등장으로 넘긴다</summary>
+        /// <returns>넘겼으면 true. 라운드가 멈췄거나 군중전이 아니면 false</returns>
+        public bool SkipToBoss()
+        {
+            if (isRoundRunning == false || phase != GameState.CrowdBattle) return false;
+            BeginBossIntro();
+            return true;
         }
 
         private void BeginBossIntro()

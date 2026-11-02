@@ -67,6 +67,7 @@ namespace HybridShooter.Boss.Tyranopode
 
             if (PassedHit(n, hitTimes, ref hitIndex))
             {
+                Owner.RaiseSoundCue(TyranopodeSoundCue.Swipe, transform.position);
                 if (telegraph != null)
                 {
                     Detonate(telegraph);

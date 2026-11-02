@@ -93,6 +93,7 @@ namespace HybridShooter.Boss.Tyranopode
                     : PlayerInSector(transform.position, transform.forward, Data.BiteRange, BiteAngle);
                 if (jump) FlashCircle(mouth, Data.JumpBiteHitRadius);
                 else Detonate(telegraph);
+                Owner.RaiseSoundCue(TyranopodeSoundCue.BiteImpact, mouth);
                 if (hit) HitPlayer(Data.BiteDamage, transform.position);
                 if (jump) Shake(CameraShakePresets.BossFootstep, transform.position, 40f);
             }

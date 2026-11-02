@@ -1,10 +1,11 @@
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Events;
+using HybridShooter.Player;
 using UnityEngine;
 
 namespace HybridShooter.Audio
 {
-    /// <summary>전투: 몬스터 생성 시 이미터 부착, 총기 피격·처치 피드백. 몬스터 사망음은 MonsterSoundEmitter, 플레이어 피격 목소리는 PlayerSoundEmitter</summary>
+    /// <summary>전투: 몬스터 생성 시·플레이어 시작 시 이미터 부착, 총기 피격·처치 피드백. 몬스터 사망음은 MonsterSoundEmitter, 플레이어 피격 목소리는 PlayerSoundEmitter</summary>
     public sealed partial class GameSoundRouter
     {
         /// <summary>
@@ -22,6 +23,16 @@ namespace HybridShooter.Audio
         {
             foreach (var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
                 if (behaviour is IMonsterSoundSource) EnsureEmitter(behaviour.gameObject);
+        }
+
+        /// <summary>
+        /// 씬의 플레이어에 PlayerSoundEmitter 자동 부착. 시작 시 1번.
+        /// 플레이어 프리팹에 이미터가 빠져 있어도 몸 소리(발소리·피격 등)가 나게 한다 (이미 있으면 그대로 둔다)
+        /// </summary>
+        private void AttachPlayerEmitters()
+        {
+            foreach (var player in FindObjectsByType<PlayerController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (player.GetComponent<PlayerSoundEmitter>() == null) player.gameObject.AddComponent<PlayerSoundEmitter>();
         }
 
         /// <summary>자식 포함 이미터를 찾고, 없으면 소리 출처(IMonsterSoundSource)가 있는 오브젝트에 붙인다. 근접 울음 설정을 넣는다</summary>

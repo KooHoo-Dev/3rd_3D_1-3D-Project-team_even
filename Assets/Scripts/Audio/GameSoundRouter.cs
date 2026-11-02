@@ -7,8 +7,8 @@ namespace HybridShooter.Audio
     /// 게임 이벤트(EventBus) → 소리. 다른 파트 코드를 고치지 않고 소리를 붙이는 곳.
     /// 이 파일은 필드·구독만, 이벤트 처리는 영역별 partial 파일에 있다.
     ///   .Round   게임 상태(강화 화면 스냅샷)·라운드 시작·게임오버
-    ///   .Combat  몬스터 이미터 자동 부착, 총기 피격·처치 피드백
-    ///   .Boss    보스 경고·등장(BGM)·처치(BGM 정지·클리어·아나운서)
+    ///   .Combat  플레이어·몬스터 이미터 자동 부착, 총기 피격·처치 피드백
+    ///   .Boss    보스 경고·등장(BGM·티라노포드 이미터 부착)·처치(BGM 정지·클리어·아나운서)
     ///   .Items   보급 투하(투하음·안내 방송)·획득(랜덤 장전음)·다음 라운드 지급, 강화 구매
     ///   .Ui      저체력 경고 반복, 아나운서
     ///
@@ -16,7 +16,7 @@ namespace HybridShooter.Audio
     ///   WeaponFiredEvent·Reload·빈 탄창 (Gun), 폭발 (GunProjectile), 마그마 착탄 (MagmaProjectile)
     /// 객체 자기 몸 소리는 그 객체의 지역 이벤트를 받는 이미터 담당 (전역 이벤트로 받지 않는다):
     ///   플레이어(발소리·점프·착지·피격·사망·숨·투척) PlayerSoundEmitter / 일반 몬스터(울음·루프·공격·기절·사망) MonsterSoundEmitter
-    ///   보스(패턴 예고·흡입 루프·타격·사망) BossSoundEmitter
+    ///   보스(패턴 예고·흡입 루프·타격·사망) BossSoundEmitter / 티라노포드(포효·돌진·침·알·흡수 등) TyranopodeSoundEmitter
     /// </summary>
     [RequireComponent(typeof(SoundService))]
     public sealed partial class GameSoundRouter : MonoBehaviour
@@ -63,8 +63,13 @@ namespace HybridShooter.Audio
         /// <summary>같은 오브젝트의 SoundService 사용 (RequireComponent)</summary>
         private void Awake() => service = GetComponent<SoundService>();
 
-        /// <summary>씬에 직접 둔 몬스터에 이미터 자동 부착 (생성되는 몬스터는 MonsterSpawnedEvent 에서)</summary>
-        private void Start() => AttachEmittersInScene();
+        /// <summary>씬의 플레이어·직접 둔 몬스터·보스에 이미터 자동 부착 (생성되는 몬스터는 MonsterSpawnedEvent, 보스는 BossAppearedEvent 에서)</summary>
+        private void Start()
+        {
+            AttachPlayerEmitters();
+            AttachEmittersInScene();
+            AttachBossEmittersInScene();
+        }
 
         /// <summary>저체력 경고 반복·예약된 아나운서 재생 (강화 화면 timeScale 0 에서도 진행)</summary>
         private void Update()

@@ -75,6 +75,7 @@ namespace HybridShooter.Boss.Tyranopode
             {
                 nextPulseTime = Time.time + Data.SummonInterval;
                 beacon.Pulse();
+                Owner.RaiseSoundCue(TyranopodeSoundCue.SporePulse, beacon.transform.position);
             }
 
             // 사방에서 끊임없이 (초당 SummonRate 마리를 프레임마다 나눠서)
@@ -101,6 +102,7 @@ namespace HybridShooter.Boss.Tyranopode
             Vector3 point = beacon.transform.position;
             ReleaseBeacon(dismiss: true);
             Owner.PlayBeaconFailVfx(point);
+            Owner.RaiseSoundCue(TyranopodeSoundCue.SporeFail, point);
             Shake(CameraShakePresets.Impact, point, 0f);
             HitPlayer(Data.BeaconFailDamage, point);
             // 이 폭발로 플레이어가 죽었다면 EndByPlayerDeath 가 이미 끝냈다
@@ -111,6 +113,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             Vector3 point = destroyed.transform.position;
             ReleaseBeacon(dismiss: false);
+            Owner.RaiseSoundCue(TyranopodeSoundCue.SporeBreak, point);
             Owner.StartBeaconWaves(point);
             Finish();
             Owner.EnterGroggy(Data.GroggyTime);

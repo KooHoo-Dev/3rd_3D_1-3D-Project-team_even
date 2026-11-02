@@ -86,11 +86,13 @@ namespace HybridShooter.Boss.Tyranopode
         public void Break()
         {
             if (finished) return;
+            owner.RaiseSoundCue(TyranopodeSoundCue.EggBreak, transform.position);
             Finish(breakVfx);
         }
 
         private void Hatch()
         {
+            owner.RaiseSoundCue(TyranopodeSoundCue.EggHatch, transform.position);
             owner.Minions.SpawnAround(owner.Def.EggMinionId, transform.position, owner.Def.EggMinionCount, owner.Target.position);
             Finish(hatchVfx);
         }

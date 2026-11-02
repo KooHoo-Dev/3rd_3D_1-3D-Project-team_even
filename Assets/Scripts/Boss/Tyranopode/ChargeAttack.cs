@@ -95,6 +95,7 @@ namespace HybridShooter.Boss.Tyranopode
                 }
                 // 벽·경기장 경계에 박힘 → 그로기
                 Owner.PlayImpactVfx(front, Data.ChargeHitRadius);
+                Owner.RaiseSoundCue(TyranopodeSoundCue.WallHit, front);
                 Shake(CameraShakePresets.Impact, front, 60f);
                 float groggy = Data.WallGroggyTime * (Owner.IsBroken(TyranopodePartType.LegTentacle) ? Data.LegBrokenWallGroggyMultiplier : 1f);
                 Finish();
