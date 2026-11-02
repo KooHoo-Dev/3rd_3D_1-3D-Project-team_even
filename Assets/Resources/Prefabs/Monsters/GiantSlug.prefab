@@ -1001,6 +1001,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterCorpse
   corpseLayerName: MonsterCorpse
+  bodyCollider: {fileID: 18421219675180418}
   mass: 60
   angularDamping: 0.5
   hitPushSpeed: 3

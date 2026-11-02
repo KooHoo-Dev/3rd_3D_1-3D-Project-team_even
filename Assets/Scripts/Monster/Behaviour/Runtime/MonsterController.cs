@@ -26,8 +26,6 @@ namespace HybridShooter.Monster.Behaviour
     {
         [Tooltip("MonsterTable Id")]
         [SerializeField] private int monsterId;
-        [Tooltip("처치 후 회수까지 (s). 처치 연출 시간")]
-        [SerializeField, Min(0f)] private float despawnDelay = 2f;
 
         [Header("애니메이션")]
         [Tooltip("Move 클립을 1배속으로 재생할 때의 이동 속도 (m/s)")]
@@ -69,7 +67,6 @@ namespace HybridShooter.Monster.Behaviour
         private MonsterMovement movement;
         private PounceSettings pounceSettings; // 측면 침투형(도약)만 있음. null = 원거리 접근 배율 없음
         private bool playerDead;
-        private float despawnTime = -1f;   // 회수 예정 시각 (s, Time.time 기준). -1 = 아직 처치 안 됨
         private bool despawned;
 
         // ── 피격·사망 표현 ──
@@ -138,7 +135,6 @@ namespace HybridShooter.Monster.Behaviour
         public void Respawn()
         {
             despawned = false;
-            despawnTime = -1f;
             playerDead = false;
             InitializeHealth(Def.MaxHp);
             lastHitDirection = Vector3.zero;
@@ -225,14 +221,15 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// 매 프레임 진입점.
-        /// 죽었으면 회수 시각까지 기다렸다가 회수한다.
+        /// 죽었으면 시체 단계(누움 → 침강)를 넘기고, 침강이 끝나면 회수한다.
         /// 살아 있으면 대상 확보 → 공격 튜닝 → 상태 갱신 → 이동 애니 순서로 돈다.
         /// </summary>
         private void Update()
         {
             if (StateMachine.IsDead)
             {
-                if (Time.time >= despawnTime) Despawn();
+                corpse.Tick(Time.time);
+                if (corpse.IsGone) Despawn();
                 return;
             }
 
@@ -431,7 +428,7 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// 체력을 깎고 맞을 때마다 DamageDealtEvent 를 발행하고, 맞은 곳에 피를 튀긴다.
-        /// 체력이 0 이 된 순간 1번 상태 머신을 Dead 로 보낸다 (보상 지급). 아니면 피격 모션을 재생하고,
+        /// 체력이 0 이 된 순간 1번 상태 머신을 Dead 로 보낸다 (보상 지급, 자폭형은 그 전에 폭발). 아니면 피격 모션을 재생하고,
         /// 저체력 기준을 처음 넘은 순간 1번 느려지고 붉어진다. 이미 죽었으면 무시한다.
         /// </summary>
         /// <param name="info">피해 정보. Amount 만큼 체력을 깎는다</param>
@@ -453,11 +450,24 @@ namespace HybridShooter.Monster.Behaviour
 
             if (isKill)
             {
+                ExplodeIfSelfDestruct();
                 StateMachine.Die(true);
                 return;
             }
             damageFeedback.PlayHitAnimation(info.Direction);
             if (becameLowHealth) EnterLowHealth();
+        }
+
+        /// <summary>
+        /// 자폭형이면 처치된 그 자리에서 폭발시킨다 (SelfDestructSettings 의 처치 시 폭발이 켜져 있을 때만).
+        /// ApplyDamage 가 체력이 0 이 된 순간, Dead 로 보내기 전에 부른다. 자폭형이 아니면 할 일이 없다.
+        /// </summary>
+        private void ExplodeIfSelfDestruct()
+        {
+            foreach (MonsterAttack attack in StateMachine.Attacks)
+            {
+                if (attack is SelfDestructAttack selfDestruct) selfDestruct.ExplodeOnKilled(StateMachine.Target);
+            }
         }
 
         /// <summary>
@@ -473,7 +483,8 @@ namespace HybridShooter.Monster.Behaviour
 
         /// <summary>
         /// 상태 머신이 Dead 에 들어갈 때 호출된다.
-        /// 대상을 놓고, 피를 터뜨리고, 몸을 물리 시체로 바꾸고, MonsterDiedEvent 를 발행하고, 회수 시각을 정한다.
+        /// 대상을 놓고, 피를 터뜨리고, 몸을 물리 시체로 바꾸고, MonsterDiedEvent 를 발행한다.
+        /// 회수는 시체가 가라앉은 뒤 Update 가 한다.
         /// </summary>
         /// <param name="grantReward">true = 처치 보상 지급. MonsterDiedEvent 로 그대로 전달한다</param>
         private void OnStateMachineDied(bool grantReward)
@@ -484,7 +495,6 @@ namespace HybridShooter.Monster.Behaviour
             BecomeCorpse();
             Died?.Invoke();
             EventBus<MonsterDiedEvent>.Publish(new MonsterDiedEvent(Def, transform.position, gameObject, grantReward));
-            despawnTime = Time.time + despawnDelay;
         }
 
         /// <summary>
