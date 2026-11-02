@@ -135,6 +135,14 @@ namespace HybridShooter.Boss.Tyranopode
             return telegraph;
         }
 
+        /// <summary>예고 하나만 먼저 거둔다 (나머지는 그대로). 거둔 예고는 풀로 돌아가므로 목록에서도 뺀다</summary>
+        protected void HideTelegraph(GroundTelegraph telegraph)
+        {
+            if (telegraph == null) return;
+            telegraphs.Remove(telegraph);
+            telegraph.Hide();
+        }
+
         protected void HideTelegraphs()
         {
             foreach (var telegraph in telegraphs)

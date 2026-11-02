@@ -159,6 +159,7 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | 그로기 | Groggy*, WallGroggyTime | 포자 파괴·벽 충돌 그로기 시간, 그로기 중 받는 피해 배율 |
 | 패턴 | Tentacle*, Bite*, Smash*, Charge*, Spit*, Egg*, Tremor*, Summon*, Beacon*, Storm* | 피해·범위·예고(Windup)·경직(Recovery)·쿨타임 |
 | 등장 연출 | Intro* | 남아 있던 웨이브 몬스터를 흡수한 수만큼 보호막을 두르고 시작 (상한 MaxHp×IntroShieldMaxRatio), 두 번째 등장부터 짧은 연출 |
+| 보호막 | Shield*, EnergyFlightTime | 기믹 중 플레이어 사망 시 잡몹 흡수 보호막(상한 MaxHp×ShieldMaxRatio, 겹·파괴 그로기). 보호막이 생길 때마다(등장·부활) 흡수량과 별도로 MaxHp×ShieldBaseRatio 기본량을 더한다. 흡수한 몬스터가 없어도 기본량은 준다 (등장은 포효 순간, 포효 소환 중 사망은 부활 순간) |
 | 난이도 보정 | Assist* | 플레이어가 힘들수록 공격 간격↑, 연속·강공격↓ (예고·피해량은 그대로) |
 
 `SummonMinionIds` 는 MonsterTable.Id 를 `|` 로 구분한다 (예: `1001|1002`).

@@ -18,7 +18,7 @@ namespace HybridShooter.Player
     ///  - 수치 = 원본(GrenadeTable / 인스펙터) + 강화(IUpgradeState: 수류탄 범위 · 회복 팩 보유). 강화를 사거나(UpgradePurchasedEvent) 초기화되면(UpgradesResetEvent) 다시 계산
     ///
     /// 애니메이션 · IK 연결
-    ///  - ThrowStarted → PlayerAnimationDriver 가 Throw 동작을 throwDuration 에 맞춰 재생 (그동안 조준·왼손 IK 는 꺼진다)
+    ///  - ThrowStarted → PlayerAnimationDriver 가 Throw 동작을 던지기 직전 자세(throwStart)부터 throwDuration 에 맞춰 재생 (그동안 조준·왼손 IK 는 꺼진다)
     ///  - 손을 떠나는 순간: 던지기 클립이 있으면 드라이버가 ReleaseByAnimation 을 켜고, 클립 분석으로 찾은 순간에 ReleaseGrenade() 를 부른다
     ///    (안 오면 throwDuration 끝에 자동으로 던진다). 클립이 없으면 releaseTime 타이머
     ///  - ThrowHand = 드라이버가 넣는 던지는 손 뼈 (비우면 카메라 앞). 손에 든 수류탄 모형은 PlayerItemIK (모형이 보이면 그 자리에서 날아간다)

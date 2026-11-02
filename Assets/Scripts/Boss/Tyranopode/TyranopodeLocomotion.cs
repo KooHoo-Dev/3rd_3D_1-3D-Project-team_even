@@ -8,7 +8,8 @@ namespace HybridShooter.Boss.Tyranopode
     /// Tyranopode 이동. NavMeshAgent 를 직접 쓴다 (BossMovement 는 초기화 직후 멈춰 둔다).
     ///  - Circle: 공격 사이에 플레이어를 바라본 채 일정 반경으로 빠르게 맴돈다. 막히거나 일정 시간이 지나면 방향을 바꾼다
     ///  - Manual: 공격이 직접 움직인다 (MoveFree·Face)
-    ///  - 경기장 경계: 맴돌기는 몸 중심이 경기장 끝에서 wallMargin 안쪽에 머문다 (NavMesh 는 사람 크기 기준이라 그대로 두면 촉수가 벽을 뚫는다).
+    ///  - 경기장 경계: 맴돌기는 몸 중심이 실제 벽(NavMesh 가장자리)에서 wallMargin 안쪽에 머문다 (NavMesh 는 사람 크기 기준이라 그대로 두면 촉수가 벽을 뚫는다).
+    ///    경기장 원은 가장 먼 벽까지의 바깥 상한이고, 벽 모양(사각형·울퉁불퉁)은 KeepAwayFromWalls 가 따른다.
     ///    경기장은 원으로 어림한 값이라 실제 벽이 아니다 → 돌진·도약은 이 원에 막히지 않는다 (실제 벽은 몸통 벽 감지·FindLanding 이 맡는다)
     /// 회전은 항상 여기서 한다 (agent.updateRotation 끔)
     ///  - MoveFree: 돌진·도약용. NavMesh 의 작은 틈·돌멩이 구멍에 멈추지 않도록 transform 을 직접 옮기고 높이는 바닥에 맞춘다.
@@ -54,6 +55,9 @@ namespace HybridShooter.Boss.Tyranopode
         /// <summary>착지점까지 걷는 길이 직선의 이 배 + LandingDetourSlack 을 넘으면 벽 너머(크게 돌아야 함)</summary>
         private const float MaxLandingDetour = 2f;
         private const float LandingDetourSlack = 6f;
+        /// <summary>벽 거리 두기: 목표 근처 NavMesh 를 찾는 반경(m)·밀어내기 되풀이 횟수 (밀린 자리가 다른 벽에 가까워질 수 있다)</summary>
+        private const float WallSample = 4f;
+        private const int WallPushIterations = 3;
 
         private NavMeshAgent agent;
         private TyranopodeView view;
@@ -71,7 +75,8 @@ namespace HybridShooter.Boss.Tyranopode
         private bool free;
         private readonly RaycastHit[] wallHits = new RaycastHit[16];
         private readonly Collider[] roomHits = new Collider[16];
-        private readonly NavMeshPath landingPath = new NavMeshPath();
+        // NavMeshPath 는 필드 초기화에서 만들 수 없다 (Unity 가 막음) → Awake 에서 만든다
+        private NavMeshPath landingPath;
 
         /// <summary>MoveFree 가 멈춘 이유: 몸통이 벽에 정면 충돌 / 그 자리 바닥에 NavMesh 가 없음 (절벽·맵 끝)</summary>
         public enum MoveStop { None, Wall, Edge }
@@ -91,12 +96,15 @@ namespace HybridShooter.Boss.Tyranopode
         public Transform Target => target;
         /// <summary>몸 중심이 머물 수 있는 반지름 (경기장 반지름 - wallMargin). 경계가 없으면 0</summary>
         public float InnerRadius => hasBounds ? Mathf.Max(1f, boundsRadius - wallMargin) : 0f;
+        /// <summary>벽에서 몸 중심까지 둘 거리(m)</summary>
+        public float WallMargin => wallMargin;
         public Vector3 Velocity => agent != null && agent.isActiveAndEnabled ? agent.velocity : Vector3.zero;
 
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
             view = GetComponent<TyranopodeView>();
+            landingPath = new NavMeshPath();
         }
 
         public void Initialize(Transform player)
@@ -126,6 +134,39 @@ namespace HybridShooter.Boss.Tyranopode
             Vector3 clamped = boundsCenter + offset.normalized * inner;
             clamped.y = point.y;
             return clamped;
+        }
+
+        /// <summary>
+        /// point 를 실제 벽(걸을 수 있는 바닥의 끝)에서 wallMargin 안쪽으로 민다. 경기장이 원이 아니어도(울퉁불퉁한 사각형 등) 벽마다 같은 거리를 둔다.
+        /// 가장 가까운 NavMesh 가장자리의 반대쪽으로 밀고, 밀린 자리가 다른 벽에 가까워질 수 있어 몇 번 되풀이한다.
+        /// 경기장 안 바위·기둥 둘레도 가장자리라 같은 거리만큼 피한다. 근처에 NavMesh 가 없으면 그대로
+        /// </summary>
+        public Vector3 KeepAwayFromWalls(Vector3 point)
+        {
+            int mask = agent != null ? agent.areaMask : NavMesh.AllAreas;
+            if (NavMesh.SamplePosition(point, out var onMesh, WallSample, mask) == false) return point;
+
+            Vector3 result = onMesh.position;
+            for (int i = 0; i < WallPushIterations; i++)
+            {
+                if (NavMesh.FindClosestEdge(result, out var edge, mask) == false) break;
+                float push = wallMargin - edge.distance;
+                if (push <= 0.05f) break;
+
+                // 가장자리에서 지금 자리 쪽이 안쪽. 가장자리 위에 있으면 방향을 알 수 없어 가장자리 법선을 쓴다
+                Vector3 away = result - edge.position;
+                away.y = 0f;
+                if (away.sqrMagnitude < 0.01f)
+                {
+                    away = edge.normal;
+                    away.y = 0f;
+                }
+                if (away.sqrMagnitude < 0.0001f) break;
+
+                if (NavMesh.SamplePosition(result + away.normalized * push, out var moved, WallSample, mask) == false) break;
+                result = moved.position;
+            }
+            return result;
         }
 
         /// <summary>플레이어 주위를 맴돈다. 매 프레임 불러도 된다 (값만 갱신)</summary>
@@ -329,13 +370,21 @@ namespace HybridShooter.Boss.Tyranopode
         public WallContact ProbeWall(Vector3 direction, float distance, out Vector3 wallNormal)
         {
             Vector3 origin = transform.position + Vector3.up * (wallProbeHeight + wallProbeRadius);
-            float length = bodyReach + distance;
             LastProbeOrigin = origin;
-            LastProbeEnd = origin + direction * length;
-            LastWallPoint = null;
-            LastContact = WallContact.None;
-            LastWallCollider = null;
+            LastProbeEnd = origin + direction * (bodyReach + distance);
+            LastContact = CastWall(origin, direction, distance, out wallNormal, out var hit);
+            LastWallPoint = hit.collider != null ? hit.point : (Vector3?)null;
+            LastWallCollider = hit.collider;
+            return LastContact;
+        }
+
+        /// <summary>ProbeWall 의 판정만 (기즈모·로그용 Last* 값은 그대로 둔다). nearestHit.collider 가 null 이면 벽 없음</summary>
+        private WallContact CastWall(Vector3 origin, Vector3 direction, float distance, out Vector3 wallNormal, out RaycastHit nearestHit)
+        {
+            float length = bodyReach + distance;
             wallNormal = Vector3.zero;
+            nearestHit = default;
+            var contact = WallContact.None;
             int count = Physics.SphereCastNonAlloc(origin, wallProbeRadius, direction, wallHits, length, ~0, QueryTriggerInteraction.Ignore);
             float slopeLimit = Mathf.Cos(wallMinSteepness * Mathf.Deg2Rad);
             float headOn = Mathf.Cos(HeadOnAngle * Mathf.Deg2Rad);
@@ -352,11 +401,33 @@ namespace HybridShooter.Boss.Tyranopode
                 if (normal.sqrMagnitude < 0.0001f) continue;
                 nearest = hit.distance;
                 wallNormal = normal.normalized;
-                LastWallPoint = hit.point;
-                LastWallCollider = hit.collider;
-                LastContact = Vector3.Dot(-wallNormal, direction) >= headOn ? WallContact.HeadOn : WallContact.Graze;
+                nearestHit = hit;
+                contact = Vector3.Dot(-wallNormal, direction) >= headOn ? WallContact.HeadOn : WallContact.Graze;
             }
-            return LastContact;
+            return contact;
+        }
+
+        /// <summary>
+        /// 움직이지 않고 지금 자리에서 direction 으로 distance 만큼 땅으로 기어갈 수 있는지 미리 본다 (돌진을 고르기·출발하기 전).
+        /// MoveFree(땅) 와 같은 기준: 몸통이 정면으로 박을 벽이면 Wall, 길 위 바닥 근처에 NavMesh 가 없으면 Edge. 스치는 벽은 미끄러지므로 막힘이 아니다
+        /// </summary>
+        public MoveStop ProbePath(Vector3 direction, float distance)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f || distance <= 0f) return MoveStop.None;
+            direction.Normalize();
+
+            Vector3 origin = transform.position + Vector3.up * (wallProbeHeight + wallProbeRadius);
+            if (CastWall(origin, direction, distance, out _, out _) == WallContact.HeadOn) return MoveStop.Wall;
+
+            int mask = agent != null ? agent.areaMask : NavMesh.AllAreas;
+            for (float along = gapTolerance; along <= distance + 0.01f; along += gapTolerance)
+            {
+                Vector3 point = transform.position + direction * Mathf.Min(along, distance);
+                float ground = TyranopodeGround.Height(point, point.y);
+                if (NavMesh.SamplePosition(new Vector3(point.x, ground, point.z), out _, gapTolerance, mask) == false) return MoveStop.Edge;
+            }
+            return MoveStop.None;
         }
 
         /// <summary>point 쪽으로 돈다. 다 돌았으면 true</summary>
@@ -441,7 +512,8 @@ namespace HybridShooter.Boss.Tyranopode
             offset.y = 0f;
             if (offset.sqrMagnitude < 0.01f) offset = -transform.forward;
             Vector3 around = Quaternion.Euler(0f, circleStepAngle * circleSign, 0f) * offset.normalized;
-            Vector3 destination = ClampToBounds(target.position + around * circleRadius);
+            // 경기장 원(바깥 상한) 안으로 당긴 뒤 실제 벽에서 거리를 둔다
+            Vector3 destination = KeepAwayFromWalls(ClampToBounds(target.position + around * circleRadius));
 
             agent.speed = circleSpeed;
             agent.acceleration = circleSpeed * 4f;

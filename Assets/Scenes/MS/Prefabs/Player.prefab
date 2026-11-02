@@ -790,7 +790,7 @@ MonoBehaviour:
   directHitBonusRatio: 0.5
   explosion:
     damage: 0
-    radius: 4
+    radius: 12
     minDamageRatio: 0.3
     force: 12
     effectPrefab: {fileID: 5543976136519851074, guid: 9d8acd80d0e8af34c8d9bbfec68150be, type: 3}
@@ -1184,8 +1184,8 @@ MonoBehaviour:
   grenadeHitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  throwDuration: 2.09
-  releaseTime: 1.9
+  throwDuration: 0.5
+  releaseTime: 0.12
   releaseByAnimationEvent: 0
   upwardAngle: 10
   throwHand: {fileID: 1301782267767824112}
@@ -1731,14 +1731,12 @@ MonoBehaviour:
   recoilPitch: 3
   recoilYaw: 0.5
   aimRecoilMultiplier: 0.7
-  recoilRecoverRatio: 0.7
+  recoilRecoverRatio: 1
   recoilRecoverSpeed: 10
   aimFovMultiplier: 0.3
   aimSensitivityMultiplier: 0.35
   aimMoveSpeedMultiplier: 0.5
   reloadInsertAt: 0.55
-  scopeSettleTime: 0.3
-  scopedMoveSpreadMultiplier: 0.5
   maxPenetration: 3
   penetrationDamageRatio: 0.7
   unscopeWhileBolting: 0
@@ -1849,10 +1847,11 @@ MonoBehaviour:
   aimSensitivityMultiplier: 0.8
   aimMoveSpeedMultiplier: 0.85
   reloadInsertAt: 0.55
-  pelletCount: 8
+  pelletCount: 20
   pelletJitter: 0.2
-  falloffStart: 6
-  minDamageRatio: 0.2
+  verticalSpreadScale: 0.4
+  falloffStart: 10
+  minDamageRatio: 0.5
   reloadStartDelay: 0.3
 --- !u!1 &8470091460215092328
 GameObject:

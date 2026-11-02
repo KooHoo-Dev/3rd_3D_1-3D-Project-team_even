@@ -23,6 +23,7 @@ MonoBehaviour:
     dodgeClipLength: 1.5083334
     throwClipLength: 2.6666667
     throwRelease: 0.7
+    throwStart: 0.6
     throwWithLeftHand: 1
   maxPlaybackScale: 1.25
   moveDampTime: 0.1
@@ -39,6 +40,7 @@ MonoBehaviour:
   drawDuration: 0.6
   actionSpeedRange: {x: 0.5, y: 3}
   actionBlendTime: 0.15
+  throwBlendTime: 0.05
   recoilMagnitude: 1
   gripTable: {fileID: 11400000, guid: b7213f8890f812f4d86bd4aa2b12d6b2, type: 2}
   healPose:

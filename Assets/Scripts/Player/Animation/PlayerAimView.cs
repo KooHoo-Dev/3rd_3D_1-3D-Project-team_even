@@ -6,7 +6,7 @@ namespace HybridShooter.Player
 {
     /// <summary>
     /// 총별 조준 화면 (WeaponGripTable 조준 방식). Player 루트에 붙인다.
-    ///  - 스코프 (저격총): 조준 동작(드라이버 AimWeight)이 올라오는 만큼 화면이 어두워지다가 scopeSwitchAim(중간)에서 가장 어두울 때
+    ///  - 스코프 (저격총): 조준 동작(드라이버 AdsWeight, 실제 조준만)이 올라오는 만큼 화면이 어두워지다가 scopeSwitchAim(중간)에서 가장 어두울 때
     ///    1·3인칭 모두 1인칭 눈 카메라(PlayerController.SetScopeView)로 바꾸고 다시 밝아진다. 그때
     ///    몸·총 레이어를 카메라에서 빼고 스코프 오버레이를 띄운다. 확대는 총의 aimFovMultiplier (총 시스템이 그대로 한다).
     ///    눈 카메라 기준이라 오버레이 중앙 = 사격 광선
@@ -117,7 +117,7 @@ namespace HybridShooter.Player
             float step = scopeFadeTime > 0f ? Time.deltaTime / scopeFadeTime : 1f;
             if (wantScope == false) scopeBlend = Mathf.MoveTowards(scopeBlend, 0f, step);
             else if (scopeApplied) scopeBlend = Mathf.MoveTowards(scopeBlend, 1f, step);
-            else scopeBlend = 0.5f * Mathf.Clamp01(driver.AimWeight / scopeSwitchAim);
+            else scopeBlend = 0.5f * Mathf.Clamp01(driver.AdsWeight / scopeSwitchAim);
             // 시점 전환이 시작되면 컨트롤러가 스코프 화면을 먼저 끈다 → 바로 맞춘다
             if (scopeApplied && (player.ScopeView == false || player.CameraChanging)) scopeBlend = 0f;
             bool scoped = scopeBlend >= 0.5f;
@@ -125,7 +125,7 @@ namespace HybridShooter.Player
 
             float flash = scopeBlend > 0f && scopeBlend < 1f ? 1f - Mathf.Abs(scopeBlend - 0.5f) * 2f : 0f;
             float launcher = Mode == WeaponGripTable.AimMode.Shoulder && aiming && player.IsFirstPerson
-                ? Mathf.InverseLerp(0.5f, 1f, driver.AimWeight) : 0f;
+                ? Mathf.InverseLerp(0.5f, 1f, driver.AdsWeight) : 0f;
             float range = aimIK != null && scopeApplied ? Vector3.Distance(player.CurrentCameraTransform.position, aimIK.AimPoint) : -1f;
             hud.Set(scopeApplied ? 1f : 0f, launcher, flash, range);
             UpdateHipReticle(gun, launcher, flash);
@@ -138,7 +138,7 @@ namespace HybridShooter.Player
             bool show = gun != null && player.IsAlive && player.IsReviving == false && player.CameraChanging == false
                         && player.IsInCinematic == false && scopeBlend <= 0f && flash <= 0f && launcher <= 0f;
             float alpha = show ? Mathf.Clamp01(driver.ActionBlend) : 0f;
-            if (player.IsFirstPerson) alpha *= 1f - driver.AimWeight; // 1인칭 조준 = 조준기가 화면 중앙
+            if (player.IsFirstPerson) alpha *= 1f - driver.AdsWeight; // 1인칭 조준 = 조준기가 화면 중앙 (허리 사격 중에는 퍼짐 조준선을 보여 준다)
             if (alpha <= 0.01f)
             {
                 hud.SetHip(0f, 0f);

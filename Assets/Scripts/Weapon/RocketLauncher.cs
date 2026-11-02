@@ -27,7 +27,7 @@ namespace HybridShooter.Weapon
         [Tooltip("폭발 설정. damage 는 WeaponTable.Damage, sfxKey 는 WeaponTable.ExplodeSfxKey 로 덮어쓴다")]
         [SerializeField] private ExplosionSettings explosion = new ExplosionSettings
         {
-            radius = 4f, minDamageRatio = 0.3f, force = 12f,
+            radius = 12f, minDamageRatio = 0.3f, force = 12f,
         };
 
         public RocketLauncher()

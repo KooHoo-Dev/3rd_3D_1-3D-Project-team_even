@@ -5,11 +5,14 @@ namespace HybridShooter.Boss.Tyranopode
 {
     /// <summary>
     /// 물기. 가까우면 제자리 물기, 중거리면 뛰어들며 물기(거리 좁히기). 턱이 부서지면 고르지 않는다 (촉수가 대신)
-    ///  - 예고: 제자리 = 앞 부채꼴, 점프 = 플레이어까지 직사각형
+    ///  - 예고: 제자리 = 앞 부채꼴, 점프 = 착지할 자리까지 직사각형 + 착지 물기 원
+    ///    (원 = 뛰어서 내려앉는 곳: 내려찍기와 같은 규칙. 직사각형만 있으면 돌진 예고와 구분되지 않는다)
     /// </summary>
     public sealed class BiteAttack : TyranopodeAttack
     {
         private const float BiteAngle = 70f;
+        /// <summary>착지 원이 예고 뒤 공중 시간 동안 더 남는 여유(초)</summary>
+        private const float LandingAirTime = 0.4f;
 
         [Header("타격 진행도 (애니메이션 0~1)")]
         [SerializeField, Range(0f, 1f)] private float biteHitTime = 0.42f;
@@ -22,7 +25,9 @@ namespace HybridShooter.Boss.Tyranopode
         private bool hitDone;
         private Vector3 jumpFrom;
         private Vector3 jumpTo;
+        private float jumpReach;
         private GroundTelegraph telegraph;
+        private GroundTelegraph landingTelegraph;
 
         protected override float WindupTime => Data.BiteWindup;
         protected override float RecoveryTime => Data.BiteRecovery;
@@ -42,8 +47,17 @@ namespace HybridShooter.Boss.Tyranopode
             View.Play(TyranopodeView.Idle, 1.4f);
 
             telegraph = Telegraph();
+            landingTelegraph = null;
             float time = Data.BiteWindup * Owner.WindupScale;
-            if (jump) telegraph.ShowRect(transform.position, transform.forward, Data.JumpBiteWidth, DistanceToTarget, time, DangerColor);
+            if (jump)
+            {
+                jumpReach = JumpDistance();
+                telegraph.ShowRect(transform.position, transform.forward, Data.JumpBiteWidth, jumpReach, time, DangerColor);
+                // 착지 물기 원: 예고 + 공중 시간까지 남긴다
+                landingTelegraph = Telegraph();
+                landingTelegraph.ShowCircle(BiteCenter(transform.position + transform.forward * jumpReach, transform.forward),
+                    Data.JumpBiteHitRadius, time + LandingAirTime, DangerColor);
+            }
             else telegraph.ShowSector(transform.position, transform.forward, Data.BiteRange, BiteAngle, time, DangerColor);
         }
 
@@ -51,17 +65,26 @@ namespace HybridShooter.Boss.Tyranopode
         {
             Move.Face(TargetPosition, 1.5f);
             telegraph.Place(transform.position, transform.forward);
+            if (landingTelegraph != null)
+                landingTelegraph.Place(BiteCenter(transform.position + transform.forward * jumpReach, transform.forward), transform.forward);
         }
+
+        /// <summary>뛰어갈 거리: 플레이어 landShortOf 앞까지</summary>
+        private float JumpDistance() => Mathf.Max(0f, DistanceToTarget - landShortOf * Owner.BodyScale);
+
+        /// <summary>body 자리에 내려앉았을 때 무는 원의 중심 (몸 앞 JumpBiteHitRadius)</summary>
+        private Vector3 BiteCenter(Vector3 body, Vector3 forward) => body + Flat(forward).normalized * Data.JumpBiteHitRadius;
 
         protected override void OnActiveStarted()
         {
             if (jump)
             {
-                HideTelegraphs();
+                // 길 표시는 거두고 착지 원은 실제 착지점(FindLanding 이 당긴 자리)으로 옮겨 내려앉을 때까지 둔다
+                HideTelegraph(telegraph);
                 Move.FaceInstant(TargetPosition);
                 jumpFrom = transform.position;
-                float distance = Mathf.Max(0f, DistanceToTarget - landShortOf * Owner.BodyScale);
-                jumpTo = Move.FindLanding(jumpFrom, jumpFrom + DirectionToTarget * distance);
+                jumpTo = Move.FindLanding(jumpFrom, jumpFrom + DirectionToTarget * JumpDistance());
+                if (landingTelegraph != null) landingTelegraph.Place(BiteCenter(jumpTo, transform.forward), transform.forward);
                 View.Play(TyranopodeView.JumpBite, Owner.SpeedScale);
             }
             else
@@ -91,7 +114,13 @@ namespace HybridShooter.Boss.Tyranopode
                 bool hit = jump
                     ? PlayerInCircle(mouth, Data.JumpBiteHitRadius)
                     : PlayerInSector(transform.position, transform.forward, Data.BiteRange, BiteAngle);
-                if (jump) FlashCircle(mouth, Data.JumpBiteHitRadius);
+                if (jump && landingTelegraph != null)
+                {
+                    landingTelegraph.Place(mouth, transform.forward);
+                    Detonate(landingTelegraph);
+                    landingTelegraph = null;
+                }
+                else if (jump) FlashCircle(mouth, Data.JumpBiteHitRadius);
                 else Detonate(telegraph);
                 Owner.RaiseSoundCue(TyranopodeSoundCue.BiteImpact, mouth);
                 if (hit) HitPlayer(Data.BiteDamage, transform.position);

@@ -197,6 +197,17 @@ namespace HybridShooter.Boss.TyranopodeEditor.Tests
         }
 
         [Test]
+        public void 보호막_기본량은_흡수량에_상한_밖으로_더한다()
+        {
+            // 흡수량 + 최대 체력 10%
+            Assert.AreEqual(150f, TyranopodeController.WithBaseShield(50f, 1000f, 0.1f), 0.001f);
+            // 흡수 상한(DrainShield)이 꽉 차도 기본량은 그대로 붙는다
+            Assert.AreEqual(400f, TyranopodeController.WithBaseShield(TyranopodeController.DrainShield(100, 10f, 300f, 0f), 1000f, 0.1f), 0.001f);
+            // 흡수한 몬스터가 없어도 기본량은 준다
+            Assert.AreEqual(100f, TyranopodeController.WithBaseShield(0f, 1000f, 0.1f), 0.001f);
+        }
+
+        [Test]
         public void 등장_시간표는_단계가_이어진다()
         {
             foreach (var s in new[] { TyranopodeIntroSettings.Full, TyranopodeIntroSettings.Brief })
