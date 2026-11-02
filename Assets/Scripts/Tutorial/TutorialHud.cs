@@ -42,6 +42,8 @@ namespace HybridShooter.Tutorial
         private const float ObjectiveTop = SkipTop + SkipHeight + 16f;
         /// <summary>강화 화면(100)·무기 선택 화면(100) 위. 입력은 막지 않는다</summary>
         private const int SortingOrder = 110;
+        /// <summary>음성이 끝난 뒤 다음 대사까지 두는 틈 (초)</summary>
+        private const float VoiceGap = 0.35f;
 
         [Tooltip("한글 글자용 (NotoSansKR SDF). 비워 두면 GameFlowUiSkin 의 글꼴")]
         [SerializeField] private TMP_FontAsset textFont;
@@ -64,6 +66,10 @@ namespace HybridShooter.Tutorial
         private Image fade;
         private string fullSubtitle = string.Empty;
         private float subtitleStart = -1f, subtitleEnd = -1f, rewardAt = -1f;
+        /// <summary>차례를 기다리는 대사 (시작 시각 · 길이). queueEnd = 마지막 대사가 끝나는 시각</summary>
+        private readonly System.Collections.Generic.Queue<(TutorialScript.Line line, float start, float duration)> pending =
+            new System.Collections.Generic.Queue<(TutorialScript.Line, float, float)>();
+        private float queueEnd;
 
         #region 유니티 메시지
         private void Awake()
@@ -87,20 +93,19 @@ namespace HybridShooter.Tutorial
         #endregion
 
         #region 외부 API
-        /// <summary>대사 한 줄을 띄우고(음성이 있으면 재생) 읽는 데 걸리는 시간(초)을 돌려준다. 다음 대사가 오면 바로 바뀐다</summary>
+        /// <summary>
+        /// 대사 한 줄을 줄 세운다. 앞 대사(음성)가 끝나면 자막을 띄우고 음성을 재생한다 — 음성이 겹치지 않게.
+        /// 반환: 지금부터 이 대사가 끝날 때까지(앞 대사 대기 + 이 대사 길이)의 시간(초, 실제 시간)
+        /// </summary>
         public float Say(TutorialScript.Line line)
         {
             if (line == null) return 0f;
-            fullSubtitle = line.Subtitle ?? string.Empty;
-            // 타자기로 글자가 늘어나도 띠가 흔들리지 않게, 다 찍힌 문장 기준으로 높이를 먼저 맞춘다
-            FitHeight(subtitleRect, subtitleText, fullSubtitle, SubtitleMinHeight, SubtitleTextTop);
-            subtitleText.text = string.Empty;
-            float duration = Mathf.Max(minSubtitleTime, fullSubtitle.Length * readSecondsPerChar);
-            subtitleStart = Time.unscaledTime;
-            subtitleEnd = subtitleStart + duration + subtitleLinger;
-            subtitleGroup.alpha = 1f;
-            PlayVoice(line.Id);
-            return duration;
+            float now = Time.unscaledTime;
+            float start = Mathf.Max(now, queueEnd);
+            float duration = LineDuration(line);
+            queueEnd = start + duration;
+            pending.Enqueue((line, start, duration));
+            return queueEnd - now;
         }
 
         /// <summary>header = 영문 머리말 (예: "TRAINING 02 / 05"), name = 과목 이름, text = 목표 문구 (리치 텍스트)</summary>
@@ -172,14 +177,42 @@ namespace HybridShooter.Tutorial
             return panelHeight;
         }
 
+        /// <summary>대사 길이 = 읽는 시간(글자 수)과 음성 길이 중 긴 쪽 (음성은 끝에 여유 VoiceGap)</summary>
+        private float LineDuration(TutorialScript.Line line)
+        {
+            float read = Mathf.Max(minSubtitleTime, (line.Subtitle ?? string.Empty).Length * readSecondsPerChar);
+            float voice = VoiceOf(line.Id) is { Clip: { } clip } ? clip.length + VoiceGap : 0f;
+            return Mathf.Max(read, voice);
+        }
+
+        /// <summary>대사 Id = SoundTable 키. 음성 파일이 아직 없으면 null (자막만)</summary>
+        private static Core.Data.Defs.SoundDef VoiceOf(string id) =>
+            string.IsNullOrEmpty(id) == false && DataManager.Sounds.TryGet(id, out var sound) ? sound : null;
+
         private static void PlayVoice(string id)
         {
-            if (string.IsNullOrEmpty(id) || DataManager.Sounds.TryGet(id, out var sound) == false) return; // 음성 파일이 아직 없으면 자막만
-            if (ServiceLocator.TryGet<ISoundService>(out var service)) service.PlaySfx(sound);
+            var sound = VoiceOf(id);
+            if (sound != null && ServiceLocator.TryGet<ISoundService>(out var service)) service.PlaySfx(sound);
+        }
+
+        /// <summary>줄의 맨 앞 대사가 시작할 때가 되면 자막을 바꾸고 음성을 재생한다</summary>
+        private void ShowQueuedLine()
+        {
+            if (pending.Count == 0 || Time.unscaledTime < pending.Peek().start) return;
+            var (line, start, duration) = pending.Dequeue();
+            fullSubtitle = line.Subtitle ?? string.Empty;
+            // 타자기로 글자가 늘어나도 띠가 흔들리지 않게, 다 찍힌 문장 기준으로 높이를 먼저 맞춘다
+            FitHeight(subtitleRect, subtitleText, fullSubtitle, SubtitleMinHeight, SubtitleTextTop);
+            subtitleText.text = string.Empty;
+            subtitleStart = start;
+            subtitleEnd = start + duration + subtitleLinger;
+            subtitleGroup.alpha = 1f;
+            PlayVoice(line.Id);
         }
 
         private void UpdateSubtitle()
         {
+            ShowQueuedLine();
             if (subtitleStart < 0f) return;
             float now = Time.unscaledTime;
             int shown = Mathf.Min(fullSubtitle.Length, Mathf.FloorToInt((now - subtitleStart) * typeSpeed));
