@@ -96,7 +96,8 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
             GameObject reused = Spawn(Letalobrach, new Vector3(2f, 0f, 2f));
             Assert.AreSame(monster, reused);
-            Assert.IsNull(reused.GetComponent<Rigidbody>());
+            yield return null; // Restore 의 Destroy(Rigidbody) 는 프레임 끝에 반영된다
+            Assert.IsFalse(reused.TryGetComponent(out Rigidbody _), "재사용하면 시체 Rigidbody 를 뗀다");
             Assert.AreNotEqual(LayerMask.NameToLayer("MonsterCorpse"), reused.layer);
         }
 
