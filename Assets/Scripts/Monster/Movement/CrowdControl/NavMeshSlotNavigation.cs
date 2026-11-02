@@ -12,7 +12,7 @@ namespace HybridShooter.Monster.Movement
         private readonly SlotSettings settings;
         private readonly NavMeshPath path;   // CanReach 용 경로 버퍼 (매번 할당하지 않도록 재사용)
 
-        /// <summary>CrowdCoordinator.EnsureSlots 가 SlotRegistry 를 만들 때 같은 SlotSettings 로 함께 만든다.</summary>
+        /// <summary>CrowdController.EnsureSlots 가 SlotRegistry 를 만들 때 같은 SlotSettings 로 함께 만든다.</summary>
         /// <param name="settings">NavMesh 질의에 쓸 AgentTypeId·AreaMask·SampleRadius</param>
         public NavMeshSlotNavigation(SlotSettings settings)
         {

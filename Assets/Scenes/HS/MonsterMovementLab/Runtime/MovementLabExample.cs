@@ -12,7 +12,7 @@ namespace HybridShooter.Monster.MovementLab
     /// <summary>Core 이동 모듈을 실제 NavMesh 장면에서 손으로 확인하는 MVP 실험실.</summary>
     public sealed class MovementLabExample : MonoBehaviour
     {
-        [SerializeField] private CrowdCoordinator coordinator;
+        [SerializeField] private CrowdController coordinator;
         [SerializeField] private TestPlayer target;
         [SerializeField] private Transform monsterRoot;
         [SerializeField] private MovementLabGizmos gizmos;
@@ -58,7 +58,7 @@ namespace HybridShooter.Monster.MovementLab
         /// <summary>소환 후보 프리팹 목록. 조작 창이 선택한 프리팹 이름과 번호 범위를 보여 줄 때 쓴다</summary>
         public IReadOnlyList<GameObject> MonsterPrefabs => monsterPrefabs;
 
-        public CrowdCoordinator Coordinator => coordinator;
+        public CrowdController Coordinator => coordinator;
         public TestPlayer Target => target;
         public Transform MonsterRoot => monsterRoot;
         /// <summary>소환된 몬스터 (사망해 비활성화된 개체 포함)</summary>
@@ -121,7 +121,7 @@ namespace HybridShooter.Monster.MovementLab
 
             var coordObject = new GameObject("Crowd Coordinator");
             coordObject.transform.SetParent(root.transform, false);
-            coordinator = coordObject.AddComponent<CrowdCoordinator>();
+            coordinator = coordObject.AddComponent<CrowdController>();
             coordinator.SetTarget(target);
             coordinator.Settings.UseSlots = true;
 

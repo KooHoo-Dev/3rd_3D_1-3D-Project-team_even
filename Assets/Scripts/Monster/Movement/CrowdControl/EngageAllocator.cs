@@ -27,7 +27,7 @@ namespace HybridShooter.Monster.Movement
         private static bool[] s_slotTaken = new bool[0];   // 슬롯 번호별 사용 중 여부
 
         /// <summary>
-        /// 토큰 모드 배분 진입점. CrowdCoordinator.Allocate 가 배분 주기마다 부른다.
+        /// 토큰 모드 배분 진입점. CrowdController.Allocate 가 배분 주기마다 부른다.
         /// agents[0..count) 를 판단해 results[0..count) 에 쓰고 집계를 돌려준다.
         /// </summary>
         /// <remarks>

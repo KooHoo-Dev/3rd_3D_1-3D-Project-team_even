@@ -7,7 +7,7 @@ namespace HybridShooter.Monster.MovementLab
 {
     /// <summary>
     /// Play 중 실험 조작 UI(IMGUI) + 마우스 입력.
-    /// 1: 이동 패턴 변경(클릭/드래그한 지점 반경의 몬스터 정책 교체), 2: 몬스터 죽이기(클릭), 3: CrowdCoordinator 값 조절, 0/Esc: 해제.
+    /// 1: 이동 패턴 변경(클릭/드래그한 지점 반경의 몬스터 정책 교체), 2: 몬스터 죽이기(클릭), 3: CrowdController 값 조절, 0/Esc: 해제.
     /// </summary>
     public sealed class MovementLabController : MonoBehaviour
     {
