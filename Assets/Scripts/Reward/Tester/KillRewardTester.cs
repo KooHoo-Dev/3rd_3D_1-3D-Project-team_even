@@ -39,6 +39,8 @@ namespace HybridShooter.Reward.Tester
         [SerializeField] private int bossMonsterId = 3001;
         [Tooltip("U 키로 구매할 강화 종류 (UpgradeTable)")]
         [SerializeField] private UpgradeType testUpgradeType = UpgradeType.ReloadSpeed;
+        [Tooltip("U 키로 구매할 때의 카드 등급")]
+        [SerializeField] private UpgradeGrade testUpgradeGrade = UpgradeGrade.Common;
         [Tooltip("화면에 상태 표시")]
         [SerializeField] private bool showStatus = true;
 
@@ -169,8 +171,8 @@ namespace HybridShooter.Reward.Tester
                 ServiceLocator.TryGet<ICurrencyWallet>(out var wallet) == false) return;
 
             var next = upgrades.GetNext(testUpgradeType);
-            if (upgrades.TryPurchase(testUpgradeType, wallet))
-                Debug.Log($"[KillRewardTester] 강화 구매 성공: {next.Name} (비용 {next.Cost}) → {testUpgradeType} 레벨 {upgrades.GetLevel(testUpgradeType)}", this);
+            if (upgrades.TryPurchase(testUpgradeType, testUpgradeGrade, wallet))
+                Debug.Log($"[KillRewardTester] 강화 구매 성공: {next.Name} {testUpgradeGrade} (비용 {next.Cost}) → {testUpgradeType} 레벨 {upgrades.GetLevel(testUpgradeType)}", this);
             else
                 Debug.Log($"[KillRewardTester] 강화 구매 실패: {(next == null ? "최대 레벨" : $"재화 부족 (필요 {next.Cost}, 보유 {wallet.Balance})")}", this);
         }

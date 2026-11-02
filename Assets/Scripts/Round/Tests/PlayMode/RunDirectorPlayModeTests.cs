@@ -207,7 +207,7 @@ namespace HybridShooter.Round.Tests
         public IEnumerator RewardCompletion_PreservesUpgradesAndCurrency_RepeatsRoundOneOnce()
         {
             wallet.Add(5000);
-            Assert.IsTrue(ledger.TryPurchase(UpgradeType.MagazineSize, wallet));
+            Assert.IsTrue(ledger.TryPurchase(UpgradeType.MagazineSize, UpgradeGrade.Common, wallet));
             wallet.ResetTo(73);
             Call(director, "StartRun");
             yield return DefeatBoss();
@@ -215,9 +215,9 @@ namespace HybridShooter.Round.Tests
             Assert.IsTrue(Get<bool>(upgrades, "IsOpen"));
             Assert.AreEqual(0f, Time.timeScale);
 
-            foreach (UpgradeType type in Enum.GetValues(typeof(UpgradeType)))
+            for (int i = 0; i < 3; i++)
             {
-                if ((bool)Call(upgrades, "TryPurchase", type)) break;
+                if ((bool)Call(upgrades, "TryPurchase", i)) break; // 상점 카드 i 번째 구매 (재화가 되는 카드 하나)
             }
             Assert.IsTrue(Get<bool>(upgrades, "CanFinish"));
             int expectedBalance = wallet.Balance;
@@ -241,7 +241,7 @@ namespace HybridShooter.Round.Tests
         {
             completeCamera = false;
             wallet.Add(5000);
-            Assert.IsTrue(ledger.TryPurchase(UpgradeType.MagazineSize, wallet));
+            Assert.IsTrue(ledger.TryPurchase(UpgradeType.MagazineSize, UpgradeGrade.Common, wallet));
             Call(director, "StartRun");
             yield return WaitForState(GameState.BossIntro);
             EventBus<PlayerDiedEvent>.Publish(new PlayerDiedEvent());

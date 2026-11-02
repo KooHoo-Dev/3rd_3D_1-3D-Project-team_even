@@ -1,277 +1,194 @@
-# 라운드 종료 강화 시스템 보완 — 기획안 (v2: 랜덤 3장 상점)
+# 라운드 종료 강화 시스템 보완 — 기획안 (v3.2: 등급 카드 상점)
 
-> 상태: **기획 제안 (미확정 · 구현 전)**  ·  작성일 2026-11-02  ·  브랜치 `chore/UpgradeSystem-Improvement`
-> 관련: [SupplyUpgradeRework_Proposal.md](SupplyUpgradeRework_Proposal.md) C장 (다회 구매) · [UpgradeUI_Mockup.html](UpgradeUI_Mockup.html) · [PlaytestFeedback_2026-11-01.md](../Playtest/PlaytestFeedback_2026-11-01.md) · BL-030/031/032
->
-> v2 변경 전제 (2026-11-02 팀 의견)
-> - 게임은 **3스테이지**로 마무리 → 강화 상점은 **스테이지 1·2 클리어 후 2번**뿐
-> - 1스테이지 획득 재화는 **많아야 300 정도** → v1 비용(1단계 총 4,940)은 너무 비쌈
-> - 강화를 전부 나열하지 않고 **무작위 3장**만 보여 줘 선택을 제한
-> - 리롤 비용은 **5부터** 시작
+> 상태: **기획 확정 · 구현 완료(에디터 확인 전)**  ·  작성일 2026-11-02  ·  브랜치 `chore/UpgradeSystem-Improvement`
+> 근거: 2차 빌드 팀원 피드백 · 팀장 의견(2026-11-02) · 「이벤트 버스와 외부 데이터 적용 기준」 v0.1
+> 관련: [UpgradeSystem_Handoff.md](UpgradeSystem_Handoff.md) · [UpgradeUI_Mockup.html](UpgradeUI_Mockup.html) · 팀 공유 표 [UpgradeList_v3.png](UpgradeList_v3.png) · BL-030/031/032
+> 이전 버전: v2(특화 · 슬롯 보장 · 리롤 +5 증가)는 git `1659dca2`
+> **담당 범위: 강화 시스템만.** 라운드 포맷 · 랜덤 기믹은 라운드 담당 (6장은 의존 사항만 기록)
 
-## 0. 요약
+## 0. 결정 사항
 
-- 강화 상점을 **"무작위 3장 + 리롤"** 방식으로 바꾼다. 카드 한 장 = 어떤 강화의 다음 1레벨, 재화로 구매(산 카드는 SOLD).
-- 강화 종류는 3종 → **14종**(일반 10 + 특화 4)으로 늘리고, **모두 최대 2레벨**로 맞춘다. 상점이 2번뿐이라 3레벨은 거의 도달하지 못한다.
-- 비용은 **일반 60 / 100, 특화 90 / 140**. 한 판에 약 9장을 산다(전체의 약 1/3) → 판마다 빌드가 달라진다.
-- **구조는 유지**: `UpgradeTable` 트랙 · `IUpgradeState.TryPurchase` · `GetTotalValue` · 각 시스템의 `RefreshStats`. 지금 3장 기준인 강화 화면도 거의 그대로 쓴다.
+| 항목 | 결정 |
+|---|---|
+| 레벨 | 모든 강화 **최대 2레벨** |
+| 종류 | **8종** (4장). 특화 · 슬롯 보장 삭제. 회피 기동 · 연사력은 팀장 의견으로 삭제 (밸런스 · 효용성) |
+| 비용 | 레벨로만: **Lv1 60 / Lv2 100** |
+| 등급 | **3등급** 하급(회색) · 일반(흰색) · 에픽(보라) — 증가량만 차등. **에픽 25%** 로 잘 뜨게 (팀장 의견) |
+| 개수 강화 | 하급 · 일반 +1, 에픽 +2 |
+| 리롤 | **항상 5**, 횟수 무제한으로 시작 (테스트 후 상한 검토) |
+| 러키걸 | 에픽 확률만 조금 올림. **행운은 엄격하게** |
+| 등급 색 | `UpgradeGradeTable.Color` (테이블) |
+| 상점 횟수 | R1 · R2 종료 후 **2번**. R2 섬멸전(2:30 **시간 내 생존**) 종료 후에도 상점 열림 + 클리어 보상 150 (라운드 담당에 요청) |
 
-| | 문제 | 보완 |
-|---|---|---|
-| P1 | 선택할 게 없다 (몇 번이면 다 삼) | 무작위 3장 + 리롤, 최대 레벨 합의 1/3만 구매 가능 |
-| P2 | 강해지는 체감이 약하다 | 화력 계열 추가, 상점이 2번뿐이라 **레벨당 효과를 크게** |
-| P3 | 생존 수단이 없다 | 최대 체력 · 회복 팩 강화 |
-| P4 | 하이브리드 컨셉이 강화에 없다 | 군중전 / 보스전 특화 (한쪽만), 1번 상점에 특화 카드 1장 보장 |
-| P5 | 보급 시스템과 따로 논다 | 보급 계열 (투하 간격 · 라운드 시작 지급) |
-
----
-
-## 1. 현재 시스템의 문제
-
-현재 강화: `ReloadSpeed` (−10% ×3) · `MagazineSize` (+10/+10/+15발) · `GrenadeCapacity` (+1 ×2) — **3종 · 8레벨 · 총 1,380**
-
-| | 문제 | 내용 |
-|---|---|---|
-| P1 | 선택할 게 없다 | 3종이 모두 보이고 다회 구매가 가능해서 "남은 걸 다 사는" 화면이 된다. 판마다 최종 상태가 같다 |
-| P2 | 강해지는 체감이 약하다 | 세 종류 모두 편의 성능. 재장전 10%는 2초 → 1.8초 정도라 사고 나서 차이를 느끼기 어렵다 |
-| P3 | 생존 수단이 없다 | 플레이테스트 "2라운드에서 난이도가 확 오른다" — 막히는 플레이어가 강화로 보완할 수단이 없다 |
-| P4 | 하이브리드 컨셉이 강화에 없다 | 군중전(1인칭 물량)과 보스전(3인칭 약점) 중 어디에 투자할지 고민할 수 없다 |
-| P5 | 보급 시스템과 따로 논다 | 핵심 지원 수단인 보급 투하를 강화로 건드릴 수 없다 |
-
-**보완하기 좋은 상태:** `PlayerItems.RefreshStats` 에 회복 · 수류탄 강화 자리 주석이 있고, `Gun.MagazineUpgradeRate` 같은 무기별 비율 훅이 있다. 강화 화면(`UpgradeScreen`)은 카드 3장 기준으로 만들어져 있다.
+### 변경 이력
+| 버전 | 내용 |
+|---|---|
+| v3 | 2차 빌드 피드백: 일반 10종 · 6등급 · 리롤 5 고정 |
+| v3.1 | 강화 10종 정정(스태미나 · 구르기 무적 · 연사력 · 러키걸 추가), R1~R4 확정, 러키걸 하향 |
+| **v3.2** | 팀장 의견: 회피 기동 · 연사력 삭제(8종), 등급 3단계(하급 · 일반 · 에픽), 에픽 25% |
 
 ---
 
-## 2. 3스테이지 구조에서의 전제
+## 1. 게임 흐름 전제
 
 ```
-스테이지 1 ─ 보스 처치 ─▶ [상점 1] ─▶ 스테이지 2 ─ 보스 처치 ─▶ [상점 2] ─▶ 스테이지 3 ─ 보스 처치 ─▶ 클리어
-   획득 ~300                         획득 ~400 (가정)                          획득 (쓸 곳 없음 — Q6)
+R1 현행(군중전→클리페오사우루스) ─▶ [상점 1] ─▶ R2 섬멸전 2:30 생존 (+랜덤 기믹) ─▶ [상점 2] ─▶ R3 현 2라운드(티라노포드, +랜덤 기믹) ─▶ 클리어
+   획득 ~300                                   획득 ? + 클리어 보상 150                         티라노포드 처치 연출의 GameClearedEvent (현행)
 ```
-
-| 항목 | 값 | 설계에 주는 영향 |
-|---|---|---|
-| 상점 횟수 | **2번** | 3레벨 강화는 거의 못 올린다 → **최대 2레벨** |
-| 쓸 수 있는 재화 | 약 300 + 400 = **~700** | 전체 비용을 이 기준으로 |
-| 강화가 영향을 주는 구간 | 상점 1 강화 → 스테이지 2 · 3 / 상점 2 강화 → 스테이지 3 | 한 번 사면 길어야 2스테이지 → **레벨당 효과를 크게** 해야 체감됨 |
-| 라운드별 단계 공개 (v1 `UnlockRound`) | 상점이 2번뿐이라 의미가 작음 | **삭제**. 대신 슬롯 보장 규칙(3-2)으로 흐름을 만든다 |
-| 경제 빌드 (v1 `Bounty`, 처치 재화 증가) | 재화를 더 벌어도 쓸 상점이 1번뿐 | **삭제** |
-
-> 스테이지 2·3 획득액은 가정치다. 실제 값은 `UpgradeManager` 로그(`강화 선택 열림: 이번 라운드 +N`)로 측정 (Q5).
 
 ---
 
-## 3. 상점 규칙 — 무작위 3장 + 리롤
+## 2. 상점 규칙 — 무작위 3장 + 고정 리롤
 
-### 3-1. 기본 규칙
+1. 상점이 열리면 **카드 3장**. 카드 한 장 = **(강화 종류, 등급)** = 그 강화의 다음 1레벨.
+   - 종류: 최대 레벨이 아닌 강화 중 `Weight` 가중치로, 한 화면에 같은 종류는 한 장만
+   - 등급: 등급 가중치(3장, `LuckyGirl` 반영)로 카드마다 따로
+2. 구매하면 **SOLD**. 재화가 되면 3장 다 사도 된다. 남은 재화는 다음 상점으로 (현행).
+3. **리롤 5:** SOLD 가 아닌 카드만 종류 · 등급을 다시 뽑는다.
+4. 후보가 3개보다 적으면 있는 만큼, 없으면 "모든 강화 완료". "다음 라운드 ▶" 는 언제든 (현행).
 
-1. 강화 단계가 열리면 **후보 중에서 카드 3장**을 뽑는다. 같은 종류는 한 번에 한 장만.
-   - 후보 = 최대 레벨이 아니고, 반대쪽 특화가 아닌 강화
-2. 카드 한 장 = **그 강화의 다음 1레벨**. 재화로 구매하고, 산 카드는 **SOLD** 로 바뀐다.
-   - 같은 강화의 다음 레벨은 같은 화면에 바로 나오지 않는다 (리롤 또는 다음 상점에서 다시 나와야 함)
-3. 재화가 되면 3장을 다 사도 된다. 남은 재화는 다음 상점으로 넘어간다 (지금 규칙 그대로).
-4. **리롤:** SOLD 가 아닌 카드만 다시 뽑는다. 비용 **5 → 10 → 15 …** (+5씩), 상점이 열릴 때마다 5로 초기화.
-5. 후보가 3개보다 적으면 있는 만큼만 보여 준다. 후보가 없으면 "모든 강화 완료".
-6. "다음 스테이지 ▶" 는 언제든 누를 수 있다 (지금과 같음).
+예) 상점 1 (300): Lv1 ×3 = 180 → 리롤 ×2 = 10 → Lv1 60 → 남음 50 · 상점 2 (50 + R2 획득): Lv2 100 ×2 + Lv1 … → 한 판 약 **6~7장** / 전체 16레벨
 
-### 3-2. 슬롯 보장 (운에 휘둘리지 않게)
+---
 
-| 상점 | 슬롯 1 | 슬롯 2 · 3 | 의도 |
+## 3. 등급 (3단계)
+
+| 등급 | 이름 | 색 | 기본 확률 |
 |---|---|---|---|
-| **상점 1** | **특화 카드 1장 보장** (군중전 / 보스전 중 무작위) | 일반 강화 무작위 | 첫 상점에서 "이번 판은 어느 쪽" 을 고를 기회를 준다 |
-| **상점 2** | **가진 강화의 다음 레벨 1장 보장** (특화 포함, 가진 게 없으면 무작위) | 전체 후보 무작위 | 상점 1 에서 정한 방향을 이어 갈 수 있게 |
+| `Poor` | 하급 | `#9E9E9E` 회색 | 40% |
+| `Common` | 일반 | `#FFFFFF` 흰색 | 35% |
+| `Epic` | 에픽 | `#B65BD0` 보라 | **25%** |
 
-- 리롤도 같은 규칙으로 SOLD 가 아닌 슬롯만 다시 뽑는다.
-- 슬롯 2 · 3 은 `Weight` 열(5장)로 뽑는다. 특화는 슬롯 1 보장이 있으니 무작위 슬롯에서는 낮은 가중치.
-
-### 3-3. 특화는 한쪽만
-
-군중전 특화와 보스전 특화 중 **한쪽을 한 레벨이라도 사면 반대쪽은 후보에서 빠진다** (재시작 시 초기화). 헬다이버즈2 아머 패시브의 "하나만 고르기"에서 차용. 판마다 빌드 정체성이 분명해진다.
-
-### 3-4. 한 판 구매 흐름 예시
-
-| 상점 | 재화 | 예시 | 남음 |
-|---|---|---|---|
-| 상점 1 | 300 | 특화 Lv1(보스 · 약점 분석) 90 + 일반 Lv1 60 ×2 → 리롤 5 → 일반 Lv1 60 | 25 |
-| 상점 2 | 25 + 400 | 약점 분석 Lv2 140 + 일반 Lv2 100 → 리롤 5 → 일반 Lv1 60 → 리롤 10 → 일반 Lv1 60 | 50 |
-
-→ 한 판에 **약 8~9장** 구매, 리롤 2~4번. 후보 전체(특화 한쪽 기준 24레벨)의 약 1/3.
+- 카드 3장 중 에픽이 1장 이상 나올 확률 ≈ **58%** → 상점을 열 때마다 절반 이상은 에픽을 보고, 리롤 한두 번이면 대부분 만난다 ("띄우는 맛").
+- 에픽 증가량은 일반의 약 2~2.5배로 크게 잡아 차이가 확실히 느껴지게 한다.
+- 증가량은 배율을 곱하지 않고 **강화마다 등급별 값을 표에 직접** 적는다 (`GradeValues`).
+- 레벨마다 산 등급이 따로 기록된다. 예) 재장전 Lv1 에픽(−15%) + Lv2 하급(−6%) = −21%.
+- 에픽 색은 어두운 카드 배경에서 잘 보이도록 밝은 보라(`#B65BD0`)로 했다.
 
 ---
 
-## 4. 강화 목록 (14종 · 모두 최대 2레벨)
+## 4. 강화 목록 (8종 · 최대 2레벨 · 60 / 100)
 
-> ★ = 기존 강화 (2레벨 기준으로 수치 · 비용 재조정) · Value 는 레벨마다 누적 (지금과 같음)
+> 등급별 값 = 한 레벨 살 때 증가량 (하급 / 일반 / 에픽)
 
-### 4-1. 일반 강화 (10종) — 비용 60 / 100 · Weight 10
+| # | 강화 (`UpgradeType`) | 이름 | 등급별 값 | 적용 위치 |
+|---|---|---|---|---|
+| 1 | `ReloadSpeed` (기존) | 빠른 재장전 | 재장전 시간 −6 / 8 / 15 % | `Gun.RefreshStats` (기존) |
+| 2 | `MagazineSize` (기존) | 확장 탄창 | 탄창 크기 +4 / 6 / 12 발 | `Gun.RefreshStats` (기존, `MagazineUpgradeRate`) |
+| 3 | `GrenadeRadius` | 광역 장약 | 수류탄 폭발 반경 +8 / 10 / 25 % | `PlayerItems.RefreshStats` |
+| 4 | `MaxHealth` | 강화 슈트 | 최대 체력 +8 / 10 / 25 (늘어난 만큼 현재 체력도) | `PlayerController.Upgrade` |
+| 5 | `MaxStamina` | 지구력 강화 | 최대 스태미나 +10 / 15 / 30 | `PlayerController.Upgrade` |
+| 6 | `StaminaRegen` | 호흡 조절 | 스태미나 회복 속도 +10 / 15 / 30 % | `PlayerController.Upgrade` |
+| 7 | `HealCapacity` | 의료 키트 | 회복 팩 최대 보유 +1 / 1 / 2 | `PlayerItems.RefreshStats` |
+| 8 | `LuckyGirl` | 러키걸 | 에픽 확률 ×(1 + 10 / 15 / 25 %) | `UpgradeManager` 등급 뽑기 |
 
-| 분류 | 강화 | 이름 | Lv1 / Lv2 Value | 적용 위치 | 해결 |
-|---|---|---|---|---|---|
-| 화력 | `WeaponDamage` | 고압 탄두 | 피해 +12% / +12% | `Gun.RefreshStats` | P2 |
-| 화력 | `FireRate` | 가속 노리쇠 | 연사력 +10% / +10% | `Gun.RefreshStats` | P2 |
-| 운용 | `ReloadSpeed` ★ | 빠른 재장전 | 재장전 −15% / −15% | `Gun` (기존) | P2 |
-| 운용 | `MagazineSize` ★ | 확장 탄창 | +10발 / +15발 | `Gun` (기존) | P2 |
-| 장비 | `GrenadeCapacity` ★ | 수류탄 파우치 | 최대 +1 / +1 | `PlayerItems` (기존) | — |
-| 장비 | `GrenadePower` | 고폭 장약 | 수류탄 피해 +20% / +20% | `PlayerItems.RefreshStats` | P2 |
-| 생존 | `MaxHealth` | 강화 슈트 | 최대 체력 +20 / +20 | 플레이어 체력 컴포넌트 | P3 |
-| 생존 | `HealCapacity` | 의료 키트 | 회복 팩 최대 +1 / +1 | `PlayerItems.RefreshStats` | P3 |
-| 보급 | `SupplyInterval` | 보급 우선순위 | 자동 투하 간격 −15% / −15% | `RoundSequencer` → `StartAutoDropCycle` | P5 |
-| 보급 | `RoundStartSupply` | 투하 준비 | 스테이지 시작 지급 회복 팩 · 예비 탄창 +1 / +1 | `RoundStartSupply` | P3 · P5 |
-
-구현 메모
-- **피해량:** `damage` 가 int → `Max(base + 1, Round(base × (1 + v)))` 로 산탄총(6) · 기관단총(7)도 최소 +1.
-- **연사력:** 저격 · 산탄은 DPS 가 과하게 오르므로 `MagazineUpgradeRate` 와 같은 `FireRateUpgradeRate` virtual 훅 (저격 0.5 등).
-- **최대 체력:** 증가분만큼 현재 체력도 회복. `UpgradePurchasedEvent` 구독 (Gun · PlayerItems 와 같은 패턴).
-- **투하 준비:** 헬다이버즈2 부스터 "헬포드 공간 최적화"에서 차용. `ConfigTable.RoundStartHealPacks / RoundStartMagazines` 에 더함 (수류탄은 이미 가득 지급이라 제외).
-- **보급 우선순위:** 헬다이버즈2 함선 모듈(지원 강화)에서 차용. `SupplyMaxActive`(동시 5개) 상한이 있어 과하게 쌓이지 않음.
-
-### 4-2. 특화 강화 (4종) — 비용 90 / 140 · Weight 4 · 한쪽만
-
-| 쪽 | 강화 | 이름 | Lv1 / Lv2 Value | 플레이 유도 | 적용 위치 |
-|---|---|---|---|---|---|
-| 군중전 | `AmmoOnKill` | 탄약 회수 | 처치 시 든 총 탄창에 +1발 / +1발 | 재장전 없이 쓸어 담는 연속 처치 (Destiny 2 "Subsistence") | 신규 · `MonsterDiedEvent` 구독 → 지금 든 총 (보급 무기 제외) |
-| 군중전 | `KillHeal` | 전투 자극 | 일반 몬스터 처치 시 체력 +1 / +1 | 물러서지 않고 군중 속에서 버티기 | 신규 · `MonsterDiedEvent` 구독 → 플레이어 회복 |
-| 보스전 | `WeakPointDamage` | 약점 분석 | 약점 부위 피해 +20% / +20% | 3인칭 보스전에서 약점 조준 | `MonsterWeakPoint.ScaleDamage` · `BossWeakPoint` — `DamageMultiplier > 1` 부위만 |
-| 보스전 | `PartBreaker` | 부위 파괴 | 부위 체력 피해 +25% / +25% | 부위를 부숴 패턴을 끊기 (헬다이버즈2 대형 적 부위 파괴) | 부위 체력 처리 — 현재 `TyranopodeController`, 무스코모프 날개 |
-
-- v1 의 `Bounty`(처치 재화 증가)는 상점이 2번뿐이라 **삭제**하고, 군중전 쪽은 `KillHeal` 로 바꿨다 (P3 도 함께 보완).
-- **부위 파괴 주의:** `PartHp` 처리가 현재 티라노포드에만 있다. 클리페오사우루스 발사관(`LinkedAttackId`)은 데이터만 있고 처리 코드가 보이지 않는다 (Q4).
-
-### 4-3. 합계
-
-| 범위 | 종류 | 레벨 | 총 비용 |
-|---|---|---|---|
-| 현재 | 3 | 8 | 1,380 |
-| v2 전체 | 14 | 28 | 2,520 |
-| v2 실제 구매 가능 최대 (특화 한쪽) | 12 | 24 | 2,060 |
-| 한 판 예상 구매 (~700 재화) | — | 약 8~9 | 약 650~700 |
+- 삭제: 수류탄 파우치(`GrenadeCapacity`, v3) · 회피 기동 · 연사력(v3.2).
+  `GrenadeCapacity` 는 이미 커밋된 enum · 코드 참조가 있어 **enum 값은 남기고 테이블 행만 삭제**. 회피 기동 · 연사력은 커밋 전이라 enum · 코드에서 모두 뺐다.
+- 러키걸: 에픽 가중치에만 배율. Lv1 일반(×1.15) → 에픽 약 27.7%, 최대 Lv2 에픽 둘(×1.5) → 약 33%. 상점 1 에서 사면 그 상점 리롤 · 상점 2 전체에 적용.
 
 ---
 
-## 5. 데이터 변경
+## 5. 데이터 · 통신 설계 (기준 v0.1)
 
-### 5-1. `UpgradeTable.tsv`
+### 5-1. 데이터
 
-열 2개 추가 (v1 의 `UnlockRound` 는 삭제)
+| 항목 | 방식 | 위치 | 이유 |
+|---|---|---|---|
+| 강화별 레벨 · 비용 · 등급별 값 · 이름 · 가중치 | 외부 데이터 | `UpgradeTable.tsv` → `UpgradeDto` → `UpgradeDef` | 종류별 변형 · 반복 튜닝 (현행 확장) |
+| 등급 이름 · 색 · 기본 가중치 | 외부 데이터 (신규) | `UpgradeGradeTable.tsv` → `UpgradeGradeDef` | 등급별 비교 · 튜닝, enum 검증. 색은 `SupplyTable.BeaconColor` 선례 |
+| 카드 수 3 · 리롤 비용 5 | 외부 데이터 | `ConfigTable` `UpgradeOfferCount` · `UpgradeRerollCost` | 전역 튜닝 값 |
+| 체력 · 스태미나 **기본값** | Inspector (현행 유지) | `PlayerController` | 기준값 소유 위치는 그대로, 강화는 "기본값 + 강화 합계"로만 더한다 |
+| 카드 UI 프레임 · 아이콘 | Inspector | `UpgradeUiSkin` | 에셋 참조 |
+| 강화 아이콘 (enum 순서 9칸) | Inspector | `UpgradeUiSkin.upgradeIcons` — SCI-FI UI Pack Pro `White Icons` (재장전 Loop · 탄창 Bullet · 수류탄 파우치/광역 장약 Bomb · 강화 슈트 Shield(Icons2) · 지구력 Run2 · 호흡 Lightning · 의료 키트 Health · 러키걸 Dice), 미리보기 [UpgradeIcons_v3.png](UpgradeIcons_v3.png) | 에셋 참조 |
+| 제시 카드 · SOLD / 레벨별 구매 등급 | 런타임 | `UpgradeManager` / `UpgradeLedger` | 현재 값, 재시작 시 초기화 |
 
-| 열 | 값 | 용도 |
-|---|---|---|
-| `Category` | `Firepower` / `Handling` / `Gear` / `Survival` / `Supply` / `Crowd` / `Boss` | 카드 색상 태그, 특화 판정 (`Crowd` · `Boss`), 슬롯 보장. 새 enum `UpgradeCategory` (끝에 추가 규칙) |
-| `Weight` | 0 이상 | 무작위 슬롯 뽑기 가중치. 0 = 무작위로는 안 나옴 (보장 슬롯으로만) |
-
-- 같은 `UpgradeType` 의 모든 레벨 행은 `Category` · `Weight` 가 같아야 한다 → `DataManager.GroupUpgrades` 에서 검증.
-- 기존 행 재조정: `ReloadSpeed` Lv3(6003) 삭제 · Value 0.15 · `MagazineSize` Lv2 = 15, Lv3(6013) 삭제 · `GrenadeCapacity` 비용 60/100.
+`UpgradeTable.tsv` — `Value` 열을 `GradeValues`(하급;일반;에픽)로 바꾸고 `Weight` 열 추가, Lv3 행 삭제
 
 ```
-Id	UpgradeType	Level	Cost	Value	Name	Description	Category	Weight
-6001	ReloadSpeed	1	60	0.15	빠른 재장전 I	재장전 시간 15% 감소	Handling	10
-6002	ReloadSpeed	2	100	0.15	빠른 재장전 II	재장전 시간 15% 추가 감소	Handling	10
-6031	WeaponDamage	1	60	0.12	고압 탄두 I	모든 총 피해량 12% 증가	Firepower	10
-6032	WeaponDamage	2	100	0.12	고압 탄두 II	모든 총 피해량 12% 추가 증가	Firepower	10
-6201	WeakPointDamage	1	90	0.2	약점 분석 I	약점 부위 피해 20% 증가	Boss	4
-6202	WeakPointDamage	2	140	0.2	약점 분석 II	약점 부위 피해 20% 추가 증가	Boss	4
+Id	UpgradeType	Level	Cost	GradeValues	Weight	Name	Description
+6001	ReloadSpeed	1	60	0.06;0.08;0.15	10	빠른 재장전 I	재장전 시간 {0}
+6101	LuckyGirl	1	60	0.10;0.15;0.25	10	러키걸 I	에픽 등급 확률 {0}
 ```
 
-Id 대역: 기존 60xx 유지 · 일반 신규 6031~6099 · 보급 6101~ · 특화 6201~.
+- `GradeValues` 는 등급 수(3)만큼 · 0 초과가 아니면 로드 오류.
+- 같은 `UpgradeType` 의 모든 행은 `Weight` 가 같아야 함 (`DataManager.GroupUpgrades` 검증).
+- 합계 검증: `ReloadSpeed` 를 모두 에픽으로 사도 1 미만. `UpgradeGradeTable` 은 등급 3행이 모두 있어야 함.
 
-### 5-2. `ConfigTable.tsv` (반복 튜닝 값)
+`UpgradeGradeTable.tsv` (신규): `Grade	Name	Color	Weight` 3행 (3장 표)
 
-| Key | 값 | 설명 |
+### 5-2. 통신
+
+| 통신 | 방식 | 이유 |
 |---|---|---|
-| `UpgradeOfferCount` | 3 | 상점에 보여 줄 카드 수 |
-| `UpgradeRerollBaseCost` | 5 | 상점이 열릴 때 첫 리롤 비용 |
-| `UpgradeRerollCostStep` | 5 | 리롤할 때마다 오르는 비용 |
+| 상점 열기 | 기존 `GameStateChangedEvent(Reward)` 구독 | 현행 유지 |
+| 카드 구매 | 직접 호출 `UpgradeManager.TryPurchase(카드 번호)` → `IUpgradeState.TryPurchase(type, grade, wallet)` | 결과가 필요한 요청 |
+| 리롤 | 직접 호출 `UpgradeManager.TryReroll()` → `ICurrencyWallet.TrySpend` | 결과가 필요한 요청. 새 전역 이벤트 없음 |
+| 화면 갱신 | 객체 C# event `UpgradeManager.Changed` | 가까운 객체 관찰 (현행) |
+| 능력치 반영 | 기존 `UpgradePurchasedEvent` 구독 → `GetTotalValue` 재계산 (`Gun` · `PlayerItems` 현행 + **`PlayerController` 추가**) | 독립 모듈이 확정 사실 관찰 (현행 패턴). 이벤트 필드 변경 없음 |
+| 강화 초기화 반영 | **신규 `UpgradesResetEvent`** (`UpgradeLedger.ResetAll` 이 발행, `Gun` · `PlayerItems` · `PlayerController` 구독) | 강화 상태 소유자가 확정한 사실. 재시작 정리 이벤트(`RoundCleanupEvent`) 구독 순서에 기대지 않게 |
+| 상점 종료 | 기존 `RewardSelectionFinishedEvent` | 현행 |
 
-### 5-3. 검증 (`DataManager`)
-- 기존 `ReloadSpeed` 합계 < 1 검사와 같은 방식으로 `SupplyInterval` 합계 < 1.
-- `Crowd` · `Boss` 분류에 각각 강화가 1개 이상 있는지 (상점 1 특화 보장용).
+### 5-3. 계약 변경 (코어)
+
+```csharp
+public interface IUpgradeState
+{
+    int GetLevel(UpgradeType type);
+    float GetTotalValue(UpgradeType type);               // 레벨별 (산 등급의 값) 합
+    UpgradeGrade? GetGrade(UpgradeType type, int level); // 신규 — 보유 강화 표시용
+    UpgradeDef GetNext(UpgradeType type);
+    bool TryPurchase(UpgradeType type, UpgradeGrade grade, ICurrencyWallet wallet); // grade 추가
+    void ResetAll();                                     // UpgradesResetEvent 발행
+}
+```
 
 ---
 
-## 6. 화면 (UpgradeScreen)
+## 6. 라운드 담당에 요청 (의존 사항)
 
-지금 카드 3장 레이아웃을 그대로 쓴다. v1 의 분류별 그리드 배치는 필요 없어졌다.
+| 요청 | 이유 |
+|---|---|
+| R2 섬멸전(2:30 생존) 종료 시 `GameState.Reward` 로 전환 | 지금은 보스 처치 후에만 상점이 열림 → 상점 2 |
+| 섬멸전 클리어 보상 150 지급 | 보스 보상이 없으면 상점 2 재화 부족 |
+| 기믹이 플레이어 스태미나 · 체력 등을 바꾸면 알려 주기 | 강화 합계와 겹치는 방식 맞추기 |
+
+---
+
+## 7. 화면 (UpgradeScreen)
 
 | 변경 | 내용 |
 |---|---|
-| 카드 연결 | `manager.Types[i]` → `manager.Offers[i]` (지금 147 · 364 줄 두 곳) |
-| 분류 태그 | 카드 위쪽에 분류 색 띠 + 이름 (화력 · 운용 · 장비 · 생존 · 보급 · 군중전 특화 · 보스전 특화) |
-| 레벨 표시 | "Lv0 → Lv1" / "Lv1 → Lv2", 별 2개 |
-| SOLD | 구매한 카드는 SOLD 표시, 버튼 비활성 |
-| 리롤 버튼 | 하단 "다음 스테이지 ▶" 옆에 "🔄 리롤 (5)", 재화가 모자라면 비활성 |
-| 특화 안내 | 특화 카드에 "선택하면 반대쪽 특화는 나오지 않습니다" 한 줄 |
-| 보유 강화 | 화면 한쪽에 지금까지 산 강화 목록 (작은 아이콘 + Lv) — 리롤 판단용 |
-
-구현 전에 [UpgradeUI_Mockup.html](UpgradeUI_Mockup.html) 에 리롤 · SOLD · 분류 태그를 먼저 넣어 맞춘다 (Q3).
+| 카드 연결 | 강화 종류 고정 3장 → 상점 카드 번호(`GetOption(i)`) |
+| 등급 | 카드 위 등급 이름 · 강화 이름 · 테두리 = 등급 색 |
+| 증가량 | "재장전 시간 -15%" (등급 값) / "현재 → 구매 후" 누적 |
+| 레벨 | "Lv0 → Lv1" / "Lv1 → Lv2", 별은 산 레벨의 등급 색 |
+| SOLD · 리롤 | 산 카드 SOLD, "리롤 5" 재화 부족 시 비활성 |
+| 보유 강화 | 좌측 상단 산 강화 목록 (레벨마다 등급 색 점) |
 
 ---
 
-## 7. 변경 범위
+## 8. 변경 범위
 
-| 파일 | 변경 |
-|---|---|
-| `Core/Data/GameEnums.cs` | `UpgradeType` 끝에 11개 추가, `UpgradeCategory` 신규 |
-| `Core/Data/Dtos/UpgradeDto.cs` · `Defs/UpgradeDef.cs` | `Category`, `Weight` |
-| `Core/Data/DataManager.cs` | 트랙 단위 일치 검증, 특화 존재 검증, 감소율 합계 검증 |
-| `Core/Data/GameConfig` · `ConfigTable.tsv` | 상점 카드 수 · 리롤 비용 키 3개 |
-| `StreamingAssets/Tables/UpgradeTable.tsv` · `Docs/Tables/README.md` | 행 · 열 추가, 기존 행 재조정, 주석 갱신 |
-| `Reward/UpgradeManager.cs` | `Offers`(카드 목록 + SOLD), 열 때 뽑기, `TryReroll`/`RerollCost`, 슬롯 보장, 특화 배타. `TryPurchase` 는 제시된 카드만 구매 가능하도록 |
-| `UI/UpgradeScreen.cs` · `UpgradeUiSkin` | 카드 연결 변경, 분류 태그, SOLD, 리롤 버튼 |
-| `Weapon/Gun.cs` (+ 저격 · 산탄 하위) | 피해 · 연사, `FireRateUpgradeRate` 훅 |
-| `Player/Item/PlayerItems.cs` | 수류탄 피해, 회복 팩 최대 보유 |
-| 플레이어 체력 컴포넌트 | 최대 체력, (특화) 처치 시 회복 |
-| `Supply/RoundStartSupply.cs` · `Round/RoundSequencer.cs` | 투하 준비 · 보급 간격 |
-| 신규 처치 연동 처리 (Weapon / Player 모듈) | `AmmoOnKill` · `KillHeal` — `MonsterDiedEvent` 구독 |
-| `Monster/.../MonsterWeakPoint` · `Boss/BossWeakPoint.cs` · `Boss/Tyranopode/TyranopodeController.cs` | 약점 분석 · 부위 파괴 |
-| `Audio/GameSoundRouter` (선택) | 리롤 효과음 |
-
-**바꾸지 않는 것:** 라운드 흐름(`RunDirector` · `RoundSequencer` 진행 순서), 구매 처리(`IUpgradeState.TryPurchase` · `UpgradePurchasedEvent`), 재시작 시 강화 초기화(`KillRewardCollector` → `ResetAll`), 보급 투하 규칙(위치 · 가중치), 로드아웃 화면.
-리롤 차감은 기존 `ICurrencyWallet.TrySpend` 를 쓰고, 새 전역 이벤트는 만들지 않는다 (화면은 `UpgradeManager.Changed` 로 갱신 — 지금 규칙).
-
----
-
-## 8. 밸런스 점검
-
-| 항목 | 최대 강화 시 | 판단 |
+| 파일 | 변경 | 담당 |
 |---|---|---|
-| 피해 +24% × 연사 +20% | 지속 DPS 약 1.5배 | 둘 다 Lv2 까지 뽑고 사야 함 (확률 낮음). 스테이지 3 보스전 확인 필요 |
-| 약점 +40% (보스전 특화 최대) | 약점 배율 2 → 2.8 | 특화를 고른 보상. 티라노포드 그로기 배율과 곱해지는지 확인 |
-| 최대 체력 +40 | 100 → 140 | 2스테이지 난이도 급상승 피드백 대응 |
-| 처치 회복 +2 | 군중전 처치 수에 비례 | 회복 팩 가치를 떨어뜨리지 않는지 확인. 과하면 Lv2 를 +0.5(소수 누적)로 |
-| 보급 간격 −30% | 25초 → 17.5초 | `SupplyMaxActive` 로 누적 제한 |
-| 리롤 | 5 · 10 · 15 · 20 … | 4번 리롤 = 50 ≈ 일반 Lv1 한 장. 리롤만 반복하는 플레이를 자연히 억제 |
+| `Core/Data/GameEnums.cs` | `UpgradeType` 끝에 6개 추가, `UpgradeGrade` 신규 | 강화 |
+| `Core/Data` Dto · Def · `DataManager` · `GameConfig` | 열 변경, `UpgradeGradeTable` 로드 · 검증, Config 키 | 강화 |
+| `StreamingAssets/Tables` · `Docs/Tables/README.md` | `UpgradeTable` 재작성, `UpgradeGradeTable` 신규, Config 키 | 강화 |
+| `Core/Contracts/ServiceContracts.cs` · `UpgradeLedger` · `GameEvents` | 5-3, `UpgradesResetEvent` | 코어 (강화 작업자가 수정) |
+| `Reward/UpgradeManager.cs` · `UI/UpgradeScreen.cs` · `UpgradeUiSkin` | 카드 · 등급 · 리롤 · SOLD | 강화 |
+| `Weapon/Gun.cs` | `UpgradesResetEvent` 구독만 | **무기 담당 공유** |
+| `Player/Item/PlayerItems.cs` | 수류탄 반경 · 회복 팩 최대 | **플레이어 담당 공유** |
+| `Player/Controller/PlayerController.*` | 최대 체력 · 스태미나 · 회복 (신규 partial `PlayerController.Upgrade.cs`, 필드 → 프로퍼티) | **플레이어 담당 공유** |
+
+**바꾸지 않는 것:** 라운드 흐름, `UpgradePurchasedEvent` 구조, 보급 규칙, 로드아웃 화면, 구르기 · 연사.
 
 ---
 
-## 9. 확인 받을 항목
+## 9. 보완 질문 (2026-11-02 확정)
 
-| Q | 내용 | 권장 |
+| R | 내용 | 결정 |
 |---|---|---|
-| Q1 | 강화 14종 구성 · 레벨당 수치 (빼거나 바꿀 것) | 4장 그대로 |
-| Q2 | 상점 1 특화 보장 / 상점 2 보유 강화 보장 규칙 | 도입 |
-| Q3 | 화면 목업을 먼저 만들지 | 목업 먼저 |
-| Q4 | 부위 파괴: 클리페오사우루스 발사관 처리가 있는지 (보스 담당) | 없으면 `PartBreaker` 를 티라노포드 · 날개 한정으로 시작 |
-| Q5 | 스테이지 2 · 3 획득액 측정 | 다음 플레이테스트에서 로그 수집 → 비용 · 리롤 확정 |
-| Q6 | 스테이지 3 에서 번 재화는 쓸 곳이 없음 — 결과 화면 점수로만 보여 줄지 | 결과 화면 표시 (강화 시스템 범위 밖) |
-| Q7 | 3스테이지 마무리 시점 — 지금은 티라노포드(2스테이지 보스) 처치 연출에서 `GameClearedEvent` 가 발행됨 | 라운드 담당과 별도 작업으로 정리 (강화 시스템 범위 밖) |
-
----
-
-## 부록 A. 레퍼런스
-
-| 게임 | 방식 | 차용한 것 | 반영 위치 |
-|---|---|---|---|
-| **Gunfire Reborn · Roboquest · Brotato** | 무작위 제시 + 리롤 상점, 리롤 비용 상승 | 무작위 3장 + 리롤 (+5씩) | 3장 |
-| **Hades** | 3택 축복, 이미 가진 축복의 강화가 섞여 나옴 | 상점 2 의 보유 강화 다음 레벨 보장 | 3-2 |
-| **CoD 좀비** (Pack-a-Punch · Perk-a-Cola) | 라운드 사이 포인트로 구매 | 처치 재화로 사는 구조 (이미 같음), 생존 퍽 구성 | 4-1 |
-| **Killing Floor 2** (상점 · 퍽) | 군중 처리 / 대형 처리 역할 분담 | 군중전 / 보스전 특화 | 4-2 |
-| **헬다이버즈2** (함선 모듈 · 부스터) | 총이 아니라 지원을 강화, 투하 시 소모품 지급 | 보급 우선순위 · 투하 준비 | 4-1 |
-| **헬다이버즈2** (아머 패시브 · 부위 파괴) | 성향 하나만 선택, 대형 적 부위 파괴 | 특화 한쪽만, 부위 파괴 | 3-3 · 4-2 |
-| **Destiny 2** (무기 퍽) | 처치 시 탄 회수 | 탄약 회수 | 4-2 |
-| **Risk of Rain 2** | 같은 효과 겹쳐 누적 | 레벨 누적(Value 합산) — 현 구조 그대로 | — |
-
-### 차용하지 않은 것
-- **3장 중 1장 무료 선택 (로그라이트식)** — 처치 재화의 의미가 사라진다. 재화로 사는 방식 유지.
-- **경제 빌드 (처치 재화 증가)** — 상점이 2번뿐이라 효과가 거의 없다.
-- **헬다이버즈2 스트라타젬 직접 호출 · 두 번째 재화 · 미션 전 부스터 선택** — 보급 · 입력 · 로드아웃 체계를 크게 바꿈.
-- **무기별 개별 강화 (Pack-a-Punch · DOOM Mod)** — 데이터량 × 무기 수. 무기별 적용 비율 훅으로 개성만 유지.
+| R1 | "최대 탄창 수 증가"의 의미 | **탄창 크기(+발, 현행 `MagazineSize`)** |
+| R2 | 회피 기동 단점 | v3.2 에서 회피 기동 삭제로 해당 없음 |
+| R3 | 러키걸 = 등급 확률 배율 (강화 종류는 영향 없음) | 그대로 (v3.2: 에픽에만) |
+| R4 | 플레이어 · 무기 담당 코드(`PlayerController` · `PlayerItems` · `Gun`) | 강화 작업에서 직접 수정 (구독 + 신규 partial 파일로 최소 수정) → PR 에 담당자 리뷰 요청 |

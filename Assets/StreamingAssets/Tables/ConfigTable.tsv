@@ -29,3 +29,5 @@ CameraTransitionTime	1.2	1인칭→3인칭 전환 시간(초) - BL-022
 RoundStartGrenades	-1	보스 클리어 후 다음 라운드 시작 때 지급하는 수류탄 개수(최대 보유량까지, -1 = 최대 보유량까지 가득)
 RoundStartHealPacks	2	보스 클리어 후 다음 라운드 시작 때 지급하는 회복 팩 개수(최대 보유량까지, -1 = 가득)
 RoundStartMagazines	2	보스 클리어 후 다음 라운드 시작 때 1~3번 칸 모든 총에 지급하는 예비 탄창 개수(무기별 최대까지, -1 = 가득)
+UpgradeOfferCount	3	강화 상점에 보여 줄 카드 수 - BL-030
+UpgradeRerollCost	5	강화 상점 리롤 비용(고정, 산 카드 빼고 다시 뽑음) - BL-030

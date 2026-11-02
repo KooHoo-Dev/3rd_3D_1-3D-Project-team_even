@@ -197,13 +197,24 @@ Weapon 보급은 보급 칸(4번)에 무기를 장착하고 탄창도 충전한�
 조준하지 않아도 상자 반경 2m(`SupplyCrate.pickupRadius`, Inspector) 안에서 F 로 획득한다 (근접 획득, `IProximityInteractable`).
 
 ## UpgradeTable — BL-030·031
+기획: `Docs/Design/UpgradeSystemExpansion_Proposal.md` (v3). 상점은 무작위 카드(종류 + 등급) `ConfigTable.UpgradeOfferCount` 장, 리롤은 `UpgradeRerollCost` 고정.
+
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
-| UpgradeType | enum | `ReloadSpeed` / `MagazineSize` / `GrenadeCapacity` |
-| Level | int | 종류별 1부터 연속 |
-| Cost | int | 재화 |
-| Value | float | 레벨마다 **누적**. ReloadSpeed = 감소율(0.1 = 10%, 합계 1 미만), MagazineSize = +발, GrenadeCapacity = +개 |
-| Name / Description | string | 강화 화면 표시 |
+| UpgradeType | enum | `ReloadSpeed` / `MagazineSize` / `GrenadeRadius` / `MaxHealth` / `MaxStamina` / `StaminaRegen` / `HealCapacity` / `LuckyGirl` (`GrenadeCapacity` 는 enum 만 남음 · 행 없음) |
+| Level | int | 종류별 1부터 연속 (지금 모두 최대 2) |
+| Cost | int | 재화. 레벨로만 정해짐 (60 / 100) — 등급과 무관 |
+| GradeValues | float×3 | 등급별 증가량 `하급;일반;에픽`. 산 등급의 값이 레벨마다 **누적**. 단위: ReloadSpeed 감소율(0.1 = 10%, 최대 합계 1 미만) · MagazineSize +발 · GrenadeRadius / StaminaRegen 증가율 · MaxHealth / MaxStamina +수치 · HealCapacity +개 · LuckyGirl 에픽 등급 가중치 증가율 |
+| Weight | int | 상점 카드 종류 뽑기 가중치 (같은 종류 모든 레벨 동일, 0 = 안 나옴) |
+| Name / Description | string | 강화 화면 표시. Description 의 `{0}` 에 등급 값이 단위와 함께 들어간다 |
+
+## UpgradeGradeTable — BL-030
+| 컬럼 | 타입 | 설명 |
+|---|---|---|
+| Grade | enum | `Poor`(하급) / `Common`(일반) / `Epic`(에픽) — 3행 모두 필요 |
+| Name | string | 카드에 표시할 등급 이름 |
+| Color | `#RRGGBB` | 카드 등급 이름·강화 이름·테두리 색 |
+| Weight | int | 카드 등급 뽑기 기본 가중치 (40/35/25). 러키걸 강화 값만큼 에픽에 (1 + 값) 배 |
 
 ## SoundTable / ConfigTable
 | 테이블 | 컬럼 |
@@ -231,3 +242,4 @@ Weapon 보급은 보급 칸(4번)에 무기를 장착하고 탄창도 충전한�
 | SupplySurgeSpawnCount / SupplySurgeWindow / SupplySurgeDuration | 몬스터 급증 판정: 최근 Window 초 소환 수 ≥ Count 면 급증, Duration 초 유지 (12 / 10 / 30) | BL-018 |
 | RoundStartGrenades / RoundStartHealPacks / RoundStartMagazines | 보스 클리어 후 다음 라운드 시작 지급: 수류탄 / 회복 팩 / 1~3번 칸 모든 총 예비 탄창 (-1 / 2 / 2, 최대치까지. **-1 = 최대치까지 가득**) | |
 | CameraTransitionTime | 1인칭→3인칭 전환 시간 | BL-022 |
+| UpgradeOfferCount / UpgradeRerollCost | 강화 상점 카드 수 (3) / 리롤 비용 (5, 고정 · 산 카드는 빼고 다시 뽑음) | BL-030 |

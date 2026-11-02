@@ -10,8 +10,8 @@ namespace HybridShooter.Player
     public partial class PlayerController
     {
         public float CurrentStamina => stamina;
-        public float MaxStamina => maxStamina;
-        public float StaminaRatio => maxStamina > 0f ? stamina / maxStamina : 0f;
+        public float MaxStamina => maxStamina + upgradeMaxStamina;
+        public float StaminaRatio => MaxStamina > 0f ? stamina / MaxStamina : 0f;
         /// <summary>바닥난 뒤 다시 달릴 수 있을 만큼 회복하기 전</summary>
         public bool IsStaminaExhausted => staminaExhausted;
 
@@ -21,7 +21,7 @@ namespace HybridShooter.Player
 
         public void RestoreStamina()
         {
-            stamina = maxStamina;
+            stamina = MaxStamina;
             staminaExhausted = false;
             PublishStamina();
         }
@@ -31,10 +31,10 @@ namespace HybridShooter.Player
             if (IsDead) return;
 
             if (IsSprintingInput && isRolling == false) SpendStamina(sprintStaminaPerSecond * dt);
-            else if (Time.time - lastStaminaUseTime >= staminaRegenDelay && stamina < maxStamina)
+            else if (Time.time - lastStaminaUseTime >= staminaRegenDelay && stamina < MaxStamina)
             {
-                stamina = Mathf.Min(maxStamina, stamina + staminaRegenPerSecond * dt);
-                if (staminaExhausted && stamina >= maxStamina * sprintResumeRatio) staminaExhausted = false;
+                stamina = Mathf.Min(MaxStamina, stamina + StaminaRegenPerSecond * dt);
+                if (staminaExhausted && stamina >= MaxStamina * sprintResumeRatio) staminaExhausted = false;
             }
 
             if (Mathf.Approximately(stamina, publishedStamina) == false) PublishStamina();
@@ -51,7 +51,7 @@ namespace HybridShooter.Player
         private void PublishStamina()
         {
             publishedStamina = stamina;
-            EventBus<PlayerStaminaChangedEvent>.Publish(new PlayerStaminaChangedEvent(stamina, maxStamina));
+            EventBus<PlayerStaminaChangedEvent>.Publish(new PlayerStaminaChangedEvent(stamina, MaxStamina));
         }
     }
 }

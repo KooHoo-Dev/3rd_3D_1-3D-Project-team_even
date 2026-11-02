@@ -35,7 +35,7 @@ namespace HybridShooter.UI
         [Header("공통 버튼·아이콘")]
         public Sprite mainButton;
         public Sprite coinIcon;
-        [Tooltip("UpgradeType 순서: ReloadSpeed, MagazineSize, GrenadeCapacity")]
+        [Tooltip("UpgradeType 순서 (enum 값 = 칸 번호): ReloadSpeed, MagazineSize, GrenadeCapacity, GrenadeRadius, MaxHealth, MaxStamina, StaminaRegen, HealCapacity, LuckyGirl. 빈 칸은 아이콘 없이 그린다")]
         public Sprite[] upgradeIcons = new Sprite[3];
 
         private static UpgradeUiSkin cached;
