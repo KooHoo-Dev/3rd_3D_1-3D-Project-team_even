@@ -51,16 +51,19 @@ namespace HybridShooter.Weapon
 
         public static void Explode(Vector3 center, in ExplosionSettings settings, in ProjectileContext context)
         {
+            ExplosionVisual visual = null;
             if (settings.effectPrefab != null)
             {
                 var effect = Object.Instantiate(settings.effectPrefab, center, Quaternion.identity);
-                if (effect.TryGetComponent<ExplosionVisual>(out var visual) == false)
+                if (effect.TryGetComponent(out visual) == false)
                     throw new System.InvalidOperationException($"폭발 이펙트 '{settings.effectPrefab.name}' 에 ExplosionVisual 이 없습니다 (피해 반경에 크기를 맞출 수 없음)");
                 visual.Fit(settings.radius);
                 Object.Destroy(effect, 5f);
             }
             if (string.IsNullOrEmpty(settings.sfxKey) == false && ServiceLocator.TryGet<ISoundService>(out var sound))
                 sound.PlaySfx(settings.sfxKey, center);
+            // 화면 흔들림: 반경의 2배까지 멀수록 약하게 (가까이서 맞을 거리면 크게 흔들린다)
+            EventBus<CameraShakeRequestedEvent>.Publish(new CameraShakeRequestedEvent(CameraShakePresets.Impact.At(center, settings.radius * 2f)));
             Debug.DrawRay(center, Vector3.up * settings.radius, new Color(1f, 0.5f, 0f), 1f);
 
             int count = Physics.OverlapSphereNonAlloc(center, settings.radius, overlaps, context.HitMask, QueryTriggerInteraction.Ignore);
@@ -85,6 +88,7 @@ namespace HybridShooter.Weapon
                 Vector3 direction = closest - center;
                 direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.up;
                 target.TakeDamage(new DamageInfo(amount, DamageKind.Explosion, context.Faction, context.Attacker, closest, direction, context.SourceDefId));
+                if (visual != null) visual.PlayHit(closest, direction);
             }
         }
     }
