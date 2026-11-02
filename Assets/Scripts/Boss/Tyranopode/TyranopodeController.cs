@@ -309,6 +309,9 @@ namespace HybridShooter.Boss.Tyranopode
             if (beaconPrefab != null && beaconPrefab.HasReferences == false) missing.Add("beaconPrefab 의 조명·연출");
             if (missing.Count > 0)
                 throw new InvalidOperationException($"[Tyranopode] 참조가 비어 있습니다: {string.Join(", ", missing)}. 'Tyranopode 프리팹 만들기'를 다시 실행해주세요.");
+            // 최후 연출 끝에 로드한다 → 마지막에 가서야 터지지 않게 생성 순간에 확인
+            if (Application.CanStreamedLevelBeLoaded(finale.EndingScene) == false)
+                throw new InvalidOperationException($"[Tyranopode] 엔딩 씬 '{finale.EndingScene}' 이 Build Settings 에 없습니다. 'Tools > Ending > Rebuild Ending Scene' 을 실행해주세요.");
         }
 
         /// <summary>

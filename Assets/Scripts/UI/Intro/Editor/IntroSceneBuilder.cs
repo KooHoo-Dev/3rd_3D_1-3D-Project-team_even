@@ -486,6 +486,10 @@ namespace HybridShooter.UI.Intro.Editor
             model.transform.localPosition = Vector3.zero;
             model.transform.localRotation = Quaternion.identity;
             foreach (var collider in model.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(collider);
+            // 팩 우주선은 모든 오브젝트가 Static 이라 플레이 시작 때 정적 배칭으로 선체가 제자리에 굳는다 (IntroShipCut 이 움직여도 불꽃만 날아감).
+            // 움직이는 기체이므로 씬 인스턴스에서만 Static 을 끈다 (팩 원본은 그대로)
+            foreach (var child in model.GetComponentsInChildren<Transform>(true))
+                GameObjectUtility.SetStaticEditorFlags(child.gameObject, 0);
 
             var bounds = ModelBounds(model);
             float scale = ShipLength / Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
