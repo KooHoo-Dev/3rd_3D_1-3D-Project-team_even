@@ -140,6 +140,9 @@ namespace HybridShooter.Core.Data.Dtos
         public float IntroShieldMaxRatio;
         public bool IntroBriefAfterFirst;
 
+        // 보호막이 생길 때마다 흡수량과 별도로 더하는 기본량 (MaxHp 비율)
+        public float ShieldBaseRatio;
+
         // 촉수 폭풍 (페이즈 2 기믹)
         public int StormWaves;
         public float StormSectorAngle;

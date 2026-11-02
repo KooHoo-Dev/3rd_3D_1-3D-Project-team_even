@@ -905,14 +905,20 @@ namespace HybridShooter.Boss.Tyranopode
             var positions = Minions.TakeCollapsedPositions();
             if (positions.Count == 0) return;
             float amount = DrainShield(positions.Count, Def.IntroShieldPerMonster, Def.IntroShieldMaxRatio * boss.MaxHp, introShieldGiven);
+            // 기본량은 이번 등장에서 보호막이 처음 생길 때 한 번만 (흡수량은 여러 번 나눠 들어온다)
+            float shieldAmount = introShieldGiven > 0f ? amount : WithBaseShield(amount, boss.MaxHp, Def.ShieldBaseRatio);
             introShieldGiven += amount;
             introAbsorbed += positions.Count;
-            SpawnEnergyOrbs(positions, amount, ground: true, flightTime: introDrainTime * 0.4f);
+            SpawnEnergyOrbs(positions, shieldAmount, ground: true, flightTime: introDrainTime * 0.4f);
         }
 
         /// <summary>쓰러진 count 마리가 주는 보호막: 1마리당 perMonster, 지금까지 준 양(given)과 합쳐 cap 을 넘지 않는다</summary>
         public static float DrainShield(int count, float perMonster, float cap, float given)
             => Mathf.Min(count * perMonster, Mathf.Max(0f, cap - given));
+
+        /// <summary>보호막이 생기는 순간의 양: 흡수량에 기본량(maxHp × baseRatio)을 상한 밖으로 더한다. 흡수량이 없으면 보호막도 없다</summary>
+        public static float WithBaseShield(float absorbed, float maxHp, float baseRatio)
+            => absorbed > 0f ? absorbed + maxHp * baseRatio : 0f;
 
         private void StopGroundEnergy()
         {
@@ -1030,7 +1036,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             if (IsAlive == false || pendingShield <= 0f) return;
 
-            float amount = pendingShield;
+            float amount = WithBaseShield(pendingShield, boss.MaxHp, Def.ShieldBaseRatio);
             pendingShield = 0f;
             SpawnEnergyOrbs(Minions.TakeCollapsedPositions(), amount, ground: false, flightTime: Def.EnergyFlightTime);
         }
@@ -1123,7 +1129,8 @@ namespace HybridShooter.Boss.Tyranopode
             shieldHp += amount;
             shieldMax = Mathf.Max(shieldMax, shieldHp); // 겹 크기 기준 = 이번에 쌓인 최대량
             shieldLayersLeft = Def.ShieldLayers;
-            shield.Absorb(shieldHp / (Def.ShieldMaxRatio * boss.MaxHp));
+            // 막 크기 기준 = 기본량 + 흡수 상한
+            shield.Absorb(shieldHp / ((Def.ShieldBaseRatio + Def.ShieldMaxRatio) * boss.MaxHp));
             shield.SetRatio(shieldHp / shieldMax);
         }
 
@@ -1355,7 +1362,7 @@ namespace HybridShooter.Boss.Tyranopode
             var positions = new List<Vector3>();
             for (int i = 0; i < 30; i++)
                 positions.Add(transform.position + Quaternion.Euler(0f, i * 12f, 0f) * Vector3.forward * Random.Range(10f, Minions.Radius * 0.8f));
-            SpawnEnergyOrbs(positions, Def.ShieldMaxRatio * boss.MaxHp, ground: false, flightTime: Def.EnergyFlightTime);
+            SpawnEnergyOrbs(positions, WithBaseShield(Def.ShieldMaxRatio * boss.MaxHp, boss.MaxHp, Def.ShieldBaseRatio), ground: false, flightTime: Def.EnergyFlightTime);
         }
 
         /// <summary>등장 연출 다시 보기: 경기장에 몬스터를 crowd 마리 흩어 놓고(웨이브 몬스터 대신) 지금 자리에 다시 착지한다</summary>
