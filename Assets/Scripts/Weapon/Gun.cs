@@ -315,7 +315,6 @@ namespace HybridShooter.Weapon
         {
             if (IsAiming) return;
             IsAiming = true;
-            AimStartTime = Time.time;
             OnAimChanged(true);
             RefreshAimZoom();
         }
@@ -478,7 +477,6 @@ namespace HybridShooter.Weapon
         #endregion
 
         #region 하위 클래스용 도구
-        protected float AimStartTime { get; set; }
         /// <summary>이번 연사에서 몇 번째 발인지 (0 = 첫 발). Shoot 안에서 읽으면 지금 발의 번호</summary>
         protected int ShotsInSpray { get; private set; }
         protected float NextFireTime => nextFireTime;

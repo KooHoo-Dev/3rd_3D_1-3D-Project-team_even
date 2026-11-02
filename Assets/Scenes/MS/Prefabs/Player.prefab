@@ -1731,14 +1731,12 @@ MonoBehaviour:
   recoilPitch: 3
   recoilYaw: 0.5
   aimRecoilMultiplier: 0.7
-  recoilRecoverRatio: 0.7
+  recoilRecoverRatio: 1
   recoilRecoverSpeed: 10
   aimFovMultiplier: 0.3
   aimSensitivityMultiplier: 0.35
   aimMoveSpeedMultiplier: 0.5
   reloadInsertAt: 0.55
-  scopeSettleTime: 0.3
-  scopedMoveSpreadMultiplier: 0.5
   maxPenetration: 3
   penetrationDamageRatio: 0.7
   unscopeWhileBolting: 0
