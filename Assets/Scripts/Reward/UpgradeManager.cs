@@ -11,18 +11,20 @@ using UnityEngine;
 namespace HybridShooter.Reward
 {
     /// <summary>
-    /// 라운드 종료 후 강화 선택 단계 담당 (BL-030, BL-031, BL-032).
-    /// 보스를 처치하면 이번 라운드에 번 재화를 보여 주고, 재화가 허락하는 만큼 강화를 구매한 뒤 다음 라운드를 요청한다.
+    /// 라운드 종료 후 강화 상점 담당 (BL-030, BL-031, BL-032). 기획: Docs/Design/UpgradeSystemExpansion_Proposal.md (v3)
+    /// 보스를 처치하면 이번 라운드에 번 재화를 보여 주고, 무작위 카드(종류 + 등급) 중 재화가 허락하는 만큼 구매한 뒤 다음 라운드를 요청한다.
     ///
-    ///   열기   : GameStateChangedEvent(Current = Reward) 수신.
-    ///   구매   : TryPurchase → IUpgradeState.TryPurchase (재화 차감·레벨 상승·UpgradePurchasedEvent 는 Ledger 담당)
+    ///   열기   : GameStateChangedEvent(Current = Reward) 수신 → 카드 OfferCount 장을 뽑는다.
+    ///   구매   : TryPurchase(카드 번호) → IUpgradeState.TryPurchase (재화 차감·레벨 상승·UpgradePurchasedEvent 는 Ledger 담당). 산 카드는 SOLD
+    ///   리롤   : TryReroll → ICurrencyWallet.TrySpend(고정 비용) 후 SOLD 가 아닌 카드만 다시 뽑는다
     ///   종료   : Finish → RewardSelectionFinishedEvent 발행 (다음 라운드 진행은 코어 담당)
     ///   획득액 : CurrencyChangedEvent 의 증가분(Delta > 0)을 합산. BossAppearedEvent 이전 = 군중전, 이후 = 보스전
     ///            RoundStartedEvent / RoundCleanupEvent(FullReset) 에서 0 으로
     ///
     /// 설계 포인트
-    ///  - 재화가 있으면 여러 번 구매한다 (같은 강화를 연속으로 올리는 것도 최대 레벨까지 허용). Finish 는 언제든 가능 (안 사고 건너뛰기 포함).
-    ///  - 비용·효과 수치는 UpgradeTable.tsv 값만 사용한다. (Inspector 에 같은 의미의 값을 두지 않음)
+    ///  - 카드 한 장 = 어떤 강화의 다음 1레벨 + 등급. 한 화면에 같은 종류는 한 장만 (산 카드 종류도 화면에 있는 동안 다시 나오지 않음).
+    ///  - 종류는 UpgradeTable.Weight, 등급은 UpgradeGradeTable.Weight 로 뽑는다. 러키걸(LuckyGirl) 강화는 에픽 등급 가중치에 (1 + 값) 을 곱한다.
+    ///  - 비용은 레벨로만 정해진다 (등급은 증가량만 다르다). 카드 수·리롤 비용은 ConfigTable 값만 쓴다.
     ///  - 화면(UpgradeScreen)은 이 컴포넌트를 직접 참조하고 Changed 로 갱신한다. 전역 버스로 다시 알리지 않는다.
     ///  - 열린 동안 재화가 바뀌면 Changed 를 다시 알린다. → 보스 보상 지급과 화면 열기의 구독 순서와 상관없이 최종 표시값이 맞다.
     ///  - 씬에 하나만 동작한다. 두 개 이상 켜지면 먼저 켜진 것만 동작하고, 나머지는 경고 후 아무것도 하지 않는다.
@@ -37,28 +39,43 @@ namespace HybridShooter.Reward
         /// <summary>강화 카드 한 장에 필요한 값 (런타임 조합 값, 정의 데이터 아님)</summary>
         public readonly struct UpgradeOption
         {
+            /// <summary>카드가 있는지. false(default) = 빈 칸 (살 수 있는 강화가 카드 수보다 적을 때)</summary>
+            public readonly bool HasOffer;
+            public bool IsEmpty => HasOffer == false;
             public readonly UpgradeType Type;
+            public readonly UpgradeGrade Grade;
+            /// <summary>등급 이름·색 (데이터가 없으면 null)</summary>
+            public readonly UpgradeGradeDef GradeDef;
             public readonly int Level, MaxLevel;
-            /// <summary>현재 레벨의 강화 (Lv0 이면 null)</summary>
-            public readonly UpgradeDef Current;
-            /// <summary>다음에 살 강화 (최대 레벨이면 null)</summary>
+            /// <summary>이 카드로 살 강화. SOLD 면 방금 산 레벨</summary>
             public readonly UpgradeDef Next;
-            /// <summary>현재까지 누적된 값 / 구매 후 누적될 값</summary>
+            /// <summary>구매 전 누적 값 / 이 카드를 사면 누적될 값</summary>
             public readonly float CurrentValue, NextValue;
-            public readonly bool CanBuy;
+            /// <summary>이 카드 등급으로 추가되는 값</summary>
+            public readonly float GradeValue;
+            public readonly bool IsSold, CanBuy;
 
-            public bool IsMax => Next == null;
-
-            public UpgradeOption(UpgradeType type, int level, int maxLevel, UpgradeDef current, UpgradeDef next,
-                                 float currentValue, float nextValue, bool canBuy)
+            public UpgradeOption(UpgradeType type, UpgradeGrade grade, UpgradeGradeDef gradeDef, int level, int maxLevel, UpgradeDef next,
+                                 float currentValue, bool isSold, bool canBuy)
             {
-                Type = type; Level = level; MaxLevel = maxLevel; Current = current; Next = next;
-                CurrentValue = currentValue; NextValue = nextValue; CanBuy = canBuy;
+                HasOffer = true;
+                Type = type; Grade = grade; GradeDef = gradeDef; Level = level; MaxLevel = maxLevel; Next = next;
+                GradeValue = next != null ? next.GetValue(grade) : 0f;
+                CurrentValue = currentValue; NextValue = currentValue + GradeValue;
+                IsSold = isSold; CanBuy = canBuy;
             }
         }
 
-        /// <summary>화면 표시 순서 = enum 순서 (재장전 속도 · 탄창 크기 · 수류탄 보유량)</summary>
-        private static readonly UpgradeType[] types = (UpgradeType[])Enum.GetValues(typeof(UpgradeType));
+        /// <summary>상점 카드 한 칸 (런타임 상태)</summary>
+        private struct Slot
+        {
+            public bool HasOffer;
+            public UpgradeType Type;
+            public UpgradeGrade Grade;
+            public bool Sold;
+            /// <summary>SOLD 카드 표시용: 산 레벨 (구매 직후 레벨)</summary>
+            public int SoldLevel;
+        }
 
         /// <summary>지금 동작 중인 Manager. 두 번째 Manager 가 켜져도 이중으로 열리지 않도록 하나만 기억한다</summary>
         private static UpgradeManager active;
@@ -67,14 +84,25 @@ namespace HybridShooter.Reward
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => active = null;
 
-        /// <summary>열림·구매·재화 변화 등 화면이 다시 그려야 할 때</summary>
+        private static readonly UpgradeType[] allTypes = (UpgradeType[])Enum.GetValues(typeof(UpgradeType));
+        private static readonly UpgradeGrade[] allGrades = (UpgradeGrade[])Enum.GetValues(typeof(UpgradeGrade));
+
+        /// <summary>열림·구매·리롤·재화 변화 등 화면이 다시 그려야 할 때</summary>
         public event Action Changed;
 
-        public IReadOnlyList<UpgradeType> Types => types;
+        /// <summary>강화 종류 전체 (enum 순서). 보유 강화 목록 표시용</summary>
+        public IReadOnlyList<UpgradeType> Types => allTypes;
         public bool IsOpen { get; private set; }
         /// <summary>이번 단계에서 구매한 횟수 (열릴 때 0)</summary>
         public int PurchaseCount { get; private set; }
         public bool HasPurchased => PurchaseCount > 0;
+        /// <summary>이번 단계에서 리롤한 횟수 (열릴 때 0)</summary>
+        public int RerollCount { get; private set; }
+
+        /// <summary>상점 카드 수 (ConfigTable.UpgradeOfferCount)</summary>
+        public int OfferCount => Mathf.Max(1, DataManager.Config.GetInt(GameConfig.UpgradeOfferCount, 3));
+        /// <summary>리롤 비용 (ConfigTable.UpgradeRerollCost, 고정)</summary>
+        public int RerollCost => Mathf.Max(0, DataManager.Config.GetInt(GameConfig.UpgradeRerollCost, 5));
 
         /// <summary>이번 라운드 군중전 / 보스전 획득 재화</summary>
         public int CrowdEarned { get; private set; }
@@ -83,14 +111,26 @@ namespace HybridShooter.Reward
 
         public int Balance => ServiceLocator.TryGet<ICurrencyWallet>(out var wallet) ? wallet.Balance : 0;
 
-        /// <summary>지금 살 수 있는 강화가 하나라도 있는지</summary>
+        /// <summary>지금 살 수 있는 카드가 하나라도 있는지</summary>
         public bool AnyPurchasable
         {
             get
             {
-                foreach (var type in types)
-                    if (GetOption(type).CanBuy) return true;
+                for (int i = 0; i < slots.Count; i++)
+                    if (GetOption(i).CanBuy) return true;
                 return false;
+            }
+        }
+
+        /// <summary>리롤할 수 있는지: 열려 있고, SOLD 아닌 칸과 뽑을 후보가 있고, 재화가 충분할 때</summary>
+        public bool CanReroll
+        {
+            get
+            {
+                if (IsOpen == false || Balance < RerollCost) return false;
+                bool anyOpenSlot = false;
+                foreach (var slot in slots) if (slot.Sold == false) { anyOpenSlot = true; break; }
+                return anyOpenSlot && BuildCandidates(SoldTypes()).Count > 0;
             }
         }
 
@@ -99,6 +139,8 @@ namespace HybridShooter.Reward
 
         /// <summary>보스 등장 이후인지. 이후에 들어온 재화는 보스전 획득으로 센다</summary>
         private bool bossPhase;
+
+        private readonly List<Slot> slots = new List<Slot>();
 
         /// <summary>
         /// 이벤트 구독 (OnDisable 과 짝).
@@ -133,38 +175,71 @@ namespace HybridShooter.Reward
             EventBus<CurrencyChangedEvent>.Unsubscribe(OnCurrencyChanged);
         }
 
-        /// <summary>강화 카드 한 장의 현재 상태. 데이터가 없는 종류는 MaxLevel 0 (= 최대 레벨 취급)</summary>
-        public UpgradeOption GetOption(UpgradeType type)
+        /// <summary>index 번 카드의 현재 상태. 범위 밖이거나 빈 칸이면 IsEmpty</summary>
+        public UpgradeOption GetOption(int index)
         {
-            if (ServiceLocator.TryGet<IUpgradeState>(out var upgrades) == false ||
-                DataManager.UpgradeTracks.TryGet(type, out var track) == false)
-                return new UpgradeOption(type, 0, 0, null, null, 0f, 0f, false);
+            if (index < 0 || index >= slots.Count || slots[index].HasOffer == false ||
+                ServiceLocator.TryGet<IUpgradeState>(out var upgrades) == false ||
+                DataManager.UpgradeTracks.TryGet(slots[index].Type, out var track) == false)
+                return default;
 
-            int level = upgrades.GetLevel(type);
-            var current = level > 0 && level <= track.MaxLevel ? track.Levels[level - 1] : null;
+            var slot = slots[index];
+            DataManager.UpgradeGrades.TryGet(slot.Grade, out var gradeDef);
+            if (slot.Sold)
+            {
+                // 산 카드: 산 레벨과 그 직전 누적 값을 그대로 보여 준다
+                int boughtLevel = slot.SoldLevel;
+                var bought = boughtLevel >= 1 && boughtLevel <= track.MaxLevel ? track.Levels[boughtLevel - 1] : null;
+                float before = upgrades.GetTotalValue(slot.Type) - (bought != null ? bought.GetValue(slot.Grade) : 0f);
+                return new UpgradeOption(slot.Type, slot.Grade, gradeDef, boughtLevel - 1, track.MaxLevel, bought, before, true, false);
+            }
+
+            int level = upgrades.GetLevel(slot.Type);
             var next = track.GetNext(level);
-            float currentValue = track.GetTotalValue(level);
-            float nextValue = next != null ? currentValue + next.Value : currentValue;
             bool canBuy = IsOpen && next != null && Balance >= next.Cost;
-
-            return new UpgradeOption(type, level, track.MaxLevel, current, next, currentValue, nextValue, canBuy);
+            return new UpgradeOption(slot.Type, slot.Grade, gradeDef, level, track.MaxLevel, next, upgrades.GetTotalValue(slot.Type), false, canBuy);
         }
 
+        /// <summary>type 의 현재 레벨 (보유 강화 표시용)</summary>
+        public int GetLevel(UpgradeType type) => ServiceLocator.TryGet<IUpgradeState>(out var upgrades) ? upgrades.GetLevel(type) : 0;
+
+        /// <summary>type 의 level 레벨을 산 등급 (보유 강화 표시용, 안 샀으면 null)</summary>
+        public UpgradeGrade? GetGrade(UpgradeType type, int level)
+            => ServiceLocator.TryGet<IUpgradeState>(out var upgrades) ? upgrades.GetGrade(type, level) : null;
+
         /// <summary>
-        /// 강화 한 단계 구매. 닫혀 있거나 최대 레벨·재화 부족이면 false. 재화가 남아 있으면 계속 살 수 있다.
+        /// index 번 카드 구매. 닫혀 있거나 빈 칸·SOLD·최대 레벨·재화 부족이면 false. 재화가 남아 있으면 다른 카드를 계속 살 수 있다.
         /// 재화 차감과 레벨 상승은 IUpgradeState 가 한 번에 처리한다.
         /// </summary>
-        public bool TryPurchase(UpgradeType type)
+        public bool TryPurchase(int index)
         {
-            if (IsOpen == false) return false;
+            if (IsOpen == false || index < 0 || index >= slots.Count) return false;
+            var slot = slots[index];
+            if (slot.HasOffer == false || slot.Sold) return false;
             if (ServiceLocator.TryGet<IUpgradeState>(out var upgrades) == false ||
                 ServiceLocator.TryGet<ICurrencyWallet>(out var wallet) == false) return false;
 
-            var next = upgrades.GetNext(type);
-            if (upgrades.TryPurchase(type, wallet) == false) return false;
+            var next = upgrades.GetNext(slot.Type);
+            if (upgrades.TryPurchase(slot.Type, slot.Grade, wallet) == false) return false;
 
+            slot.Sold = true;
+            slot.SoldLevel = upgrades.GetLevel(slot.Type);
+            slots[index] = slot;
             PurchaseCount++;
-            Debug.Log($"[UpgradeManager] 강화 구매: {next.Name} (비용 {next.Cost}) → {type} Lv{upgrades.GetLevel(type)}, 잔액 {wallet.Balance}", this);
+            Debug.Log($"[UpgradeManager] 강화 구매: {next.Name} {slot.Grade} (비용 {next.Cost}) → {slot.Type} Lv{slot.SoldLevel}, 잔액 {wallet.Balance}", this);
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>리롤: 고정 비용을 내고 SOLD 가 아닌 카드만 종류·등급을 다시 뽑는다. 할 수 없으면 false</summary>
+        public bool TryReroll()
+        {
+            if (CanReroll == false || ServiceLocator.TryGet<ICurrencyWallet>(out var wallet) == false) return false;
+            if (wallet.TrySpend(RerollCost) == false) return false;
+
+            RerollCount++;
+            RollSlots(keepSold: true);
+            Debug.Log($"[UpgradeManager] 리롤 {RerollCount}회 (비용 {RerollCost}) → {DescribeSlots()}, 잔액 {wallet.Balance}", this);
             Changed?.Invoke();
             return true;
         }
@@ -174,7 +249,7 @@ namespace HybridShooter.Reward
         {
             if (CanFinish == false) return;
 
-            Debug.Log($"[UpgradeManager] 강화 선택 종료 ({(HasPurchased ? $"{PurchaseCount}회 구매" : "건너뛰기")})", this);
+            Debug.Log($"[UpgradeManager] 강화 선택 종료 ({(HasPurchased ? $"{PurchaseCount}회 구매" : "건너뛰기")}, 리롤 {RerollCount}회)", this);
             Close();
             EventBus<RewardSelectionFinishedEvent>.Publish(new RewardSelectionFinishedEvent());
         }
@@ -199,7 +274,7 @@ namespace HybridShooter.Reward
             Close();
         }
 
-        /// <summary>증가분은 라운드 획득액에 더하고, 열려 있으면 화면을 갱신한다 (구매 차감·초기화는 Delta 가 0 이하라 제외)</summary>
+        /// <summary>증가분은 라운드 획득액에 더하고, 열려 있으면 화면을 갱신한다 (구매·리롤 차감·초기화는 Delta 가 0 이하라 제외)</summary>
         private void OnCurrencyChanged(CurrencyChangedEvent e)
         {
             if (e.Delta > 0)
@@ -210,13 +285,17 @@ namespace HybridShooter.Reward
             if (IsOpen) Changed?.Invoke();
         }
 
-        /// <summary>강화 선택 단계 시작. 이미 열려 있으면 무시 (임시 경로와 정식 경로가 함께 와도 한 번만)</summary>
+        /// <summary>강화 선택 단계 시작. 카드를 새로 뽑는다. 이미 열려 있으면 무시 (임시 경로와 정식 경로가 함께 와도 한 번만)</summary>
         private void Open()
         {
             if (IsOpen) return;
             IsOpen = true;
             PurchaseCount = 0;
-            Debug.Log($"[UpgradeManager] 강화 선택 열림: 이번 라운드 +{RoundEarned} (군중전 {CrowdEarned}, 보스전 {BossEarned}), 보유 {Balance}", this);
+            RerollCount = 0;
+            slots.Clear();
+            for (int i = 0; i < OfferCount; i++) slots.Add(default);
+            RollSlots(keepSold: false);
+            Debug.Log($"[UpgradeManager] 강화 선택 열림: 이번 라운드 +{RoundEarned} (군중전 {CrowdEarned}, 보스전 {BossEarned}), 보유 {Balance}, 카드 {DescribeSlots()}", this);
             Changed?.Invoke();
         }
 
@@ -232,6 +311,94 @@ namespace HybridShooter.Reward
             CrowdEarned = 0;
             BossEarned = 0;
             bossPhase = false;
+        }
+
+        // ── 뽑기 ──
+
+        /// <summary>SOLD 가 아닌 칸을 다시 뽑는다 (keepSold = false 면 모든 칸). 후보가 모자라면 빈 칸</summary>
+        private void RollSlots(bool keepSold)
+        {
+            var used = keepSold ? SoldTypes() : new HashSet<UpgradeType>();
+            var candidates = BuildCandidates(used);
+            for (int i = 0; i < slots.Count; i++)
+            {
+                if (keepSold && slots[i].Sold) continue;
+                if (candidates.Count == 0)
+                {
+                    slots[i] = default;
+                    continue;
+                }
+                int pick = PickWeighted(candidates);
+                var track = candidates[pick];
+                candidates.RemoveAt(pick); // 한 화면에 같은 종류는 한 장만
+                slots[i] = new Slot { HasOffer = true, Type = track.UpgradeType, Grade = RollGrade() };
+            }
+        }
+
+        /// <summary>지금 화면에 SOLD 로 남아 있는 강화 종류 (리롤 때 다시 나오지 않게)</summary>
+        private HashSet<UpgradeType> SoldTypes()
+        {
+            var sold = new HashSet<UpgradeType>();
+            foreach (var slot in slots) if (slot.HasOffer && slot.Sold) sold.Add(slot.Type);
+            return sold;
+        }
+
+        /// <summary>카드로 나올 수 있는 강화: 데이터가 있고, Weight > 0, 최대 레벨이 아니고, exclude 에 없는 것</summary>
+        private static List<UpgradeTrackDef> BuildCandidates(HashSet<UpgradeType> exclude)
+        {
+            var list = new List<UpgradeTrackDef>();
+            if (ServiceLocator.TryGet<IUpgradeState>(out var upgrades) == false) return list;
+            foreach (var type in allTypes)
+            {
+                if (exclude.Contains(type) || DataManager.UpgradeTracks.TryGet(type, out var track) == false) continue;
+                if (track.Weight > 0 && track.GetNext(upgrades.GetLevel(type)) != null) list.Add(track);
+            }
+            return list;
+        }
+
+        private static int PickWeighted(List<UpgradeTrackDef> candidates)
+        {
+            int total = 0;
+            foreach (var c in candidates) total += c.Weight;
+            int roll = UnityEngine.Random.Range(0, total);
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                roll -= candidates[i].Weight;
+                if (roll < 0) return i;
+            }
+            return candidates.Count - 1;
+        }
+
+        /// <summary>등급 뽑기. 러키걸 강화 값만큼 에픽 등급의 가중치를 키운다</summary>
+        private static UpgradeGrade RollGrade()
+        {
+            float luck = ServiceLocator.TryGet<IUpgradeState>(out var upgrades) ? upgrades.GetTotalValue(UpgradeType.LuckyGirl) : 0f;
+            float total = 0f;
+            foreach (var grade in allGrades) total += GradeWeight(grade, luck);
+            if (total <= 0f) return UpgradeGrade.Common;
+
+            float roll = UnityEngine.Random.value * total;
+            foreach (var grade in allGrades)
+            {
+                roll -= GradeWeight(grade, luck);
+                if (roll < 0f) return grade;
+            }
+            return allGrades[allGrades.Length - 1];
+        }
+
+        private static float GradeWeight(UpgradeGrade grade, float luck)
+        {
+            if (DataManager.UpgradeGrades.TryGet(grade, out var def) == false) return 0f;
+            return grade == UpgradeGrade.Epic ? def.Weight * (1f + luck) : def.Weight;
+        }
+
+        /// <summary>로그용 "ReloadSpeed(Epic), MaxHealth(Common) SOLD, -"</summary>
+        private string DescribeSlots()
+        {
+            var parts = new List<string>(slots.Count);
+            foreach (var slot in slots)
+                parts.Add(slot.HasOffer ? $"{slot.Type}({slot.Grade}){(slot.Sold ? " SOLD" : "")}" : "-");
+            return string.Join(", ", parts);
         }
     }
 }

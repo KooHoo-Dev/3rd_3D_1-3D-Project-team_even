@@ -45,6 +45,7 @@ namespace HybridShooter.Core.Data
         private static DefTable<int, SupplyDef> supplies;
         private static DefTable<int, UpgradeDef> upgrades;
         private static DefTable<UpgradeType, UpgradeTrackDef> upgradeTracks;
+        private static DefTable<UpgradeGrade, UpgradeGradeDef> upgradeGrades;
         private static DefTable<string, SoundDef> sounds;
         private static GameConfig config;
         private static DefTable<int, BossDef> bosses;
@@ -70,6 +71,8 @@ namespace HybridShooter.Core.Data
         public static DefTable<int, UpgradeDef> Upgrades { get { EnsureLoaded(); return upgrades; } }
         /// <summary>Key = UpgradeType. 레벨별 강화 묶음</summary>
         public static DefTable<UpgradeType, UpgradeTrackDef> UpgradeTracks { get { EnsureLoaded(); return upgradeTracks; } }
+        /// <summary>Key = UpgradeGrade. 강화 카드 등급 이름·색·가중치</summary>
+        public static DefTable<UpgradeGrade, UpgradeGradeDef> UpgradeGrades { get { EnsureLoaded(); return upgradeGrades; } }
         public static DefTable<string, SoundDef> Sounds { get { EnsureLoaded(); return sounds; } }
         public static GameConfig Config { get { EnsureLoaded(); return config; } }
 
@@ -133,7 +136,8 @@ namespace HybridShooter.Core.Data
             waveSpawners    = Build<WaveSpawnerDto, int, WaveSpawnerDef>(folder, WaveSpawnerDef.Table, r, d => d.Id, d => new WaveSpawnerDef(d, r));
             supplies        = Build<SupplyDto, int, SupplyDef>(folder, SupplyDef.Table, r, d => d.Id, d => new SupplyDef(d, r));
             upgrades        = Build<UpgradeDto, int, UpgradeDef>(folder, UpgradeDef.Table, r, d => d.Id, d => new UpgradeDef(d, r));
-            sounds          = Build<SoundDto, string, SoundDef>(folder, SoundDef.Table, r, d => d.Key, d => new SoundDef(d, r));
+            upgradeGrades   = BuildUpgradeGrades(folder, r);
+            sounds         = Build<SoundDto, string, SoundDef>(folder, SoundDef.Table, r, d => d.Key, d => new SoundDef(d, r));
             config = new GameConfig();
             foreach (var dto in TsvTableReader.Read<ConfigDto>(folder, GameConfig.Table, r)) config.Add(dto, r);
             bosses          = Build<BossDto, int, BossDef>(folder, BossDef.Table, r, dto => dto.Id, dto => new BossDef(dto, r));
@@ -451,6 +455,18 @@ namespace HybridShooter.Core.Data
             }
         }
 
+        /// <summary>등급은 행 Key 가 enum 이라 Def 를 만든 뒤 Def.Grade 로 넣는다</summary>
+        private static DefTable<UpgradeGrade, UpgradeGradeDef> BuildUpgradeGrades(string folder, DataLoadReport r)
+        {
+            var table = new DefTable<UpgradeGrade, UpgradeGradeDef>(UpgradeGradeDef.Table);
+            foreach (var dto in TsvTableReader.Read<UpgradeGradeDto>(folder, UpgradeGradeDef.Table, r))
+            {
+                var def = new UpgradeGradeDef(dto, r);
+                table.Add(def.Grade, def, r);
+            }
+            return table;
+        }
+
         private static DefTable<UpgradeType, UpgradeTrackDef> GroupUpgrades(DataLoadReport r)
         {
             var table = new DefTable<UpgradeType, UpgradeTrackDef>("UpgradeTrack");
@@ -461,6 +477,8 @@ namespace HybridShooter.Core.Data
                 {
                     if (levels[i].Level != i + 1)
                         r.Error(UpgradeDef.Table, levels[i].Id, $"{g.Key} 의 Level 이 1 부터 연속되지 않습니다 (발견: {levels[i].Level})");
+                    if (levels[i].Weight != levels[0].Weight)
+                        r.Error(UpgradeDef.Table, levels[i].Id, $"{g.Key} 의 Weight 가 레벨마다 다릅니다 (Lv1 = {levels[0].Weight})");
                 }
                 table.Add(g.Key, new UpgradeTrackDef(g.Key, levels), r);
             }
@@ -494,11 +512,7 @@ namespace HybridShooter.Core.Data
             if (sidearmCount != 1)
                 r.Warn(WeaponDef.Table, "-", $"Category Sidearm(1번 칸 권총) 행이 {sidearmCount}개입니다 (정확히 1개여야 함)");
 
-            foreach (UpgradeType type in Enum.GetValues(typeof(UpgradeType)))
-                if (upgradeTracks.Contains(type) == false) r.Warn(UpgradeDef.Table, type, "이 강화 종류의 데이터가 없습니다");
-
-            float reloadTotal = upgradeTracks.TryGet(UpgradeType.ReloadSpeed, out var reload) ? reload.GetTotalValue(reload.MaxLevel) : 0f;
-            r.Check(reloadTotal < 1f, UpgradeDef.Table, UpgradeType.ReloadSpeed, $"재장전 감소율 합계가 {reloadTotal} 입니다 (1 미만이어야 함)");
+            ValidateUpgrades(r);
     
             if (clypeosaurus != null) r.Check(bosses.Contains(clypeosaurus.BossId), ClypeosaurusDef.Table, clypeosaurus.BossId, $"BossTable에 Id {clypeosaurus.BossId}인 보스가 없습니다.");
             if (tyranopode != null) r.Check(bosses.Contains(tyranopode.BossId), TyranopodeDef.Table, tyranopode.BossId, $"BossTable에 Id {tyranopode.BossId}인 보스가 없습니다.");
@@ -515,6 +529,26 @@ namespace HybridShooter.Core.Data
                     r.Warn(RoundDef.Table, round.Round, $"BossId {round.BossId} 가 BossTable 에 없습니다 (RoundBossEncounter 인스펙터 보스로 대신함)");
 
             ValidateWaves(r);
+        }
+
+        /// <summary>강화 · 등급 규칙. 상점에서 뺀 종류(GrenadeCapacity)는 데이터가 없어도 된다</summary>
+        private static void ValidateUpgrades(DataLoadReport r)
+        {
+            foreach (UpgradeType type in Enum.GetValues(typeof(UpgradeType)))
+                if (type != UpgradeType.GrenadeCapacity && upgradeTracks.Contains(type) == false)
+                    r.Warn(UpgradeDef.Table, type, "이 강화 종류의 데이터가 없습니다");
+
+            // 감소율은 모든 레벨을 가장 높은 등급으로 사도 1 미만 (재장전 시간이 0 이하가 되지 않게)
+            float reloadMax = upgradeTracks.TryGet(UpgradeType.ReloadSpeed, out var reload) ? reload.GetMaxTotalValue() : 0f;
+            r.Check(reloadMax < 1f, UpgradeDef.Table, UpgradeType.ReloadSpeed, $"재장전 감소율 최대 합계가 {reloadMax} 입니다 (1 미만이어야 함)");
+
+            int gradeWeight = 0;
+            foreach (UpgradeGrade grade in Enum.GetValues(typeof(UpgradeGrade)))
+            {
+                if (upgradeGrades.TryGet(grade, out var def)) gradeWeight += def.Weight;
+                else r.Error(UpgradeGradeDef.Table, grade, "이 등급의 데이터가 없습니다");
+            }
+            r.Check(gradeWeight > 0, UpgradeGradeDef.Table, "-", "등급 Weight 합계가 0 입니다 (카드 등급을 뽑을 수 없음)");
         }
 
         /// <summary>

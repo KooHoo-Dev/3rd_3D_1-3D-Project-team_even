@@ -15,7 +15,7 @@ namespace HybridShooter.Player
     /// 흐름
     ///  - 보급 상자 → IItemUser.AddGrenades / AddHealPacks 로 개수 보충
     ///  - PlayerController 입력 → TryThrowGrenade (G) / TryUseHeal (V)
-    ///  - 수치 = 원본(GrenadeTable / 인스펙터) + 강화(IUpgradeState). 강화를 사면(UpgradePurchasedEvent) 다시 계산
+    ///  - 수치 = 원본(GrenadeTable / 인스펙터) + 강화(IUpgradeState: 수류탄 범위 · 회복 팩 보유). 강화를 사거나(UpgradePurchasedEvent) 초기화되면(UpgradesResetEvent) 다시 계산
     ///
     /// 애니메이션 · IK 연결
     ///  - ThrowStarted → PlayerAnimationDriver 가 Throw 동작을 throwDuration 에 맞춰 재생 (그동안 조준·왼손 IK 는 꺼진다)
@@ -112,7 +112,7 @@ namespace HybridShooter.Player
             }
         }
         public int HealPacks => healPacks;
-        public int MaxHealPacks => maxHealPacks;
+        public int MaxHealPacks => maxHealPacks + Mathf.RoundToInt(UpgradeValue(UpgradeType.HealCapacity));
 
         /// <summary>강화가 적용된 수류탄 능력치</summary>
         public GrenadeStats GrenadeStats { get; private set; }
@@ -149,8 +149,9 @@ namespace HybridShooter.Player
 
         public bool AddHealPacks(int amount)
         {
-            if (amount <= 0 || healPacks >= maxHealPacks) return false;
-            healPacks = Mathf.Min(healPacks + amount, maxHealPacks);
+            int max = MaxHealPacks;
+            if (amount <= 0 || healPacks >= max) return false;
+            healPacks = Mathf.Min(healPacks + amount, max);
             PublishHealPacks();
             return true;
         }
@@ -223,12 +224,14 @@ namespace HybridShooter.Player
         public void RefreshStats()
         {
             grenadeDef = DataManager.Player != null ? DataManager.Player.Grenade : null;
-            GrenadeStats = grenadeDef != null ? GrenadeStats.From(grenadeDef) : fallbackGrenadeStats;
-            // 수류탄 · 회복 강화가 생기면 여기서 UpgradeValue(UpgradeType.xxx) 를 더한다
+            var grenadeStats = grenadeDef != null ? GrenadeStats.From(grenadeDef) : fallbackGrenadeStats;
+            grenadeStats.radius *= 1f + UpgradeValue(UpgradeType.GrenadeRadius);
+            GrenadeStats = grenadeStats;
 
             HealStats = baseHealStats;
 
             if (grenades > MaxGrenades) grenades = MaxGrenades;
+            if (healPacks > MaxHealPacks) healPacks = MaxHealPacks;
             PublishGrenades();
             PublishHealPacks();
         }
@@ -245,12 +248,14 @@ namespace HybridShooter.Player
         private void OnEnable()
         {
             EventBus<UpgradePurchasedEvent>.Subscribe(OnUpgradePurchased);
+            EventBus<UpgradesResetEvent>.Subscribe(OnUpgradesReset);
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
         }
 
         private void OnDisable()
         {
             EventBus<UpgradePurchasedEvent>.Unsubscribe(OnUpgradePurchased);
+            EventBus<UpgradesResetEvent>.Unsubscribe(OnUpgradesReset);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
         }
 
@@ -440,7 +445,7 @@ namespace HybridShooter.Player
         private void ResetCounts()
         {
             grenades = Mathf.Clamp(DataManager.Player != null ? DataManager.Player.StartGrenades : fallbackStartGrenades, 0, MaxGrenades);
-            healPacks = Mathf.Clamp(startHealPacks, 0, maxHealPacks);
+            healPacks = Mathf.Clamp(startHealPacks, 0, MaxHealPacks);
             throwing = false;
             StopHeal();
         }
@@ -449,6 +454,7 @@ namespace HybridShooter.Player
             => ServiceLocator.TryGet<IUpgradeState>(out var upgrades) ? upgrades.GetTotalValue(type) : 0f;
 
         private void OnUpgradePurchased(UpgradePurchasedEvent evt) => RefreshStats();
+        private void OnUpgradesReset(UpgradesResetEvent evt) => RefreshStats();
 
         /// <summary>처음부터 재시작이면 개수 초기화. 다음 라운드 진행이면 유지 (BL-032, BL-033)</summary>
         private void OnRoundCleanup(RoundCleanupEvent evt)
@@ -461,7 +467,7 @@ namespace HybridShooter.Player
         }
 
         private void PublishGrenades() => EventBus<GrenadeCountChangedEvent>.Publish(new GrenadeCountChangedEvent(grenades, MaxGrenades));
-        private void PublishHealPacks() => EventBus<HealPackCountChangedEvent>.Publish(new HealPackCountChangedEvent(healPacks, maxHealPacks));
+        private void PublishHealPacks() => EventBus<HealPackCountChangedEvent>.Publish(new HealPackCountChangedEvent(healPacks, MaxHealPacks));
         #endregion
     }
 }

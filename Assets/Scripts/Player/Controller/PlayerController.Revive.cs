@@ -124,7 +124,7 @@ namespace HybridShooter.Player
             {
                 // 몸이 돌아온 뒤 끝날 때까지 체력이 1 → 최대로 차오른다
                 float fill = reviveBodyRestoreAt >= 1f ? 1f : Mathf.InverseLerp(reviveBodyRestoreAt, 1f, p);
-                int hp = Mathf.Clamp(Mathf.RoundToInt(Mathf.Lerp(1f, maxHealth, fill)), 1, maxHealth);
+                int hp = Mathf.Clamp(Mathf.RoundToInt(Mathf.Lerp(1f, MaxHealth, fill)), 1, MaxHealth);
                 if (hp != currentHealth)
                 {
                     currentHealth = hp;
@@ -148,7 +148,7 @@ namespace HybridShooter.Player
         {
             if (reviveBodyRestored == false) RestoreBodyForRevive();
             isReviving = false;
-            currentHealth = maxHealth;
+            currentHealth = MaxHealth;
             PublishHp();
             RestoreStamina();
             StartReviveBuff();
@@ -206,7 +206,7 @@ namespace HybridShooter.Player
             finalDead = false;
             IsDead = false;
             EndReviveBuff();
-            currentHealth = maxHealth;
+            currentHealth = MaxHealth;
             PublishHp();
             RestoreStamina();
             SetMoveInput(Vector3.zero, false);
