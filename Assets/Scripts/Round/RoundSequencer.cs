@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
@@ -15,7 +17,9 @@ namespace HybridShooter.Round
     /// <summary>
     /// 군중전부터 보상 선택 완료까지 한 라운드의 순서를 실행한다.
     /// 군중전이 끝나는 조건은 RoundDef.Type 이 정한다: CrowdToBoss = 보스 시각 → 보스전 → 보스 처치 ·
-    /// Annihilation = 누적 처치 KillTarget 달성 (PhaseTime 에 소환만 끝남) · Survival = PhaseTime 생존. 셋 다 Reward(강화 선택)로 끝난다.
+    /// Annihilation = 누적 처치 목표 달성 (PhaseTime 에 소환만 끝남) · AnnihilationToBoss = 섬멸 목표 달성 → 보스전 → 보스 처치 ·
+    /// Survival = PhaseTime 생존. 모두 Reward(강화 선택)로 끝난다 (최종 보스는 게임 클리어).
+    /// 웨이브 편성은 라운드 시작마다 RoundDef.WaveRounds 후보에서 무작위로 고른다 (같은 출발에서 앞 라운드가 쓴 편성 제외).
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(RoundBossEncounter))]
@@ -40,9 +44,14 @@ namespace HybridShooter.Round
         /// <summary>최종 보스 최후 연출이 시작됨 → 처치해도 보상 단계로 가지 않는다 (게임 클리어)</summary>
         private bool finaleStarted;
 
-        // ── 보스 없는 라운드 목표 ──
+        // ── 섬멸 목표 ──
         private int killCount;              // 이번 라운드 군중전 누적 처치 수 (GrantReward 사망만, 종류 무관)
+        private int killTarget;             // 이번 라운드 목표 처치 수 (마리, 고른 편성으로 계산). 섬멸 유형이 아니면 0
         private bool reinforcementEnded;    // 섬멸전 PhaseTime 이 지나 소환을 끝냈는지
+
+        // ── 웨이브 편성 ──
+        private int waveRound;                                       // 이번 라운드가 쓰는 편성 (WaveStageTable.RoundNo)
+        private readonly List<int> usedWaveRounds = new List<int>(); // 이번 출발(1라운드부터)에서 이미 쓴 편성
 
         public bool IsRunning => isRoundRunning;
         public float ElapsedSeconds => elapsedSeconds;
@@ -51,6 +60,8 @@ namespace HybridShooter.Round
         public int RoundNumber => roundNumber;
         public GameState Phase => phase;
         public int KillCount => killCount;
+        public int KillTarget => killTarget;
+        public int WaveRound => waveRound;
         public event Action<GameState> PhaseChanged;
         public event Action Completed;
 
@@ -82,10 +93,10 @@ namespace HybridShooter.Round
 
         /// <summary>
         /// 한 라운드를 군중전부터 시작한다. RunDirector 가 라운드마다 부른다.
-        /// 웨이브는 def.WaveRound 편성을 쓴다. 처치 수는 첫 소환(StartRound 안 0초 스테이지)보다 먼저 0으로 되돌린다.
+        /// 웨이브 편성을 고르고 섬멸 목표를 정한 뒤 소환을 시작한다. 처치 수는 첫 소환(StartRound 안 0초 스테이지)보다 먼저 0으로 되돌린다.
         /// </summary>
-        /// <param name="def">유형·웨이브 편성·보스·보급 시각을 정하는 라운드 데이터. null 이면 시작하지 않는다</param>
-        /// <param name="roundNumber">RunDirector 의 진행 라운드 번호 (1부터, 계속 늘어남). 표시·로그용</param>
+        /// <param name="def">유형·웨이브 편성 후보·보스·보급 시각을 정하는 라운드 데이터. null 이면 시작하지 않는다</param>
+        /// <param name="roundNumber">RunDirector 의 진행 라운드 번호 (1부터, 계속 늘어남). 1 이면 새 출발이라 쓴 편성 기록을 비운다</param>
         public void StartRound(RoundDef def, int roundNumber)
         {
             if (isRoundRunning || def == null) return;
@@ -104,13 +115,30 @@ namespace HybridShooter.Round
             finaleStarted = false;
             killCount = 0;
             reinforcementEnded = false;
+            if (roundNumber == 1) usedWaveRounds.Clear();
+            waveRound = PickWaveRound(def);
+            usedWaveRounds.Add(waveRound);
+            killTarget = def.IsAnnihilation ? DataManager.GetKillTarget(def, waveRound) : 0;
             isRoundRunning = true;
             ChangePhase(GameState.CrowdBattle);
             if (isRoundRunning == false) return;
 
-            Debug.Log($"[RoundSequencer] 진행 {roundNumber}라운드 ({def.Type}) → 웨이브 편성 {def.WaveRound}", this);
-            monsterWaveDirector.StartRound(def.WaveRound);
+            Debug.Log($"[RoundSequencer] 진행 {roundNumber}라운드 ({def.Type}) → 웨이브 편성 {waveRound} (후보 {string.Join(";", def.WaveRounds)}, 목표 처치 {killTarget})", this);
+            monsterWaveDirector.StartRound(waveRound);
             UpdateSupplyStart();
+        }
+
+        /// <summary>
+        /// 이번 라운드의 웨이브 편성을 후보(def.WaveRounds) 중 무작위로 고른다. 이번 출발에서 앞 라운드가 쓴 편성은 뺀다.
+        /// 후보가 모두 쓰였으면 (마지막 행 재사용 등) 전체 후보에서 고른다.
+        /// </summary>
+        /// <param name="def">후보 목록을 가진 라운드 데이터</param>
+        /// <returns>WaveStageTable.RoundNo</returns>
+        private int PickWaveRound(RoundDef def)
+        {
+            var unusedWaveRounds = def.WaveRounds.Where(candidate => usedWaveRounds.Contains(candidate) == false).ToList();
+            var pool = unusedWaveRounds.Count > 0 ? unusedWaveRounds : def.WaveRounds.ToList();
+            return pool[UnityEngine.Random.Range(0, pool.Count)];
         }
 
         public void StopRound()
@@ -175,6 +203,7 @@ namespace HybridShooter.Round
                     UpdateCrowdToBoss();
                     break;
                 case RoundType.Annihilation:
+                case RoundType.AnnihilationToBoss:
                     UpdateAnnihilation();
                     break;
                 case RoundType.Survival:
@@ -196,13 +225,19 @@ namespace HybridShooter.Round
         }
 
         /// <summary>
-        /// 섬멸전: 누적 처치가 KillTarget 에 닿으면 남은 소환을 버리고 보스 없이 보상 단계로 간다.
-        /// PhaseTime 이 지나도 목표 미달이면 소환만 끝낸다 (남은 적을 잡아 목표를 채움, 실패·보스 전이 없음).
+        /// 섬멸전: 누적 처치가 목표에 닿으면 남은 소환을 버리고, Annihilation 은 보스 없이 보상 단계로,
+        /// AnnihilationToBoss 는 보스 등장(기존 보스 라운드와 같은 경고·카메라 전환·등장 연출)으로 간다.
+        /// PhaseTime 이 지나도 목표 미달이면 소환만 끝낸다 (남은 적을 잡아 목표를 채움, 실패 전이 없음).
         /// </summary>
         private void UpdateAnnihilation()
         {
-            bool hasReachedKillTarget = killCount >= roundDef.KillTarget;
+            bool hasReachedKillTarget = killCount >= killTarget;
             bool isReinforcementTimeOver = elapsedSeconds >= roundDef.PhaseTime;
+            if (hasReachedKillTarget && roundDef.HasBoss)
+            {
+                BeginBossIntro();
+                return;
+            }
             if (hasReachedKillTarget)
             {
                 BeginRewardWithoutBoss();
@@ -230,7 +265,7 @@ namespace HybridShooter.Round
         {
             reinforcementEnded = true;
             monsterWaveDirector.StopRound();
-            Debug.Log($"[RoundSequencer] 진행 {roundNumber}라운드 증원 종료 (처치 {killCount} / {roundDef.KillTarget})", this);
+            Debug.Log($"[RoundSequencer] 진행 {roundNumber}라운드 증원 종료 (처치 {killCount} / {killTarget})", this);
         }
 
         /// <summary>
@@ -248,7 +283,7 @@ namespace HybridShooter.Round
         public bool SkipToBoss()
         {
             if (isRoundRunning == false || phase != GameState.CrowdBattle) return false;
-            if (roundDef.Type != RoundType.CrowdToBoss) return false;
+            if (roundDef.HasBoss == false) return false;
             BeginBossIntro();
             return true;
         }

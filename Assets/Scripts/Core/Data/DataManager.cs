@@ -89,6 +89,19 @@ namespace HybridShooter.Core.Data
             return round < all[0].Round ? all[0] : all[all.Count - 1];
         }
 
+        /// <summary>
+        /// 섬멸 목표 처치 수. RoundSequencer 가 라운드 시작 때 고른 편성으로 부르고, 로드 검증도 후보마다 같은 값을 본다.
+        /// = waveRound 편성이 round.PhaseTime 안에 반드시 소환하는 처치 가능 몬스터 수 × round.KillRatio (내림).
+        /// </summary>
+        /// <param name="round">섬멸 유형 라운드 (PhaseTime·KillRatio 사용)</param>
+        /// <param name="waveRound">이번 라운드가 쓰는 웨이브 편성 (WaveStageTable.RoundNo)</param>
+        /// <returns>목표 처치 수 (마리). 편성에 소환이 없으면 0</returns>
+        public static int GetKillTarget(RoundDef round, int waveRound)
+        {
+            int killableCount = CountKillableSpawnsBefore(waveRound, round.PhaseTime);
+            return Mathf.FloorToInt(killableCount * round.KillRatio);
+        }
+
         public static string DefaultTableFolder => Path.Combine(Application.streamingAssetsPath, TableFolderName);
 
         // ───────────────────────── Lifecycle ─────────────────────────
@@ -435,12 +448,12 @@ namespace HybridShooter.Core.Data
                 wave.Spawners = spawnerList;
             }
 
-            // 스테이지 → 라운드 확인(RoundTable.WaveRound 가 이 편성을 쓰는지), 웨이브 연결 후 StartTime 순 정렬 (V6, V15)
+            // 스테이지 → 라운드 확인(RoundTable.WaveRounds 후보에 이 편성이 있는지), 웨이브 연결 후 StartTime 순 정렬 (V6, V15)
             foreach (var stage in waveStages)
             {
-                bool isUsedByRound = rounds.Any(round => round.WaveRound == stage.RoundNo);
+                bool isUsedByRound = rounds.Any(round => round.WaveRounds.Contains(stage.RoundNo));
                 if (isUsedByRound == false)
-                    r.Warn(WaveStageDef.Table, stage.Id, $"RoundNo {stage.RoundNo} 를 WaveRound 로 쓰는 RoundTable 행이 없어 실행되지 않습니다");
+                    r.Warn(WaveStageDef.Table, stage.Id, $"RoundNo {stage.RoundNo} 를 WaveRounds 후보로 쓰는 RoundTable 행이 없어 실행되지 않습니다");
 
                 var waveList = new List<WaveDef>();
                 foreach (int waveId in stage.WaveIds)
@@ -482,7 +495,7 @@ namespace HybridShooter.Core.Data
                 if (roundList[i].Round != i + 1)
                     r.Error(RoundDef.Table, roundList[i].Round, "Round 는 1 부터 순서대로 적어야 합니다");
 
-            foreach (var round in rounds.Where(row => row.HasBoss))
+            foreach (var round in rounds.Where(row => row.Type == RoundType.CrowdToBoss))
             {
                 foreach (var rule in round.SpawnRules)
                     if (rule.StartTime >= round.BossSpawnTimeMax)
@@ -522,17 +535,18 @@ namespace HybridShooter.Core.Data
         /// <summary>
         /// 라운드 유형별 테이블 간 규칙을 검사한다. Validate 끝에서 호출된다.
         ///  - 최종 보스(Tyranopode) 처치 = 게임 클리어 → 마지막 행만 Tyranopode 보스 라운드여야 한다
-        ///  - 섬멸전 KillTarget 은 PhaseTime 안의 필수 소환으로 채울 수 있어야 한다 (넘으면 라운드가 끝나지 않음)
+        ///  - 섬멸 유형은 후보 편성마다 목표 처치 수가 1 이상이고, 처치 가능한 필수 소환과 여유가 있어야 한다
         /// </summary>
         /// <param name="r">오류를 모으는 로드 보고서</param>
         private static void ValidateRoundTypes(DataLoadReport r)
         {
             var roundList = rounds.All;
             foreach (var round in roundList)
+            foreach (int waveRound in round.WaveRounds)
             {
-                bool hasWaveStages = waveStages.Any(stage => stage.RoundNo == round.WaveRound && stage.Kind == WaveStageKind.Normal);
+                bool hasWaveStages = waveStages.Any(stage => stage.RoundNo == waveRound && stage.Kind == WaveStageKind.Normal);
                 if (hasWaveStages == false)
-                    r.Error(RoundDef.Table, round.Round, $"WaveRound {round.WaveRound} 의 Normal 스테이지가 WaveStageTable 에 없습니다");
+                    r.Error(RoundDef.Table, round.Round, $"WaveRounds 의 {waveRound} 편성 Normal 스테이지가 WaveStageTable 에 없습니다");
             }
 
             if (tyranopode != null && roundList.Count > 0)
@@ -540,7 +554,7 @@ namespace HybridShooter.Core.Data
                 var lastRound = roundList[roundList.Count - 1];
                 bool isFinalBossRound = lastRound.HasBoss && lastRound.BossId == tyranopode.BossId;
                 if (isFinalBossRound == false)
-                    r.Error(RoundDef.Table, lastRound.Round, $"마지막 라운드는 CrowdToBoss + BossId {tyranopode.BossId}(Tyranopode, 처치 = 게임 클리어)여야 합니다");
+                    r.Error(RoundDef.Table, lastRound.Round, $"마지막 라운드는 보스 라운드(CrowdToBoss·AnnihilationToBoss) + BossId {tyranopode.BossId}(Tyranopode, 처치 = 게임 클리어)여야 합니다");
                 foreach (var round in roundList)
                 {
                     bool isEarlierFinalBoss = round != lastRound && round.HasBoss && round.BossId == tyranopode.BossId;
@@ -549,13 +563,15 @@ namespace HybridShooter.Core.Data
                 }
             }
 
-            foreach (var round in roundList.Where(row => row.Type == RoundType.Annihilation))
+            foreach (var round in roundList.Where(row => row.IsAnnihilation))
+            foreach (int waveRound in round.WaveRounds)
             {
-                int killableCount = CountKillableSpawnsBefore(round.WaveRound, round.PhaseTime);
-                if (round.KillTarget > killableCount)
-                    r.Error(RoundDef.Table, round.Round, $"KillTarget {round.KillTarget} 이 {round.PhaseTime}초 안 처치 가능한 필수 소환 {killableCount} 보다 커서 라운드가 끝나지 않을 수 있습니다");
-                else if (killableCount - round.KillTarget < MinKillTargetMargin)
-                    r.Warn(RoundDef.Table, round.Round, $"KillTarget {round.KillTarget} 과 처치 가능한 필수 소환 {killableCount} 의 차이가 {MinKillTargetMargin} 미만입니다");
+                int killableCount = CountKillableSpawnsBefore(waveRound, round.PhaseTime);
+                int killTarget = GetKillTarget(round, waveRound);
+                if (killTarget < 1)
+                    r.Error(RoundDef.Table, round.Round, $"편성 {waveRound}: 목표 처치 수가 0 입니다 ({round.PhaseTime}초 안 처치 가능한 필수 소환 {killableCount} × KillRatio {round.KillRatio})");
+                else if (killableCount - killTarget < MinKillTargetMargin)
+                    r.Warn(RoundDef.Table, round.Round, $"편성 {waveRound}: 목표 {killTarget} 과 처치 가능한 필수 소환 {killableCount} 의 차이가 {MinKillTargetMargin} 미만입니다");
             }
         }
 
@@ -563,7 +579,7 @@ namespace HybridShooter.Core.Data
         private const int MinKillTargetMargin = 5;
 
         /// <summary>
-        /// 섬멸전 목표 검증용: 웨이브 편성 하나가 seconds 초 전에 반드시 소환하는 몬스터 중 플레이어가 처치할 수 있는 수를 센다.
+        /// 섬멸 목표 계산용(GetKillTarget): 웨이브 편성 하나가 seconds 초 전에 반드시 소환하는 몬스터 중 플레이어가 처치할 수 있는 수를 센다.
         /// 각 개체의 소환 시각 = 스테이지 StartTime + 웨이브 StartTime + 스포너 StartDelay + SpawnInterval × 순번.
         /// ClearBonus(조건부)와 자폭형(자폭하면 처치로 세지 않음)은 뺀다.
         /// </summary>

@@ -9,8 +9,8 @@ namespace HybridShooter.UI
 {
     /// <summary>
     /// 라운드 목표 HUD (화면 위쪽 가운데 한 블록): 라운드 번호·유형 / 한 줄 목표 / 핵심 수치.
-    /// 섬멸전 = 큰 "처치 37 / N" + 작은 증원 남은 시간 · 생존전 = 큰 남은 시간 + 얇은 진행 막대 · 보스 라운드 = 목표 문구만.
-    /// RoundSequencer 의 공개 값(CurrentRoundDef·RoundNumber·Phase·KillCount·ElapsedSeconds)을 매 프레임 읽어 그린다.
+    /// 섬멸전(섬멸 후 보스 포함) = 큰 "처치 37 / N" + 작은 증원 남은 시간 · 생존전 = 큰 남은 시간 + 얇은 진행 막대 · 보스 라운드 = 목표 문구만.
+    /// RoundSequencer 의 공개 값(CurrentRoundDef·RoundNumber·Phase·KillCount·KillTarget·ElapsedSeconds)을 매 프레임 읽어 그린다.
     /// 군중전 동안만 보이고(보스전은 보스 체력 막대가 위쪽을 쓴다), 라운드 시작 직후 잠깐 크게 보여 목표를 알린다.
     /// GameFlowUiBootstrap 이 자동으로 붙인다.
     /// </summary>
@@ -83,10 +83,12 @@ namespace HybridShooter.UI
                     timeBar.gameObject.SetActive(false);
                     break;
                 case RoundType.Annihilation:
+                case RoundType.AnnihilationToBoss:
                     float reinforcementLeft = def.PhaseTime - elapsedSeconds;
-                    titleText.text = $"라운드 {roundSequencer.RoundNumber} · 섬멸전";
-                    objectiveText.text = $"적 {def.KillTarget}마리를 처치하세요";
-                    valueText.text = $"처치 {roundSequencer.KillCount} / {def.KillTarget}";
+                    int killTarget = roundSequencer.KillTarget;
+                    titleText.text = def.HasBoss ? $"라운드 {roundSequencer.RoundNumber} · 섬멸전 → 보스전" : $"라운드 {roundSequencer.RoundNumber} · 섬멸전";
+                    objectiveText.text = def.HasBoss ? $"적 {killTarget}마리를 처치해 보스를 끌어내세요" : $"적 {killTarget}마리를 처치하세요";
+                    valueText.text = $"처치 {roundSequencer.KillCount} / {killTarget}";
                     detailText.text = reinforcementLeft > 0f ? $"증원 종료까지 {FormatTime(reinforcementLeft)}" : "증원 종료";
                     timeBar.gameObject.SetActive(false);
                     break;

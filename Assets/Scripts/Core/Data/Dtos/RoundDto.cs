@@ -7,13 +7,13 @@ namespace HybridShooter.Core.Data.Dtos
     public sealed class RoundDto
     {
         public int Round;  // 1부터 = 진행 번호
-        public string Type = "CrowdToBoss";  // RoundType (CrowdToBoss/Annihilation/Survival)
-        public int WaveRound;  // WaveStageTable.RoundNo (이 라운드의 웨이브 편성)
-        public int BossId;  // BossTable.Id (라운드 보스, RoundBossEncounter 가 고른다). CrowdToBoss 만 사용, 그 외 0
+        public string Type = "CrowdToBoss";  // RoundType (CrowdToBoss/Annihilation/AnnihilationToBoss/Survival)
+        public string WaveRounds;  // WaveStageTable.RoundNo 후보를 ';' 로 구분 ("2;3;4;5"). 라운드 시작마다 하나를 무작위로 고른다
+        public int BossId;  // BossTable.Id (라운드 보스, RoundBossEncounter 가 고른다). CrowdToBoss·AnnihilationToBoss 만 사용, 그 외 0
         public float BossSpawnTimeMin;
         public float BossSpawnTimeMax;
-        public float PhaseTime;  // 초. Annihilation = 소환 시간 · Survival = 생존 시간 · CrowdToBoss = 0 (안 씀)
-        public int KillTarget;  // Annihilation 의 목표 처치 수. 그 외 0
+        public float PhaseTime;  // 초. Annihilation·AnnihilationToBoss = 소환 시간 · Survival = 생존 시간 · CrowdToBoss = 0 (안 씀)
+        public float KillRatio;  // 섬멸 목표 비율 (0~1). 목표 처치 수 = 고른 편성이 PhaseTime 안에 소환하는 처치 가능 몬스터 수 × 비율(내림). 섬멸 유형만, 그 외 0
         public float SupplyStartTime;
         public float SupplyInterval;
         public int BossReward;
