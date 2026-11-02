@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
@@ -8,7 +9,7 @@ using NUnit.Framework;
 
 namespace HybridShooter.Core.Tests
 {
-    /// <summary>WeaponUnlockLedger: 실제 WeaponTable 로 해금 순서·저장을 검사한다 (테스트 전용 PlayerPrefs 키)</summary>
+    /// <summary>WeaponUnlockLedger: 실제 WeaponTable 로 해금 순서·라운드별 해금·저장을 검사한다 (테스트 전용 PlayerPrefs 키)</summary>
     public sealed class TestWeaponUnlockLedger
     {
         private const string Key = "Test.Unlock.Weapons";
@@ -41,10 +42,46 @@ namespace HybridShooter.Core.Tests
         }
 
         [Test]
-        public void PistolAndAssaultRifle_AreDefault_OthersLoadoutLocked()
+        public void PistolRiflesAndSmg_AreDefault_OthersLoadoutLocked()
         {
             var defaults = DataManager.Weapons.Where(w => w.Category != WeaponCategory.Supply && w.UnlockOrder == 0).Select(w => w.Id).ToArray();
-            CollectionAssert.AreEquivalent(new[] { 2002, 2003 }, defaults, "기본 무기 = 돌격소총(2002) · 권총(2003)");
+            CollectionAssert.AreEquivalent(new[] { 2001, 2002, 2003, 2004 }, defaults, "기본 무기 = 라이플(2001) · 돌격소총(2002) · 권총(2003) · 기관단총(2004)");
+        }
+
+        [Test]
+        public void UnlockForRound_Round1Shotgun_Round2Sniper()
+        {
+            CollectionAssert.AreEqual(new[] { 2005 }, ledger.UnlockForRound(1).Select(w => w.Id), "1라운드 클리어 = 산탄총");
+            Assert.IsFalse(ledger.IsUnlocked(2006));
+            CollectionAssert.IsEmpty(ledger.UnlockForRound(1), "같은 라운드를 다시 깨도 더 없음");
+            CollectionAssert.AreEqual(new[] { 2006 }, ledger.UnlockForRound(2).Select(w => w.Id), "2라운드 클리어 = 저격소총");
+            CollectionAssert.AreEqual(new[] { 2005, 2006 }, published.Select(w => w.Id), "해금마다 WeaponUnlockedEvent 1번");
+        }
+
+        [Test]
+        public void UnlockForRound_LaterRound_FillsMissedEarlierUnlocks()
+        {
+            CollectionAssert.AreEqual(new[] { 2005, 2006 }, ledger.UnlockForRound(3).Select(w => w.Id));
+        }
+
+        [Test]
+        public void StageClearedEvent_UnlocksByRoundNumber()
+        {
+            ServiceLocator.TryGet<IWeaponUnlocks>(out var previous);
+            ServiceLocator.Register<IWeaponUnlocks>(ledger);
+            ledger.BindEvents();
+            try
+            {
+                EventBus<StageClearedEvent>.Publish(new StageClearedEvent(2));
+                Assert.IsTrue(ledger.IsUnlocked(2005));
+                Assert.IsTrue(ledger.IsUnlocked(2006));
+            }
+            finally
+            {
+                ledger.UnbindEvents();
+                ServiceLocator.Unregister<IWeaponUnlocks>(ledger);
+                if (previous != null) ServiceLocator.Register(previous);
+            }
         }
 
         [Test]
