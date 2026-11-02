@@ -52,7 +52,13 @@ namespace HybridShooter.Weapon
         public static void Explode(Vector3 center, in ExplosionSettings settings, in ProjectileContext context)
         {
             if (settings.effectPrefab != null)
-                Object.Destroy(Object.Instantiate(settings.effectPrefab, center, Quaternion.identity), 5f);
+            {
+                var effect = Object.Instantiate(settings.effectPrefab, center, Quaternion.identity);
+                if (effect.TryGetComponent<ExplosionVisual>(out var visual) == false)
+                    throw new System.InvalidOperationException($"폭발 이펙트 '{settings.effectPrefab.name}' 에 ExplosionVisual 이 없습니다 (피해 반경에 크기를 맞출 수 없음)");
+                visual.Fit(settings.radius);
+                Object.Destroy(effect, 5f);
+            }
             if (string.IsNullOrEmpty(settings.sfxKey) == false && ServiceLocator.TryGet<ISoundService>(out var sound))
                 sound.PlaySfx(settings.sfxKey, center);
             Debug.DrawRay(center, Vector3.up * settings.radius, new Color(1f, 0.5f, 0f), 1f);

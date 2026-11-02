@@ -33,6 +33,8 @@ namespace HybridShooter.Player
             public float throwClipLength;
             [Tooltip("던지기 클립에서 수류탄이 손을 떠나는 순간 (0~1, 손이 가장 빠른 프레임)")]
             [Range(0f, 1f)] public float throwRelease = 0.5f;
+            [Tooltip("G 를 누르면 던지기 클립을 이 지점(0~1)부터 재생한다. throwRelease 바로 앞이면 거의 즉시 날아간다")]
+            [Range(0f, 1f)] public float throwStart = 0.6f;
             [Tooltip("던지는 손이 왼손인지 (클립을 분석해 정한다)")]
             public bool throwWithLeftHand = true;
         }
@@ -76,6 +78,8 @@ namespace HybridShooter.Player
         public Vector2 actionSpeedRange = new Vector2(0.5f, 3f);
         [Tooltip("재장전·꺼내기 동작이 들어오고 나갈 때 조준 IK 를 풀고 다시 거는 시간(초)")]
         public float actionBlendTime = 0.15f;
+        [Tooltip("수류탄 던지기 클립 중간(throwStart)으로 바로 넘어갈 때 섞는 시간(초). 짧을수록 즉시 던진다")]
+        public float throwBlendTime = 0.05f;
         [Tooltip("사격 반동 전체 배수 (PlayerGunRecoil, 총별 값 × 이 값. 1 = 기본)")]
         public float recoilMagnitude = 1f;
 

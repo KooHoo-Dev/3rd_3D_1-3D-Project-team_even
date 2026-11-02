@@ -15,7 +15,7 @@ namespace HybridShooter.Weapon.EditorTools
     ///  1. 텍스처(별 모양 화염·빛 덩어리·연기·빛줄기)를 코드로 그려 PNG 로 저장
     ///  2. QFX Particle HDR 셰이더로 재질을 만든다 (HDR 색이라 Bloom 에서 빛난다)
     ///  3. 총구 화염 4종(소·중·대·발사기), 탄 궤적 3종(일반·산탄·저격), 탄착 3종(일반·산탄·저격), 로켓·유탄 꼬리를 프리팹으로 저장
-    ///  4. QFX 폭발(유탄·로켓)을 복사해 파란색 → 주황색으로 바꾼다 (재질 색 + 파티클·불빛 색)
+    ///  4. QFX 폭발(유탄·로켓)을 복사해 파란색 → 주황색으로 바꾼다 (재질 색 + 파티클·불빛 색). 피해 반경에 맞춰 커지도록 ExplosionVisual 을 붙인다
     ///  5. Player 프리팹과 PlayerTest 씬의 총 8종, 수류탄 프리팹에 연결
     ///
     /// 다시 실행하면 같은 경로의 에셋을 덮어쓴다 (GUID 유지 → 연결은 그대로)
@@ -546,7 +546,30 @@ namespace HybridShooter.Weapon.EditorTools
                 if (component == null || component is Transform) continue;
                 RecolorSerialized(component);
             }
+            FitToDamageRadius(go);
             return SavePrefab(go, targetName);
+        }
+
+        /// <summary>
+        /// 피해 반경에 맞춰 키울 수 있게 만든다 (GunExplosion 이 ExplosionVisual.Fit 을 부른다).
+        ///  - 하위 파티클도 루트 크기를 따르도록 Hierarchy, 위쪽 반구로만 퍼지던 불꽃·스파크는 구로 (공중 폭발도 둥글게)
+        ///  - 기준 반경 = 루트 구(Sphere 메시 반경 1m) 크기. 충격파 원판(Disk 메시 반경 약 1.09m)은 그 구와 같은 반경으로
+        /// </summary>
+        private static void FitToDamageRadius(GameObject go)
+        {
+            const float diskMeshRadius = 1.0928f;
+            float baseRadius = go.GetComponent<ParticleSystem>().main.startSize.constant;
+            foreach (var ps in go.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var main = ps.main;
+                main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+                var shape = ps.shape;
+                if (shape.shapeType == ParticleSystemShapeType.Hemisphere) shape.shapeType = ParticleSystemShapeType.Sphere;
+                if (ps.name == "PS_ShockWave") main.startSize = baseRadius / diskMeshRadius;
+            }
+            var visual = new SerializedObject(go.AddComponent<ExplosionVisual>());
+            visual.FindProperty("baseRadius").floatValue = baseRadius;
+            visual.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static Material OrangeMaterial(Material source, Dictionary<Material, Material> cache)

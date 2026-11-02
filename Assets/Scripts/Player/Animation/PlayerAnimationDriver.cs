@@ -262,11 +262,21 @@ namespace HybridShooter.Player
             drawEndTime = Time.time + profile.drawDuration;
         }
 
-        /// <summary>수류탄 던지기: 던지는 동작 시간에 맞춰 재생 (재장전·꺼내기는 끊긴다)</summary>
+        /// <summary>
+        /// 수류탄 던지기: 클립을 throwStart 지점(던지기 직전 자세)부터 바로 재생해 거의 즉시 날아가게 한다.
+        /// 남은 구간을 던지는 동작 시간에 맞춰 재생 (재장전·꺼내기는 끊긴다)
+        /// </summary>
         private void OnThrowStarted()
         {
             if (currentSet == null || currentSet.throwClipLength <= 0f) return;
-            StartAction(PlayerAnimNames.Hash.Throw, currentSet.throwClipLength, items.ThrowDuration);
+            float startTime = currentSet.throwClipLength * currentSet.throwStart;
+            float speed = (currentSet.throwClipLength - startTime) / Mathf.Max(0.01f, items.ThrowDuration);
+            animator.SetFloat(PlayerAnimNames.Hash.ActionSpeed, Mathf.Clamp(speed, profile.actionSpeedRange.x, profile.actionSpeedRange.y));
+            animator.ResetTrigger(PlayerAnimNames.Hash.ActionEnd);
+            animator.ResetTrigger(PlayerAnimNames.Hash.Reload);
+            animator.ResetTrigger(PlayerAnimNames.Hash.Draw);
+            animator.ResetTrigger(PlayerAnimNames.Hash.Throw);
+            animator.CrossFadeInFixedTime(PlayerAnimNames.Hash.ThrowState, profile.throwBlendTime, upperActionLayer, startTime);
             reloading = false;
             drawing = false;
             throwing = true;
