@@ -881,7 +881,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
   profile: {fileID: 11400000, guid: 9cf9b35d858ec1a4aa0bf9b498616442, type: 2}
-  coordinator: {fileID: 0}
+  assignedController: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
   destinationFollowRate: 5
@@ -1073,6 +1073,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
   partKey: Gland
+  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  coreAlpha: 0.12
+  rimPower: 3
+  exposedBrightness: 0.9
+  hiddenBrightness: 0.25
+  pulsesPerSecond: 1.2
+  pulseDepth: 0.6
 --- !u!1 &3710361424080600933
 GameObject:
   m_ObjectHideFlags: 0
@@ -2656,6 +2663,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
   partKey: Gland
+  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  coreAlpha: 0.12
+  rimPower: 3
+  exposedBrightness: 0.9
+  hiddenBrightness: 0.25
+  pulsesPerSecond: 1.2
+  pulseDepth: 0.597
 --- !u!1 &8541927153081912611
 GameObject:
   m_ObjectHideFlags: 0

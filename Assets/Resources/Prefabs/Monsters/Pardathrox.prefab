@@ -422,7 +422,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
   profile: {fileID: 11400000, guid: 6694443e72347cc4494537f917871d33, type: 2}
-  coordinator: {fileID: 0}
+  assignedController: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
   destinationFollowRate: 5
@@ -1707,7 +1707,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.29
+  m_Radius: 0.14
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1789730922615293568
 MonoBehaviour:
@@ -1722,6 +1722,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
   partKey: Spine
+  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  coreAlpha: 0.12
+  rimPower: 3
+  exposedBrightness: 0.9
+  hiddenBrightness: 0.25
+  pulsesPerSecond: 1.2
+  pulseDepth: 0.6
 --- !u!1 &7112210940979175273
 GameObject:
   m_ObjectHideFlags: 0
