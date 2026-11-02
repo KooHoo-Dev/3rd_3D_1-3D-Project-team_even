@@ -2243,8 +2243,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79214baee515f3a449c71484c753b7d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.EntranceAttack
-  fallHeight: 30
-  fallDuration: 0.8
+  fallHeight: 120
+  fallDuration: 2.5
   shadowPrefab: {fileID: 7329057322042179811, guid: 9234d485a63c9644595cbf8d4efdef78, type: 3}
   shockwavePrefab: {fileID: 8892443149770637752, guid: 23c12557ae01ab44099ab5dda922d953, type: 3}
 --- !u!114 &4265325948370636209

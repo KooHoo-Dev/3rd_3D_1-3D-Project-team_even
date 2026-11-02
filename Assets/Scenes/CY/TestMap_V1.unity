@@ -129,12 +129,12 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: attacks.Array.size
-      value: 1
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: 'attacks.Array.data[0]'
       value: 
-      objectReference: {fileID: 1194398171}
+      objectReference: {fileID: 67786934}
     - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: 'attacks.Array.data[1]'
       value: 
@@ -142,7 +142,7 @@ PrefabInstance:
     - target: {fileID: 823172667169261941, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: 'attacks.Array.data[2]'
       value: 
-      objectReference: {fileID: 1194398171}
+      objectReference: {fileID: 67786933}
     - target: {fileID: 1601464397953940699, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
       propertyPath: playerSource
       value: 
@@ -236,6 +236,28 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1194398159}
   m_SourcePrefab: {fileID: 100100000, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+--- !u!114 &67786933 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2158953421807436580, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+  m_PrefabInstance: {fileID: 67786932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1194398158}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e4b5d9c5c2a42ed8ca18ad43469c215, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.MagmaBarrageAttack
+--- !u!114 &67786934 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 534779049517218803, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
+  m_PrefabInstance: {fileID: 67786932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1194398158}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 374c4e5b40204bd2a514e0b19a1b7faf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.StompAttack
 --- !u!1 &218311744
 GameObject:
   m_ObjectHideFlags: 0
@@ -1040,6 +1062,7 @@ MonoBehaviour:
   gameOverKey: ui_game_over
   stageClearKey: ui_stage_clear
   upgradeSelectKey: ui_upgrade_select
+  roundSupplyKey: sfx_supply_reload
   healthWarningKey: ui_health_warning
   useAnnouncer: 1
   announceFightKey: ann_fight
@@ -1444,6 +1467,7 @@ MonoBehaviour:
   sprintMultiplier: 2.5
   startHealPacks: 1
   maxHealPacks: 3
+  interactRange: 4
   groundOffset: 1.6
   maxStepUp: 2
   groundMask:
@@ -1697,7 +1721,9 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  maxPositionTries: 10
+  dropGroundLayers:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!4 &2048632274
 Transform:
   m_ObjectHideFlags: 0

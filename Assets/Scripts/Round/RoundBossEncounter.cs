@@ -13,7 +13,7 @@ using UnityEngine.AI;
 namespace HybridShooter.Round
 {
     /// <summary>
-    /// 한 라운드의 보스를 SpawnPointFinder 가 고른 위치에 생성·초기화하고, 사망을 기존 보상 이벤트에 연결한다.
+    /// 1라운드 보스는 플레이어 XZ에, 나머지는 SpawnPointFinder 가 고른 위치에 생성·초기화하고 사망을 기존 보상 이벤트에 연결한다.
     /// 보스는 RoundTable.BossId → BossTable 행의 Prefab(Resources 경로)으로 고른다.
     /// 인스펙터 bossId 와 같은 보스는 인스펙터 bossPrefab 을 쓰고, 찾지 못하면 인스펙터 보스로 대신한다.
     /// </summary>
@@ -73,19 +73,30 @@ namespace HybridShooter.Round
                 def = bossDef;
             }
             Transform point = spawnPoint != null ? spawnPoint : transform;
-            // 1라운드는 플레이어 자리를 대체 위치로 쓴다. spawnPoint 자체는 옮기지 않는다 (다음 라운드 대체 위치가 바뀌지 않게)
+            bool spawnAtPlayer = TryGetComponent<RunDirector>(out var director) && director.CurrentRound == 1;
             Vector3 fallbackPosition = point.position;
-            if (TryGetComponent<RunDirector>(out var director) && director.CurrentRound == 1) fallbackPosition = player.Root.position;
-            if (UsesNavMesh(prefab))
+            if (spawnAtPlayer)
+            {
+                fallbackPosition = player.Root.position;
+                fallbackPosition.y = spawnPointFinder.HeightAt(fallbackPosition);
+            }
+            else if (UsesNavMesh(prefab))
             {
                 if (TrySnapToNavMesh(fallbackPosition, out Vector3 snapped)) fallbackPosition = snapped;
                 else Debug.LogError($"[RoundBossEncounter] 대체 스폰 위치 {fallbackPosition} 근처에 NavMesh 가 없습니다. spawnPoint 위치나 NavMesh 베이크 범위를 확인해주세요.", this);
             }
             boss = Instantiate(prefab, fallbackPosition, point.rotation);
             boss.gameObject.SetActive(true);
-            MoveToFoundSpawnPoint();
+            if (spawnAtPlayer)
+            {
+                WarpAgent(fallbackPosition);
+                // Agent 활성화·Warp 뒤에도 플레이어 XZ와 지면 Y를 그대로 착지점으로 넘긴다.
+                boss.transform.position = fallbackPosition;
+            }
+            else MoveToFoundSpawnPoint();
             boss.Died += OnBossDied;
             entrance = boss.GetComponent<EntranceAttack>();
+            if (spawnAtPlayer && entrance != null) entrance.SetLandingPoint(fallbackPosition);
             if (entrance != null) entrance.Impacted += OnEntranceImpacted;
 
             initializer = boss.GetComponent<IBossEncounterInitializer>();
