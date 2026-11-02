@@ -1,7 +1,8 @@
-Round	BossId	BossSpawnTimeMin	BossSpawnTimeMax	SupplyStartTime	SupplyInterval	BossReward
-# 마지막 행 이후 라운드는 마지막 행을 재사용  ·  BossSpawnTime: 라운드 시작 기준(초), 범위 내 무작위(BL-021)  ·  Supply: BL-018  ·  BossId: BossTable.Id (1 = Clypeosaurus, 2 = Tyranopode)
-1	1	165	195	20	25	100
-2	2	165	195	20	25	150
-3	1	165	195	20	25	150
-4	2	165	195	20	25	150
-5	2	165	195	20	25	150
+Round	Type	WaveRound	BossId	BossSpawnTimeMin	BossSpawnTimeMax	PhaseTime	KillTarget	SupplyStartTime	SupplyInterval	BossReward
+# Round: 진행 번호(마지막 행 이후 라운드는 마지막 행을 재사용)  ·  Type: CrowdToBoss(군중전 → 보스 시각에 보스 → 보스 처치로 클리어) / Annihilation(섬멸: PhaseTime 초 동안 소환, 라운드 누적 처치 KillTarget 달성 시 보스 없이 강화) / Survival(생존: PhaseTime 초 생존 시 보스 없이 강화)
+# WaveRound: WaveStageTable.RoundNo(웨이브 편성)  ·  BossId: BossTable.Id (1 = Clypeosaurus, 2 = Tyranopode = 처치 시 게임 클리어 → 마지막 행에만), CrowdToBoss 가 아니면 0  ·  BossSpawnTime: 라운드 시작 기준(초), 범위 내 무작위(BL-021), CrowdToBoss 만  ·  KillTarget: 섬멸 목표, PhaseTime 안 필수 소환(자폭형·ClearBonus 제외)보다 5 이상 작게  ·  Supply: BL-018
+1	CrowdToBoss	1	1	165	195	0	0	20	25	100
+2	Annihilation	4	0	0	0	150	205	20	25	0
+3	CrowdToBoss	2	1	165	195	0	0	20	25	150
+4	Survival	5	0	0	0	180	0	20	25	0
+5	CrowdToBoss	3	2	165	195	0	0	20	25	150

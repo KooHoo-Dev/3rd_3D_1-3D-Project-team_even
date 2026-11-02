@@ -7,7 +7,7 @@ namespace HybridShooter.Core.Data.Dtos
     public sealed class WaveStageDto
     {
         public int Id;
-        public int RoundNo;  // RoundTable.Round
+        public int RoundNo;  // 웨이브 편성 번호 (RoundTable.WaveRound 가 가리킨다)
         public float StartTime;  // 초, 라운드 시작 기준
         public float EndTime;  // 초, 라운드 시작 기준
         public string WaveList = "";  // WaveTable.Id 를 ';' 로 구분

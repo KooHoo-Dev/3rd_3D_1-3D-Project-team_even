@@ -435,11 +435,12 @@ namespace HybridShooter.Core.Data
                 wave.Spawners = spawnerList;
             }
 
-            // 스테이지 → 라운드 확인, 웨이브 연결 후 StartTime 순 정렬 (V6, V15)
+            // 스테이지 → 라운드 확인(RoundTable.WaveRound 가 이 편성을 쓰는지), 웨이브 연결 후 StartTime 순 정렬 (V6, V15)
             foreach (var stage in waveStages)
             {
-                if (rounds.Contains(stage.RoundNo) == false)
-                    r.Error(WaveStageDef.Table, stage.Id, $"Round {stage.RoundNo} 가 RoundTable 에 없습니다");
+                bool isUsedByRound = rounds.Any(round => round.WaveRound == stage.RoundNo);
+                if (isUsedByRound == false)
+                    r.Warn(WaveStageDef.Table, stage.Id, $"RoundNo {stage.RoundNo} 를 WaveRound 로 쓰는 RoundTable 행이 없어 실행되지 않습니다");
 
                 var waveList = new List<WaveDef>();
                 foreach (int waveId in stage.WaveIds)
@@ -481,7 +482,7 @@ namespace HybridShooter.Core.Data
                 if (roundList[i].Round != i + 1)
                     r.Error(RoundDef.Table, roundList[i].Round, "Round 는 1 부터 순서대로 적어야 합니다");
 
-            foreach (var round in rounds)
+            foreach (var round in rounds.Where(row => row.HasBoss))
             {
                 foreach (var rule in round.SpawnRules)
                     if (rule.StartTime >= round.BossSpawnTimeMax)
@@ -510,11 +511,81 @@ namespace HybridShooter.Core.Data
                 r.Check(monsters.TryGet(tyranopode.EggMinionId, out var eggMinion) && eggMinion.Prefab != null, TyranopodeDef.Table, "EggMinionId", $"MonsterTable Id {tyranopode.EggMinionId} 가 없거나 프리팹이 없습니다.");
             }
             // 라운드 보스는 BossTable 에서 고른다 (RoundBossEncounter). 없으면 인스펙터 보스로 대신하므로 경고만
-            foreach (var round in rounds)
+            foreach (var round in rounds.Where(row => row.HasBoss))
                 if (bosses.Contains(round.BossId) == false)
                     r.Warn(RoundDef.Table, round.Round, $"BossId {round.BossId} 가 BossTable 에 없습니다 (RoundBossEncounter 인스펙터 보스로 대신함)");
 
             ValidateWaves(r);
+            ValidateRoundTypes(r);
+        }
+
+        /// <summary>
+        /// 라운드 유형별 테이블 간 규칙을 검사한다. Validate 끝에서 호출된다.
+        ///  - 최종 보스(Tyranopode) 처치 = 게임 클리어 → 마지막 행만 Tyranopode 보스 라운드여야 한다
+        ///  - 섬멸전 KillTarget 은 PhaseTime 안의 필수 소환으로 채울 수 있어야 한다 (넘으면 라운드가 끝나지 않음)
+        /// </summary>
+        /// <param name="r">오류를 모으는 로드 보고서</param>
+        private static void ValidateRoundTypes(DataLoadReport r)
+        {
+            var roundList = rounds.All;
+            foreach (var round in roundList)
+            {
+                bool hasWaveStages = waveStages.Any(stage => stage.RoundNo == round.WaveRound && stage.Kind == WaveStageKind.Normal);
+                if (hasWaveStages == false)
+                    r.Error(RoundDef.Table, round.Round, $"WaveRound {round.WaveRound} 의 Normal 스테이지가 WaveStageTable 에 없습니다");
+            }
+
+            if (tyranopode != null && roundList.Count > 0)
+            {
+                var lastRound = roundList[roundList.Count - 1];
+                bool isFinalBossRound = lastRound.HasBoss && lastRound.BossId == tyranopode.BossId;
+                if (isFinalBossRound == false)
+                    r.Error(RoundDef.Table, lastRound.Round, $"마지막 라운드는 CrowdToBoss + BossId {tyranopode.BossId}(Tyranopode, 처치 = 게임 클리어)여야 합니다");
+                foreach (var round in roundList)
+                {
+                    bool isEarlierFinalBoss = round != lastRound && round.HasBoss && round.BossId == tyranopode.BossId;
+                    if (isEarlierFinalBoss)
+                        r.Error(RoundDef.Table, round.Round, $"BossId {tyranopode.BossId}(Tyranopode)는 마지막 라운드에만 둘 수 있습니다 (처치하면 게임이 끝남)");
+                }
+            }
+
+            foreach (var round in roundList.Where(row => row.Type == RoundType.Annihilation))
+            {
+                int killableCount = CountKillableSpawnsBefore(round.WaveRound, round.PhaseTime);
+                if (round.KillTarget > killableCount)
+                    r.Error(RoundDef.Table, round.Round, $"KillTarget {round.KillTarget} 이 {round.PhaseTime}초 안 처치 가능한 필수 소환 {killableCount} 보다 커서 라운드가 끝나지 않을 수 있습니다");
+                else if (killableCount - round.KillTarget < MinKillTargetMargin)
+                    r.Warn(RoundDef.Table, round.Round, $"KillTarget {round.KillTarget} 과 처치 가능한 필수 소환 {killableCount} 의 차이가 {MinKillTargetMargin} 미만입니다");
+            }
+        }
+
+        // 섬멸전 목표와 처치 가능한 필수 소환 수의 최소 여유 (마리)
+        private const int MinKillTargetMargin = 5;
+
+        /// <summary>
+        /// 섬멸전 목표 검증용: 웨이브 편성 하나가 seconds 초 전에 반드시 소환하는 몬스터 중 플레이어가 처치할 수 있는 수를 센다.
+        /// 각 개체의 소환 시각 = 스테이지 StartTime + 웨이브 StartTime + 스포너 StartDelay + SpawnInterval × 순번.
+        /// ClearBonus(조건부)와 자폭형(자폭하면 처치로 세지 않음)은 뺀다.
+        /// </summary>
+        /// <param name="waveRound">WaveStageTable.RoundNo</param>
+        /// <param name="seconds">라운드 시작 기준 소환 마감(초). 이 시각 이후 소환은 MonsterWaveDirector.StopRound 로 취소된다</param>
+        /// <returns>마감 전에 소환되는 처치 가능 몬스터 수</returns>
+        private static int CountKillableSpawnsBefore(int waveRound, float seconds)
+        {
+            int count = 0;
+            foreach (var stage in waveStages.Where(row => row.RoundNo == waveRound && row.Kind == WaveStageKind.Normal))
+            foreach (var wave in stage.Waves)
+            foreach (var spawner in wave.Spawners)
+            {
+                bool isSelfDestruct = spawner.Monster != null && spawner.Monster.Role == MonsterRole.SelfDestruct;
+                if (isSelfDestruct) continue;
+                for (int order = 0; order < spawner.Count; order++)
+                {
+                    float spawnTime = stage.StartTime + wave.StartTime + spawner.StartDelay + spawner.SpawnInterval * order;
+                    if (spawnTime < seconds) count++;
+                }
+            }
+            return count;
         }
 
         /// <summary>

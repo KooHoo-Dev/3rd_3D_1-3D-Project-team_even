@@ -51,7 +51,7 @@ namespace HybridShooter.Round
         /// 지금 라운드를 멈추고 정리 이벤트로 몬스터·보급을 치운 뒤, 같은 프레임에 roundNumber 라운드를 시작한다.
         /// RunDirector 의 라운드 전환(정리 → RoundStartedEvent → StartRound)과 같은 순서다.
         /// </summary>
-        /// <param name="roundNumber">시작할 라운드 번호 (1~5). RoundSequencer 가 웨이브 라운드로 순환해 고른다</param>
+        /// <param name="roundNumber">시작할 라운드 번호 (1~5). 그 번호의 RoundTable 행(유형·웨이브 편성·보스)으로 시작한다</param>
         private void JumpToRound(int roundNumber)
         {
             if (runDirector.IsRunning == false)
@@ -64,7 +64,7 @@ namespace HybridShooter.Round
             EventBus<RoundCleanupEvent>.Publish(new RoundCleanupEvent(false));
             if (roundSequencer.CanStartRound() == false) return;
 
-            var def = DataManager.GetRound(1);
+            var def = DataManager.GetRound(roundNumber);
             EventBus<RoundStartedEvent>.Publish(new RoundStartedEvent(roundNumber, def));
             roundSequencer.StartRound(def, roundNumber);
             Debug.Log($"[RoundJumpTester] {roundNumber}라운드로 이동", this);
