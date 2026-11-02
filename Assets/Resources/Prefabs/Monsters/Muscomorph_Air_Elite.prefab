@@ -26,7 +26,19 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 708bd9fc5fb64a7c9670b3b07d8dfe9b, type: 2}
     - target: {fileID: 3054492622161123645, guid: b86b7ae0afd07dc4b93107c803e35712, type: 3}
       propertyPath: diveSpeed
-      value: 14
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 3054492622161123645, guid: b86b7ae0afd07dc4b93107c803e35712, type: 3}
+      propertyPath: entryDistance
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 3054492622161123645, guid: b86b7ae0afd07dc4b93107c803e35712, type: 3}
+      propertyPath: leaveDistance
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3054492622161123645, guid: b86b7ae0afd07dc4b93107c803e35712, type: 3}
+      propertyPath: levelOutSpeed
+      value: 2.28
       objectReference: {fileID: 0}
     - target: {fileID: 3234955001260752710, guid: b86b7ae0afd07dc4b93107c803e35712, type: 3}
       propertyPath: m_Materials.Array.size
@@ -64,6 +76,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[1]'
       value: 
       objectReference: {fileID: 2100000, guid: 708bd9fc5fb64a7c9670b3b07d8dfe9b, type: 2}
+    - target: {fileID: 4756636726016961627, guid: b86b7ae0afd07dc4b93107c803e35712, type: 3}
+      propertyPath: cruiseHeight
+      value: 7
+      objectReference: {fileID: 0}
     - target: {fileID: 6221495752859311938, guid: b86b7ae0afd07dc4b93107c803e35712, type: 3}
       propertyPath: m_Name
       value: Muscomorph_Air_Elite

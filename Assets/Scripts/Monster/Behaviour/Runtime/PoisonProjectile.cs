@@ -22,38 +22,34 @@ namespace HybridShooter.Monster.Behaviour
         private Transform marker;      // 착탄 때 반납할 예고 표식. null = 없음
 
         // ── 착탄 때 장판에 넘길 값 ──
-        private float zoneRadius;      // m
+        private AttackSpec attack;     // 공격 테이블 값 (장판 반경·틱 피해·Id)
         private IPlayerTarget target;
         private Func<IPlayerTarget, IDamageable> findDamageable;
-        private int sourceDefId;
 
         /// <summary>
         /// 비행을 시작한다. PoisonAreaAttack.OnActive 가 풀에서 꺼낸 직후 1번 부른다.
         /// </summary>
-        /// <param name="settings">풀, 포물선 높이, 장판 피해 값을 가진 몬스터 설정</param>
+        /// <param name="settings">풀, 포물선 높이, 장판 지속·간격 값을 가진 몬스터 설정</param>
+        /// <param name="attack">공격 테이블 값. ProjectileSpeed = 수평 속도 (m/s), Radius·Damage·SourceDefId 는 장판에 넘긴다</param>
         /// <param name="start">발사점</param>
         /// <param name="end">착탄점 (Terrain 표면)</param>
-        /// <param name="speed">수평 속도 (m/s). 0 초과</param>
         /// <param name="marker">착탄 때 반납할 예고 표식. null = 없음</param>
         /// <param name="target">장판이 피해를 줄 대상</param>
-        /// <param name="zoneRadius">장판 반경 (m)</param>
         /// <param name="findDamageable">대상에서 IDamageable 을 찾는 방법</param>
-        /// <param name="sourceDefId">MonsterAttackTable Id. 피해 정보에 남긴다</param>
-        /// <exception cref="ArgumentOutOfRangeException">speed 가 0 이하일 때</exception>
-        public void Launch(PoisonAreaSettings settings, Vector3 start, Vector3 end, float speed, Transform marker,
-                           IPlayerTarget target, float zoneRadius,
-                           Func<IPlayerTarget, IDamageable> findDamageable, int sourceDefId)
+        /// <exception cref="ArgumentOutOfRangeException">attack.ProjectileSpeed 가 0 이하일 때</exception>
+        public void Launch(PoisonAreaSettings settings, in AttackSpec attack, Vector3 start, Vector3 end, Transform marker,
+                           IPlayerTarget target, Func<IPlayerTarget, IDamageable> findDamageable)
         {
-            if (speed <= 0f) throw new ArgumentOutOfRangeException(nameof(speed), speed, "투사체 속도는 0 초과");
+            float speed = attack.ProjectileSpeed;
+            if (speed <= 0f) throw new ArgumentOutOfRangeException(nameof(attack), speed, "투사체 속도는 0 초과");
 
             this.settings = settings;
+            this.attack = attack;
             this.start = start;
             this.end = end;
             this.marker = marker;
             this.target = target;
-            this.zoneRadius = zoneRadius;
             this.findDamageable = findDamageable;
-            this.sourceDefId = sourceDefId;
 
             Vector3 horizontal = end - start;
             horizontal.y = 0f;
@@ -103,10 +99,10 @@ namespace HybridShooter.Monster.Behaviour
         private void Arrive()
         {
             ReturnMarker();
-            if (DataManager.MonsterAttacks.TryGet(sourceDefId, out var attack) && ServiceLocator.TryGet<ISoundService>(out var sound))
-                sound.PlaySfx(attack.ImpactSfx, end);
+            if (DataManager.MonsterAttacks.TryGet(attack.SourceDefId, out var attackDef) && ServiceLocator.TryGet<ISoundService>(out var sound))
+                sound.PlaySfx(attackDef.ImpactSfx, end);
             PoisonZone zone = settings.ZonePool.Get(end);
-            zone.Begin(settings, end, zoneRadius, target, findDamageable, sourceDefId);
+            zone.Begin(settings, attack, end, target, findDamageable);
             settings.ProjectilePool.Return(this);
         }
 

@@ -271,6 +271,7 @@ GameObject:
   - component: {fileID: 4756636726016961627}
   - component: {fileID: 3054492622161123645}
   - component: {fileID: 3168750531067842310}
+  - component: {fileID: -8269184356582776101}
   m_Layer: 0
   m_Name: Densoptere
   m_TagString: Untagged
@@ -333,6 +334,7 @@ MonoBehaviour:
   coordinator: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
+  destinationFollowRate: 5
 --- !u!114 &8857605372768615403
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -347,12 +349,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterController
   monsterId: 1004
   despawnDelay: 2
-  moveClipSpeed: 3
+  moveClipSpeed: 9
   idleSpeedThreshold: 0.1
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
   hitTimeRatio: 0
+  hitEndRatio: 0.5
+  maxHitsPerAttack: 1
+  hitIntervalSeconds: 0
+  aimOffsetRadius: 2
   hitRangeRatio: 1.15
   windupTurnSpeed: 360
 --- !u!114 &4756636726016961627
@@ -418,6 +424,22 @@ CapsuleCollider:
   m_Height: 0.6
   m_Direction: 1
   m_Center: {x: 0, y: 0.3, z: 0}
+--- !u!114 &-8269184356582776101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5680596531327945821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c85f4e92e9b67884f980d017806180da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Monster.Tester.MonsterHitAreaVisualizer
+  hitFlashSeconds: 0.3
+  previewColor: {r: 0.2, g: 0.8, b: 1, a: 0.25}
+  hitColor: {r: 1, g: 0.15, b: 0.1, a: 0.6}
+  missColor: {r: 1, g: 0.9, b: 0.1, a: 0.5}
 --- !u!1 &5680596531327945823
 GameObject:
   m_ObjectHideFlags: 0

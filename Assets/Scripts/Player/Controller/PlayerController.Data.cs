@@ -51,8 +51,10 @@ namespace HybridShooter.Player
         [SerializeField] private float wallProbeDistance = 0.05f;
 
         [Header("급경사 미끄럼 (maxSlopeAngle 보다 가파른 면)")]
-        [Tooltip("면을 따라 미끄러지는 최고 속도(m/s)")]
+        [Tooltip("면을 따라 미끄러지는 최고 속도(m/s). 조작이 없거나 좌우·오르막 쪽일 때")]
         [SerializeField] private float steepSlideMaxSpeed = 4f;
+        [Tooltip("내리막 쪽으로 움직일 때 면을 따라 내려가는 최고 속도(m/s). 중력(g·sinθ)으로 가속하고, 달려 들어온 속도는 이어 간다")]
+        [SerializeField] private float steepDownhillMaxSpeed = 12f;
         [Tooltip("미끄럼 속도·방향이 목표로 바뀌는 가속도(m/s²)")]
         [SerializeField] private float steepSlideAcceleration = 20f;
         [Tooltip("미끄러지는 중 좌우·내리막 조작 비율 (걷기 속도 기준). 오르막 조작은 받지 않는다")]

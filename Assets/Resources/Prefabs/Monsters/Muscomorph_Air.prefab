@@ -1683,6 +1683,7 @@ GameObject:
   - component: {fileID: 4756636726016961627}
   - component: {fileID: 3054492622161123645}
   - component: {fileID: 3168750531067842310}
+  - component: {fileID: -2741675036842919147}
   m_Layer: 14
   m_Name: Muscomorph_Air
   m_TagString: Untagged
@@ -1786,6 +1787,10 @@ MonoBehaviour:
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
   hitTimeRatio: 0
+  hitEndRatio: 0.5
+  maxHitsPerAttack: 1
+  hitIntervalSeconds: 0
+  aimOffsetRadius: 3
   hitRangeRatio: 1.1
   windupTurnSpeed: 360
 --- !u!114 &4756636726016961627
@@ -1821,13 +1826,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.DiveSettings
   entryDistance: 8
-  entryDistanceRandomRange: 1.5
+  entryDistanceRandomRange: 2
   minHeight: 1
   diveSpeed: 10
   leaveDistance: 12
   turnAwayTime: 1
   altitudeTolerance: 0.5
-  levelOutSpeed: 4
+  levelOutSpeed: 2.59
 --- !u!136 &3168750531067842310
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1851,6 +1856,22 @@ CapsuleCollider:
   m_Height: 1.88
   m_Direction: 1
   m_Center: {x: 0.015360773, y: 0.58442056, z: 0.10752675}
+--- !u!114 &-2741675036842919147
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6221495752859311938}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c85f4e92e9b67884f980d017806180da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Monster.Tester.MonsterHitAreaVisualizer
+  hitFlashSeconds: 0.3
+  previewColor: {r: 0.2, g: 0.8, b: 1, a: 0.25}
+  hitColor: {r: 1, g: 0.15, b: 0.1, a: 0.6}
+  missColor: {r: 1, g: 0.9, b: 0.1, a: 0.5}
 --- !u!1 &6357135313045127238
 GameObject:
   m_ObjectHideFlags: 0

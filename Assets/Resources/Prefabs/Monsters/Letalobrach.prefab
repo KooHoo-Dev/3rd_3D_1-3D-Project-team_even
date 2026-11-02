@@ -175,6 +175,7 @@ GameObject:
   - component: {fileID: 8182058156753446464}
   - component: {fileID: 4691132091533479145}
   - component: {fileID: 517540784849940430}
+  - component: {fileID: 6040918561269513848}
   m_Layer: 15
   m_Name: Letalobrach
   m_TagString: Untagged
@@ -297,6 +298,10 @@ MonoBehaviour:
   cooldownOverrideSeconds: 3
   activeSeconds: 0.5
   hitTimeRatio: 0.5
+  hitEndRatio: 0.5
+  maxHitsPerAttack: 1
+  hitIntervalSeconds: 0
+  aimOffsetRadius: 2.25
   hitRangeRatio: 1.05
   windupTurnSpeed: 360
 --- !u!114 &4691132091533479145
@@ -342,6 +347,22 @@ CapsuleCollider:
   m_Height: 4.23
   m_Direction: 1
   m_Center: {x: 0.022333503, y: 2.4972677, z: 0.55911064}
+--- !u!114 &6040918561269513848
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1438301292820702486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c85f4e92e9b67884f980d017806180da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Monster.Tester.MonsterHitAreaVisualizer
+  hitFlashSeconds: 0.3
+  previewColor: {r: 0.2, g: 0.8, b: 1, a: 0.25}
+  hitColor: {r: 1, g: 0.15, b: 0.1, a: 0.6}
+  missColor: {r: 1, g: 0.9, b: 0.1, a: 0.5}
 --- !u!1 &1905092912942143356
 GameObject:
   m_ObjectHideFlags: 0

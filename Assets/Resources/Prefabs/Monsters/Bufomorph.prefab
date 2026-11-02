@@ -1853,6 +1853,7 @@ GameObject:
   - component: {fileID: -5282420452375643821}
   - component: {fileID: -6963252850141782799}
   - component: {fileID: 5730098645658161961}
+  - component: {fileID: -4614585149263457273}
   m_Layer: 0
   m_Name: Bufomorph
   m_TagString: Untagged
@@ -1975,7 +1976,11 @@ MonoBehaviour:
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
   hitTimeRatio: 0.5
-  hitRangeRatio: 3
+  hitEndRatio: 1
+  maxHitsPerAttack: 1
+  hitIntervalSeconds: 0
+  aimOffsetRadius: 1
+  hitRangeRatio: 2.54
   windupTurnSpeed: 360
 --- !u!136 &5730098645658161961
 CapsuleCollider:
@@ -2000,3 +2005,19 @@ CapsuleCollider:
   m_Height: 0.9
   m_Direction: 1
   m_Center: {x: 0, y: 0.45, z: 0}
+--- !u!114 &-4614585149263457273
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6204530840110606686}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c85f4e92e9b67884f980d017806180da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Monster.Tester.MonsterHitAreaVisualizer
+  hitFlashSeconds: 0.3
+  previewColor: {r: 0.2, g: 0.8, b: 1, a: 0.25}
+  hitColor: {r: 1, g: 0.15, b: 0.1, a: 0.6}
+  missColor: {r: 1, g: 0.9, b: 0.1, a: 0.5}

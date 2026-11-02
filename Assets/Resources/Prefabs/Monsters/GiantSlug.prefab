@@ -795,6 +795,8 @@ GameObject:
   - component: {fileID: 4651449909658561403}
   - component: {fileID: 1546374712027911385}
   - component: {fileID: -7821899813460665779}
+  - component: {fileID: 3472227660763807050}
+  - component: {fileID: 5161774469735928435}
   m_Layer: 15
   m_Name: GiantSlug
   m_TagString: Untagged
@@ -918,6 +920,10 @@ MonoBehaviour:
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
   hitTimeRatio: 0.5
+  hitEndRatio: 0.5
+  maxHitsPerAttack: 1
+  hitIntervalSeconds: 0
+  aimOffsetRadius: 3
   hitRangeRatio: 1.1
   windupTurnSpeed: 360
 --- !u!114 &-7821899813460665779
@@ -942,6 +948,49 @@ MonoBehaviour:
   tickInterval: 1
   zoneDuration: 5
   zoneHeightTolerance: 0.5
+--- !u!114 &3472227660763807050
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3281474137550595047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6faa67555b911c498251ad6cdb30012, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Monster.Tester.MonsterHitAreaVisualizer
+  showFlankRing: 1
+  showSwitchBoundary: 1
+  showDestination: 1
+  showLabel: 1
+  showViewCone: 1
+  showAttackRange: 1
+  showTrail: 1
+  trailSeconds: 3
+  trailSampleInterval: 0.1
+  farColor: {r: 1, g: 0.55, b: 0, a: 1}
+  nearColor: {r: 1, g: 0, b: 0, a: 1}
+  flankRingColor: {r: 0.4, g: 0.8, b: 1, a: 1}
+  boundaryColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  viewConeColor: {r: 1, g: 1, b: 1, a: 1}
+  attackRangeColor: {r: 0, g: 1, b: 0, a: 1}
+--- !u!114 &5161774469735928435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3281474137550595047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c85f4e92e9b67884f980d017806180da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Monster.Tester.MonsterHitAreaVisualizer
+  hitFlashSeconds: 0.3
+  previewColor: {r: 0.2, g: 0.8, b: 1, a: 0.25}
+  hitColor: {r: 1, g: 0.15, b: 0.1, a: 0.6}
+  missColor: {r: 1, g: 0.9, b: 0.1, a: 0.5}
 --- !u!1 &3710361424080600933
 GameObject:
   m_ObjectHideFlags: 0

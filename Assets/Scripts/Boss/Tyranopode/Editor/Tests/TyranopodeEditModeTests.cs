@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using HybridShooter.Boss.Tyranopode;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
@@ -228,8 +229,8 @@ namespace HybridShooter.Boss.TyranopodeEditor.Tests
                 wall.transform.localScale = new Vector3(10f, 8f, 1f);
                 Physics.SyncTransforms();
 
-                Assert.IsFalse(locomotion.ProbeWall(Vector3.forward, 3f), "돌멩이(1m)는 벽이 아니다");
-                Assert.IsTrue(locomotion.ProbeWall(Vector3.forward, 8f), "몸 높이에 걸리는 벽");
+                Assert.AreEqual(TyranopodeLocomotion.WallContact.None, locomotion.ProbeWall(Vector3.forward, 3f, out _), "돌멩이(1m)는 벽이 아니다");
+                Assert.AreEqual(TyranopodeLocomotion.WallContact.HeadOn, locomotion.ProbeWall(Vector3.forward, 8f, out _), "몸 높이에서 정면으로 막는 벽");
             }
             finally
             {
@@ -254,13 +255,52 @@ namespace HybridShooter.Boss.TyranopodeEditor.Tests
                 slope.transform.localScale = new Vector3(20f, 1f, 30f);
                 Physics.SyncTransforms();
 
-                Assert.IsFalse(locomotion.ProbeWall(Vector3.forward, 8f), "35도 경사는 오를 수 있다");
+                Assert.AreEqual(TyranopodeLocomotion.WallContact.None, locomotion.ProbeWall(Vector3.forward, 8f, out _), "35도 경사는 오를 수 있다");
             }
             finally
             {
                 Object.DestroyImmediate(go);
                 Object.DestroyImmediate(slope);
             }
+        }
+
+        [Test]
+        public void 벽을_비스듬히_스치면_정면_충돌이_아니다()
+        {
+            // 진행 방향(+z)과 나란한 옆 벽이 몸통 감지 구에 걸린다 → 스침 (미끄러짐), 그로기 아님
+            var origin = new Vector3(80000f, 0f, 80000f);
+            var go = new GameObject("GrazeProbeTest");
+            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            try
+            {
+                go.transform.position = origin;
+                var locomotion = go.AddComponent<TyranopodeLocomotion>();
+                // 옆 벽을 진행 방향으로 20도 기울여 앞쪽에서 구에 닿게 한다
+                wall.transform.SetPositionAndRotation(origin + new Vector3(3.2f, 4f, 8f), Quaternion.Euler(0f, -20f, 0f));
+                wall.transform.localScale = new Vector3(1f, 8f, 14f);
+                Physics.SyncTransforms();
+
+                var contact = locomotion.ProbeWall(Vector3.forward, 8f, out Vector3 normal);
+                Assert.AreEqual(TyranopodeLocomotion.WallContact.Graze, contact);
+                Assert.Less(Vector3.Dot(-normal, Vector3.forward), 0.5f);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(wall);
+            }
+        }
+
+        [Test]
+        public void 경기장_반지름은_막힌_방향의_중앙값_절반_미만이면_열린_맵()
+        {
+            // 24방향 중 12방향이 막힘 → 중앙값. 바위 구멍처럼 짧은 값 몇 개는 흔들지 않는다
+            var blocked = new List<float> { 3f, 4f, 30f, 31f, 32f, 32f, 33f, 33f, 34f, 34f, 35f, 36f };
+            Assert.IsTrue(TyranopodeMinions.TryArenaRadius(blocked, 24, out float radius));
+            Assert.AreEqual(33f, radius);
+
+            // 막힌 방향이 절반 미만 → 열린 맵 (경계 없음)
+            Assert.IsFalse(TyranopodeMinions.TryArenaRadius(new List<float> { 10f, 12f, 14f }, 24, out _));
         }
 
         [Test]

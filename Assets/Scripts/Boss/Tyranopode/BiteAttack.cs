@@ -61,7 +61,7 @@ namespace HybridShooter.Boss.Tyranopode
                 Move.FaceInstant(TargetPosition);
                 jumpFrom = transform.position;
                 float distance = Mathf.Max(0f, DistanceToTarget - landShortOf * Owner.BodyScale);
-                jumpTo = Move.ClampToBounds(jumpFrom + DirectionToTarget * distance);
+                jumpTo = Move.FindLanding(jumpFrom, jumpFrom + DirectionToTarget * distance);
                 View.Play(TyranopodeView.JumpBite, Owner.SpeedScale);
             }
             else
@@ -79,7 +79,7 @@ namespace HybridShooter.Boss.Tyranopode
             {
                 float t = Mathf.InverseLerp(jumpStartTime, jumpLandTime, n);
                 // 공중이라 NavMesh 의 틈·돌멩이에 걸리지 않게 직접 옮긴다
-                Move.MoveFree(Vector3.Lerp(jumpFrom, jumpTo, t) - transform.position, probeWalls: false, out _);
+                Move.MoveFree(Vector3.Lerp(jumpFrom, jumpTo, t) - transform.position, airborne: true, out _);
             }
 
             float hitTime = jump ? jumpLandTime : biteHitTime;
