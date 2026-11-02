@@ -1874,7 +1874,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -4.1047177, y: 0.0000005634008, z: -1.9925778}
-  m_LocalScale: {x: 1.25, y: 1.25, z: 1.25}
+  m_LocalScale: {x: 1.7, y: 1.7, z: 1.7}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 3183208877200141592}
@@ -1984,8 +1984,8 @@ MonoBehaviour:
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
-  hitTimeRatio: 0.5
-  hitEndRatio: 0.5
+  hitTimeRatio: 0
+  hitEndRatio: 1
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
   aimOffsetRadius: 3

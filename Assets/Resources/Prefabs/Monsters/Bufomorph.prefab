@@ -1977,7 +1977,7 @@ MonoBehaviour:
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
-  hitTimeRatio: 0.5
+  hitTimeRatio: 0
   hitEndRatio: 1
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
