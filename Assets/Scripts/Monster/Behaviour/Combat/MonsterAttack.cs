@@ -26,7 +26,7 @@ namespace HybridShooter.Monster.Behaviour
         private float cycleActiveSeconds; // s
         private float cycleHitTimeRatio;  // 0~1
         private float cycleHitEndRatio;   // 0~1
-        private Vector3 aimOffset;        // m. 이번 주기 조준점이 플레이어에서 벗어난 양 (반경 AimOffsetRadius 구 안)
+        private Vector3 aimOffset;        // m. 이번 주기 조준점이 플레이어에서 벗어난 양 (수평, 길이 = AimOffsetRadius)
         private float activeStartTime;    // s
         private bool isActionDone;        // OnActive 가 true 를 돌려줬으면 같은 Active 에서 다시 부르지 않는다
 
@@ -50,7 +50,7 @@ namespace HybridShooter.Monster.Behaviour
         // 판정 구간 안 반복 명중 사이 최소 간격 (s). StrikeAttack 만 쓴다. MonsterController 가 인스펙터 값을 넣는다
         public float HitIntervalSeconds { get; set; }
 
-        // 조준점 랜덤 반경 (m). 0 = 정확히 플레이어 위치를 노린다. 다음 Begin 부터 반영. MonsterController 가 인스펙터 값을 넣는다
+        // 조준점 랜덤 반경 (m). 0 = 정확히 플레이어 위치를 노린다. 다음 Begin 부터 반영. 생성 때 Spec.AimOffsetRadius(테이블 값)로 시작한다
         public float AimOffsetRadius { get; set; }
 
         // 근접 판정 거리 ÷ 진입 거리(Spec.Range). 1 = 같음. StrikeAttack 의 Melee 판정만 쓴다. MonsterController 가 인스펙터 값을 넣는다
@@ -116,7 +116,7 @@ namespace HybridShooter.Monster.Behaviour
         protected virtual Vector3 WindupLookPoint => AimPoint;
 
         /// <summary>
-        /// 공격 값, 몸체, 피해 대상 탐색 방법을 받는다. 하위 전략의 생성자가 호출한다. Cooldown 은 Spec.Cooldown 으로 시작한다.
+        /// 공격 값, 몸체, 피해 대상 탐색 방법을 받는다. 하위 전략의 생성자가 호출한다. Cooldown 은 Spec.Cooldown, AimOffsetRadius 는 Spec.AimOffsetRadius 로 시작한다.
         /// </summary>
         /// <param name="spec">공격 1개의 값 묶음</param>
         /// <param name="body">공격자 몸체. 예고 중 회전에 쓴다</param>
@@ -129,6 +129,7 @@ namespace HybridShooter.Monster.Behaviour
 
             Spec = spec;
             Cooldown = spec.Cooldown;
+            AimOffsetRadius = spec.AimOffsetRadius;
             Body = body;
             this.findDamageable = findDamageable;
         }

@@ -45,6 +45,8 @@ namespace HybridShooter.Core.Data.Defs
         /// <summary>적중 시 살아있는 일반 몬스터를 정리</summary>
         public bool ClearsMinions { get; }
         public string AnimTrigger { get; }
+        /// <summary>조준 랜덤 반경(m). 공격마다 플레이어 위치에서 이 거리만큼 벗어난 점을 노린다. 0 = 정확히 플레이어</summary>
+        public float AimOffsetRadius { get; }
 
         /// <summary>Link 단계에서 채워짐</summary>
         public MonsterDef Owner { get; internal set; }
@@ -84,12 +86,14 @@ namespace HybridShooter.Core.Data.Defs
             AnimTrigger = d.AnimTrigger;
             SfxKey = d.SfxKey;
             ImpactSfxKey = d.ImpactSfxKey;
+            AimOffsetRadius = d.AimOffsetRadius;
 
             r.Check(string.IsNullOrEmpty(AttackKey) == false, Table, Id, "AttackKey 가 비었습니다");
             r.Check(Id / 100 == MonsterId, Table, Id, "Id 는 MonsterId×100+순번 이어야 합니다");
             r.Check(Damage >= 0 && HitCount >= 1, Table, Id, "Damage >= 0, HitCount >= 1");
             r.Check(Cooldown >= 0f && TelegraphTime >= 0f && RecoveryTime >= 0f, Table, Id, "시간 값은 0 이상");
             r.Check(KnockbackDistance >= 0f && WallHitStunTime >= 0f, Table, Id, "KnockbackDistance, WallHitStunTime 은 0 이상");
+            r.Check(AimOffsetRadius >= 0f, Table, Id, "AimOffsetRadius 는 0 이상");
             if (Trigger == TriggerType.PlayerStationary)
                 r.Check(TriggerValue > 0f, Table, Id, "PlayerStationary 는 TriggerValue(초) 가 0 초과여야 합니다");
 

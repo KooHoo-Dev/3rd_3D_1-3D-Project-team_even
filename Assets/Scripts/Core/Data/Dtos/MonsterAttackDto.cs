@@ -32,5 +32,6 @@ namespace HybridShooter.Core.Data.Dtos
         public string AnimTrigger = "";
         public string SfxKey = "";  // SoundTable.Key (빈칸 = 없음). 예고(Telegraph) 시작에 재생
         public string ImpactSfxKey = "";  // 돌진 벽·플레이어 충돌·도약 착지·투사체 착탄 지점
+        public float AimOffsetRadius;  // m. 조준점 = 플레이어 위치 + 이 반경 원 위 랜덤 점 (0 = 정확히 플레이어)
     }
 }
