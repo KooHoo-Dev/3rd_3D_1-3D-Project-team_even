@@ -48,8 +48,6 @@ namespace HybridShooter.Monster.Behaviour
         [SerializeField, Min(1)] private int maxHitsPerAttack = 1;
         [Tooltip("근접 판정 구간 안 반복 명중 사이 최소 간격 (s). 다음 판정부터 반영")]
         [SerializeField, Min(0f)] private float hitIntervalSeconds = 0f;
-        [Tooltip("조준점 랜덤 반경 (m). 공격마다 플레이어 위치 + 이 반경 구 안 랜덤 점을 노린다 (도약 착지점·독 착탄점·돌진/급강하 방향). 피해 판정은 실제 플레이어 위치. 0 = 정확히 플레이어. 다음 공격 시작부터 반영")]
-        [SerializeField, Min(0f)] private float aimOffsetRadius = 0f;
         [Tooltip("근접 판정 거리 = 테이블 Range × 이 비율. 1 = 진입 거리와 같음. 예고 동안 같은 방향으로 도망가는 플레이어를 맞히려면 (Range + 플레이어 속도 × 판정 시각 + 0.2) ÷ Range. 다음 판정부터 반영")]
         [SerializeField, Min(1f)] private float hitRangeRatio = 1f;
         [Tooltip("예고 중 바라볼 지점으로 도는 속도 (도/초). 0 = 돌지 않는다. 다음 프레임부터 반영")]
@@ -240,10 +238,10 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 인스펙터의 쿨다운·Active 길이·판정 비율·판정 끝 비율·최대 명중 횟수·명중 간격·판정 거리 비율·예고 회전 속도·조준 반경을 이 몬스터의 모든 공격에 넣는다.
-        /// 덮어쓰기가 꺼져 있으면 쿨다운은 각 공격의 데이터 테이블 값을 쓴다.
+        /// 인스펙터의 쿨다운·Active 길이·판정 비율·판정 끝 비율·최대 명중 횟수·명중 간격·판정 거리 비율·예고 회전 속도를 이 몬스터의 모든 공격에 넣는다.
+        /// 덮어쓰기가 꺼져 있으면 쿨다운은 각 공격의 데이터 테이블 값을 쓴다. 조준 반경은 테이블 AimOffsetRadius 값이라 여기서 넣지 않는다.
         /// </summary>
-        /// <remarks>쿨다운·Active 길이·판정 비율·판정 끝 비율·조준 반경은 Begin 때 고정하므로 실제 반영은 다음 공격부터다. 최대 명중 횟수·명중 간격·판정 거리 비율은 다음 판정부터, 예고 회전 속도는 다음 프레임부터 반영된다.</remarks>
+        /// <remarks>쿨다운·Active 길이·판정 비율·판정 끝 비율은 Begin 때 고정하므로 실제 반영은 다음 공격부터다. 최대 명중 횟수·명중 간격·판정 거리 비율은 다음 판정부터, 예고 회전 속도는 다음 프레임부터 반영된다.</remarks>
         private void ApplyAttackTuning()
         {
             foreach (MonsterAttack attack in StateMachine.Attacks)
@@ -259,7 +257,6 @@ namespace HybridShooter.Monster.Behaviour
                 attack.HitIntervalSeconds = hitIntervalSeconds;
                 attack.HitRangeRatio = hitRangeRatio;
                 attack.WindupTurnSpeed = windupTurnSpeed;
-                attack.AimOffsetRadius = aimOffsetRadius;
             }
         }
 

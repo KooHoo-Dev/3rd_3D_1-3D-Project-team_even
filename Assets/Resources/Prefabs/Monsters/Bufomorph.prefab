@@ -1940,7 +1940,7 @@ MonoBehaviour:
   assignedController: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
-  destinationFollowRate: 5
+  destinationFollowRate: 0
 --- !u!114 &-5282420452375643821
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1953,8 +1953,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6bd407663bf54957bb767c38a5136591, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.NavMeshMoveExecutor
-  repathDistance: 0.5
-  minRepathInterval: 0.25
+  repathDistance: 0
+  minRepathInterval: 0.5
   sampleRadius: 4
   engagedPriority: 30
   defaultPriority: 60
@@ -1976,12 +1976,12 @@ MonoBehaviour:
   useCooldownOverride: 0
   cooldownOverrideSeconds: 1
   activeSeconds: 0.5
-  hitTimeRatio: 0.5
+  hitTimeRatio: 0
   hitEndRatio: 1
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
   aimOffsetRadius: 1
-  hitRangeRatio: 2.54
+  hitRangeRatio: 1.5
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
   lowHealthSpeedRatio: 0.6

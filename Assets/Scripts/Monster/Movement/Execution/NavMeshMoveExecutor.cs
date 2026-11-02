@@ -12,6 +12,8 @@ namespace HybridShooter.Monster.Movement
     public sealed class NavMeshMoveExecutor : MonoBehaviour, IMoveExecutor
     {
         private const float SampleWarnInterval = 2f; // s, "목적지 근처 NavMesh 없음" 경고 최소 간격
+        private const float DetourSampleRadius = 0.5f; // m, 장애물 너머 지점 주변에서 NavMesh 를 찾는 반경
+        private const float MinCornerDistance = 0.01f; // m, 이보다 가까운 경로 모서리는 이미 도착한 것으로 건너뛴다
 
         // ════════ 설정 (Inspector) ════════
         [Header("재경로 제한")]
@@ -25,10 +27,18 @@ namespace HybridShooter.Monster.Movement
         [Tooltip("슬롯 몬스터의 Engaged 상태 회피 우선순위 (낮을수록 우선). 30대는 돌진형(ChargeSettings) 고정값 전용이라 40부터 쓴다")]
         [SerializeField, Range(0, 99)] private int engagedPriority = 40;
         [SerializeField, Range(0, 99)] private int defaultPriority = 50; // Engaged 외 상태 기본 우선순위. 개체별 분산값(0~10)을 더해 50~60
+        [Header("공격 중 직접 이동: 작은 장애물 우회")]
+        [Tooltip("막힌 지점에서 진행 방향으로 이 거리 너머의 NavMesh 를 찾아 작은 장애물인지 본다 (m)")]
+        [SerializeField, Min(0.1f)] private float smallObstacleProbeDepth = 2.5f;
+        [Tooltip("너머 지점까지 돌아가는 경로가 직선거리보다 이만큼 이하로 길면 작은 장애물로 보고 돌아간다 (m)")]
+        [SerializeField, Min(0f)] private float maxDetourExtraLength = 2f;
+        [Tooltip("너머 지점과 현재 위치의 높이 차가 이보다 크면 단차로 보고 돌아가지 않는다 (m)")]
+        [SerializeField, Min(0f)] private float maxDetourHeightDifference = 0.75f;
 
         // ════════ 컴포넌트·재사용 객체 ════════
         private NavMeshAgent agent;
         private NavMeshPath path;         // CalculatePath 결과를 담는 재사용 버퍼 (매번 할당 방지)
+        private NavMeshPath detourPath;   // MoveBy 가 작은 장애물 우회를 판정할 때 쓰는 경로 버퍼
         private int priorityOffset;       // 개체별 회피 우선순위 분산값 (0~10)
         private bool hasFixedPriority;    // 돌진형처럼 상태와 무관하게 우선순위를 고정했는가
         private int fixedPriority;        // hasFixedPriority 일 때 쓰는 회피 우선순위
@@ -142,6 +152,7 @@ namespace HybridShooter.Monster.Movement
             agent = GetComponent<NavMeshAgent>();
             agent.updateRotation = false; // 이동 방향 자동 회전 끔. 시선은 MonsterMovement.ApplyLookRotation 이 담당
             path = new NavMeshPath();
+            detourPath = new NavMeshPath();
             // 같은 우선순위의 정면 대치가 반복되지 않게 개체별 우선순위를 분산한다.
             priorityOffset = Mathf.Abs(GetInstanceID() % 11);
         }
@@ -315,21 +326,90 @@ namespace HybridShooter.Monster.Movement
         }
 
         /// <summary>
-        /// 경로 없이 몸을 정해진 양만큼 옮긴다. 이동 구간에 NavMesh 경계(벽)가 있으면 경계까지만 옮긴다.
-        /// MonsterMovement.MoveDuringAttack 이 돌진·준비 동작 중에 호출한다.
+        /// 경로 없이 몸을 정해진 양만큼 옮긴다. MonsterMovement.MoveDuringAttack 이 돌진·준비 동작 중에 호출한다.
+        /// 이동 구간에 NavMesh 경계가 있으면, 짧게 돌아갈 수 있는 작은 장애물(소품이 뚫은 구멍)은 경로 모서리 쪽으로 비켜 가고,
+        /// 큰 벽·단차는 경계까지만 옮기고 막혔다고 알린다.
         /// </summary>
         /// <param name="displacement">이번 틱 이동량 (월드, m). 높이는 NavMesh 표면을 따른다</param>
-        /// <returns>true = NavMesh 경계에 막혔다</returns>
+        /// <returns>true = 돌아갈 수 없는 NavMesh 경계(큰 벽·단차)에 막혔다</returns>
         public bool MoveBy(Vector3 displacement)
         {
             Vector3 from = agent.nextPosition;
             Vector3 to = from + displacement;
-            bool hitWall = NavMesh.Raycast(from, to, out NavMeshHit hit, agent.areaMask);
-            Vector3 allowedDisplacement = displacement;
-            if (hitWall) allowedDisplacement = hit.position - from;
+            bool hitEdge = NavMesh.Raycast(from, to, out NavMeshHit hit, agent.areaMask);
+            if (hitEdge == false)
+            {
+                agent.Move(displacement);
+                return false;
+            }
+            if (TryFindDetourStep(from, hit.position, displacement, out Vector3 detourStep))
+            {
+                agent.Move(detourStep);
+                return false;
+            }
 
-            agent.Move(allowedDisplacement);
-            return hitWall;
+            agent.Move(hit.position - from);
+            return true;
+        }
+
+        /// <summary>
+        /// 막힌 경계가 짧게 돌아갈 수 있는 작은 장애물인지 판정하고, 그렇다면 이번 틱에 비켜 갈 이동량을 구한다. MoveBy 가 경계에 막힌 틱에만 부른다.
+        /// 진행 방향으로 경계 너머 smallObstacleProbeDepth 지점의 NavMesh 를 찾고, 그곳까지 경로가 직선거리 + maxDetourExtraLength 이하면 작은 장애물이다.
+        /// </summary>
+        /// <param name="from">이동 전 Agent 위치 (월드, NavMesh 위)</param>
+        /// <param name="edgePoint">이동 구간이 닿은 NavMesh 경계 지점 (월드)</param>
+        /// <param name="displacement">원래 이번 틱 이동량 (월드, m). 방향과 길이를 쓴다</param>
+        /// <param name="detourStep">우회 경로의 첫 모서리 쪽으로 원래 이동량 길이만큼 (모서리를 넘지 않게) 옮길 이동량. false 면 zero</param>
+        /// <returns>true = 작은 장애물이라 돌아간다. false = 너머에 NavMesh 가 없거나, 높이가 다르거나, 경로가 없거나, 우회가 너무 길다</returns>
+        private bool TryFindDetourStep(Vector3 from, Vector3 edgePoint, Vector3 displacement, out Vector3 detourStep)
+        {
+            detourStep = Vector3.zero;
+            Vector3 direction = new Vector3(displacement.x, 0f, displacement.z).normalized;
+            Vector3 probePoint = edgePoint + direction * smallObstacleProbeDepth;
+
+            if (NavMesh.SamplePosition(probePoint, out NavMeshHit beyond, DetourSampleRadius, AttackNavigationFilter) == false) return false;
+            bool isOtherLevel = Mathf.Abs(beyond.position.y - from.y) > maxDetourHeightDifference;
+            if (isOtherLevel) return false;
+            if (NavMesh.CalculatePath(from, beyond.position, AttackNavigationFilter, detourPath) == false) return false;
+            if (detourPath.status != NavMeshPathStatus.PathComplete) return false;
+
+            Vector3[] corners = detourPath.corners;
+            float straightLength = Vector3.Distance(from, beyond.position);
+            bool isDetourTooLong = PathLength(corners) > straightLength + maxDetourExtraLength;
+            if (isDetourTooLong) return false;
+
+            detourStep = StepTowardFirstCorner(from, corners, displacement.magnitude);
+            return true;
+        }
+
+        /// <summary>경로 모서리를 이은 길이 (m). TryFindDetourStep 이 우회 거리를 잴 때 부른다</summary>
+        /// <param name="corners">NavMeshPath.corners (시작점 포함)</param>
+        /// <returns>인접 모서리 사이 거리의 합 (m). 모서리가 1개 이하면 0</returns>
+        private static float PathLength(Vector3[] corners)
+        {
+            float length = 0f;
+            for (int i = 1; i < corners.Length; i++)
+                length += Vector3.Distance(corners[i - 1], corners[i]);
+            return length;
+        }
+
+        /// <summary>
+        /// 우회 경로에서 아직 도착하지 않은 첫 모서리 쪽으로 stepLength 만큼 (모서리를 넘지 않게) 옮길 이동량. TryFindDetourStep 이 부른다.
+        /// 모서리 사이는 직선으로 NavMesh 위라 그대로 agent.Move 할 수 있다.
+        /// </summary>
+        /// <param name="from">현재 위치 (월드)</param>
+        /// <param name="corners">우회 경로 모서리 (시작점 포함)</param>
+        /// <param name="stepLength">이번 틱 이동 길이 (m)</param>
+        /// <returns>이동량 (월드, m). 모든 모서리가 현재 위치와 같으면 zero</returns>
+        private static Vector3 StepTowardFirstCorner(Vector3 from, Vector3[] corners, float stepLength)
+        {
+            foreach (Vector3 corner in corners)
+            {
+                Vector3 toCorner = corner - from;
+                if (toCorner.magnitude < MinCornerDistance) continue;
+                return Vector3.ClampMagnitude(toCorner, stepLength);
+            }
+            return Vector3.zero;
         }
     }
 }

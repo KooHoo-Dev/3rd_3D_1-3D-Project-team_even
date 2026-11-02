@@ -1875,8 +1875,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 1.25, y: 1.25, z: 1.25}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 6204530840110118074}
   - {fileID: 6204530840110118072}
@@ -1942,7 +1942,7 @@ MonoBehaviour:
   assignedController: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
-  destinationFollowRate: 5
+  destinationFollowRate: 0
 --- !u!114 &-5282420452375643821
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1955,8 +1955,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6bd407663bf54957bb767c38a5136591, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.NavMeshMoveExecutor
-  repathDistance: 0.5
-  minRepathInterval: 0.25
+  repathDistance: 0
+  minRepathInterval: 0.5
   sampleRadius: 4
   engagedPriority: 30
   defaultPriority: 60
@@ -1983,7 +1983,7 @@ MonoBehaviour:
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
   aimOffsetRadius: 3
-  hitRangeRatio: 1
+  hitRangeRatio: 2
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
   lowHealthSpeedRatio: 0.6
