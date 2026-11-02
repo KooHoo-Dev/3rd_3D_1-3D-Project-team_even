@@ -203,8 +203,8 @@ namespace HybridShooter.Boss.TyranopodeEditor.Tests
             Assert.AreEqual(150f, TyranopodeController.WithBaseShield(50f, 1000f, 0.1f), 0.001f);
             // 흡수 상한(DrainShield)이 꽉 차도 기본량은 그대로 붙는다
             Assert.AreEqual(400f, TyranopodeController.WithBaseShield(TyranopodeController.DrainShield(100, 10f, 300f, 0f), 1000f, 0.1f), 0.001f);
-            // 흡수량이 없으면 보호막이 생기지 않으니 기본량도 없다
-            Assert.AreEqual(0f, TyranopodeController.WithBaseShield(0f, 1000f, 0.1f));
+            // 흡수한 몬스터가 없어도 기본량은 준다
+            Assert.AreEqual(100f, TyranopodeController.WithBaseShield(0f, 1000f, 0.1f), 0.001f);
         }
 
         [Test]

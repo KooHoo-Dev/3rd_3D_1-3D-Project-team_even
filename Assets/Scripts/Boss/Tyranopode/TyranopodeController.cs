@@ -204,6 +204,7 @@ namespace HybridShooter.Boss.Tyranopode
         private TyranopodeAnalysisHud analysis;
         private Vector3 initialScale = Vector3.one;
         private float pendingShield;
+        private bool shieldQueued; // 부활하면 보호막이 생긴다 (흡수량 0 이어도 기본량)
         private float shieldHp;
         private float shieldMax;
         private int shieldLayersLeft;
@@ -222,6 +223,7 @@ namespace HybridShooter.Boss.Tyranopode
         private float introDrainTime;
         private int introAbsorbed;
         private float introShieldGiven;
+        private bool introBaseGiven;
 
         public TyranopodeDef Def { get; private set; }
         public Transform Target => player?.Root;
@@ -643,6 +645,7 @@ namespace HybridShooter.Boss.Tyranopode
             Minions.KillAllNow();
             ClearSpawned();
             pendingShield = 0f;
+            shieldQueued = false;
             shieldHp = 0f;
             shield.Hide();
         }
@@ -752,6 +755,7 @@ namespace HybridShooter.Boss.Tyranopode
             Minions.TakeCollapsedPositions();
             ClearSpawned();
             pendingShield = 0f;
+            shieldQueued = false;
             shieldHp = 0f;
             shield.Hide();
 
@@ -797,6 +801,7 @@ namespace HybridShooter.Boss.Tyranopode
             introDraining = false;
             introAbsorbed = 0;
             introShieldGiven = 0f;
+            introBaseGiven = false;
 
             // 플레이어 반대편 벽 너머에서 뛰어든다
             Vector3 away = introLanding - Target.position;
@@ -865,14 +870,19 @@ namespace HybridShooter.Boss.Tyranopode
             Minions.DrainAdopted(transform.position, duration * 0.1f, duration * 0.45f);
         }
 
-        /// <summary>포효: 분석 화면 이름 카드 (흡수한 수·생체막)</summary>
+        /// <summary>포효: 분석 화면 이름 카드 (흡수한 수·생체막). 흡수한 몬스터가 없었으면 기본량 보호막만 이때 돋아난다</summary>
         public void IntroRoar()
         {
             view.Play(TyranopodeView.Roar, 0.9f, 0.25f);
             PlayRoarVfx();
             RaiseSoundCue(TyranopodeSoundCue.CinematicRoar, mouth.position);
             StopGroundEnergy();
-            analysis.ShowIntroCard(introAbsorbed, introShieldGiven > 0f);
+            if (introBaseGiven == false)
+            {
+                introBaseGiven = true;
+                AddShield(WithBaseShield(0f, boss.MaxHp, Def.ShieldBaseRatio));
+            }
+            analysis.ShowIntroCard(introAbsorbed, shieldHp > 0f || orbs.Count > 0);
         }
 
         /// <summary>연출 끝: 전투 시작 (첫 공격까지 delay)</summary>
@@ -906,7 +916,8 @@ namespace HybridShooter.Boss.Tyranopode
             if (positions.Count == 0) return;
             float amount = DrainShield(positions.Count, Def.IntroShieldPerMonster, Def.IntroShieldMaxRatio * boss.MaxHp, introShieldGiven);
             // 기본량은 이번 등장에서 보호막이 처음 생길 때 한 번만 (흡수량은 여러 번 나눠 들어온다)
-            float shieldAmount = introShieldGiven > 0f ? amount : WithBaseShield(amount, boss.MaxHp, Def.ShieldBaseRatio);
+            float shieldAmount = introBaseGiven ? amount : WithBaseShield(amount, boss.MaxHp, Def.ShieldBaseRatio);
+            introBaseGiven = true;
             introShieldGiven += amount;
             introAbsorbed += positions.Count;
             SpawnEnergyOrbs(positions, shieldAmount, ground: true, flightTime: introDrainTime * 0.4f);
@@ -916,9 +927,9 @@ namespace HybridShooter.Boss.Tyranopode
         public static float DrainShield(int count, float perMonster, float cap, float given)
             => Mathf.Min(count * perMonster, Mathf.Max(0f, cap - given));
 
-        /// <summary>보호막이 생기는 순간의 양: 흡수량에 기본량(maxHp × baseRatio)을 상한 밖으로 더한다. 흡수량이 없으면 보호막도 없다</summary>
+        /// <summary>보호막이 생기는 순간의 양: 흡수량에 기본량(maxHp × baseRatio)을 상한 밖으로 더한다. 흡수량이 0 이어도 기본량은 준다</summary>
         public static float WithBaseShield(float absorbed, float maxHp, float baseRatio)
-            => absorbed > 0f ? absorbed + maxHp * baseRatio : 0f;
+            => absorbed + maxHp * baseRatio;
 
         private void StopGroundEnergy()
         {
@@ -983,7 +994,8 @@ namespace HybridShooter.Boss.Tyranopode
         /// </summary>
         private void OnPlayerDied(PlayerDiedEvent e)
         {
-            if (IsAlive == false || state == State.Finale || Minions.CohortAliveCount == 0) return;
+            // 포효 소환 중이면 넘어온 잡몹이 없어도 보호막 생성 시도 (기본량만)
+            if (IsAlive == false || state == State.Finale || (Minions.CohortAliveCount == 0 && (currentAttack is SummonRoarAttack) == false)) return;
             int count = Minions.CollapseCohort(collapseDelay.x, collapseDelay.y);
             QueueEnergyAfterRevive(count);
             if (currentAttack is SummonRoarAttack summon) summon.EndByPlayerDeath();
@@ -1030,14 +1042,16 @@ namespace HybridShooter.Boss.Tyranopode
         {
             float cap = Def.ShieldMaxRatio * boss.MaxHp;
             pendingShield = Mathf.Min(cap, pendingShield + minionCount * Def.ShieldPerMinion);
+            shieldQueued = true;
         }
 
         private void OnPlayerRevived(PlayerRevivedEvent e)
         {
-            if (IsAlive == false || pendingShield <= 0f) return;
+            if (IsAlive == false || shieldQueued == false) return;
 
             float amount = WithBaseShield(pendingShield, boss.MaxHp, Def.ShieldBaseRatio);
             pendingShield = 0f;
+            shieldQueued = false;
             SpawnEnergyOrbs(Minions.TakeCollapsedPositions(), amount, ground: false, flightTime: Def.EnergyFlightTime);
         }
 
