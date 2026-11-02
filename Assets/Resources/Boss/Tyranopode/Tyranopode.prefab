@@ -2593,6 +2593,7 @@ GameObject:
   - component: {fileID: 187642583818091024}
   - component: {fileID: 6186128337532010133}
   - component: {fileID: 6503462930099615345}
+  - component: {fileID: 4326998407518465586}
   m_Layer: 0
   m_Name: Tyranopode
   m_TagString: Untagged
@@ -3147,6 +3148,20 @@ MonoBehaviour:
   whip: {fileID: 2832353638937170411}
   maxStretch: 2.2
   tipHeight: 0.6
+--- !u!114 &4326998407518465586
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4003648575727791737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: feb5fa375f494c04b12f93cdf89e47e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossHitEffect
+  hitBloodPrefab: {fileID: 510622085489733283, guid: 665226fbabe43ce498e273ee4bf3bfb7, type: 3}
+  bloodScale: 5
 --- !u!1 &4173183019592328426
 GameObject:
   m_ObjectHideFlags: 0

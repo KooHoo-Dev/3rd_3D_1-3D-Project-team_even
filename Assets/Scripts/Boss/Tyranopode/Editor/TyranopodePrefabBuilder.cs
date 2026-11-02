@@ -28,6 +28,7 @@ namespace HybridShooter.Boss.TyranopodeEditor
         private const string OutFolder = "Assets/Resources/Boss/Tyranopode";
         private const string PrefabPath = OutFolder + "/Tyranopode.prefab";
         private const string ControllerPath = OutFolder + "/Tyranopode_Boss.controller";
+        private const string HitBloodPrefabPath = "Assets/Prefabs/Effects/Blood_Hit.prefab";
         private const string BonePrefix = "TYRANOPODE_";
         /// <summary>몸통 히트박스 레이어 (PlayerController.MonsterContact 와 같은 몬스터 몸 레이어)</summary>
         private const string BodyLayerName = "MonsterBlocking";
@@ -337,6 +338,12 @@ namespace HybridShooter.Boss.TyranopodeEditor
             root.AddComponent<TyranopodeView>();
             root.AddComponent<TyranopodeLocomotion>();
             root.AddComponent<TyranopodeController>();
+
+            // 총 피격 피: 일반 몬스터와 같은 Blood_Hit 를 재사용한다
+            var hitEffect = new SerializedObject(root.AddComponent<BossHitEffect>());
+            hitEffect.FindProperty("hitBloodPrefab").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<HybridShooter.Monster.Behaviour.PooledEffect>(HitBloodPrefabPath);
+            hitEffect.ApplyModifiedPropertiesWithoutUndo();
 
             // 패턴과 기본 가중치 (근·중·원). 숫자는 인스펙터에서 조정 (다시 빌드해도 유지)
             AddAttack<TentacleSwipeAttack>(root, 5f, 0.5f, 0f, false);

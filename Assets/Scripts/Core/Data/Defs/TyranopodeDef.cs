@@ -33,16 +33,7 @@ namespace HybridShooter.Core.Data.Defs
         public float Phase2DamageMultiplier => d.Phase2DamageMultiplier;
         public float Phase2SpeedMultiplier => d.Phase2SpeedMultiplier;
 
-        // 부위
-        public float BodyDamageMultiplier => d.BodyDamageMultiplier;
-        public int FrontTentacleHp => d.FrontTentacleHp;
-        public float FrontTentacleDamageMultiplier => d.FrontTentacleDamageMultiplier;
-        public int LegTentacleHp => d.LegTentacleHp;
-        public float LegTentacleDamageMultiplier => d.LegTentacleDamageMultiplier;
-        public int SacHp => d.SacHp;
-        public float SacDamageMultiplier => d.SacDamageMultiplier;
-        public int HeadHp => d.HeadHp;
-        public float HeadDamageMultiplier => d.HeadDamageMultiplier;
+        // 부위 (부위별 피해 배율·Hp 는 MonsterPartTable 의 BossId 행 → BossDef.FindPart)
         public float TentacleBrokenDamageMultiplier => d.TentacleBrokenDamageMultiplier;
         public float LegBrokenSpeedMultiplier => d.LegBrokenSpeedMultiplier;
         public float LegBrokenJumpWeightMultiplier => d.LegBrokenJumpWeightMultiplier;
@@ -226,9 +217,6 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(InUnit(ComboChance) && InUnit(Phase2ComboChance), Table, "Combo", "ComboChance는 0~1이어야 합니다.");
             r.Check(Phase2WindupMultiplier > 0f && Phase2DamageMultiplier > 0f && Phase2SpeedMultiplier > 0f, Table, "Phase", "페이즈 2 배율은 0보다 커야 합니다.");
 
-            r.Check(FrontTentacleHp > 0 && LegTentacleHp > 0 && SacHp > 0 && HeadHp > 0, Table, "Part", "부위 Hp는 1 이상이어야 합니다.");
-            r.Check(BodyDamageMultiplier >= 0f && FrontTentacleDamageMultiplier >= 0f && LegTentacleDamageMultiplier >= 0f
-                    && SacDamageMultiplier >= 0f && HeadDamageMultiplier >= 0f, Table, "Part", "부위 DamageMultiplier는 0 이상이어야 합니다.");
             r.Check(SacBrokenEggReduce >= 0 && EggCount - SacBrokenEggReduce >= 1, Table, "Part", "SacBrokenEggReduce는 0 이상, EggCount - SacBrokenEggReduce >= 1 이어야 합니다.");
 
             r.Check(GroggyTime > 0f && WallGroggyTime > 0f && GroggyDamageMultiplier > 0f, Table, "Groggy", "그로기 시간·배율은 0보다 커야 합니다.");

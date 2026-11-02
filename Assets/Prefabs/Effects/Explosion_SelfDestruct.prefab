@@ -19603,6 +19603,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3513087789464365554}
+  - component: {fileID: 4815162342108000001}
   m_Layer: 0
   m_Name: Explosion_SelfDestruct
   m_TagString: Untagged
@@ -34332,3 +34333,16 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &4815162342108000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2727121481953674392}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 658a3ab852474ad28a495c2cac19ddbd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.PooledEffect
+  lifetime: 4

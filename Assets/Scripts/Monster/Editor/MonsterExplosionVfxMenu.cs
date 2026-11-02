@@ -12,7 +12,7 @@ namespace HybridShooter.Monster.EditorTools
     ///  1. 텍스처(불덩이·연기 덩어리 4x4 시트, 빛 덩어리, 파편 조각)를 코드로 그려 PNG 로 저장
     ///  2. QFX Particle HDR 셰이더로 재질을 만든다 (HDR 색이라 Bloom 에서 빛난다)
     ///  3. 섬광 · 불덩이 · 잔광(불빛) · 연기 · 불티 · 파편 · 바닥 먼지 고리 7층 파티클을 Explosion_SelfDestruct 프리팹으로 저장
-    ///  4. Bufomorph_Suicide 프리팹에 SelfDestructSettings 를 붙이고 이펙트를 연결
+    ///  4. Bufomorph_Suicide 프리팹에 SelfDestructSettings 를 붙이고 이펙트(PooledEffect, 수명 4초)를 연결
     ///
     /// 다시 실행하면 같은 경로의 에셋을 덮어쓴다 (GUID 유지 → 연결은 그대로).
     /// 크기는 폭발 반경 약 3.5m 기준. 프리팹 루트 스케일로 전체 크기를 바꿀 수 있다 (Scaling Mode = Hierarchy).
@@ -31,6 +31,8 @@ namespace HybridShooter.Monster.EditorTools
         private const int SheetTiles = 4;
         // 불덩이·섬광 높이 (m). 이펙트는 몸 위치(발밑)에 생기므로 몸통 높이로 올린다
         private const float BlastHeight = 0.8f;
+        // 재생 시작부터 풀 반납까지 (s). 연기가 다 사라지는 시간보다 길게
+        private const float ExplosionLifetime = 4f;
 
         private static readonly Color LightColor = new Color(1f, 0.55f, 0.2f);
 
@@ -246,10 +248,20 @@ namespace HybridShooter.Monster.EditorTools
             AddSparks(root.transform, materials.Spark);
             AddDebris(root.transform, materials.Debris);
             AddGroundDust(root.transform, materials.Dust);
+            AddPooledLifetime(root);
 
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, ExplosionPrefabPath);
             Object.DestroyImmediate(root);
             return saved;
+        }
+
+        /// <summary>풀 반납용 PooledEffect 를 붙이고 수명을 연기가 다 사라지는 4초로 둔다</summary>
+        private static void AddPooledLifetime(GameObject root)
+        {
+            var pooledEffect = root.AddComponent<PooledEffect>();
+            var serialized = new SerializedObject(pooledEffect);
+            serialized.FindProperty("lifetime").floatValue = ExplosionLifetime;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>터지는 순간 0.15초 동안 번쩍이는 큰 흰노랑 빛</summary>
@@ -387,7 +399,7 @@ namespace HybridShooter.Monster.EditorTools
             if (settings == null) settings = prefabRoot.AddComponent<SelfDestructSettings>();
 
             var serialized = new SerializedObject(settings);
-            serialized.FindProperty("explosionEffectPrefab").objectReferenceValue = explosion;
+            serialized.FindProperty("explosionEffectPrefab").objectReferenceValue = explosion.GetComponent<PooledEffect>();
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             PrefabUtility.SaveAsPrefabAsset(prefabRoot, SuicidePrefabPath);

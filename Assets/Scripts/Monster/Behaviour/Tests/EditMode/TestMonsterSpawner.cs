@@ -22,10 +22,14 @@ namespace HybridShooter.Monster.Behaviour.Tests
         private static readonly WaveSpawnerDef SurroundDelay0Interval1 = CreateSpawnerDef(201, 6, 0f, 1f, "Surround");
         private static readonly WaveSpawnerDef SurroundDelay2Interval1 = CreateSpawnerDef(204, 8, 2f, 1f, "Surround");
         private static readonly WaveSpawnerDef HerdAllAtOnce = CreateSpawnerDef(212, 12, 0f, 0f, "Herd");
+        private static readonly WaveSpawnerDef NestDelay0Interval1 = CreateSpawnerDef(230, 3, 0f, 1f, "Nest");
 
         private int spawnCount;
         private int poseFailuresLeft;
         private readonly List<int> requestedSeeds = new List<int>();
+        private int nestCenterRequests;
+        private int nestCenterFailuresLeft;
+        private readonly List<Vector3> requestedNestCenters = new List<Vector3>();
 
         [SetUp]
         public void SetUp()
@@ -33,6 +37,9 @@ namespace HybridShooter.Monster.Behaviour.Tests
             spawnCount = 0;
             poseFailuresLeft = 0;
             requestedSeeds.Clear();
+            nestCenterRequests = 0;
+            nestCenterFailuresLeft = 0;
+            requestedNestCenters.Clear();
         }
 
         private MonsterSpawner CreateSpawner(WaveSpawnerDef spawnerDef)
@@ -130,6 +137,34 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [Test]
+        public void Nest_SpawnsAroundOneStoredCenter_NotRingPose()
+        {
+            MonsterSpawner spawner = CreateSpawner(NestDelay0Interval1);
+
+            spawner.Tick(10f);
+
+            Assert.AreEqual(3, spawnCount);
+            Assert.AreEqual(1, nestCenterRequests, "둥지 중심은 한 번만 뽑음");
+            Assert.AreEqual(3, requestedNestCenters.Count);
+            Assert.IsTrue(requestedNestCenters.TrueForAll(center => center == requestedNestCenters[0]), "모두 같은 중심 주위");
+            Assert.AreEqual(0, requestedSeeds.Count, "Nest 는 패턴별 링 포즈를 쓰지 않음");
+        }
+
+        [Test]
+        public void NestCenterFails_SkipsThatMonster_ThenRetriesCenterNextTurn()
+        {
+            MonsterSpawner spawner = CreateSpawner(NestDelay0Interval1);
+            nestCenterFailuresLeft = 5;
+            LogAssert.Expect(LogType.Warning, new Regex("건너뜀"));
+
+            spawner.Tick(0f);
+            Assert.AreEqual(0, spawnCount);
+            spawner.Tick(1f);
+            Assert.AreEqual(1, spawnCount, "다음 차례에 중심을 다시 뽑아 소환");
+            Assert.AreEqual(6, nestCenterRequests);
+        }
+
+        [Test]
         public void Stop_CancelsRemainingSpawns()
         {
             MonsterSpawner spawner = CreateSpawner(SurroundDelay0Interval1);
@@ -191,6 +226,24 @@ namespace HybridShooter.Monster.Behaviour.Tests
 
             poseFailuresLeft--;
             return false;
+        }
+
+        public bool TryGetNestCenter(out Vector3 center)
+        {
+            nestCenterRequests++;
+            center = new Vector3(nestCenterRequests, 0f, 0f);
+            if (nestCenterFailuresLeft == 0) return true;
+
+            nestCenterFailuresLeft--;
+            return false;
+        }
+
+        public bool TryGetSpawnPoseAroundNest(Vector3 nestCenter, out Vector3 position, out Quaternion rotation)
+        {
+            requestedNestCenters.Add(nestCenter);
+            position = nestCenter;
+            rotation = Quaternion.identity;
+            return true;
         }
 
         public bool TryGetSupplyDropPosition(out Vector3 position)

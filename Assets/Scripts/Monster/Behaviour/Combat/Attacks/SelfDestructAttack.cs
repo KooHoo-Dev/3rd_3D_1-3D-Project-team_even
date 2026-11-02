@@ -1,7 +1,6 @@
 using System;
 using HybridShooter.Core.Contracts;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace HybridShooter.Monster.Behaviour
 {
@@ -21,7 +20,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="spec">공격 값 묶음. Range = 접근 거리, Radius = 폭발 반경</param>
         /// <param name="body">공격자 몸체. 폭발 중심 = 몸 위치</param>
         /// <param name="findDamageable">대상에서 피해를 줄 IDamageable 을 찾는 방법</param>
-        /// <param name="settings">자폭 프리팹의 폭발 연출 설정 (이펙트 프리팹·수명)</param>
+        /// <param name="settings">자폭 프리팹의 폭발 연출 설정 (폭발 이펙트 풀)</param>
         /// <exception cref="ArgumentNullException">settings 가 null 일 때 (프리팹에 SelfDestructSettings 가 없을 때). body 는 기반 생성자가 던진다</exception>
         public SelfDestructAttack(in AttackSpec spec, MonsterBody body,
                                   Func<IPlayerTarget, IDamageable> findDamageable,
@@ -49,14 +48,13 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 몸 위치에 폭발 이펙트를 만들고 SelfDestructSettings.EffectLifetime 뒤에 파괴한다.
+        /// 몸 위치에 폭발 이펙트를 풀에서 꺼내 재생한다. 이펙트는 수명(PooledEffect)이 끝나면 스스로 풀에 돌아간다.
         /// 이펙트는 몬스터의 자식이 아니라서 몬스터가 회수돼도 끝까지 재생된다. OnActive 가 폭발 순간 1번 부른다.
         /// </summary>
         private void PlayExplosionEffect()
         {
-            GameObject effect = Object.Instantiate(settings.ExplosionEffectPrefab, Body.Position, Quaternion.identity);
+            PooledEffect effect = settings.ExplosionPool.Play(Body.Position, Quaternion.identity);
             effect.transform.localScale = Spec.Radius > 3 ? Vector3.one : Vector3.one * Spec.Radius / 3;
-            Object.Destroy(effect, settings.EffectLifetime);
         }
     }
 }
