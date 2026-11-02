@@ -326,7 +326,7 @@ namespace HybridShooter.Core.Events
         }
     }
 
-    /// <summary>[코어(WeaponUnlockLedger)] → UI(해금 알림). 무기가 영구 해금됨 (다음 출발 때 무기 선택 화면에서 고를 수 있다)</summary>
+    /// <summary>[코어(WeaponUnlockLedger)] → UI(해금 알림). 무기가 해금됨 (앱 실행 동안 유지, 다음 출발 때 무기 선택 화면에서 고를 수 있다)</summary>
     public readonly struct WeaponUnlockedEvent
     {
         public readonly WeaponDef Weapon;
