@@ -259,7 +259,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
   profile: {fileID: 11400000, guid: 090881667ce205648be80fb34f88a2d1, type: 2}
-  coordinator: {fileID: 0}
+  assignedController: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
   destinationFollowRate: 5
@@ -902,7 +902,7 @@ Transform:
   m_GameObject: {fileID: 5326008953529612867}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.953, y: 1.324, z: 0}
+  m_LocalPosition: {x: -1.863, y: 1.055, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -927,7 +927,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.47
+  m_Radius: 0.34
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &3438445699420021215
 MonoBehaviour:
@@ -942,6 +942,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
   partKey: Mouth
+  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  coreAlpha: 0.12
+  rimPower: 3
+  exposedBrightness: 0.9
+  hiddenBrightness: 0.25
+  pulsesPerSecond: 1.2
+  pulseDepth: 0.6
+  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashSeconds: 0.35
+  hitFlashCoreAlpha: 0.7
+  hitFlashScale: 1.45
 --- !u!1 &6299833028197622902
 GameObject:
   m_ObjectHideFlags: 0

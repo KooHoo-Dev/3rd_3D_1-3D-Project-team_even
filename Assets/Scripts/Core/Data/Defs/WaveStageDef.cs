@@ -14,7 +14,7 @@ namespace HybridShooter.Core.Data.Defs
         public const string Table = "WaveStageTable";
 
         public int Id { get; }
-        public int RoundNo { get; }  // 웨이브 편성 번호 (RoundTable.WaveRound 가 가리킨다)
+        public int RoundNo { get; }  // 웨이브 편성 번호 (RoundTable.WaveRounds 후보가 가리킨다)
         public float StartTime { get; }  // 초, 라운드 시작 기준
         public float EndTime { get; }  // 초, 라운드 시작 기준. ClearBonus 는 발동 마감 시각
         public IReadOnlyList<int> WaveIds { get; }

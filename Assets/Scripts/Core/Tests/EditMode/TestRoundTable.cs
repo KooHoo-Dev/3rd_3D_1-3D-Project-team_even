@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace HybridShooter.Core.Tests
 {
     /// <summary>
-    /// 실제 RoundTable.tsv 를 읽어 라운드 유형 배치·최종 보스 규칙·섬멸 목표 범위를 확인한다.
+    /// 실제 RoundTable.tsv 를 읽어 3라운드 배치·편성 후보·최종 보스 규칙·섬멸 목표 계산을 확인한다.
     /// </summary>
     public sealed class TestRoundTable
     {
@@ -27,11 +27,12 @@ namespace HybridShooter.Core.Tests
         public void Rounds_FollowAgreedOrder()
         {
             var types = DataManager.Rounds.All.Select(round => round.Type).ToArray();
-            CollectionAssert.AreEqual(new[] { RoundType.CrowdToBoss, RoundType.Annihilation, RoundType.CrowdToBoss, RoundType.Survival, RoundType.CrowdToBoss }, types);
-            Assert.AreEqual(1, DataManager.GetRound(1).WaveRound, "R1 현행 유지");
-            Assert.AreEqual(2, DataManager.GetRound(3).WaveRound, "R3 = 기존 R2 웨이브");
+            CollectionAssert.AreEqual(new[] { RoundType.CrowdToBoss, RoundType.Annihilation, RoundType.AnnihilationToBoss }, types);
+            CollectionAssert.AreEqual(new[] { 1 }, DataManager.GetRound(1).WaveRounds, "R1 현행 유지");
+            CollectionAssert.AreEqual(new[] { 2, 3, 4, 5 }, DataManager.GetRound(2).WaveRounds, "R2 = 2~5 편성 무작위");
+            CollectionAssert.AreEqual(new[] { 2, 3, 4, 5 }, DataManager.GetRound(3).WaveRounds, "R3 = 2~5 편성 무작위 (R2 와 겹치지 않게는 RoundSequencer)");
             Assert.AreEqual(150f, DataManager.GetRound(2).PhaseTime);
-            Assert.AreEqual(180f, DataManager.GetRound(4).PhaseTime);
+            Assert.IsTrue(DataManager.GetRound(3).HasBoss, "R3 섬멸 후 보스");
         }
 
         [Test]
@@ -45,24 +46,32 @@ namespace HybridShooter.Core.Tests
         }
 
         [Test]
-        public void AnnihilationKillTarget_Is90To95PercentOfRequiredSpawns()
+        public void AnnihilationKillTarget_Is90PercentOfKillableSpawns_ForEveryCandidate()
         {
-            var annihilation = DataManager.GetRound(2);
-            int requiredSpawns = CountSpawnsBefore(annihilation.WaveRound, annihilation.PhaseTime);
-            float ratio = (float)annihilation.KillTarget / requiredSpawns;
-            Assert.That(ratio, Is.InRange(0.9f, 0.95f), $"KillTarget {annihilation.KillTarget} / 필수 소환 {requiredSpawns}");
-            Assert.That(requiredSpawns - annihilation.KillTarget, Is.GreaterThanOrEqualTo(10));
+            foreach (var round in DataManager.Rounds.All.Where(row => row.IsAnnihilation))
+            foreach (int waveRound in round.WaveRounds)
+            {
+                int killableSpawns = CountSpawnsBefore(waveRound, round.PhaseTime, includeSelfDestruct: false);
+                int killTarget = DataManager.GetKillTarget(round, waveRound);
+                Assert.AreEqual((int)(killableSpawns * 0.9f), killTarget, $"{round.Round} 라운드 편성 {waveRound}");
+                Assert.That(killTarget, Is.LessThanOrEqualTo(CountSpawnsBefore(waveRound, round.PhaseTime, includeSelfDestruct: true)));
+                Assert.That(killableSpawns - killTarget, Is.GreaterThanOrEqualTo(5));
+            }
         }
 
-        // 자폭형 포함 전체 필수 소환 수 (DataManager 검증은 자폭형을 뺀 수로 따로 본다)
-        private static int CountSpawnsBefore(int waveRound, float seconds)
+        // 필수 소환 수 (ClearBonus 제외). includeSelfDestruct = false 면 DataManager 의 처치 가능 수와 같은 기준
+        private static int CountSpawnsBefore(int waveRound, float seconds, bool includeSelfDestruct)
         {
             int count = 0;
             foreach (var stage in DataManager.WaveStages.Where(row => row.RoundNo == waveRound && row.Kind == WaveStageKind.Normal))
             foreach (var wave in stage.Waves)
             foreach (var spawner in wave.Spawners)
-            for (int order = 0; order < spawner.Count; order++)
-                if (stage.StartTime + wave.StartTime + spawner.StartDelay + spawner.SpawnInterval * order < seconds) count++;
+            {
+                bool isSelfDestruct = spawner.Monster != null && spawner.Monster.Role == MonsterRole.SelfDestruct;
+                if (isSelfDestruct && includeSelfDestruct == false) continue;
+                for (int order = 0; order < spawner.Count; order++)
+                    if (stage.StartTime + wave.StartTime + spawner.StartDelay + spawner.SpawnInterval * order < seconds) count++;
+            }
             return count;
         }
     }

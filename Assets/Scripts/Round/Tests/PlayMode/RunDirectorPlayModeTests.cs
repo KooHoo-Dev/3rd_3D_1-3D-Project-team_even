@@ -42,8 +42,7 @@ namespace HybridShooter.Round.Tests
         private readonly List<int> stageClears = new List<int>();
         private readonly List<GameState> states = new List<GameState>();
         private bool completeCamera = true;
-        private const string TestUnlockKey = "Test.RunDirector.Unlock.Weapons";
-        // 실제 진행(PlayerPrefs Unlock.Weapons)을 건드리지 않도록 테스트 키의 해금 Ledger 를 등록한다
+        // 실제 진행(CoreBootstrap 의 Ledger)을 건드리지 않도록 테스트용 해금 Ledger 를 등록한다
         private WeaponUnlockLedger unlocks;
         private IWeaponUnlocks previousUnlocks;
 
@@ -56,7 +55,7 @@ namespace HybridShooter.Round.Tests
             previousRounds = DataManager.Rounds;
             previousStages = DataManager.WaveStages;
             var report = new DataLoadReport();
-            var dto = new RoundDto { Round = 1, WaveRound = 1, BossId = 3001, BossSpawnTimeMin = 0.05f, BossSpawnTimeMax = 0.05f, SupplyStartTime = 60f, SupplyInterval = 45f, BossReward = 100 };
+            var dto = new RoundDto { Round = 1, WaveRounds = "1", BossId = 3001, BossSpawnTimeMin = 0.05f, BossSpawnTimeMax = 0.05f, SupplyStartTime = 60f, SupplyInterval = 45f, BossReward = 100 };
             var def = (RoundDef)Activator.CreateInstance(typeof(RoundDef), BindingFlags.Instance | BindingFlags.NonPublic, null, new object[] { dto, report }, null);
             SetData("rounds", MakeTable(RoundDef.Table, 1, def, report));
             var stageDto = new WaveStageDto { Id = 1, RoundNo = 1, StartTime = 0f, EndTime = 180f, WaveList = "101" };
@@ -71,7 +70,7 @@ namespace HybridShooter.Round.Tests
             ServiceLocator.Register<ICurrencyWallet>(wallet);
             ServiceLocator.Register<IUpgradeState>(ledger);
             ServiceLocator.TryGet(out previousUnlocks);
-            unlocks = new WeaponUnlockLedger(TestUnlockKey);
+            unlocks = new WeaponUnlockLedger();
             unlocks.ResetAll();
             unlocks.BindEvents();
             ServiceLocator.Register<IWeaponUnlocks>(unlocks);
@@ -370,8 +369,9 @@ namespace HybridShooter.Round.Tests
         [UnityTest]
         public IEnumerator Annihilation_KillTargetBeforePhaseTime_GoesToRewardWithoutBoss()
         {
-            UseSingleRound(new RoundDto { Round = 1, Type = "Annihilation", WaveRound = 1, PhaseTime = 100f, KillTarget = 3, SupplyStartTime = 60f, SupplyInterval = 45f });
+            UseSingleRound(new RoundDto { Round = 1, Type = "Annihilation", WaveRounds = "1", PhaseTime = 100f, KillRatio = 0.9f, SupplyStartTime = 60f, SupplyInterval = 45f });
             Call(director, "StartRun");
+            SetKillTarget(3);
 
             PublishKills(2, true);
             PublishKills(1, false); // 자폭·정리 사망은 세지 않는다
@@ -396,8 +396,9 @@ namespace HybridShooter.Round.Tests
         [UnityTest]
         public IEnumerator Annihilation_PhaseTimeOver_StopsSpawningOnly_UntilKillTarget()
         {
-            UseSingleRound(new RoundDto { Round = 1, Type = "Annihilation", WaveRound = 1, PhaseTime = 0.05f, KillTarget = 2, SupplyStartTime = 60f, SupplyInterval = 45f });
+            UseSingleRound(new RoundDto { Round = 1, Type = "Annihilation", WaveRounds = "1", PhaseTime = 0.05f, KillRatio = 0.9f, SupplyStartTime = 60f, SupplyInterval = 45f });
             Call(director, "StartRun");
+            SetKillTarget(2);
             yield return WaitUntil(() => Get<float>(sequencer, "ElapsedSeconds") > 0.1f);
 
             Assert.AreEqual(GameState.CrowdBattle, State, "소환 시간이 지나도 실패·보스 전이 없음");
@@ -410,7 +411,7 @@ namespace HybridShooter.Round.Tests
         [UnityTest]
         public IEnumerator Survival_EndsAfterPhaseTime_WithoutBossOrKills()
         {
-            UseSingleRound(new RoundDto { Round = 1, Type = "Survival", WaveRound = 1, PhaseTime = 0.1f, SupplyStartTime = 60f, SupplyInterval = 45f });
+            UseSingleRound(new RoundDto { Round = 1, Type = "Survival", WaveRounds = "1", PhaseTime = 0.1f, SupplyStartTime = 60f, SupplyInterval = 45f });
             Call(director, "StartRun");
             yield return null;
             Assert.AreEqual(GameState.CrowdBattle, State);
@@ -427,8 +428,9 @@ namespace HybridShooter.Round.Tests
         [UnityTest]
         public IEnumerator Restart_ResetsKillCount()
         {
-            UseSingleRound(new RoundDto { Round = 1, Type = "Annihilation", WaveRound = 1, PhaseTime = 100f, KillTarget = 5, SupplyStartTime = 60f, SupplyInterval = 45f });
+            UseSingleRound(new RoundDto { Round = 1, Type = "Annihilation", WaveRounds = "1", PhaseTime = 100f, KillRatio = 0.9f, SupplyStartTime = 60f, SupplyInterval = 45f });
             Call(director, "StartRun");
+            SetKillTarget(5);
             PublishKills(2, true);
             EventBus<PlayerFinalDeathEvent>.Publish(new PlayerFinalDeathEvent());
             yield return WaitForState(GameState.GameOver);
@@ -442,8 +444,8 @@ namespace HybridShooter.Round.Tests
         public IEnumerator NextRound_UsesItsOwnRoundRow()
         {
             var report = new DataLoadReport();
-            var table = MakeTable(RoundDef.Table, 1, NewRound(new RoundDto { Round = 1, Type = "Survival", WaveRound = 1, PhaseTime = 0.05f, SupplyStartTime = 60f, SupplyInterval = 45f }, report), report);
-            AddToTable(table, 2, NewRound(new RoundDto { Round = 2, Type = "Annihilation", WaveRound = 1, PhaseTime = 100f, KillTarget = 4, SupplyStartTime = 60f, SupplyInterval = 45f }, report), report);
+            var table = MakeTable(RoundDef.Table, 1, NewRound(new RoundDto { Round = 1, Type = "Survival", WaveRounds = "1", PhaseTime = 0.05f, SupplyStartTime = 60f, SupplyInterval = 45f }, report), report);
+            AddToTable(table, 2, NewRound(new RoundDto { Round = 2, Type = "Survival", WaveRounds = "1", PhaseTime = 100f, SupplyStartTime = 60f, SupplyInterval = 45f }, report), report);
             SetData("rounds", table);
 
             Call(director, "StartRun");
@@ -452,9 +454,76 @@ namespace HybridShooter.Round.Tests
             yield return WaitForState(GameState.CrowdBattle);
 
             Assert.AreEqual(2, Round);
-            Assert.AreEqual(RoundType.Annihilation, starts[1].Def.Type);
-            Assert.AreEqual(RoundType.Annihilation, Get<RoundDef>(sequencer, "CurrentRoundDef").Type);
+            Assert.AreEqual(100f, starts[1].Def.PhaseTime);
+            Assert.AreEqual(100f, Get<RoundDef>(sequencer, "CurrentRoundDef").PhaseTime);
         }
+
+        // ── 섬멸 후 보스 · 편성 무작위 선택 · 씬 시작 초기화 ──
+
+        [UnityTest]
+        public IEnumerator AnnihilationToBoss_KillTargetReached_BossThenReward()
+        {
+            UseSingleRound(new RoundDto { Round = 1, Type = "AnnihilationToBoss", WaveRounds = "1", BossId = 3001, PhaseTime = 100f, KillRatio = 0.9f, SupplyStartTime = 60f, SupplyInterval = 45f, BossReward = 100 });
+            Call(director, "StartRun");
+            SetKillTarget(2);
+
+            PublishKills(1, true);
+            yield return null;
+            yield return null;
+            Assert.AreEqual(GameState.CrowdBattle, State, "목표 전에는 보스가 나오지 않는다");
+            Assert.IsFalse(states.Contains(GameState.BossIntro));
+
+            PublishKills(1, true);
+            yield return DefeatBoss();
+            Assert.IsTrue(states.Contains(GameState.BossIntro), "섬멸 목표 달성 → 기존 보스 등장 흐름");
+            Assert.IsFalse(GetField<bool>(waves, "isRoundRunning"), "보스 등장 때 남은 소환 취소");
+            Assert.AreEqual(new[] { 1 }, stageClears, "보스 처치로 클리어 1번");
+        }
+
+        [UnityTest]
+        public IEnumerator AnnihilationToBoss_SkipToBoss_IsAllowed()
+        {
+            UseSingleRound(new RoundDto { Round = 1, Type = "AnnihilationToBoss", WaveRounds = "1", BossId = 3001, PhaseTime = 100f, KillRatio = 0.9f, SupplyStartTime = 60f, SupplyInterval = 45f });
+            Call(director, "StartRun");
+            SetKillTarget(50);
+            Assert.IsTrue((bool)Call(sequencer, "SkipToBoss"), "BossCallTester·F12 로 섬멸 후 보스도 부를 수 있다");
+            yield return WaitForState(GameState.BossBattle);
+        }
+
+        [UnityTest]
+        public IEnumerator WaveRound_NextRoundAvoidsPickOfEarlierRound()
+        {
+            var report = new DataLoadReport();
+            var table = MakeTable(RoundDef.Table, 1, NewRound(new RoundDto { Round = 1, Type = "Survival", WaveRounds = "1;2", PhaseTime = 0.05f, SupplyStartTime = 60f, SupplyInterval = 45f }, report), report);
+            AddToTable(table, 2, NewRound(new RoundDto { Round = 2, Type = "Survival", WaveRounds = "1;2", PhaseTime = 100f, SupplyStartTime = 60f, SupplyInterval = 45f }, report), report);
+            SetData("rounds", table);
+
+            Call(director, "StartRun");
+            int firstPick = Get<int>(sequencer, "WaveRound");
+            CollectionAssert.Contains(new[] { 1, 2 }, firstPick);
+            yield return WaitUntil(() => State == GameState.Reward);
+            EventBus<RewardSelectionFinishedEvent>.Publish(new RewardSelectionFinishedEvent());
+            yield return WaitForState(GameState.CrowdBattle);
+
+            Assert.AreEqual(2, Round);
+            Assert.AreEqual(3 - firstPick, Get<int>(sequencer, "WaveRound"), "같은 출발의 앞 라운드 편성은 다시 고르지 않는다");
+        }
+
+        [UnityTest]
+        public IEnumerator KillRewardCollector_SceneStart_ResetsCurrency()
+        {
+            wallet.Add(50);
+            Assume.That(wallet.Balance, Is.EqualTo(50));
+
+            var newScene = new GameObject("NewSceneCollector");
+            newScene.AddComponent(RuntimeType("HybridShooter.Reward.KillRewardCollector"));
+            Assert.AreEqual(0, wallet.Balance, "게임 씬이 다시 열리면(Awake) 이전 판 재화를 버린다");
+            UnityEngine.Object.Destroy(newScene);
+            yield return null;
+        }
+
+        // 테스트 스테이지에는 실제 소환이 없어 목표가 0 으로 계산되므로, 시작 직후(첫 Update 전) 목표를 정해 준다
+        private void SetKillTarget(int killTarget) => SetField(sequencer, "killTarget", killTarget);
 
         private void UseSingleRound(RoundDto dto)
         {

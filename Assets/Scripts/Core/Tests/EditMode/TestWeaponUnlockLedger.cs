@@ -9,17 +9,16 @@ using NUnit.Framework;
 
 namespace HybridShooter.Core.Tests
 {
-    /// <summary>WeaponUnlockLedger: 실제 WeaponTable 로 해금 순서·라운드별 해금·저장을 검사한다 (테스트 전용 PlayerPrefs 키)</summary>
+    /// <summary>WeaponUnlockLedger: 실제 WeaponTable 로 해금 순서·라운드별 해금·저장하지 않음(실행 단위)을 검사한다</summary>
     public sealed class TestWeaponUnlockLedger
     {
-        private const string Key = "Test.Unlock.Weapons";
         private WeaponUnlockLedger ledger;
         private readonly List<WeaponDef> published = new List<WeaponDef>();
 
         [SetUp]
         public void SetUp()
         {
-            ledger = new WeaponUnlockLedger(Key);
+            ledger = new WeaponUnlockLedger();
             ledger.ResetAll();
             EventBus<WeaponUnlockedEvent>.Subscribe(OnUnlocked);
         }
@@ -102,16 +101,13 @@ namespace HybridShooter.Core.Tests
         }
 
         [Test]
-        public void Unlocks_PersistAcrossInstances()
+        public void Unlocks_AreNotSaved_NewLedgerStartsWithDefaultsOnly()
         {
             var first = ledger.UnlockNext();
             Assume.That(first, Is.Not.Null);
+            Assert.IsTrue(ledger.IsUnlocked(first.Id));
 
-            var reloaded = new WeaponUnlockLedger(Key);
-            Assert.IsTrue(reloaded.IsUnlocked(first.Id));
-
-            reloaded.ResetAll();
-            Assert.IsFalse(new WeaponUnlockLedger(Key).IsUnlocked(first.Id));
+            Assert.IsFalse(new WeaponUnlockLedger().IsUnlocked(first.Id), "앱 재실행 = 새 Ledger → 해금이 남지 않는다");
         }
 
         private void OnUnlocked(WeaponUnlockedEvent e) => published.Add(e.Weapon);
