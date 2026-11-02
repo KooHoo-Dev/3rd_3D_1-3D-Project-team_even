@@ -205,6 +205,17 @@ namespace HybridShooter.Core.Events
         public DamageDealtEvent(GameObject target, in DamageInfo info, bool isKill) { Target = target; Info = info; IsKill = isKill; }
     }
 
+    /// <summary>
+    /// [몬스터 약점] → 사운드(약점 명중음). 드러난 약점에 배율 피해가 들어가기 직전 1번.
+    /// 바로 뒤 같은 Target·HitPoint 의 DamageDealtEvent 가 이 약점 명중의 피해다
+    /// </summary>
+    public readonly struct WeakPointHitEvent
+    {
+        public readonly GameObject Target;  // 피해를 받는 몬스터 (MonsterController 오브젝트 = DamageDealtEvent.Target)
+        public readonly Vector3 HitPoint;   // 총알이 맞은 위치 (= DamageDealtEvent.Info.HitPoint)
+        public WeakPointHitEvent(GameObject target, Vector3 hitPoint) { Target = target; HitPoint = hitPoint; }
+    }
+
     // ── 몬스터 (E3, E4) ──  [몬스터] → 코어(스폰 카운트), 보상(재화), UI·사운드
     public readonly struct MonsterSpawnedEvent
     {
