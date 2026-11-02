@@ -174,12 +174,20 @@ namespace HybridShooter.Core.Data.Defs
         /// <summary>두 번째 등장부터 짧은 연출</summary>
         public bool IntroBriefAfterFirst => d.IntroBriefAfterFirst;
 
+        /// <summary>보호막이 생길 때마다 흡수량과 별도로(상한 밖) 더하는 기본량 (MaxHp 비율)</summary>
+        public float ShieldBaseRatio => d.ShieldBaseRatio;
+
         // 촉수 폭풍
         /// <summary>촉수 쓸기 횟수 (좌우 번갈아)</summary>
         public int StormWaves => d.StormWaves;
         /// <summary>한 번 쓸 때 지나가는 각도(도, 보스 정면 기준 좌우 절반씩)</summary>
         public float StormSectorAngle => d.StormSectorAngle;
+        /// <summary>촉수가 닿는 최소 거리(m)</summary>
         public float StormRadius => d.StormRadius;
+        /// <summary>쓸기 예고 때 플레이어 거리에 더하는 여유(m): 예고 동안 물러나도 닿게</summary>
+        public float StormChaseMargin => d.StormChaseMargin;
+        /// <summary>플레이어를 따라 늘어나는 촉수 거리 상한(m)</summary>
+        public float StormMaxRadius => d.StormMaxRadius;
         public float StormTelegraph => d.StormTelegraph;
         /// <summary>쓸기 뒤 촉수를 거두고 다음 예고까지(초)</summary>
         public float StormInterval => d.StormInterval;
@@ -241,9 +249,11 @@ namespace HybridShooter.Core.Data.Defs
             r.Check(ShieldPerMinion > 0f && ShieldMaxRatio > 0f && ShieldMaxRatio < 1f && ShieldLayers >= 1 && ShieldBreakGroggyTime > 0f && EnergyFlightTime > 0f,
                 Table, "Shield", "ShieldPerMinion > 0, 0 < ShieldMaxRatio < 1, ShieldLayers >= 1, 그로기·비행 시간 > 0");
             r.Check(IntroShieldPerMonster >= 0f && IntroShieldMaxRatio >= 0f && IntroShieldMaxRatio < 1f, Table, "Intro", "IntroShieldPerMonster >= 0, 0 <= IntroShieldMaxRatio < 1");
+            r.Check(ShieldBaseRatio >= 0f && ShieldBaseRatio < 1f, Table, "Shield", "0 <= ShieldBaseRatio < 1");
             r.Check(StormWaves >= 1 && StormSectorAngle > 0f && StormSectorAngle < 180f && StormRadius > 0f && StormTelegraph >= 0f && StormInterval >= 0f
-                    && StormSweepTime > 0f && StormJumpClear > 0f && StormFirstExtraTelegraph >= 0f, Table, "Storm",
-                "횟수 >= 1, 0 < 각도 < 180 (정면 반원 안), 반경·쓸기 시간·점프 높이 > 0, 예고·간격 >= 0");
+                    && StormSweepTime > 0f && StormJumpClear > 0f && StormFirstExtraTelegraph >= 0f
+                    && StormChaseMargin >= 0f && StormMaxRadius >= StormRadius, Table, "Storm",
+                "횟수 >= 1, 0 < 각도 < 180 (정면 반원 안), 반경·쓸기 시간·점프 높이 > 0, 예고·간격·추격 여유 >= 0, MaxRadius >= Radius");
             r.Check(AssistMaxDelayMultiplier >= 1f && InUnit(AssistComboReduce) && InUnit(AssistHeavyReduce) && AssistPerDeath >= 0f && AssistSmoothTime >= 0f,
                 Table, "Assist", "MaxDelayMultiplier >= 1, Reduce 0~1, PerDeath·SmoothTime >= 0");
         }

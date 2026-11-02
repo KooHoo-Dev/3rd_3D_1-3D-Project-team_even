@@ -9,6 +9,7 @@ namespace HybridShooter.Boss.Tyranopode
     ///  - 몸통이 실제 벽에 정면으로 박으면 그로기 (다리 촉수 파괴 시 더 길게). 비스듬히 스치면 벽을 따라 미끄러진다.
     ///    경기장 원(어림값)에는 막히지 않는다
     ///    NavMesh 의 작은 틈·낮은 돌멩이는 타고 넘고, 근처에 NavMesh 가 없는 낭떠러지에서는 그로기 없이 멈춘다 (TyranopodeLocomotion.MoveFree)
+    ///  - 고를 때·출발 직전에 앞길(clearPathDistance)을 미리 본다: 바로 막힐 길이면 고르지 않고, 출발 직전에 막혔으면 달리지 않고 끝낸다 (콤보 없이)
     ///  - 페이즈 2: Phase2ChargeCount 번 연속 (사이에 짧게 다시 조준)
     /// </summary>
     public sealed class ChargeAttack : TyranopodeAttack
@@ -17,6 +18,8 @@ namespace HybridShooter.Boss.Tyranopode
         [SerializeField, Min(0f)] private float reaimTime = 0.6f;
         [Tooltip("출발 직후 이 거리(m)보다 덜 달렸을 때 막히면 부딪힌 게 아니라 그냥 멈춘다")]
         [SerializeField, Min(0f)] private float minImpactDistance = 2f;
+        [Tooltip("플레이어 쪽으로 이 거리(m) 안에 정면으로 박을 벽·낭떠러지가 있으면 돌진을 고르지 않는다 (출발 직전에도 다시 본다)")]
+        [SerializeField, Min(0f)] private float clearPathDistance = 8f;
 
         private Vector3 direction;
         private float traveled;
@@ -28,7 +31,9 @@ namespace HybridShooter.Boss.Tyranopode
         protected override float WindupTime => Data.ChargeWindup;
         protected override float RecoveryTime => Data.ChargeRecovery;
 
-        protected override bool MeetsStartCondition() => DistanceToTarget >= 8f;
+        // 바위 뒤의 플레이어처럼 출발하자마자 막힐 길이면 고르지 않는다 (다른 패턴이 골라진다)
+        protected override bool MeetsStartCondition()
+            => DistanceToTarget >= 8f && Move.ProbePath(DirectionToTarget, clearPathDistance) == TyranopodeLocomotion.MoveStop.None;
 
         protected override void StartWindup()
         {
@@ -52,6 +57,14 @@ namespace HybridShooter.Boss.Tyranopode
             HideTelegraphs();
             Move.FaceInstant(TargetPosition);
             direction = transform.forward;
+            // 예고·재조준 동안 돌아서 길이 막혔으면 출발하지 않는다
+            var blocked = Move.ProbePath(direction, clearPathDistance);
+            if (blocked != TyranopodeLocomotion.MoveStop.None)
+            {
+                Debug.Log($"[Tyranopode] 돌진 취소: 출발 방향 {clearPathDistance:0.#}m 안이 막힘 ({blocked})", this);
+                EndWithoutCombo();
+                return;
+            }
             traveled = 0f;
             hitDone = false;
             reaimEndTime = 0f;
@@ -90,7 +103,7 @@ namespace HybridShooter.Boss.Tyranopode
                 // 낭떠러지·출발 직후는 부딪힌 게 아니다
                 if (stop == TyranopodeLocomotion.MoveStop.Edge || traveled < minImpactDistance)
                 {
-                    Finish();
+                    EndWithoutCombo();
                     return;
                 }
                 // 벽·경기장 경계에 박힘 → 그로기
@@ -115,6 +128,13 @@ namespace HybridShooter.Boss.Tyranopode
                     reaimTime * Owner.WindupScale, DangerColor);
                 return;
             }
+            Finish();
+        }
+
+        /// <summary>제대로 달리지 못하고 끝남 (막힌 출발·낭떠러지): 곧바로 다음 공격이 이어 붙지 않게 한다 (착지 원 등이 갑자기 뜨지 않게)</summary>
+        private void EndWithoutCombo()
+        {
+            Owner.SkipNextCombo();
             Finish();
         }
 

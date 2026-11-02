@@ -2843,9 +2843,10 @@ MonoBehaviour:
     SupportSubtitle: "\uBAA9\uD45C \uACE0\uC815 \u2014 \uC815\uBC00 \uD0C0\uACA9
       \uAC1C\uC2DC"
     ClearTitle: "\uC791\uC804 \uC131\uACF5"
-    ClearSubtitle: GAME CLEAR
-    MainMenuButton: "\uBA54\uC778 \uBA54\uB274\uB85C"
-    MainMenuScene: Test_MainMenu
+    ClearSubtitle: "\uAD6C\uC870\uC120 \uCC29\uB959 \u2014 \uADC0\uD658 \uAC1C\uC2DC"
+    ClearHoldTime: 3
+    EndingFadeTime: 1.6
+    EndingScene: Ending
   finaleAssets:
     GroundEnergyVfx: {fileID: 2008023886815224848, guid: 2fad7f4229f809343adf7cd18a67c93c, type: 3}
     StrikeVfx: {fileID: 5194316938753010530, guid: 7feb3ec814883984ba66e5ad698be072, type: 3}

@@ -12,7 +12,7 @@ namespace HybridShooter.Boss.Tyranopode
 {
     /// <summary>
     /// 보스가 부른 잡몹만 따로 관리한다 (포효 소환·알 부화). 웨이브 잡몹은 건드리지 않는다.
-    ///  - 경기장: 씬의 TyranopodeArena 로 받거나, 없으면 보스 발밑 NavMesh 에서 사방으로 NavMesh.Raycast 를 쏴
+    ///  - 경기장: 씬의 TyranopodeArena 로 받거나, 없으면 측정 시작점(맵 중심 또는 보스 발밑) NavMesh 에서 사방으로 NavMesh.Raycast 를 쏴
     ///    걸을 수 있는 바닥이 끝나는 곳(벽·절벽·맵 끝)까지로 잰다. 언덕·구덩이 경사는 바닥을 따라 넘으므로 벽으로 보지 않는다.
     ///    절반 넘는 방향이 MeasureRange 까지 막히지 않으면 열린 맵 → 경계 없음(HasBounds false), 소환 둘레는 기본 반지름
     ///  - SpawnAtWall: 벽 바로 안쪽 NavMesh 위에서 소환 (벽을 넘어온 것처럼)
@@ -29,7 +29,7 @@ namespace HybridShooter.Boss.Tyranopode
     /// </summary>
     public sealed class TyranopodeMinions
     {
-        private const int MeasureRays = 24;
+        private const int MeasureRays = 48;       // 사각형 경기장의 모서리까지 잡을 만큼 촘촘히
         private const float MeasureRange = 120f;
         private const float MeasureSample = 6f;   // 측정 시작점(보스 발밑)에서 NavMesh 를 찾는 반경(m)
         private const float SkipGap = 6f;         // 막힌 곳 너머 이만큼에서 바닥이 이어지면 바위 같은 작은 장애물로 보고 넘는다
@@ -102,10 +102,18 @@ namespace HybridShooter.Boss.Tyranopode
         private readonly GameObject spawnVfx;
         private readonly GameObject deathVfx;
         private readonly FlingSettings flingSettings;
+        private readonly List<Vector3> wallPoints = new List<Vector3>();
 
         public Vector3 Center { get; private set; }
-        /// <summary>경기장 반지름. 열린 맵이면 기본 반지름 (소환 둘레·파동 범위용)</summary>
+        /// <summary>경기장 대표 반지름 = 벽까지 거리의 중앙값. 열린 맵이면 기본 반지름 (소환 둘레·등장 연출·혈관 크기용)</summary>
         public float Radius { get; private set; }
+        /// <summary>
+        /// 가장 먼 벽까지 거리. 원이 아닌 경기장(사각형 등)을 모두 감싸는 반지름이라 이동 경계의 바깥 상한·파동 범위에 쓴다.
+        /// 정해진 경기장·열린 맵이면 Radius 와 같다
+        /// </summary>
+        public float FarRadius { get; private set; }
+        /// <summary>측정에서 닿은 벽 지점들 (방향 순서, 기즈모). 정해진 경기장·열린 맵이면 비어 있다</summary>
+        public IReadOnlyList<Vector3> WallPoints => wallPoints;
         /// <summary>벽(걸을 수 있는 바닥의 끝)으로 둘러싸인 경기장인가. false = 열린 맵 → 이동 경계를 두지 않는다</summary>
         public bool HasBounds { get; private set; }
         /// <summary>측정 결과 (초기화 로그)</summary>
@@ -130,17 +138,24 @@ namespace HybridShooter.Boss.Tyranopode
             flingSettings = fling;
         }
 
-        /// <summary>씬에서 정한 경기장 (TyranopodeArena)</summary>
-        public void SetArena(Vector3 center, float radius)
+        /// <summary>정해진 경기장 (씬의 TyranopodeArena, 맵 경계 원)</summary>
+        /// <param name="source">초기화 로그에 남길 출처</param>
+        public void SetArena(Vector3 center, float radius, string source = "씬 지정")
         {
             Center = center;
             Radius = radius;
+            FarRadius = radius;
+            wallPoints.Clear();
             HasBounds = true;
-            ArenaSource = $"씬 지정 (반지름 {radius:0.#}m)";
+            ArenaSource = $"{source} (반지름 {radius:0.#}m)";
         }
 
+        /// <summary>from 근처에 NavMesh 가 있어 MeasureArena 로 잴 수 있는가 (없으면 MeasureArena 가 예외를 던진다)</summary>
+        public static bool CanMeasureFrom(Vector3 from) => NavMesh.SamplePosition(from, out _, MeasureSample, NavMesh.AllAreas);
+
         /// <summary>
-        /// from(보스 발밑)에서 경기장을 잰다. 두 번 잰다: 처음 막힌 점들의 중심에서 다시 재면 원형 경기장의 중심에 가까워진다.
+        /// from(맵 중심 또는 보스 발밑)에서 경기장을 잰다. 두 번 잰다: 처음 막힌 점들의 중심에서 다시 재면 경기장 한가운데에 가까워진다.
+        /// 대표 반지름(중앙값)과 함께 가장 먼 벽 거리(FarRadius)·벽 지점(WallPoints)도 남긴다.
         /// 열린 맵이면 경계 없이 중심 = from, 반지름 = openRadius
         /// </summary>
         public void MeasureArena(Vector3 from, float openRadius)
@@ -151,16 +166,20 @@ namespace HybridShooter.Boss.Tyranopode
             Center = start.position;
             HasBounds = false;
             Radius = openRadius;
+            FarRadius = openRadius;
+            wallPoints.Clear();
             int blocked = 0;
             for (int pass = 0; pass < 2; pass++)
             {
                 var distances = new List<float>(MeasureRays);
+                var edges = new List<Vector3>(MeasureRays);
                 Vector3 sum = Vector3.zero;
                 for (int i = 0; i < MeasureRays; i++)
                 {
                     Vector3 dir = Quaternion.Euler(0f, 360f * i / MeasureRays, 0f) * Vector3.forward;
                     if (TryNavEdge(Center, dir, MeasureRange, out Vector3 edge, out float distance) == false) continue;
                     distances.Add(distance);
+                    edges.Add(edge);
                     sum += edge;
                 }
                 // 두 번째 측정이 열린 맵으로 나오면(중심이 문 쪽으로 옮겨진 경우 등) 첫 번째 결과를 쓴다
@@ -172,12 +191,15 @@ namespace HybridShooter.Boss.Tyranopode
                 blocked = distances.Count;
                 HasBounds = true;
                 Radius = radius;
+                FarRadius = Mathf.Max(radius, Max(distances));
+                wallPoints.Clear();
+                wallPoints.AddRange(edges);
                 if (pass == 1) break;
                 if (NavMesh.SamplePosition(sum / distances.Count, out var moved, MeasureSample, NavMesh.AllAreas)) Center = moved.position;
             }
 
             ArenaSource = HasBounds
-                ? $"NavMesh 측정 (막힌 방향 {blocked}/{MeasureRays}, 반지름 {Radius:0.#}m)"
+                ? $"NavMesh 측정 (막힌 방향 {blocked}/{MeasureRays}, 반지름 {Radius:0.#}m, 가장 먼 벽 {FarRadius:0.#}m)"
                 : $"열린 맵 (막힌 방향 {blocked}/{MeasureRays}) → 경계 없음, 소환 둘레 {openRadius:0.#}m";
         }
 
@@ -193,6 +215,13 @@ namespace HybridShooter.Boss.Tyranopode
             sorted.Sort();
             radius = sorted[sorted.Count / 2];
             return true;
+        }
+
+        private static float Max(List<float> values)
+        {
+            float max = 0f;
+            foreach (float value in values) max = Mathf.Max(max, value);
+            return max;
         }
 
         /// <summary>

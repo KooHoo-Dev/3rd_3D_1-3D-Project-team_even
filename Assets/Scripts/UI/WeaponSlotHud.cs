@@ -14,7 +14,7 @@ namespace HybridShooter.UI
     ///  - 4번 보급 칸: 비어 있으면 "보급" 회색, 보급 무기 탄이 다 떨어지면 흐리게
     ///  - GunSlot.GunChanged(바꿔 들기) + LoadoutChanged(구성 변경) 로 갱신
     ///  - 번호 키로 빈 칸을 고르면(GunSlot.EmptySlotSelected) 슬롯 줄 위에 잠깐 경고
-    /// 스코프 화면·사망 중·강화 선택·게임 오버·일시정지 때는 숨긴다 (PlayerHud 와 같은 규칙)
+    /// 스코프 화면·사망 중·보스 연출 중·강화 선택·게임 오버·일시정지 때는 숨긴다 (PlayerHud 와 같은 규칙)
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class WeaponSlotHud : MonoBehaviour
@@ -108,9 +108,11 @@ namespace HybridShooter.UI
 
         private void Update()
         {
+            // 연출(보스 등장·최후 시네마틱) 중에는 숨긴다
+            bool cinematic = player != null && player.IsInCinematic;
             bool alive = player == null || player.IsAlive;
             bool scoped = aimView != null && aimView.Scoped;
-            rootGroup.alpha = stateHidden || alive == false || scoped ? 0f : 1f;
+            rootGroup.alpha = stateHidden || cinematic || alive == false || scoped ? 0f : 1f;
 
             // 보급 무기 탄 소진은 이벤트가 없으므로 (든 총만 AmmoChangedEvent) 여기서 본다
             if (SupplyEmpty != shownSupplyEmpty) Refresh();

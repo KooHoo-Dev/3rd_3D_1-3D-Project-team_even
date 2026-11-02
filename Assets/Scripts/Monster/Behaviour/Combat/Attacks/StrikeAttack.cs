@@ -72,7 +72,7 @@ namespace HybridShooter.Monster.Behaviour
             if (hitsDealt >= MaxHitsPerAttack) return;
             if (now < nextHitTime) return;
 
-            // ApplyHitRangeRatio();
+            ApplyHitRangeRatio();
             bool isInArea = area.Contains(Body.Position, Body.Forward, Target.PlayerTrackingInfo.Position);
             if (isInArea == false) 
                 return;

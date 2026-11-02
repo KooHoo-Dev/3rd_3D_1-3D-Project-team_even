@@ -19,7 +19,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
     {
         private const int Letalobrach = 2001;
         private const int Pardathrox = 2002;
-        private const float DespawnWaitSeconds = 5f;   // despawnDelay 2s + 여유
+        private const float DespawnWaitSeconds = 10f;  // 시체 누움 4s + 침강 1.5s + 여유
 
         private MonsterPool pool;
         private readonly List<GameObject> spawnedMonsters = new List<GameObject>();
@@ -172,7 +172,7 @@ namespace HybridShooter.Monster.Behaviour.Tests
             Assert.IsFalse(monster.GetComponent<UnityEngine.AI.NavMeshAgent>().enabled);
             yield return WaitUntilOrTimeout(() => monster.transform.parent == TypeRoot(Letalobrach));
 
-            Assert.AreSame(TypeRoot(Letalobrach), monster.transform.parent, "despawnDelay 뒤 종류 루트로 돌아와야 한다");
+            Assert.AreSame(TypeRoot(Letalobrach), monster.transform.parent, "시체가 가라앉은 뒤 종류 루트로 돌아와야 한다");
             Assert.IsFalse(monster.activeSelf);
 
             GameObject reused = Spawn(Letalobrach, new Vector3(1f, 0f, 1f));

@@ -149,6 +149,23 @@ namespace HybridShooter.Monster.Behaviour.Tests
         }
 
         [UnityTest]
+        public IEnumerator SmallObstacleDoesNotStopCharge()
+        {
+            // 돌진 경로 위에 작은 상자를 두고 NavMesh 를 다시 굽는다 (상자 둘레가 굽기 반경만큼 구멍이 된다)
+            wallObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wallObject.transform.position = new Vector3(0f, 0.5f, 3f);
+            wallObject.transform.localScale = new Vector3(0.5f, 1f, 0.5f);
+            surface.BuildNavMesh();
+            yield return null;
+            target.Position = new Vector3(0f, 0f, 8f);
+
+            yield return RunWholeCycle();
+
+            Assert.AreNotEqual(AttackResult.WallHit, attack.LastResult, "작은 장애물에서는 기절하지 않는다");
+            Assert.That(body.Position.z, Is.GreaterThan(4f), "상자를 돌아 지나간다");
+        }
+
+        [UnityTest]
         public IEnumerator CancelStopsCharge()
         {
             attack.Begin(target, now);
