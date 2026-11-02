@@ -16868,6 +16868,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 6864668485321027824, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: explosion.force
+      value: 53
+      objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.x
       value: -46.405037
@@ -18223,6 +18227,7 @@ MonoBehaviour:
   bossPrefab: {fileID: 6183423561265755135, guid: bcec5365afe62e148b51db0a39e0879f, type: 3}
   spawnPoint: {fileID: 387818551}
   spawnPointFinder: {fileID: 296616560}
+  navMeshSnapDistance: 5
   bossId: 1
 --- !u!114 &2044657858
 MonoBehaviour:
