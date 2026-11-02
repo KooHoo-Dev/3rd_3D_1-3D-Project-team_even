@@ -137,8 +137,8 @@ namespace HybridShooter.Round
         private int PickWaveRound(RoundDef def)
         {
             var unusedWaveRounds = def.WaveRounds.Where(candidate => usedWaveRounds.Contains(candidate) == false).ToList();
-            var pool = unusedWaveRounds.Count > 0 ? unusedWaveRounds : def.WaveRounds.ToList();
-            return pool[UnityEngine.Random.Range(0, pool.Count)];
+            var pickableWaveRounds = unusedWaveRounds.Count > 0 ? unusedWaveRounds : def.WaveRounds.ToList();
+            return pickableWaveRounds[UnityEngine.Random.Range(0, pickableWaveRounds.Count)];
         }
 
         public void StopRound()
