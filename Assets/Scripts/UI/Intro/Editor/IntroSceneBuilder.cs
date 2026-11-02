@@ -41,6 +41,8 @@ namespace HybridShooter.UI.Intro.Editor
 
         private const string SkipLabel = "HOLD TO SKIP";
         private const string SkipHint = "아무 키나 길게 눌러 건너뛰기";
+        private const string SpeedLabel = "SPEED";
+        private const string SpeedHint = "F · 패드 X 로 배속";
         /// <summary>진행 바 구간 눈금: (시각, 이름)</summary>
         private static readonly (float Time, string Label)[] ProgressMarks =
         {
@@ -87,7 +89,7 @@ namespace HybridShooter.UI.Intro.Editor
             EnsureFolder(Path.GetDirectoryName(ScenePath));
 
             var text = LoadOrCreateText();
-            var orbit = LoadOrCreateOrbit(text.AllCharacters() + SkipHint + "작전 기록 0123456789/" + string.Concat(ProgressMarks.Select(m => m.Label)));
+            var orbit = LoadOrCreateOrbit(text.AllCharacters() + SkipHint + SpeedHint + "작전 기록 0123456789/" + string.Concat(ProgressMarks.Select(m => m.Label)));
             var logoFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(LogoFontPath);
             if (orbit == null || logoFont == null)
             {
@@ -120,6 +122,8 @@ namespace HybridShooter.UI.Intro.Editor
             Set(so, "shipCut", shipCut);
             Set(so, "skipGroup", overlay.SkipGroup);
             Set(so, "skipBar", overlay.SkipBar);
+            Set(so, "speedGroup", overlay.SpeedGroup);
+            Set(so, "speedText", overlay.SpeedText);
             Set(so, "progressGroup", overlay.ProgressGroup);
             Set(so, "progressFill", overlay.ProgressFill);
             Set(so, "recordText", overlay.RecordText);
@@ -534,12 +538,14 @@ namespace HybridShooter.UI.Intro.Editor
             public Graphic Flash;
             public CanvasGroup SkipGroup;
             public RectTransform SkipBar;
+            public CanvasGroup SpeedGroup;
+            public TMP_Text SpeedText;
             public CanvasGroup ProgressGroup;
             public RectTransform ProgressFill;
             public TMP_Text RecordText;
         }
 
-        /// <summary>순서: 암전 → 도입 문구(암전 위) → 피격 섬광 → 진행 표시 → 건너뛰기 안내</summary>
+        /// <summary>순서: 암전 → 도입 문구(암전 위) → 피격 섬광 → 진행 표시 → 건너뛰기 안내 → 배속 표시</summary>
         private static Overlay CreateOverlay(TMP_FontAsset orbit)
         {
             var canvas = CreateCanvas("Overlay");
@@ -577,7 +583,29 @@ namespace HybridShooter.UI.Intro.Editor
             fill.localScale = new Vector3(0f, 1f, 1f);
             overlay.SkipBar = fill;
             track.SetAsFirstSibling();
+
+            CreateSpeed(canvas, orbit, ref overlay);
             return overlay;
+        }
+
+        /// <summary>왼쪽 아래: 'SPEED x2' + 배속 키 안내. 건너뛰기 안내와 좌우 대칭</summary>
+        private static void CreateSpeed(RectTransform canvas, TMP_FontAsset orbit, ref Overlay overlay)
+        {
+            var speed = NewRect("Speed", canvas);
+            Place(speed.gameObject, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(80f, 60f), new Vector2(420f, 80f), new Vector2(0f, 0f));
+            overlay.SpeedGroup = speed.gameObject.AddComponent<CanvasGroup>();
+            overlay.SpeedGroup.alpha = 0f;
+            overlay.SpeedGroup.interactable = false;
+            overlay.SpeedGroup.blocksRaycasts = false;
+
+            var label = CreateText(speed, "Label", SpeedLabel, TitleFont, 24f, Color.white, TextAlignmentOptions.BottomLeft);
+            label.characterSpacing = 12f;
+            Place(label.gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, new Vector2(0f, 34f), new Vector2(0f, 1f));
+            var value = CreateText(speed, "Value", "x1", TitleFont, 24f, CrawlGold, TextAlignmentOptions.BottomLeft);
+            Place(value.gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(130f, 0f), new Vector2(-130f, 34f), new Vector2(0f, 1f));
+            overlay.SpeedText = value;
+            var hint = CreateText(speed, "Hint", SpeedHint, orbit, 18f, Steel, TextAlignmentOptions.TopLeft);
+            Place(hint.gameObject, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 6f), new Vector2(0f, 26f), new Vector2(0f, 0f));
         }
 
         /// <summary>
