@@ -9,7 +9,7 @@ namespace HybridShooter.Player
     /// 1인칭 카메라는 눈 높이에 고정이라, 총이 애니메이션(걷기·숨쉬기)대로 흔들리면 화면 속 총이 출렁이고 조준기가 중앙에 오지 않는다.
     /// 그래서 1인칭에서는 총이 있어야 할 자리를 눈 기준으로 정하고, 두 손을 FBBIK 로 그 자리에 끌어온다 (손이 안 닿으면 상체가 따라온다)
     ///  - 평소: 조준기가 눈 기준 hipSight 자리 (화면 오른쪽 아래)
-    ///  - 조준: 조준기가 눈 바로 앞 화면 정중앙 (adsDistance 앞). 그 사이는 드라이버의 조준 정도(Aim)로 보간
+    ///  - 조준: 조준기가 눈 바로 앞 화면 정중앙 (adsDistance 앞). 그 사이는 드라이버의 실제 조준 정도(AdsWeight)로 보간 (조준 없이 쏠 때는 평소 자리 그대로)
     ///    어깨 견착 총(로켓·그레네이드 런처)은 조준기가 어깨 위 옆자리(shoulderSight), 저격총은 조준이 끝나면 스코프 화면(PlayerAimView)이 덮는다
     ///  - 총 방향 = 눈 정면. 벽이 총 길이보다 가까우면 총을 몸 쪽으로 당기고 총구를 내린다
     ///  - 도달 당김: 오른손 목표가 지금(FBBIK 전) 어깨에서 팔 길이 × maxReachRatio 보다 멀면 총을 시선 축을 따라 그만큼 몸 쪽으로 당긴다.
@@ -153,7 +153,7 @@ namespace HybridShooter.Player
             Vector3 aimSight = new Vector3(0f, 0f, ads);
             if (table != null && table.AimModeFor(gun) == WeaponGripTable.AimMode.Shoulder)
                 aimSight = entry != null && entry.fpShoulderSight != Vector3.zero ? entry.fpShoulderSight : shoulderSight;
-            Vector3 sightLocal = Vector3.Lerp(hip, aimSight, driver.AimWeight);
+            Vector3 sightLocal = Vector3.Lerp(hip, aimSight, driver.AdsWeight);
 
             Pose eye = player.FirstPersonEyePose;
             float reach = sightLocal.z + (muzzleInGun.z - sightInGun.z) + wallProbeRadius;
@@ -164,7 +164,7 @@ namespace HybridShooter.Player
             Quaternion gunRotation = eye.rotation * Quaternion.Euler(maxWallPull > 0f ? wallPitch * wallPull / maxWallPull : 0f, 0f, 0f);
             sightLocal.z -= ReachPullFor(eye, sightLocal, gunRotation, sightInGun, toGun * (hand.position - g.position)); // 도달 당김
             Vector3 gunPosition = eye.position + eye.rotation * sightLocal - gunRotation * sightInGun;
-            if (recoil != null) recoil.ApplyFirstPerson(ref gunPosition, ref gunRotation, gun, driver.AimWeight);
+            if (recoil != null) recoil.ApplyFirstPerson(ref gunPosition, ref gunRotation, gun, driver.AdsWeight);
 
             // 총이 그 자리에 오려면 손이 어디 있어야 하는지 (총과 손의 관계 그대로)
             right.position = gunPosition + gunRotation * (toGun * (hand.position - g.position));

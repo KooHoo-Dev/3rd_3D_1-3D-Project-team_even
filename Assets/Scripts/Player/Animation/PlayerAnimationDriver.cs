@@ -16,7 +16,9 @@ namespace HybridShooter.Player
     ///  - Jump = PlayerController.Jumped 순간, Grounded = 지상 또는 급경사 미끄럼
     ///  - Falling = 최대 하강 속도에 닿았을 때만 (높은 곳에서 떨어질 때. 보통 점프는 점프 동작 그대로 착지)
     ///  - LandType = 공중에서 가장 빨리 떨어진 속도로 착지 세기 결정 (최대 하강 속도까지 갔으면 무겁게)
-    ///  - Aim = 0 들고 다니기 ↔ 1 조준 (조준 중이거나 막 쏜 뒤). Upper Pose 레이어(팔·머리)는 두 값으로 나눈다
+    ///  - Aim = 0 들고 다니기 ↔ 1 조준 (조준 중이거나 막 쏜 뒤). 3인칭 몸 자세·AimIK 가 쓴다.
+    ///    AdsWeight 는 실제 조준(우클릭)만 따라간다 → 1인칭 총 자리·조준 화면이 쓴다 (허리 사격은 1인칭에서 조준처럼 보이면 안 된다)
+    ///    Upper Pose 레이어(팔·머리)는 두 값으로 나눈다
     ///    · UpperPoseWeight = 상체 자세를 써도 되는 상태 (총 있음·살아 있음·구르기·벽넘기 아님). 왼손·조준·1인칭 IK, 반동, Upper Action 레이어가 쓴다
     ///    · UpperPoseLayerWeight = 실제 레이어 가중치 = 위 상태 × 움직임 계수. 서 있으면 1, 지상에서 이동하면 upperPoseMoving,
     ///      전력질주면 upperPoseSprint → 이동 클립의 팔·어깨 움직임이 보인다 (전부 덮으면 상체가 굳어 보였다).
@@ -46,6 +48,7 @@ namespace HybridShooter.Player
         private int upperPoseLayer = -1;
         private int upperActionLayer = -1;
         private float aimWeight;
+        private float adsWeight;
         private float aimPoseUntil;            // 조준 없이 쏜 직후 이 시각까지 조준 자세 유지
         private PlayerAnimationProfile.WeaponSet currentSet;
         private bool wasGrounded = true;
@@ -65,6 +68,8 @@ namespace HybridShooter.Player
         public PlayerAnimationProfile.WeaponSet CurrentSet => currentSet;
         /// <summary>0 = 들고 다니기, 1 = 조준 (부드럽게 변함). AimIK 가중치에도 쓴다</summary>
         public float AimWeight => aimWeight;
+        /// <summary>0 = 조준 아님, 1 = 실제 조준(우클릭) (AimWeight 와 같은 속도로 변함). 막 쏜 뒤 자세는 들어가지 않는다 → 1인칭 총 자리·조준 화면에 쓴다</summary>
+        public float AdsWeight => adsWeight;
         /// <summary>
         /// 상체 자세를 써도 되는 정도 (총이 없거나 사망·구르기·벽넘기 중이면 0). 왼손·조준·1인칭 IK, 반동이 이 값을 쓴다.
         /// 이동 중에 낮아지는 실제 레이어 가중치는 UpperPoseLayerWeight
@@ -345,9 +350,11 @@ namespace HybridShooter.Player
         private void UpdateUpperPose(float dt)
         {
             bool hasGun = gunSlot != null && gunSlot.CurrentGun != null;
-            bool wantAim = hasGun && player.IsInCinematic == false && (gunSlot.IsAiming || Time.time < aimPoseUntil);
+            bool wantAds = hasGun && player.IsInCinematic == false && gunSlot.IsAiming;
+            bool wantAim = wantAds || (hasGun && player.IsInCinematic == false && Time.time < aimPoseUntil);
             float aimStep = profile.aimBlendTime > 0f ? dt / profile.aimBlendTime : 1f;
             aimWeight = Mathf.MoveTowards(aimWeight, wantAim ? 1f : 0f, aimStep);
+            adsWeight = Mathf.MoveTowards(adsWeight, wantAds ? 1f : 0f, aimStep);
             animator.SetFloat(PlayerAnimNames.Hash.Aim, aimWeight);
 
             if (upperPoseLayer < 0) return;

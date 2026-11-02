@@ -55,7 +55,7 @@ namespace HybridShooter.Player
         [Header("상체 자세 (Upper Pose)")]
         [Tooltip("들고 다니기 ↔ 조준 자세가 바뀌는 데 걸리는 시간(초)")]
         public float aimBlendTime = 0.15f;
-        [Tooltip("조준 없이 쏜 뒤 조준 자세를 유지하는 시간(초)")]
+        [Tooltip("조준 없이 쏜 뒤 조준 자세를 유지하는 시간(초). 3인칭 몸 자세만 (1인칭 총 자리는 실제 조준만 따른다)")]
         public float aimPoseAfterFire = 0.5f;
         [Tooltip("상체 자세 레이어를 켜고 끄는 데 걸리는 시간(초). 총이 없거나 사망·구르기·벽넘기 중에는 끈다")]
         public float upperPoseBlendTime = 0.15f;
