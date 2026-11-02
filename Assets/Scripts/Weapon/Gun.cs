@@ -48,7 +48,7 @@ namespace HybridShooter.Weapon
     ///
     /// 흐름
     ///  - GunSlot.Start → Initialize: WeaponTable(weaponId) + 강화(IUpgradeState) 로 능력치(Stats) 계산.
-    ///    강화를 사면(UpgradePurchasedEvent) 다시 계산한다. 테이블에 행이 없으면 fallbackStats 를 쓴다.
+    ///    강화를 사거나(UpgradePurchasedEvent) 초기화되면(UpgradesResetEvent) 다시 계산한다. 테이블에 행이 없으면 fallbackStats 를 쓴다.
     ///  - 입력: PlayerController → GunSlot → 지금 든 총의 TriggerDown / TriggerUp / AimDown / AimUp / Reload / ToggleFireMode
     ///  - 매 프레임: GunSlot.Update → Tick (장전·퍼짐 회복·반동 회복 → OnTick)
     ///  - 실제 발사: TryFire (탄·연사 간격·장전 검사) → Shoot (무기별 abstract)
@@ -240,6 +240,7 @@ namespace HybridShooter.Weapon
             if (subscribed == false)
             {
                 EventBus<UpgradePurchasedEvent>.Subscribe(OnUpgradePurchased);
+                EventBus<UpgradesResetEvent>.Subscribe(OnUpgradesReset);
                 EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
                 subscribed = true;
             }
@@ -732,10 +733,12 @@ namespace HybridShooter.Weapon
         {
             if (subscribed == false) return;
             EventBus<UpgradePurchasedEvent>.Unsubscribe(OnUpgradePurchased);
+            EventBus<UpgradesResetEvent>.Unsubscribe(OnUpgradesReset);
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
         }
 
         private void OnUpgradePurchased(UpgradePurchasedEvent evt) => RefreshStats();
+        private void OnUpgradesReset(UpgradesResetEvent evt) => RefreshStats();
 
         /// <summary>
         /// 라운드(스테이지) 정리. 장전 취소 + 사격 모드 등 초기화, 탄약은:

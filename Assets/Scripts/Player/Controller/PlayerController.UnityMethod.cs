@@ -39,7 +39,7 @@ namespace HybridShooter.Player
             if (GetComponent<PlayerFirstPersonNeck>() == null) gameObject.AddComponent<PlayerFirstPersonNeck>();
             interactor = GetComponent<PlayerInteractor>();
             if (interactor == null) interactor = gameObject.AddComponent<PlayerInteractor>();
-            stamina = maxStamina;
+            stamina = MaxStamina;
             InitLives();
 
             CacheRig();
@@ -55,6 +55,7 @@ namespace HybridShooter.Player
             // 시작할 때는 트윈 없이 바로 적용 (토글로 처리하면 시작하자마자 전환 연출이 돈다)
             ApplyViewModeImmediate(viewMode);
             SetCursorLocked(true);
+            RefreshUpgradeStats(false); // 씬을 다시 열어도 이미 산 강화가 반영되게 (Publish 전에)
             PublishStamina();
             PublishLives();
             LoadBossViewConfig();
@@ -70,6 +71,7 @@ namespace HybridShooter.Player
             SubscribeGroundTremor();
             SubscribeMonsterContact();
             SubscribeCinematic();
+            SubscribeUpgradeEvents();
         }
 
         private void OnDisable()
@@ -80,6 +82,7 @@ namespace HybridShooter.Player
             UnsubscribeGroundTremor();
             UnsubscribeMonsterContact();
             UnsubscribeCinematic();
+            UnsubscribeUpgradeEvents();
         }
 
         private void OnDestroy()

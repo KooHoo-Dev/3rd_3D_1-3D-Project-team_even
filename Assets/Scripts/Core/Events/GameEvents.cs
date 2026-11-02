@@ -300,6 +300,12 @@ namespace HybridShooter.Core.Events
         public UpgradePurchasedEvent(UpgradeDef upgrade) { Upgrade = upgrade; }
     }
 
+    /// <summary>
+    /// [보상(UpgradeLedger.ResetAll)] → 무기·수류탄·플레이어. 처음부터 재시작으로 모든 강화가 0 이 됨 (BL-033).
+    /// RoundCleanupEvent(FullReset) 구독 순서와 상관없이 강화가 빠진 능력치로 다시 계산하게 한다
+    /// </summary>
+    public readonly struct UpgradesResetEvent { }
+
     /// <summary>[UI(강화 선택 화면)] → 코어. 강화 선택 종료, 다음 라운드 시작 요청 (BL-032)</summary>
     public readonly struct RewardSelectionFinishedEvent { }
 

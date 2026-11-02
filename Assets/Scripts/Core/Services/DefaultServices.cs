@@ -352,28 +352,43 @@ namespace HybridShooter.Core.Services
         }
     }
 
-    /// <summary>강화 상태 기본 구현 (BL-030, BL-031). 레벨만 기억하고 수치는 UpgradeTrackDef 에서 계산</summary>
+    /// <summary>강화 상태 기본 구현 (BL-030, BL-031). 레벨마다 산 등급만 기억하고 수치는 UpgradeTrackDef 에서 계산</summary>
     public sealed class UpgradeLedger : IUpgradeState
     {
-        private readonly Dictionary<UpgradeType, int> levels = new Dictionary<UpgradeType, int>();
+        /// <summary>종류별 산 등급 (index 0 = Lv1). 개수 = 레벨</summary>
+        private readonly Dictionary<UpgradeType, List<UpgradeGrade>> purchased = new Dictionary<UpgradeType, List<UpgradeGrade>>();
+        private static readonly List<UpgradeGrade> None = new List<UpgradeGrade>();
 
-        public int GetLevel(UpgradeType type) => levels.TryGetValue(type, out var lv) ? lv : 0;
+        private List<UpgradeGrade> Grades(UpgradeType type) => purchased.TryGetValue(type, out var list) ? list : None;
+
+        public int GetLevel(UpgradeType type) => Grades(type).Count;
 
         public float GetTotalValue(UpgradeType type)
-            => DataManager.UpgradeTracks.TryGet(type, out var track) ? track.GetTotalValue(GetLevel(type)) : 0f;
+            => DataManager.UpgradeTracks.TryGet(type, out var track) ? track.GetTotalValue(Grades(type)) : 0f;
+
+        public UpgradeGrade? GetGrade(UpgradeType type, int level)
+        {
+            var grades = Grades(type);
+            return level >= 1 && level <= grades.Count ? grades[level - 1] : (UpgradeGrade?)null;
+        }
 
         public UpgradeDef GetNext(UpgradeType type)
             => DataManager.UpgradeTracks.TryGet(type, out var track) ? track.GetNext(GetLevel(type)) : null;
 
-        public bool TryPurchase(UpgradeType type, ICurrencyWallet wallet)
+        public bool TryPurchase(UpgradeType type, UpgradeGrade grade, ICurrencyWallet wallet)
         {
             var next = GetNext(type);
             if (next == null || wallet == null || wallet.TrySpend(next.Cost) == false) return false;
-            levels[type] = next.Level;
+            if (purchased.TryGetValue(type, out var grades) == false) purchased[type] = grades = new List<UpgradeGrade>();
+            grades.Add(grade);
             EventBus<UpgradePurchasedEvent>.Publish(new UpgradePurchasedEvent(next));
             return true;
         }
 
-        public void ResetAll() => levels.Clear();
+        public void ResetAll()
+        {
+            purchased.Clear();
+            EventBus<UpgradesResetEvent>.Publish(new UpgradesResetEvent());
+        }
     }
 }
