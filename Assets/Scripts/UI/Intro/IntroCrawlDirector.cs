@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Services;
+using HybridShooter.Tutorial;
 using HybridShooter.UI.MainMenu;
 using TMPro;
 using UnityEngine;
@@ -86,6 +87,7 @@ namespace HybridShooter.UI.Intro
         [SerializeField] private float skipFadeTime = 0.4f;
 
         [Header("다음 씬")]
+        [Tooltip("게임 씬. 튜토리얼을 아직 끝내지 않았으면 튜토리얼 씬(TutorialProgress.SceneName)으로 먼저 간다")]
         [SerializeField] private string nextSceneName = "Monster Player Integration";
         [Tooltip("BGM 페이드아웃(SoundService 1.5초)을 기다리는 시간")]
         [SerializeField] private float loadMinWait = 1.6f;
@@ -278,7 +280,7 @@ namespace HybridShooter.UI.Intro
             skipGroup.alpha = 0f;
             PlayerPrefs.SetInt(SeenKey, 1);
             PlayerPrefs.Save();
-            SceneTransition.LoadAsync(nextSceneName, loadMinWait, destroyCancellationToken).Forget();
+            SceneTransition.LoadAsync(TutorialProgress.NextSceneAfterIntro(nextSceneName), loadMinWait, destroyCancellationToken).Forget();
         }
 
         // ───────────────────────── 공통 ─────────────────────────

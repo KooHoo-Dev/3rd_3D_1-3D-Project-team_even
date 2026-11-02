@@ -99,9 +99,10 @@ namespace HybridShooter.UI.MainMenu.Editor
             gradient.gameObject.AddComponent<HorizontalFade>();
 
             var gameStart = CreateButton(menu, "Btn_GameStart", "GAME START", 0, 50f, MoonWhite);
-            var options = CreateButton(menu, "Btn_Options", "OPTIONS", 1, 40f, Steel);
-            var quit = CreateButton(menu, "Btn_Quit", "QUIT", 2, 40f, Steel);
-            LinkVertical(gameStart, options, quit);
+            var tutorial = CreateButton(menu, "Btn_Tutorial", "TUTORIAL", 1, 40f, Steel);
+            var options = CreateButton(menu, "Btn_Options", "OPTIONS", 2, 40f, Steel);
+            var quit = CreateButton(menu, "Btn_Quit", "QUIT", 3, 40f, Steel);
+            LinkVertical(gameStart, tutorial, options, quit);
 
             // 화면 모서리는 비네트로 어두워지므로 부가 정보도 너무 옅지 않게
             var version = CreateText(menu, "Version", "v0.0.0", TitleFont, 20f, new Color(Steel.r, Steel.g, Steel.b, 0.8f), TextAlignmentOptions.BottomLeft);
@@ -122,6 +123,7 @@ namespace HybridShooter.UI.MainMenu.Editor
             Set(so, "pressAnyKeyGroup", pressAnyKeyGroup);
             Set(so, "menuGroup", menuGroup);
             Set(so, "gameStartButton", gameStart);
+            Set(so, "tutorialButton", tutorial);
             Set(so, "optionsButton", options);
             Set(so, "quitButton", quit);
             Set(so, "optionsPopup", popup.GetComponent<OptionsPopup>());
@@ -149,7 +151,7 @@ namespace HybridShooter.UI.MainMenu.Editor
         private static Button CreateButton(RectTransform parent, string name, string label, int index, float fontSize, Color normalColor)
         {
             var rect = NewRect(name, parent);
-            float y = ButtonsCenterY + (1 - index) * (ButtonSize.y + ButtonSpacing); // 3개 중 가운데가 중심
+            float y = ButtonsCenterY + (1.5f - index) * (ButtonSize.y + ButtonSpacing); // 4개의 가운데가 중심
             Place(rect.gameObject, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(MarginX, y), ButtonSize, new Vector2(0f, 0.5f));
             var hit = rect.gameObject.AddComponent<Image>();
             hit.color = Color.clear; // 보이지 않는 클릭 영역

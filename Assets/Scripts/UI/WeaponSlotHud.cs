@@ -13,6 +13,7 @@ namespace HybridShooter.UI
     ///  - 칸마다 키 번호 · 아이콘(WeaponTable.IconKey, 없으면 이름) · 지금 든 칸 강조
     ///  - 4번 보급 칸: 비어 있으면 "보급" 회색, 보급 무기 탄이 다 떨어지면 흐리게
     ///  - GunSlot.GunChanged(바꿔 들기) + LoadoutChanged(구성 변경) 로 갱신
+    ///  - 번호 키로 빈 칸을 고르면(GunSlot.EmptySlotSelected) 슬롯 줄 위에 잠깐 경고
     /// 스코프 화면·사망 중·강화 선택·게임 오버·일시정지 때는 숨긴다 (PlayerHud 와 같은 규칙)
     /// </summary>
     [DisallowMultipleComponent]
@@ -35,10 +36,16 @@ namespace HybridShooter.UI
         [SerializeField] private float spacing = 8f;
         [Tooltip("보급 무기 탄이 다 떨어졌을 때 칸 투명도")]
         [SerializeField, Range(0f, 1f)] private float emptyAmmoAlpha = 0.35f;
+        [Tooltip("빈 칸 번호 키를 눌렀을 때 경고를 띄워 두는 시간(초)")]
+        [SerializeField, Min(0.5f)] private float emptyWarningTime = 1.6f;
+
+        private static readonly Color WarningColor = new Color(1f, 0.72f, 0.3f, 1f);
 
         private Canvas canvas;
         private CanvasGroup rootGroup;
         private Cell[] cells;
+        private TextMeshProUGUI emptyWarning;
+        private float emptyWarningUntil = -1f;
         private bool stateHidden;
         private bool shownSupplyEmpty;
 
@@ -76,6 +83,7 @@ namespace HybridShooter.UI
             {
                 gunSlot.GunChanged += OnGunChanged;
                 gunSlot.LoadoutChanged += Refresh;
+                gunSlot.EmptySlotSelected += OnEmptySlotSelected;
             }
             if (canvas != null) canvas.gameObject.SetActive(true);
             Refresh();
@@ -88,6 +96,7 @@ namespace HybridShooter.UI
             {
                 gunSlot.GunChanged -= OnGunChanged;
                 gunSlot.LoadoutChanged -= Refresh;
+                gunSlot.EmptySlotSelected -= OnEmptySlotSelected;
             }
             if (canvas != null) canvas.gameObject.SetActive(false);
         }
@@ -105,6 +114,12 @@ namespace HybridShooter.UI
 
             // 보급 무기 탄 소진은 이벤트가 없으므로 (든 총만 AmmoChangedEvent) 여기서 본다
             if (SupplyEmpty != shownSupplyEmpty) Refresh();
+
+            if (emptyWarningUntil >= 0f && Time.unscaledTime >= emptyWarningUntil)
+            {
+                emptyWarningUntil = -1f;
+                emptyWarning.gameObject.SetActive(false);
+            }
         }
         #endregion
 
@@ -119,6 +134,16 @@ namespace HybridShooter.UI
         }
 
         private void OnGunChanged(int index, Gun gun) => Refresh();
+
+        /// <summary>빈 칸 번호 키: 슬롯 줄 위에 잠깐 경고</summary>
+        private void OnEmptySlotSelected(int index)
+        {
+            emptyWarning.text = index == GunSlot.SupplySlot
+                ? "보급 무기 없음 — 보급 상자에서 획득"
+                : $"{index + 1}번 칸이 비어 있습니다";
+            emptyWarning.gameObject.SetActive(true);
+            emptyWarningUntil = Time.unscaledTime + emptyWarningTime;
+        }
 
         private void OnGameStateChanged(GameStateChangedEvent e)
             => stateHidden = e.Current == GameState.Reward || e.Current == GameState.GameOver || e.Current == GameState.Paused;
@@ -186,6 +211,11 @@ namespace HybridShooter.UI
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(4f, -6f), new Vector2(cellSize.x - 10f, 26f));
                 cells[i] = cell;
             }
+
+            emptyWarning = HudFactory.Label(root, "EmptyWarning", textFont, 18f, TextAlignmentOptions.BottomRight,
+                new Vector2(1f, 1f), new Vector2(1f, 0f), new Vector2(0f, 6f), new Vector2(width + 120f, 26f));
+            emptyWarning.color = WarningColor;
+            emptyWarning.gameObject.SetActive(false);
         }
         #endregion
     }

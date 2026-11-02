@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using HybridShooter.Tutorial;
 using HybridShooter.UI.Options;
 using TMPro;
 using UnityEngine;
@@ -36,6 +37,8 @@ namespace HybridShooter.UI.MainMenu
         [Tooltip("그라데이션 배경·버전·조작 힌트를 함께 페이드")]
         [SerializeField] private CanvasGroup menuGroup;
         [SerializeField] private Button gameStartButton;
+        [Tooltip("튜토리얼 다시 하기 (인트로 없이 튜토리얼 씬으로). 비워 두면 버튼 없이 동작")]
+        [SerializeField] private Button tutorialButton;
         [SerializeField] private Button optionsButton;
         [SerializeField] private Button quitButton;
         [SerializeField] private OptionsPopup optionsPopup;
@@ -75,11 +78,14 @@ namespace HybridShooter.UI.MainMenu
 
         private void Awake()
         {
-            buttons = new[] { gameStartButton, optionsButton, quitButton };
+            buttons = tutorialButton != null
+                ? new[] { gameStartButton, tutorialButton, optionsButton, quitButton }
+                : new[] { gameStartButton, optionsButton, quitButton };
             buttonPositions = new Vector2[buttons.Length];
             for (int i = 0; i < buttons.Length; i++) buttonPositions[i] = ((RectTransform)buttons[i].transform).anchoredPosition;
 
             gameStartButton.onClick.AddListener(StartGame);
+            if (tutorialButton != null) tutorialButton.onClick.AddListener(StartTutorial);
             optionsButton.onClick.AddListener(OpenOptions);
             quitButton.onClick.AddListener(Quit);
             if (optionsPopup != null) optionsPopup.Closed += OnOptionsClosed;
@@ -182,12 +188,17 @@ namespace HybridShooter.UI.MainMenu
                 .SetEase(Ease.InOutSine).SetUpdate(true).SetTarget(this);
         }
 
-        private void StartGame()
+        private void StartGame() => StartScene(gameSceneName);
+
+        /// <summary>튜토리얼 다시 하기: 인트로를 건너뛰고 튜토리얼 씬으로 (완료 기록과 상관없이)</summary>
+        private void StartTutorial() => StartScene(TutorialProgress.SceneName);
+
+        private void StartScene(string sceneName)
         {
             if (state != State.Menu) return;
             state = State.StartingGame;
             SetGroup(menuGroup, menuGroup.alpha, false);
-            StartGameAsync().Forget();
+            StartGameAsync(sceneName).Forget();
         }
 
         /// <summary>
@@ -195,13 +206,13 @@ namespace HybridShooter.UI.MainMenu
         /// (StartingGame 동안에는 Update 가 호버를 바꾸지 않으므로 끝까지 유지)
         /// TODO(6단계): 대기 대신 1인칭 진입 연출
         /// </summary>
-        private async UniTaskVoid StartGameAsync()
+        private async UniTaskVoid StartGameAsync(string sceneName)
         {
             if (backdrop != null) backdrop.SetHover(MenuHover.GameStart);
             var token = destroyCancellationToken;
             if (startDelay > 0f)
                 await UniTask.Delay(System.TimeSpan.FromSeconds(startDelay), DelayType.UnscaledDeltaTime, cancellationToken: token);
-            await SceneTransition.LoadAsync(gameSceneName, loadMinWait, token);
+            await SceneTransition.LoadAsync(sceneName, loadMinWait, token);
         }
 
         private void OpenOptions()
@@ -229,6 +240,7 @@ namespace HybridShooter.UI.MainMenu
         {
             if (selected == null) return MenuHover.None;
             if (selected == gameStartButton.gameObject) return MenuHover.GameStart;
+            if (tutorialButton != null && selected == tutorialButton.gameObject) return MenuHover.GameStart;
             if (selected == optionsButton.gameObject) return MenuHover.Options;
             if (selected == quitButton.gameObject) return MenuHover.Quit;
             return MenuHover.None;
