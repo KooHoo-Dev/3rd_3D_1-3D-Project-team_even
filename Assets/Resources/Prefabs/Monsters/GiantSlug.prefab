@@ -1080,6 +1080,10 @@ MonoBehaviour:
   hiddenBrightness: 0.25
   pulsesPerSecond: 1.2
   pulseDepth: 0.6
+  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashSeconds: 0.35
+  hitFlashCoreAlpha: 0.7
+  hitFlashScale: 1.45
 --- !u!1 &3710361424080600933
 GameObject:
   m_ObjectHideFlags: 0
@@ -2670,6 +2674,10 @@ MonoBehaviour:
   hiddenBrightness: 0.25
   pulsesPerSecond: 1.2
   pulseDepth: 0.597
+  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashSeconds: 0.35
+  hitFlashCoreAlpha: 0.7
+  hitFlashScale: 1.45
 --- !u!1 &8541927153081912611
 GameObject:
   m_ObjectHideFlags: 0
