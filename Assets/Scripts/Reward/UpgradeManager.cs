@@ -134,11 +134,28 @@ namespace HybridShooter.Reward
             }
         }
 
-        /// <summary>다음 라운드로 넘어갈 수 있는지. 열려 있으면 언제든 (구매 여부와 무관)</summary>
-        public bool CanFinish => IsOpen;
+        /// <summary>다음 라운드로 넘어갈 수 있는지. 열려 있으면 언제든 (RequirePurchaseToFinish 면 1장 이상 산 뒤)</summary>
+        public bool CanFinish => IsOpen && (RequirePurchaseToFinish == false || HasPurchased);
+
+        /// <summary>
+        /// 튜토리얼(강화 체험)용: 1장 이상 사야 닫을 수 있다. 열려 있는 동안만 유효하고 닫힐 때 풀린다
+        /// </summary>
+        public bool RequirePurchaseToFinish { get; set; }
+
+        /// <summary>
+        /// 튜토리얼(강화 체험)용: 다음 리롤 1회에서 다시 뽑는 카드의 등급을 grade 로 고정한다 (종류는 그대로 무작위).
+        /// 리롤에 쓰이거나 닫히면 풀린다. null = 해제. 본편 확률(UpgradeGradeTable·러키걸)에는 영향 없음
+        /// </summary>
+        public void ForceNextRerollGrade(UpgradeGrade? grade)
+        {
+            forcedRerollGrade = grade;
+            Changed?.Invoke();
+        }
 
         /// <summary>보스 등장 이후인지. 이후에 들어온 재화는 보스전 획득으로 센다</summary>
         private bool bossPhase;
+        /// <summary>다음 리롤에서 쓸 고정 등급 (ForceNextRerollGrade)</summary>
+        private UpgradeGrade? forcedRerollGrade;
 
         private readonly List<Slot> slots = new List<Slot>();
 
@@ -238,7 +255,8 @@ namespace HybridShooter.Reward
             if (wallet.TrySpend(RerollCost) == false) return false;
 
             RerollCount++;
-            RollSlots(keepSold: true);
+            RollSlots(keepSold: true, forcedRerollGrade);
+            forcedRerollGrade = null;
             Debug.Log($"[UpgradeManager] 리롤 {RerollCount}회 (비용 {RerollCost}) → {DescribeSlots()}, 잔액 {wallet.Balance}", this);
             Changed?.Invoke();
             return true;
@@ -303,6 +321,8 @@ namespace HybridShooter.Reward
         {
             if (IsOpen == false) return;
             IsOpen = false;
+            RequirePurchaseToFinish = false;
+            forcedRerollGrade = null;
             Changed?.Invoke();
         }
 
@@ -315,8 +335,8 @@ namespace HybridShooter.Reward
 
         // ── 뽑기 ──
 
-        /// <summary>SOLD 가 아닌 칸을 다시 뽑는다 (keepSold = false 면 모든 칸). 후보가 모자라면 빈 칸</summary>
-        private void RollSlots(bool keepSold)
+        /// <summary>SOLD 가 아닌 칸을 다시 뽑는다 (keepSold = false 면 모든 칸). 후보가 모자라면 빈 칸. forcedGrade 가 있으면 등급은 그것으로</summary>
+        private void RollSlots(bool keepSold, UpgradeGrade? forcedGrade = null)
         {
             var used = keepSold ? SoldTypes() : new HashSet<UpgradeType>();
             var candidates = BuildCandidates(used);
@@ -331,7 +351,7 @@ namespace HybridShooter.Reward
                 int pick = PickWeighted(candidates);
                 var track = candidates[pick];
                 candidates.RemoveAt(pick); // 한 화면에 같은 종류는 한 장만
-                slots[i] = new Slot { HasOffer = true, Type = track.UpgradeType, Grade = RollGrade() };
+                slots[i] = new Slot { HasOffer = true, Type = track.UpgradeType, Grade = forcedGrade ?? RollGrade() };
             }
         }
 

@@ -65,6 +65,7 @@ namespace HybridShooter.Monster.Behaviour
         private MonsterMovement movement;
         private PounceSettings pounceSettings; // 측면 침투형(도약)만 있음. null = 원거리 접근 배율 없음
         private bool playerDead;
+        private bool dormant;              // 휴면: 대상을 잡지 않는다 (SetDormant). 재사용(Respawn) 때 꺼진다
         private bool despawned;
 
         // ── 피격·사망 표현 ──
@@ -94,6 +95,21 @@ namespace HybridShooter.Monster.Behaviour
         public Faction Faction => Faction.Monster;
         public bool IsAlive => CurrentHp > 0;
         public bool IsLowHealth => CurrentHp <= MaxHp * lowHealthRatio;
+        /// <summary>휴면 중 (SetDormant)</summary>
+        public bool IsDormant => dormant;
+
+        /// <summary>
+        /// 휴면 상태를 켜고 끈다 (튜토리얼 표적 등). 켜져 있으면 대상을 잡지 않아 Idle 로 제자리에 서 있고 공격하지 않는다.
+        /// 피격·사망·처치 보상·울음(IdleSfx)은 그대로다. 소환 직후(Start 전)에 불러도 된다. 풀 재사용(Respawn) 때 꺼진다.
+        /// </summary>
+        /// <param name="value">true = 휴면, false = 다음 Update 부터 다시 대상을 잡는다</param>
+        public void SetDormant(bool value)
+        {
+            dormant = value;
+            if (value == false || StateMachine == null) return;
+            StateMachine.SetTarget(null);
+            SetMovementTarget(null);
+        }
 
         /// <summary>
         /// 컴포넌트 참조를 잡고, monsterId 로 테이블 Def 를 읽어 체력을 채운다.
@@ -134,6 +150,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             despawned = false;
             playerDead = false;
+            dormant = false;
             InitializeHealth(Def.MaxHp);
             lastHitDirection = Vector3.zero;
             foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = true; // MonsterCorpse 가 끈 피격 판정 복구
@@ -381,7 +398,7 @@ namespace HybridShooter.Monster.Behaviour
         /// </remarks>
         private void AcquireTarget()
         {
-            if (playerDead) return;
+            if (dormant || playerDead) return;
             if (StateMachine.HasTarget) return;
             if (ServiceLocator.TryGet(out IPlayerTarget player) == false) return; // 플레이어 등록 전
             var playerDamageable = player as IDamageable;

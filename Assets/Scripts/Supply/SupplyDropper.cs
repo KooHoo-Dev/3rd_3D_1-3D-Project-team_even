@@ -145,7 +145,37 @@ namespace HybridShooter.Supply
             }
 
             if (TryFindGroundPoint(out var groundPoint) == false) return null; // 탈락 사유는 TryFindGroundPoint 가 남긴다
+            return Spawn(def, groundPoint);
+        }
 
+        /// <summary>
+        /// 지정한 종류의 보급을 지정한 위치(XZ)에 투하한다 (튜토리얼 등 연출용).
+        /// 낙하 지점 탐색(ISpawnZoneProvider·플레이어 거리 범위·NavMesh 검사)을 하지 않고, 그 위치 바로 아래 지면에 떨어뜨린다.
+        /// 최대 개수 도달 / 아래에 지면 없음 / 프리팹 없음이면 투하하지 않고 null.
+        /// </summary>
+        public SupplyCrate Drop(SupplyDef def, Vector3 position)
+        {
+            if (def == null) return null;
+
+            if (IsAtLimit)
+            {
+                Debug.Log($"[SupplyDropper] 필드의 보급이 최대 {MaxActiveSupplies}개라 투하하지 않습니다.");
+                return null;
+            }
+
+            float rayTop = position.y + Mathf.Max(MinDropHeight, DataManager.Config.GetFloat(GameConfig.SupplyDropHeight, 40f)) + 50f;
+            var origin = new Vector3(position.x, rayTop, position.z);
+            if (Physics.Raycast(origin, Vector3.down, out var hit, rayTop - position.y + 200f, groundMask, QueryTriggerInteraction.Ignore) == false)
+            {
+                Debug.LogWarning($"[SupplyDropper] {position} 아래에 지면이 없어 투하하지 않습니다.", this);
+                return null;
+            }
+            return Spawn(def, hit.point);
+        }
+
+        /// <summary>프리팹 생성 → 낙하 시작(Launch) → 목록 등록 → SupplyDroppedEvent 발행. 프리팹이 없으면 null</summary>
+        private SupplyCrate Spawn(SupplyDef def, Vector3 groundPoint)
+        {
             var prefab = LoadPrefab(def);
             if (prefab == null) return null;
 

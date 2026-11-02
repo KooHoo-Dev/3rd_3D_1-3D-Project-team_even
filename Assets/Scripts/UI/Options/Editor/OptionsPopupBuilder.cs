@@ -31,7 +31,8 @@ namespace HybridShooter.UI.Options.Editor
         private const string KoreanFontPath = "Assets/StudySample/99. External Assets/Font/Noto_Sans_KR/static/NotoSansKR-Regular SDF.asset";
 
         public const string PopupPath = "Assets/Prefabs/UI/OptionsPopup.prefab";
-        public const string TestScenePath = "Assets/Scenes/GU/Test_MainMenu.unity";
+        /// <summary>메인 메뉴 씬 (메인 메뉴 UI·디오라마 빌더 공용). 씬을 옮기면 여기만 바꾼다</summary>
+        public const string TestScenePath = "Assets/Scenes/TestScenes/Test_MainMenu.unity";
 
         internal static readonly Color Cyan = new Color(0.2f, 0.9f, 1f);
         internal static readonly Color TextColor = new Color(0.85f, 0.95f, 1f);

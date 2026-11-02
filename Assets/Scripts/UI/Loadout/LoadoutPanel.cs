@@ -39,6 +39,7 @@ namespace HybridShooter.UI
         private static readonly Color CardColor = new Color(0.05f, 0.12f, 0.16f, 0.92f);
         private static readonly Color LockedColor = new Color(0.04f, 0.07f, 0.09f, 0.85f);
         private static readonly Color MutedText = new Color(0.6f, 0.7f, 0.75f, 1f);
+        private static readonly Color WarningColor = new Color(1f, 0.72f, 0.3f, 1f);
         private static readonly Color ButtonColor = new Color(0.15f, 0.55f, 0.75f, 1f);
         /// <summary>후보 버튼 (3열 × 360 + 간격 2 × 20 = 1120)</summary>
         private static readonly Vector2 CandidateSize = new Vector2(360f, 92f);
@@ -68,7 +69,7 @@ namespace HybridShooter.UI
         private Canvas canvas;
         private SlotView[] slotViews;
         private RectTransform candidateList;
-        private TextMeshProUGUI titleText, hintText, candidateTitle, startLabel;
+        private TextMeshProUGUI titleText, hintText, candidateTitle, startLabel, emptyWarningText;
         private readonly List<GameObject> candidateItems = new List<GameObject>();
         private PlayerController player;
 
@@ -360,7 +361,16 @@ namespace HybridShooter.UI
             }
 
             if (startButton != null) startButton.interactable = HasAnySelection();
+            if (emptyWarningText != null) emptyWarningText.gameObject.SetActive(HasFillableEmptySlot());
             RefreshCandidates();
+        }
+
+        /// <summary>비어 있는 2·3번 칸 중 채울 수 있는 해금 무기가 남은 칸이 있는지 (해금 전이라 채울 무기가 없으면 경고하지 않는다)</summary>
+        private bool HasFillableEmptySlot()
+        {
+            for (int i = 0; i < selection.Length; i++)
+                if (selection[i] == 0 && Candidates(i).Count > 0) return true;
+            return false;
         }
 
         private void RefreshCandidates()
@@ -517,6 +527,13 @@ namespace HybridShooter.UI
             startLabel.fontSize = 32f;
             start.onClick.AddListener(Confirm);
             startButton = start;
+
+            // 빈 칸 경고 (출발 버튼 위). 출발은 막지 않는다
+            emptyWarningText = HudFactory.Label(root, "EmptySlotWarning", textFont, 22f, TextAlignmentOptions.Center,
+                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 226f), new Vector2(1100f, 36f));
+            emptyWarningText.text = "[주의] 비어 있는 무기 칸이 있습니다. 그대로 출발하면 그 칸은 사용할 수 없습니다";
+            emptyWarningText.color = WarningColor;
+            emptyWarningText.gameObject.SetActive(false);
 
             canvas.gameObject.SetActive(false);
         }

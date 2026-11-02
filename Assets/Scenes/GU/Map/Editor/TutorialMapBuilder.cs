@@ -10,6 +10,7 @@ using UnityEngine.SceneManagement;
 /// - 남(z=0)에서 북(+Z)으로 한 방향으로만 걷는 약 60m × 200m 선형 협곡. 폭은 단계마다 넓어지고 좁아진다.
 /// - 단계: ① 추락 함선 옆 기상 → ② 잔해 협곡 → ③ 첫 항체 조우 → ④ 보급 포드 공터 → ⑤ 전초기지 게이트
 /// - 튜토리얼 진행 로직(트리거·안내 문구)은 범위 밖이다. 단계 위치에는 빈 마커(Markers 아래)만 둔다.
+///   진행용 마커는 Markers/Tutorial(Tut_*) 아래 — TutorialSceneBuilder(Tools/Tutorial/Setup Tutorial Scene)가 이 마커로 진행 오브젝트를 붙인다.
 /// - 소품 배치·콜라이더 정리·NavMesh·분위기는 SciFiMapBuilder의 도우미를 같이 쓴다.
 /// - 씬이 이미 있으면 열어서 TutorialMap 루트만 다시 만든다. (씬의 다른 오브젝트는 건드리지 않음)
 /// </summary>
@@ -93,6 +94,7 @@ public static class TutorialMapBuilder
         Random.InitState(8105); BuildGate(SciFiMapBuilder.Group(props, "5_OutpostGate"), markers);
         Random.InitState(8106); BuildWallFoot(SciFiMapBuilder.Group(props, "WallFoot"));
         Random.state = prev;
+        BuildTutorialMarkers(markers);
 
         // 3) 콜라이더 정리 → NavMesh → 분위기 → 미리보기 카메라
         SciFiMapBuilder.CleanupColliders(root.transform);
@@ -309,12 +311,14 @@ public static class TutorialMapBuilder
         Marker(markers, "GateTrigger (인게임 전환)", OnCenter(GateZ + 1f), 0f);
 
         Vector2 c = OnCenter(GateZ);
+        gateFrontZ = GateZ;
         GameObject gate = SciFiMapBuilder.Spawn("Wall1_Gate", parent);
         if (gate == null) return;
         Bounds gb = SciFiMapBuilder.GetBounds(gate);
         if (gb.size.z > gb.size.x) gate.transform.rotation = Quaternion.Euler(0f, 90f, 0f) * gate.transform.rotation; // 긴 변이 협곡을 가로지르게
         SciFiMapBuilder.SetOnGround(gate, c, 0f);
         gb = SciFiMapBuilder.GetBounds(gate);
+        gateFrontZ = gb.min.z;
 
         // 게이트 양옆을 벽 조각으로 협곡 벽까지 막는다.
         float reach = HalfWidth(GateZ) + WallRamp * 0.5f;
@@ -359,11 +363,62 @@ public static class TutorialMapBuilder
     // ───────────────────────── 마커·카메라 ─────────────────────────
 
     /// <summary>튜토리얼 단계 위치를 표시하는 빈 오브젝트. 진행 로직 담당이 이 위치에 트리거·안내를 붙인다.</summary>
-    private static void Marker(Transform parent, string name, Vector2 xz, float yaw)
+    private static Transform Marker(Transform parent, string name, Vector2 xz, float yaw)
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
         go.transform.SetPositionAndRotation(new Vector3(xz.x, SciFiMapBuilder.GroundY(xz), xz.y), Quaternion.Euler(0f, yaw, 0f));
+        return go.transform;
+    }
+
+    /// <summary>
+    /// 튜토리얼 진행(TutorialDirector) 마커 — Markers/Tutorial 아래. 기획: Docs/Design/Tutorial_Proposal_v3.md 3장.
+    /// Tools > Tutorial > Setup Tutorial Scene 이 이름(Tut_*)으로 찾아 트리거·차단막·소환 지점을 붙인다.
+    /// 길을 가로지르는 마커(차단막·게이트·구역)는 진행 방향(+Z)을 보고, localScale.x 에 그 자리 협곡 폭(m)을 담는다.
+    /// </summary>
+    private static void BuildTutorialMarkers(Transform markers)
+    {
+        Transform t = SciFiMapBuilder.Group(markers, "Tutorial");
+
+        // ① 이동 → 질주 → 피해 차단막 2개 (좁은 협곡) → 진행 차단막
+        Marker(t, "Tut_MoveTarget", OnCenter(PlayerStartZ + 14f), 0f);
+        Span(t, "Tut_RollBarrier_1", 48f);
+        Span(t, "Tut_RollBarrier_2", 55f);
+        Span(t, "Tut_Gate_Movement", 62f);
+
+        // ② 휴면 최약체 3마리 (통로 안, 플레이어 쪽을 본다)
+        for (int i = 0; i < 3; i++)
+            Marker(t, $"Tut_Aim_{i + 1}", OnCenter(78f) + new Vector2((i - 1) * 2f, 0f), 180f);
+        Span(t, "Tut_Gate_Aim", 92f);
+
+        // ③ 수류탄 무리 (조우 공간 가운데)
+        Marker(t, "Tut_GrenadeGroup", OnCenter(EncounterZ + 2f), 180f);
+        Span(t, "Tut_Gate_Grenade", 130f);
+
+        // ④ 보급 공터: 입구 → 회복 팩·수류탄 상자 → 무기 상자 → 보급 무기 무리
+        Span(t, "Tut_Zone_SupplyEntrance", 138f);
+        Marker(t, "Tut_Drop_Heal", OnCenter(SupplyZ) + new Vector2(-5f, 0f), 0f);
+        Marker(t, "Tut_Drop_Grenade", OnCenter(SupplyZ) + new Vector2(5f, 0f), 0f);
+        Marker(t, "Tut_Drop_Weapon", OnCenter(SupplyZ + 6f), 0f);
+        Marker(t, "Tut_WeaponGroup", OnCenter(SupplyZ + 15f), 180f);
+        Span(t, "Tut_Gate_Supply", 174f);
+
+        // ⑤ 강화 구역 → ⑥ 전초기지 게이트 앞 (게이트 모델 앞면에서 ExitZoneGap 앞. 모델이 깊어도 플레이어가 닿는 자리)
+        Span(t, "Tut_Zone_Upgrade", 186f);
+        Span(t, "Tut_Gate_Upgrade", 196f);
+        Span(t, "Tut_Zone_Exit", Mathf.Max(198f, Mathf.Min(GateZ - 4f, gateFrontZ - ExitZoneGap)));
+    }
+
+    /// <summary>BuildGate 가 기록한 게이트 모델 앞면(z). 게이트가 없으면 GateZ</summary>
+    private static float gateFrontZ = GateZ;
+    /// <summary>게이트 앞면에서 전장 전환 트리거 중심까지(m). 트리거 깊이(TutorialSceneBuilder 6m)의 절반</summary>
+    private const float ExitZoneGap = 3f;
+
+    /// <summary>z 에서 협곡을 가로지르는 마커. localScale.x = 협곡 폭(m)</summary>
+    private static void Span(Transform parent, string name, float z)
+    {
+        Transform marker = Marker(parent, name, OnCenter(z), 0f);
+        marker.localScale = new Vector3(HalfWidth(z) * 2f, 1f, 1f);
     }
 
     /// <summary>씬 기본 카메라를 시작 지점 눈높이에서 협곡 안쪽(+Z)을 보게 둔다. (미리보기용)</summary>
