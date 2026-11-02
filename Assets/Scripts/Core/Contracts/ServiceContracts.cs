@@ -84,17 +84,20 @@ namespace HybridShooter.Core.Contracts
 
     /// <summary>
     /// 구매한 강화 상태 (BL-030, BL-031). 기본 구현: UpgradeLedger.
-    /// 무기·수류탄 쪽은 GetTotalValue 로 실제 능력치를 계산하고 UpgradePurchasedEvent 에 반응해 갱신한다.
+    /// 무기·수류탄·플레이어 쪽은 GetTotalValue 로 실제 능력치를 계산하고 UpgradePurchasedEvent · UpgradesResetEvent 에 반응해 갱신한다.
     /// </summary>
     public interface IUpgradeState
     {
         int GetLevel(UpgradeType type);
+        /// <summary>레벨마다 산 등급의 값 합계 (강화 없음 = 0)</summary>
         float GetTotalValue(UpgradeType type);
+        /// <summary>level(1부터) 레벨을 산 등급. 아직 안 산 레벨이면 null</summary>
+        UpgradeGrade? GetGrade(UpgradeType type, int level);
         /// <summary>다음 레벨 강화 정보 (최대 레벨이면 null)</summary>
         UpgradeDef GetNext(UpgradeType type);
-        /// <summary>재화를 차감하고 레벨을 올린다. 성공 시 UpgradePurchasedEvent</summary>
-        bool TryPurchase(UpgradeType type, ICurrencyWallet wallet);
-        /// <summary>처음부터 다시 시작(BL-033) 시 초기화</summary>
+        /// <summary>재화를 차감하고 grade 등급으로 레벨을 올린다. 성공 시 UpgradePurchasedEvent</summary>
+        bool TryPurchase(UpgradeType type, UpgradeGrade grade, ICurrencyWallet wallet);
+        /// <summary>처음부터 다시 시작(BL-033) 시 초기화. UpgradesResetEvent</summary>
         void ResetAll();
     }
 }

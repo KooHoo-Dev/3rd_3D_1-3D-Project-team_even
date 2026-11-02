@@ -11,7 +11,8 @@ namespace HybridShooter.UI
     /// <summary>
     /// 라운드 보상·강화 선택 화면 (BL-030, BL-031, BL-032). 디자인: Docs/Design/UpgradeUI_Mockup.html
     ///  - A. Reward  : 이번 라운드 획득 재화(군중전 / 보스전 / 합계)와 보유 재화, [강화 선택]
-    ///  - B. Upgrade : 강화 카드 3장(효과·비용·레벨), 보유 재화, [다음 라운드] / [건너뛰기]. 재화가 남아 있으면 카드를 계속 살 수 있다
+    ///  - B. Upgrade : 무작위 강화 카드(등급 색·효과·비용·레벨, 산 카드는 SOLD), 보유 재화, 보유 강화, [리롤] · [다음 라운드] / [건너뛰기].
+    ///                재화가 남아 있으면 카드를 계속 살 수 있다
     /// 표시만 담당한다. 상태와 규칙은 UpgradeManager 가 가지고, 이 화면은 Manager.Changed 를 받아 다시 그린다.
     /// 레이아웃은 실행 시 코드로 만든다 (1920×1080 기준). 글꼴·스프라이트는 Resources/UI/UpgradeUiSkin 을 쓰고,
     /// Inspector 칸에 연결한 값이 있으면 그 칸만 덮어쓴다. 둘 다 비어 있으면 단색으로 대신한다.
@@ -42,7 +43,7 @@ namespace HybridShooter.UI
         [Header("공통 버튼·아이콘")]
         [SerializeField] private Sprite mainButton;
         [SerializeField] private Sprite coinIcon;
-        [Tooltip("UpgradeType 순서: ReloadSpeed, MagazineSize, GrenadeCapacity")]
+        [Tooltip("UpgradeType 순서 (enum 값 = 칸 번호). 비어 있는 칸은 아이콘 없이 그린다")]
         [SerializeField] private Sprite[] upgradeIcons = new Sprite[3];
 
         /// <summary>배치(1920×1080 기준, 위 40 ~ 아래 1040) 축소 비율. 0.9 면 위아래로 약 60씩 여백</summary>
@@ -56,9 +57,11 @@ namespace HybridShooter.UI
         /// <summary>강화 카드 한 장의 화면 요소</summary>
         private sealed class CardView
         {
+            public GameObject Root;
             public CanvasGroup Group;
             public Outline Highlight;
-            public Text Name, Level, Description, Effect, Cost, Shortage;
+            public Image Icon;
+            public Text Grade, Name, Level, Description, Effect, Cost, Shortage;
             public readonly List<Image> Stars = new List<Image>();
             public RectTransform StarRow;
             public Button Buy;
@@ -67,9 +70,10 @@ namespace HybridShooter.UI
 
         private GameObject root, rewardPanel, upgradePanel;
         private Text crowdText, bossText, totalText, rewardBalanceText;
-        private Text balanceText, subtitleText, finishLabel;
-        private Button finishButton;
+        private Text balanceText, subtitleText, finishLabel, rerollLabel, ownedText;
+        private Button finishButton, rerollButton;
         private readonly List<CardView> cards = new List<CardView>();
+        private readonly System.Text.StringBuilder ownedBuilder = new System.Text.StringBuilder();
 
         private void Awake()
         {
@@ -144,10 +148,13 @@ namespace HybridShooter.UI
             rewardBalanceText.text = manager.Balance.ToString();
             balanceText.text = manager.Balance.ToString();
 
-            for (int i = 0; i < cards.Count; i++) RefreshCard(cards[i], manager.GetOption(manager.Types[i]));
+            for (int i = 0; i < cards.Count; i++) RefreshCard(cards[i], manager.GetOption(i));
+            RefreshOwned();
 
             bool anyPurchasable = manager.AnyPurchasable;
             finishButton.interactable = manager.CanFinish;
+            rerollButton.interactable = manager.CanReroll;
+            rerollLabel.text = $"리롤  {manager.RerollCost}";
             finishLabel.text = manager.HasPurchased ? "다음 라운드 ▶" : "건너뛰기 ▶";
             subtitleText.text = anyPurchasable
                 ? (manager.HasPurchased ? $"강화 {manager.PurchaseCount}회 · 재화가 남아 있으면 계속 강화할 수 있습니다"
@@ -158,26 +165,34 @@ namespace HybridShooter.UI
 
         private void RefreshCard(CardView card, UpgradeManager.UpgradeOption option)
         {
-            var shown = option.Next ?? option.Current;
+            card.Root.SetActive(option.HasOffer);
+            if (option.IsEmpty) return;
 
-            card.Name.text = shown != null ? shown.Name : option.Type.ToString();
-            card.Description.text = shown != null ? shown.Description : "-";
-            card.Level.text = option.IsMax ? $"Lv {option.Level} / {option.MaxLevel}"
-                                           : $"Lv {option.Level} → {option.Level + 1} / {option.MaxLevel}";
-            card.Effect.text = option.IsMax ? $"{FormatValue(option.Type, option.CurrentValue)} (최대)"
-                             : $"<color=#7FA6B0>{FormatValue(option.Type, option.CurrentValue)}</color>  →  {FormatValue(option.Type, option.NextValue)}";
-            SetStars(card, option.Level, option.MaxLevel);
+            Color gradeColor = option.GradeDef != null ? option.GradeDef.Color : Color.white;
+            var icon = (int)option.Type < upgradeIcons.Length ? upgradeIcons[(int)option.Type] : null;
+            card.Icon.sprite = icon;
+            card.Icon.enabled = icon != null;
 
-            card.Group.alpha = option.IsMax || option.CanBuy ? 1f : 0.7f;
+            card.Grade.text = option.GradeDef != null ? option.GradeDef.Name : option.Grade.ToString();
+            card.Grade.color = gradeColor;
+            card.Name.text = option.Next != null ? option.Next.Name : option.Type.ToString();
+            card.Name.color = gradeColor;
+            card.Description.text = option.Next != null ? option.Next.Description.Replace("{0}", FormatValue(option.Type, option.GradeValue)) : "-";
+            card.Level.text = $"Lv {option.Level} → {option.Level + 1} / {option.MaxLevel}";
+            card.Effect.text = $"<color=#7FA6B0>{FormatValue(option.Type, option.CurrentValue)}</color>  →  {FormatValue(option.Type, option.NextValue)}";
+            SetStars(card, option.Type, option.IsSold ? option.Level + 1 : option.Level, option.MaxLevel);
+
+            card.Group.alpha = option.IsSold ? 0.6f : (option.CanBuy ? 1f : 0.75f);
             card.Highlight.enabled = option.CanBuy;
+            card.Highlight.effectColor = new Color(gradeColor.r, gradeColor.g, gradeColor.b, 0.9f);
             card.Buy.interactable = option.CanBuy;
-            card.Shortage.gameObject.SetActive(option.IsMax == false && option.CanBuy == false);
+            card.Shortage.gameObject.SetActive(option.IsSold == false && option.CanBuy == false);
 
-            if (option.IsMax)
+            if (option.IsSold)
             {
                 SetSprite(card.BuyImage, ownedButton, new Color(0.05f, 0.4f, 0.45f));
                 card.BuyCoin.gameObject.SetActive(false);
-                card.Cost.text = "MAX";
+                card.Cost.text = "SOLD";
                 card.Cost.font = numberFont;
                 card.Cost.color = Color.white;
             }
@@ -193,20 +208,46 @@ namespace HybridShooter.UI
             }
         }
 
-        /// <summary>누적 강화 값을 종류에 맞게 표기. ReloadSpeed=감소율, MagazineSize=+발, GrenadeCapacity=+개</summary>
+        /// <summary>보유 강화 목록: 이름 + 레벨마다 산 등급 색 점 (리롤 판단용)</summary>
+        private void RefreshOwned()
+        {
+            ownedBuilder.Clear();
+            foreach (var type in manager.Types)
+            {
+                int level = manager.GetLevel(type);
+                if (level <= 0 || DataManager.UpgradeTracks.TryGet(type, out var track) == false) continue;
+                string name = track.Levels[0].Name.TrimEnd(' ', 'I');
+                ownedBuilder.Append(name).Append("  ");
+                for (int lv = 1; lv <= level; lv++)
+                    ownedBuilder.Append("<color=#").Append(ColorUtility.ToHtmlStringRGB(GradeColor(manager.GetGrade(type, lv)))).Append(">●</color>");
+                ownedBuilder.Append('\n');
+            }
+            ownedText.text = ownedBuilder.Length > 0 ? ownedBuilder.ToString() : "<color=#7FA6B0>아직 없음</color>";
+        }
+
+        private static Color GradeColor(UpgradeGrade? grade)
+            => grade.HasValue && DataManager.UpgradeGrades.TryGet(grade.Value, out var def) ? def.Color : Color.white;
+
+        /// <summary>강화 값을 종류에 맞는 단위로 표기 (UpgradeDef.GradeValues 의 단위)</summary>
         private static string FormatValue(UpgradeType type, float value)
         {
             switch (type)
             {
                 case UpgradeType.ReloadSpeed: return $"-{value * 100f:0}%";
                 case UpgradeType.MagazineSize: return $"+{value:0}발";
-                case UpgradeType.GrenadeCapacity: return $"+{value:0}개";
+                case UpgradeType.GrenadeCapacity:
+                case UpgradeType.HealCapacity: return $"+{value:0}개";
+                case UpgradeType.MaxHealth:
+                case UpgradeType.MaxStamina: return $"+{value:0}";
+                case UpgradeType.GrenadeRadius:
+                case UpgradeType.StaminaRegen:
+                case UpgradeType.LuckyGirl: return $"+{value * 100f:0}%";
                 default: return value.ToString("0.##");
             }
         }
 
-        /// <summary>최대 레벨 수만큼 별을 만들고, 현재 레벨까지 켠다</summary>
-        private void SetStars(CardView card, int level, int maxLevel)
+        /// <summary>최대 레벨 수만큼 별을 만들고, 산 레벨까지 그 레벨 등급 색으로 켠다</summary>
+        private void SetStars(CardView card, UpgradeType type, int level, int maxLevel)
         {
             while (card.Stars.Count < maxLevel)
             {
@@ -217,7 +258,9 @@ namespace HybridShooter.UI
             for (int i = 0; i < card.Stars.Count; i++)
             {
                 card.Stars[i].gameObject.SetActive(i < maxLevel);
-                SetSprite(card.Stars[i], i < level ? starOn : starOff, i < level ? Gold : Dim);
+                bool on = i < level;
+                SetSprite(card.Stars[i], on ? starOn : starOff, on ? Gold : Dim);
+                if (on) card.Stars[i].color = GradeColor(manager.GetGrade(type, i + 1));
             }
         }
 
@@ -294,32 +337,54 @@ namespace HybridShooter.UI
             balanceText = CreateText("Value", bar.transform, numberFont, 34, TextAnchor.UpperLeft, Gold, "0");
             PlaceLeft(balanceText.rectTransform, 76f, 30f, 220f, 44f);
 
-            var types = manager.Types;
-            for (int i = 0; i < types.Count; i++)
-                cards.Add(BuildCard(p, i < upgradeIcons.Length ? upgradeIcons[i] : null, (i - (types.Count - 1) * 0.5f) * 508f));
+            // 보유 강화 (좌측 상단, 보유 재화와 대칭)
+            var owned = CreateImage("OwnedBar", p, null, new Color(0.25f, 0.33f, 0.36f, 0.6f));
+            Place(owned.rectTransform, -739f, 40f, 322f, 280f);
+            PlaceLeft(CreateText("Label", owned.transform, textFont, 18, TextAnchor.UpperLeft, Dim, "보유 강화").rectTransform, 18f, 8f, 280f, 26f);
+            ownedText = CreateText("Value", owned.transform, textFont, 20, TextAnchor.UpperLeft, Color.white, string.Empty);
+            ownedText.lineSpacing = 1.1f;
+            PlaceLeft(ownedText.rectTransform, 18f, 38f, 290f, 236f);
+
+            int count = manager.OfferCount;
+            for (int i = 0; i < count; i++)
+                cards.Add(BuildCard(p, (i - (count - 1) * 0.5f) * 508f));
+
+            rerollButton = CreateButton("RerollButton", p, mainButton, new Color(0.15f, 0.55f, 0.75f), string.Empty, out rerollLabel);
+            Place((RectTransform)rerollButton.transform, -200f, 916f, 342f, 124f);
+            rerollButton.onClick.AddListener(() => manager.TryReroll());
+            var rerollColors = rerollButton.colors;
+            rerollColors.disabledColor = new Color(0.4f, 0.4f, 0.4f, 0.8f);
+            rerollButton.colors = rerollColors;
 
             finishButton = CreateButton("FinishButton", p, mainButton, new Color(0.15f, 0.55f, 0.75f), string.Empty, out finishLabel);
-            Place((RectTransform)finishButton.transform, 0f, 916f, 342f, 124f);
+            Place((RectTransform)finishButton.transform, 200f, 916f, 342f, 124f);
             finishButton.onClick.AddListener(manager.Finish);
             var colors = finishButton.colors;
             colors.disabledColor = new Color(0.4f, 0.4f, 0.4f, 0.8f);
             finishButton.colors = colors;
         }
 
-        private CardView BuildCard(Transform parent, Sprite iconSprite, float x)
+        /// <summary>카드 한 장. 아이콘·등급·내용은 Refresh 때 카드에 뽑힌 강화로 채운다</summary>
+        private CardView BuildCard(Transform parent, float x)
         {
             var card = new CardView();
             var bg = CreateImage("Card", parent, cardPanel, new Color(0.02f, 0.15f, 0.18f, 0.95f));
             Place(bg.rectTransform, x, 335f, 460f, 540f);
+            card.Root = bg.gameObject;
             card.Group = bg.gameObject.AddComponent<CanvasGroup>();
             card.Highlight = bg.gameObject.AddComponent<Outline>();
             card.Highlight.effectColor = new Color(0.2f, 0.9f, 1f, 0.9f);
             card.Highlight.effectDistance = new Vector2(4f, -4f);
             var c = bg.transform;
 
+            card.Grade = CreateText("Grade", c, textFont, 24, TextAnchor.MiddleCenter, Color.white, string.Empty);
+            card.Grade.fontStyle = FontStyle.Bold;
+            Place(card.Grade.rectTransform, 0f, 6f, 300f, 30f);
+
             var glow = CreateImage("IconGlow", c, null, new Color(0.2f, 0.9f, 1f, 0.12f));
             Place(glow.rectTransform, 0f, 34f, 132f, 132f);
-            Place(CreateImage("Icon", c, iconSprite, Color.white).rectTransform, 0f, 54f, 92f, 92f);
+            card.Icon = CreateImage("Icon", c, null, Color.white);
+            Place(card.Icon.rectTransform, 0f, 54f, 92f, 92f);
 
             card.Name = CreateText("Name", c, textFont, 34, TextAnchor.MiddleCenter, Color.white, string.Empty);
             card.Name.fontStyle = FontStyle.Bold;
@@ -361,8 +426,8 @@ namespace HybridShooter.UI
             var colors = card.Buy.colors;
             colors.disabledColor = Color.white;   // 비활성 모양은 스프라이트로 표현
             card.Buy.colors = colors;
-            var type = manager.Types[cards.Count];
-            card.Buy.onClick.AddListener(() => manager.TryPurchase(type));
+            int index = cards.Count;
+            card.Buy.onClick.AddListener(() => manager.TryPurchase(index));
 
             card.Shortage = CreateText("Shortage", c, textFont, 22, TextAnchor.MiddleCenter, Warning, "재화 부족");
             card.Shortage.fontStyle = FontStyle.Bold;

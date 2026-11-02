@@ -47,6 +47,8 @@ namespace HybridShooter.Core.Data.Defs
         public const string RoundStartHealPacks = "RoundStartHealPacks";       // 〃 회복 팩
         public const string RoundStartMagazines = "RoundStartMagazines";       // 〃 1~3번 칸 모든 총 예비 탄창
         public const string CameraTransitionTime = "CameraTransitionTime";   // BL-022
+        public const string UpgradeOfferCount = "UpgradeOfferCount";           // BL-030 강화 상점 카드 수
+        public const string UpgradeRerollCost = "UpgradeRerollCost";           // BL-030 강화 상점 리롤 비용 (고정)
 
         private readonly Dictionary<string, string> values = new Dictionary<string, string>();
 
