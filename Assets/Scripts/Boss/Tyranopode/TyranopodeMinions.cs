@@ -12,7 +12,7 @@ namespace HybridShooter.Boss.Tyranopode
 {
     /// <summary>
     /// 보스가 부른 잡몹만 따로 관리한다 (포효 소환·알 부화). 웨이브 잡몹은 건드리지 않는다.
-    ///  - 경기장: 씬의 TyranopodeArena 로 받거나, 없으면 보스 발밑 NavMesh 에서 사방으로 NavMesh.Raycast 를 쏴
+    ///  - 경기장: 씬의 TyranopodeArena 로 받거나, 없으면 측정 시작점(맵 중심 또는 보스 발밑) NavMesh 에서 사방으로 NavMesh.Raycast 를 쏴
     ///    걸을 수 있는 바닥이 끝나는 곳(벽·절벽·맵 끝)까지로 잰다. 언덕·구덩이 경사는 바닥을 따라 넘으므로 벽으로 보지 않는다.
     ///    절반 넘는 방향이 MeasureRange 까지 막히지 않으면 열린 맵 → 경계 없음(HasBounds false), 소환 둘레는 기본 반지름
     ///  - SpawnAtWall: 벽 바로 안쪽 NavMesh 위에서 소환 (벽을 넘어온 것처럼)
@@ -130,14 +130,18 @@ namespace HybridShooter.Boss.Tyranopode
             flingSettings = fling;
         }
 
-        /// <summary>씬에서 정한 경기장 (TyranopodeArena)</summary>
-        public void SetArena(Vector3 center, float radius)
+        /// <summary>정해진 경기장 (씬의 TyranopodeArena, 맵 경계 원)</summary>
+        /// <param name="source">초기화 로그에 남길 출처</param>
+        public void SetArena(Vector3 center, float radius, string source = "씬 지정")
         {
             Center = center;
             Radius = radius;
             HasBounds = true;
-            ArenaSource = $"씬 지정 (반지름 {radius:0.#}m)";
+            ArenaSource = $"{source} (반지름 {radius:0.#}m)";
         }
+
+        /// <summary>from 근처에 NavMesh 가 있어 MeasureArena 로 잴 수 있는가 (없으면 MeasureArena 가 예외를 던진다)</summary>
+        public static bool CanMeasureFrom(Vector3 from) => NavMesh.SamplePosition(from, out _, MeasureSample, NavMesh.AllAreas);
 
         /// <summary>
         /// from(보스 발밑)에서 경기장을 잰다. 두 번 잰다: 처음 막힌 점들의 중심에서 다시 재면 원형 경기장의 중심에 가까워진다.

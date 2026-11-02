@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HybridShooter.Core.Battlefield;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
@@ -374,9 +375,7 @@ namespace HybridShooter.Boss.Tyranopode
             var playerController = (PlayerController)target;
             playerCamera = () => playerController.CurrentCameraTransform.GetComponent<Camera>();
             analysis = TyranopodeAnalysisHud.Create(finaleAssets.Font, techFont, playerCamera);
-            var arena = FindAnyObjectByType<TyranopodeArena>();
-            if (arena != null) Minions.SetArena(arena.transform.position, arena.Radius);
-            else Minions.MeasureArena(transform.position, fallbackArenaRadius);
+            SetupArena();
             // 열린 맵이면 경계 없음 (맵 끝은 MoveFree 의 낭떠러지 판정이 막는다)
             locomotion.SetBounds(Minions.Center, Minions.HasBounds ? Minions.Radius : 0f);
             // 몸이 커질수록 벽 여유가 늘어 움직일 공간이 준다 → 맴돌 공간이 모자라면 알린다 (크기 배율·CircleRadius 조정)
@@ -392,6 +391,31 @@ namespace HybridShooter.Boss.Tyranopode
             introPlayed = true;
 
             Debug.Log($"[Tyranopode] 초기화 | HP {boss.CurrentHp}/{boss.MaxHp} | 경기장 {Minions.ArenaSource}", this);
+        }
+
+        /// <summary>
+        /// 경기장을 정한다. 라운드 보스는 플레이어 근처 무작위 자리에 생기므로 보스 발밑에서 재면 라운드마다 경기장이 달라진다 → 맵 기준을 먼저 쓴다
+        ///  1. 씬의 TyranopodeArena
+        ///  2. 맵 경계(SpawnPointFinder) 중심에서 NavMesh 측정. 열린 맵으로 나오면 맵 경계 원 그대로
+        ///  3. 보스 발밑에서 NavMesh 측정 (맵 경계가 없는 테스트 씬)
+        /// </summary>
+        private void SetupArena()
+        {
+            var arena = FindAnyObjectByType<TyranopodeArena>();
+            if (arena != null)
+            {
+                Minions.SetArena(arena.transform.position, arena.Radius);
+                return;
+            }
+
+            if (ServiceLocator.TryGet(out SpawnPointFinder map) && TyranopodeMinions.CanMeasureFrom(map.MapCenter))
+            {
+                Minions.MeasureArena(map.MapCenter, map.MapRadius);
+                if (Minions.HasBounds == false) Minions.SetArena(map.MapCenter, map.MapRadius, "맵 경계");
+                return;
+            }
+
+            Minions.MeasureArena(transform.position, fallbackArenaRadius);
         }
 
         private void BuildParts()
