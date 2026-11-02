@@ -71,7 +71,8 @@ namespace HybridShooter.Boss.Tyranopode
         private bool free;
         private readonly RaycastHit[] wallHits = new RaycastHit[16];
         private readonly Collider[] roomHits = new Collider[16];
-        private readonly NavMeshPath landingPath = new NavMeshPath();
+        // NavMeshPath 는 필드 초기화에서 만들 수 없다 (Unity 가 막음) → Awake 에서 만든다
+        private NavMeshPath landingPath;
 
         /// <summary>MoveFree 가 멈춘 이유: 몸통이 벽에 정면 충돌 / 그 자리 바닥에 NavMesh 가 없음 (절벽·맵 끝)</summary>
         public enum MoveStop { None, Wall, Edge }
@@ -97,6 +98,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             agent = GetComponent<NavMeshAgent>();
             view = GetComponent<TyranopodeView>();
+            landingPath = new NavMeshPath();
         }
 
         public void Initialize(Transform player)
