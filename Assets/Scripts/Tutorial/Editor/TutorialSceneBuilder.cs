@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using HybridShooter.Atmosphere;
 using HybridShooter.Audio;
 using HybridShooter.Monster.Behaviour;
 using HybridShooter.Reward;
@@ -34,8 +35,6 @@ namespace HybridShooter.Tutorial.Editor
         private const string RootName = "TutorialSystems";
         private const string MarkersPath = "TutorialMap/Markers";
 
-        private static readonly Color TargetColor = new Color(0.3f, 0.85f, 1f, 0.6f);
-
         // ── 차단막 겉모양 (QFX Sci-Fi VFX 원본은 건드리지 않고 DataFolder 에 복사해서 쓴다) ──
         private const string QfxFolder = "Assets/ExternalAssets/QFX/Sci-Fi VFX";
         /// <summary>진행 차단막: 파란 에너지 막 (QFX/SFX/EnergyWall)</summary>
@@ -61,21 +60,32 @@ namespace HybridShooter.Tutorial.Editor
             public GameObject LaserImpact;
         }
 
-        /// <summary>목표 패널 기본 문구 (에셋에 목표가 비어 있을 때만 넣는다)</summary>
+        /// <summary>목표 문구 안 키 이름 (메인 메뉴 조작 힌트처럼 붉게)</summary>
+        private static string Key(string name) => $"<color=#D94238>{name}</color>";
+
+        /// <summary>
+        /// 목표 패널 기본 문구. 에셋에 없는 Id 는 넣고, 이전 기본값([Shift] 대괄호 표기) 그대로인 문구는 새 기본값으로 바꾼다.
+        /// 인스펙터에서 직접 고친 문구는 그대로 둔다
+        /// </summary>
         private static readonly (string Id, string Text)[] DefaultObjectives =
         {
-            ("obj_move", "표시된 지점까지 이동  [W][A][S][D]"),
-            ("obj_sprint", "질주  [Shift]   {0} / {1}초"),
-            ("obj_roll", "구르기로 차단막 통과  [Ctrl]   {0} / {1}"),
-            ("obj_aim", "조준 [우클릭] 후 사격 [좌클릭]   처치 {0} / {1}"),
-            ("obj_grenade", "수류탄 [G] 으로 무리 처치   {0} / {1}"),
+            ("obj_move", $"{Key("W A S D")}  표시된 지점까지 이동"),
+            ("obj_sprint", $"{Key("SHIFT")}  질주   {{0}} / {{1}}초"),
+            ("obj_roll", $"{Key("CTRL")}  구르기로 차단막 통과   {{0}} / {{1}}"),
+            ("obj_aim", $"{Key("우클릭")} 조준 · {Key("좌클릭")} 사격   처치 {{0}} / {{1}}"),
+            ("obj_grenade", $"{Key("G")}  수류탄으로 무리 처치   {{0}} / {{1}}"),
             ("obj_next", "다음 구역으로 이동"),
-            ("obj_pickup", "보급 상자 회수  [F]   {0} / {1}"),
-            ("obj_heal", "회복 팩 사용  [V]"),
-            ("obj_weapon_pickup", "무기 보급 상자(보라) 회수  [F]"),
-            ("obj_weapon", "보급 무기 [4] 로 무리 처치   {0} / {1}"),
+            ("obj_pickup", $"{Key("F")}  보급 상자 회수   {{0}} / {{1}}"),
+            ("obj_heal", $"{Key("V")}  회복 팩 사용"),
+            ("obj_weapon_pickup", $"{Key("F")}  무기 보급 상자(보라) 회수"),
+            ("obj_weapon", $"{Key("4")}  보급 무기로 무리 처치   {{0}} / {{1}}"),
             ("obj_upgrade", "장비 개조 구역으로 이동"),
             ("obj_exit", "전초기지 게이트로 이동"),
+            // 목적지 화면 표식 이름 (TutorialWaypointHud)
+            ("wp_move", "목표 지점"),
+            ("wp_next", "다음 과목"),
+            ("wp_upgrade", "장비 개조 구역"),
+            ("wp_exit", "전초기지 게이트"),
         };
 
         [MenuItem("Tools/Tutorial/Setup Tutorial Scene")]
@@ -109,7 +119,6 @@ namespace HybridShooter.Tutorial.Editor
 
             Directory.CreateDirectory(DataFolder);
             var look = LoadCourseLook();
-            var targetMat = GetOrCreateMaterial("M_TutorialTarget", TargetColor);
 
             PlacePlayer(scene, markers.Find("PlayerStart"));
             CopyGameSystems(root.transform);
@@ -122,7 +131,6 @@ namespace HybridShooter.Tutorial.Editor
             // 진행 오브젝트
             Transform course = Group(root.transform, "Course").transform;
             var moveTarget = CreateZone(course, tut, "Tut_MoveTarget", new Vector3(6f, 4f, 6f));
-            if (moveTarget != null) CreateFloorRing(moveTarget.transform, targetMat);
             var barriers = new List<TutorialDamageBarrier>();
             foreach (string name in new[] { "Tut_RollBarrier_1", "Tut_RollBarrier_2" })
             {
@@ -134,6 +142,7 @@ namespace HybridShooter.Tutorial.Editor
 
             var director = Group(root.transform, "TutorialDirector");
             director.AddComponent<TutorialHud>();
+            director.AddComponent<TutorialWaypointHud>();
             var so = new SerializedObject(director.AddComponent<TutorialDirector>());
             so.FindProperty("script").objectReferenceValue = GetOrCreateScript();
             so.FindProperty("moveTarget").objectReferenceValue = moveTarget;
@@ -181,10 +190,14 @@ namespace HybridShooter.Tutorial.Editor
                 if (go.TryGetComponent(out Camera _) && go.GetComponentInChildren<Player.PlayerController>() == null) go.SetActive(false);
         }
 
-        /// <summary>게임 씬에 놓인 시스템 컴포넌트를 설정값째 복사한다 (튜토리얼 씬에 이미 있으면 건너뛴다)</summary>
+        /// <summary>
+        /// 게임 씬에 놓인 시스템 컴포넌트를 설정값째 복사한다 (튜토리얼 씬에 이미 있으면 건너뛴다. 프리팹 인스턴스 안의 것도 찾는다).
+        /// SupplyBeaconOverride: 게임 씬은 AtmosphereRig 프리팹 안에 있어 보급 빛기둥이 안개를 무시하는 높은 HDR 기둥이 된다.
+        /// 튜토리얼은 조명·안개가 따로라 리그 전체 대신 이것만 가져와 보급 빛기둥을 본편과 같게 한다
+        /// </summary>
         private static void CopyGameSystems(Transform root)
         {
-            var types = new[] { typeof(SoundService), typeof(GameSoundRouter), typeof(MonsterPool), typeof(SupplyDropper), typeof(KillRewardCollector) };
+            var types = new[] { typeof(SoundService), typeof(GameSoundRouter), typeof(MonsterPool), typeof(SupplyDropper), typeof(KillRewardCollector), typeof(SupplyBeaconOverride) };
             Scene game = EditorSceneManager.OpenScene(GameScenePath, OpenSceneMode.Additive);
             Transform systems = Group(root, "Systems").transform;
             foreach (var type in types)
@@ -218,7 +231,7 @@ namespace HybridShooter.Tutorial.Editor
         #endregion
 
         #region 진행 오브젝트
-        /// <summary>마커 위치의 트리거. size.x 가 0 이면 마커의 협곡 폭(localScale.x)을 쓴다</summary>
+        /// <summary>마커 위치의 트리거 (목적지는 화면 표식 TutorialWaypointHud 가 보여 준다). size.x 가 0 이면 마커의 협곡 폭(localScale.x)을 쓴다</summary>
         private static TutorialZone CreateZone(Transform parent, Transform markers, string name, Vector3 size)
         {
             Transform marker = FindMarker(markers, name);
@@ -282,17 +295,6 @@ namespace HybridShooter.Tutorial.Editor
             return gate;
         }
 
-        /// <summary>목표 지점 바닥 표시 (얇은 원판)</summary>
-        private static void CreateFloorRing(Transform parent, Material material)
-        {
-            var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            ring.name = "FloorMark";
-            Object.DestroyImmediate(ring.GetComponent<Collider>());
-            ring.transform.SetParent(parent, false);
-            ring.transform.localPosition = new Vector3(0f, 0.05f, 0f);
-            ring.transform.localScale = new Vector3(3f, 0.02f, 3f);
-            ring.GetComponent<Renderer>().sharedMaterial = material;
-        }
 
         /// <summary>차단막 양 끝의 발사 기둥 (콜라이더 없음. 협곡 벽 쪽이라 길을 막지 않는다)</summary>
         private static void Pylons(Transform parent, float width, float height, Material material)
@@ -347,10 +349,14 @@ namespace HybridShooter.Tutorial.Editor
                 AssetDatabase.CreateAsset(script, ScriptAssetPath);
             }
             ImportLines(script); // 대사 원본은 대사본 TSV 하나 (팀 공유 문서와 게임 자막을 항상 같게)
-            // 목표 문구는 인스펙터에서 고친 것을 살리고, 없는 Id 만 기본값으로 채운다
+            // 목표 문구는 인스펙터에서 고친 것을 살리고, 없는 Id 는 기본값으로 채운다.
+            // 이전 기본값(키를 [Shift] 처럼 대괄호로 쓴 문구)은 새 표기(붉은 키 이름)로 바꾼다
             foreach (var (id, text) in DefaultObjectives)
-                if (script.Objectives.Exists(o => o.Id == id) == false)
-                    script.Objectives.Add(new TutorialScript.Objective { Id = id, Text = text });
+            {
+                var objective = script.Objectives.Find(o => o.Id == id);
+                if (objective == null) script.Objectives.Add(new TutorialScript.Objective { Id = id, Text = text });
+                else if (objective.Text != null && objective.Text.Contains("[")) objective.Text = text;
+            }
             EditorUtility.SetDirty(script);
             AssetDatabase.SaveAssets();
             return script;
@@ -392,9 +398,10 @@ namespace HybridShooter.Tutorial.Editor
         /// <summary>차단막 겉모양 재료. QFX 머티리얼은 DataFolder 로 복사해 쓴다 (원본 그대로 두기). QFX 가 없으면 단색으로 대신한다</summary>
         private static CourseLook LoadCourseLook()
         {
-            // 이전 버전의 단색 차단막 머티리얼은 더 쓰지 않는다
-            foreach (string old in new[] { "M_TutorialBarrier", "M_TutorialGate" })
-                AssetDatabase.DeleteAsset($"{DataFolder}/{old}.mat");
+            // 이전 버전에서 만들고 더 쓰지 않는 에셋 (단색 차단막·목표 원판·목적지 고리·빛기둥 — 목적지는 화면 표식만 쓴다)
+            foreach (string old in new[] { "M_TutorialBarrier.mat", "M_TutorialGate.mat", "M_TutorialTarget.mat",
+                                           "M_TutorialBeaconBeam.mat", "T_TutorialBeaconBeam.png", "M_TutorialBeaconRing.mat", "T_TutorialBeaconRing.png" })
+                AssetDatabase.DeleteAsset($"{DataFolder}/{old}");
 
             return new CourseLook
             {

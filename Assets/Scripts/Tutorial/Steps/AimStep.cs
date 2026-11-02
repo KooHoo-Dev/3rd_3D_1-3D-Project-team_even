@@ -11,7 +11,7 @@ namespace HybridShooter.Tutorial.Steps
     /// </summary>
     public sealed class AimStep : TutorialStep
     {
-        public override string Title => "과목 2 · 사격";
+        public override string Title => "사격";
 
         public override IEnumerator Run()
         {
@@ -25,6 +25,7 @@ namespace HybridShooter.Tutorial.Steps
                 if (monster != null) targets.Add(monster);
             }
 
+            if (D.AimSpawnPoints.Count > 0) D.ShowDestination(D.AimSpawnPoints[Mathf.Min(1, D.AimSpawnPoints.Count - 1)], "wp_next"); // 가운데 표적
             yield return D.Say("vo_tut_02_dormant");
             D.SayNow("vo_tut_02_shoot");
 
@@ -38,6 +39,7 @@ namespace HybridShooter.Tutorial.Steps
                 {
                     aimed = true;
                     D.MarkProgress();
+                    D.HideDestination(); // 표적을 찾았으니 표식은 거둔다 (조준을 가리지 않게)
                 }
                 int dead = TutorialDirector.CountDead(targets);
                 if (dead != killed)
@@ -54,6 +56,7 @@ namespace HybridShooter.Tutorial.Steps
                 return aimed && killed >= targets.Count;
             }, "vo_tut_02_hint");
 
+            D.HideDestination();
             yield return D.Say("vo_tut_02_clear");
             if (D.AimGate != null) D.AimGate.Open();
         }

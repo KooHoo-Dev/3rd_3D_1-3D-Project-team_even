@@ -21,6 +21,7 @@ namespace HybridShooter.Tutorial
     /// 불시착 후 기본 전투 테스트 (기획: Docs/Design/Tutorial_Proposal_v3.md). TutorialMap 씬에 하나.
     /// 과목: ① 이동·질주·구르기 → ② 조준·사격(보상) → ③ 수류탄 → ④ 보급 → ⑤ 강화 체험 → ⑥ 전장 입장
     ///  - 과목을 통과할 때마다 그 구역의 진행 차단막(TutorialGate)을 연다
+    ///  - 어디로 가야 할 때는 목적지를 표시한다 (ShowDestination: 화면 표식 TutorialWaypointHud)
     ///  - 몬스터는 휴면(MonsterController.SetDormant)으로 소환해 공격하지 않는다. 피해원은 피해 차단막·훈련 충격뿐이고,
     ///    체력이 MinHealthRatio 밑으로 떨어지면 가득 채운다 (튜토리얼에서 죽지 않게)
     ///  - 처치 보상은 씬의 KillRewardCollector 가 지갑에 넣고, 여기서는 CurrencyChangedEvent 로 "+N 생체 자원" 만 띄운다
@@ -76,6 +77,7 @@ namespace HybridShooter.Tutorial
         // ── 단계가 쓰는 공용 참조 ──
         public TutorialScript Script => script;
         public TutorialHud Hud { get; private set; }
+        public TutorialWaypointHud Waypoints { get; private set; }
         public PlayerController Player { get; private set; }
         public PlayerItems Items { get; private set; }
         public GunSlot Guns { get; private set; }
@@ -110,6 +112,8 @@ namespace HybridShooter.Tutorial
         {
             Hud = GetComponent<TutorialHud>();
             if (Hud == null) Hud = gameObject.AddComponent<TutorialHud>();
+            Waypoints = GetComponent<TutorialWaypointHud>();
+            if (Waypoints == null) Waypoints = gameObject.AddComponent<TutorialWaypointHud>();
         }
 
         private void OnEnable() => EventBus<CurrencyChangedEvent>.Subscribe(OnCurrencyChanged);
@@ -171,6 +175,35 @@ namespace HybridShooter.Tutorial
                 return 0f;
             }
             return Hud.Say(line);
+        }
+
+        /// <summary>목적지 구역을 화면 표식으로 표시한다. labelId = TutorialScript 목표 문구 Id (예: wp_exit)</summary>
+        public void ShowDestination(TutorialZone zone, string labelId)
+        {
+            if (zone != null) ShowDestination(zone.transform, labelId);
+        }
+
+        /// <summary>목적지 지점을 화면 표식으로 표시한다 (몬스터 무리 등)</summary>
+        public void ShowDestination(Transform point, string labelId)
+        {
+            if (point == null) return;
+            Waypoints.Show(point, script.ObjectiveText(labelId));
+        }
+
+        public void HideDestination() => Waypoints.Hide();
+
+        /// <summary>목표 패널 영문 머리말: 훈련 과목이면 "TRAINING 02 / 05", 아니면 "DEPLOY"</summary>
+        public string HeaderOf(TutorialStep step)
+        {
+            if (step.IsTraining == false) return "DEPLOY";
+            int index = 0, total = 0;
+            foreach (var s in steps)
+            {
+                if (s.IsTraining == false) continue;
+                total++;
+                if (s == step) index = total;
+            }
+            return $"TRAINING {index:00} / {total:00}";
         }
 
         /// <summary>진행이 있었다 (힌트 타이머를 다시 센다)</summary>
@@ -265,6 +298,7 @@ namespace HybridShooter.Tutorial
             ResetServices();
             Hud.ClearObjective();
             Hud.SetSkipProgress(0f);
+            HideDestination();
             Player.SetMenuInputBlocked(true);
             StartCoroutine(Exit(skipped));
         }

@@ -19,7 +19,7 @@ namespace HybridShooter.Tutorial.Steps
     /// </summary>
     public sealed class SupplyStep : TutorialStep
     {
-        public override string Title => "과목 4 · 보급";
+        public override string Title => "보급";
 
         private readonly HashSet<int> collected = new HashSet<int>();
         private bool healed;
@@ -32,7 +32,12 @@ namespace HybridShooter.Tutorial.Steps
             if (D.Items != null) D.Items.HealEnded += OnHealEnded;
 
             Objective("obj_next");
-            if (D.SupplyEntrance != null) yield return D.WaitUntil(() => D.SupplyEntrance.Reached, null);
+            if (D.SupplyEntrance != null)
+            {
+                D.ShowDestination(D.SupplyEntrance, "wp_next");
+                yield return D.WaitUntil(() => D.SupplyEntrance.Reached, null);
+                D.HideDestination(); // 여기부터는 보급 빛기둥이 위치를 보여 준다
+            }
 
             // 1) 훈련 충격
             if (D.Player.CurrentHealth > D.Player.MaxHealth * Script.ShockAboveRatio)

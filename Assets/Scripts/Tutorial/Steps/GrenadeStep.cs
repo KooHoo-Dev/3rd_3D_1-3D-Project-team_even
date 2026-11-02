@@ -9,7 +9,7 @@ namespace HybridShooter.Tutorial.Steps
     /// </summary>
     public sealed class GrenadeStep : TutorialStep
     {
-        public override string Title => "과목 3 · 투척";
+        public override string Title => "투척";
 
         private bool exploded;
 
@@ -19,12 +19,14 @@ namespace HybridShooter.Tutorial.Steps
             var group = D.SpawnDormantGroup(D.GrenadeGroupCenter, Script.GrenadeGroupCount);
             RefillIfEmpty();
 
+            D.ShowDestination(D.GrenadeGroupCenter, "wp_next");
             D.SayNow("vo_tut_03_grenade");
             int killed = 0;
             Objective("obj_grenade", 0, group.Count);
             yield return D.WaitUntil(() =>
             {
                 RefillIfEmpty();
+                if (exploded && D.Waypoints.IsShown) D.HideDestination();
                 int dead = TutorialDirector.CountDead(group);
                 if (dead != killed)
                 {
@@ -35,6 +37,7 @@ namespace HybridShooter.Tutorial.Steps
                 return exploded && killed >= group.Count;
             }, "vo_tut_03_hint");
 
+            D.HideDestination();
             yield return D.Say("vo_tut_03_clear");
             if (D.GrenadeGate != null) D.GrenadeGate.Open();
         }

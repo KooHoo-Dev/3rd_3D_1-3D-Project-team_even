@@ -12,7 +12,7 @@ namespace HybridShooter.Tutorial.Steps
         /// <summary>차단막 피격 안내를 다시 하기까지(초)</summary>
         private const float HitLineCooldown = 6f;
 
-        public override string Title => "과목 1 · 기동";
+        public override string Title => "기동";
 
         private int cleared;
         private float lastHitLine = float.NegativeInfinity;
@@ -23,7 +23,12 @@ namespace HybridShooter.Tutorial.Steps
             // 이동
             Objective("obj_move");
             D.SayNow("vo_tut_01_move");
-            if (D.MoveTarget != null) yield return D.WaitUntil(() => D.MoveTarget.Reached, "vo_tut_01_hint");
+            if (D.MoveTarget != null)
+            {
+                D.ShowDestination(D.MoveTarget, "wp_move");
+                yield return D.WaitUntil(() => D.MoveTarget.Reached, "vo_tut_01_hint");
+                D.HideDestination();
+            }
 
             // 질주
             yield return D.Say("vo_tut_01_sprint");

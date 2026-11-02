@@ -18,7 +18,7 @@ namespace HybridShooter.Tutorial.Steps
     /// </summary>
     public sealed class UpgradeStep : TutorialStep
     {
-        public override string Title => "과목 5 · 장비 개조";
+        public override string Title => "장비 개조";
 
         private UpgradeManager manager;
         private bool finished;
@@ -27,7 +27,12 @@ namespace HybridShooter.Tutorial.Steps
         public override IEnumerator Run()
         {
             Objective("obj_upgrade");
-            if (D.UpgradeZone != null) yield return D.WaitUntil(() => D.UpgradeZone.Reached, null);
+            if (D.UpgradeZone != null)
+            {
+                D.ShowDestination(D.UpgradeZone, "wp_upgrade");
+                yield return D.WaitUntil(() => D.UpgradeZone.Reached, null);
+                D.HideDestination();
+            }
 
             manager = Object.FindAnyObjectByType<UpgradeManager>();
             if (manager == null)

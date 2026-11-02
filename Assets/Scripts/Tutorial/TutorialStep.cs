@@ -11,8 +11,10 @@ namespace HybridShooter.Tutorial
         protected TutorialDirector D { get; private set; }
         protected TutorialScript Script => D.Script;
 
-        /// <summary>목표 패널 제목 (예: "과목 1 · 기동")</summary>
+        /// <summary>목표 패널의 과목 이름 (예: "기동")</summary>
         public abstract string Title { get; }
+        /// <summary>훈련 과목이면 true (목표 패널 머리말 "TRAINING 02 / 05" 의 번호에 센다). 전장 진입 등은 false</summary>
+        public virtual bool IsTraining => true;
 
         internal void Bind(TutorialDirector director) => D = director;
 
@@ -22,6 +24,7 @@ namespace HybridShooter.Tutorial
         /// <summary>구독 해제 등. 정상 종료·건너뛰기 모두 한 번 불린다</summary>
         public virtual void Cleanup() { }
 
-        protected void Objective(string id, int progress = 0, int goal = 0) => D.Hud.SetObjective(Title, Script.ObjectiveText(id, progress, goal));
+        protected void Objective(string id, int progress = 0, int goal = 0) =>
+            D.Hud.SetObjective(D.HeaderOf(this), Title, Script.ObjectiveText(id, progress, goal));
     }
 }

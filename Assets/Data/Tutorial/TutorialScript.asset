@@ -139,33 +139,44 @@ MonoBehaviour:
       \uC774\uB3D9\uD55C\uB2E4."
   Objectives:
   - Id: obj_move
-    Text: "\uD45C\uC2DC\uB41C \uC9C0\uC810\uAE4C\uC9C0 \uC774\uB3D9  [W][A][S][D]"
+    Text: "<color=#D94238>W A S D</color>  \uD45C\uC2DC\uB41C \uC9C0\uC810\uAE4C\uC9C0
+      \uC774\uB3D9"
   - Id: obj_sprint
-    Text: "\uC9C8\uC8FC  [Shift]   {0} / {1}\uCD08"
+    Text: "<color=#D94238>SHIFT</color>  \uC9C8\uC8FC   {0} / {1}\uCD08"
   - Id: obj_roll
-    Text: "\uAD6C\uB974\uAE30\uB85C \uCC28\uB2E8\uB9C9 \uD1B5\uACFC  [Ctrl]   {0}
-      / {1}"
+    Text: "<color=#D94238>CTRL</color>  \uAD6C\uB974\uAE30\uB85C \uCC28\uB2E8\uB9C9
+      \uD1B5\uACFC   {0} / {1}"
   - Id: obj_aim
-    Text: "\uC870\uC900 [\uC6B0\uD074\uB9AD] \uD6C4 \uC0AC\uACA9 [\uC88C\uD074\uB9AD]  
-      \uCC98\uCE58 {0} / {1}"
+    Text: "<color=#D94238>\uC6B0\uD074\uB9AD</color> \uC870\uC900 \xB7 <color=#D94238>\uC88C\uD074\uB9AD</color>
+      \uC0AC\uACA9   \uCC98\uCE58 {0} / {1}"
   - Id: obj_grenade
-    Text: "\uC218\uB958\uD0C4 [G] \uC73C\uB85C \uBB34\uB9AC \uCC98\uCE58   {0} /
-      {1}"
+    Text: "<color=#D94238>G</color>  \uC218\uB958\uD0C4\uC73C\uB85C \uBB34\uB9AC
+      \uCC98\uCE58   {0} / {1}"
   - Id: obj_next
     Text: "\uB2E4\uC74C \uAD6C\uC5ED\uC73C\uB85C \uC774\uB3D9"
   - Id: obj_pickup
-    Text: "\uBCF4\uAE09 \uC0C1\uC790 \uD68C\uC218  [F]   {0} / {1}"
+    Text: "<color=#D94238>F</color>  \uBCF4\uAE09 \uC0C1\uC790 \uD68C\uC218   {0}
+      / {1}"
   - Id: obj_heal
-    Text: "\uD68C\uBCF5 \uD329 \uC0AC\uC6A9  [V]"
+    Text: "<color=#D94238>V</color>  \uD68C\uBCF5 \uD329 \uC0AC\uC6A9"
   - Id: obj_weapon_pickup
-    Text: "\uBB34\uAE30 \uBCF4\uAE09 \uC0C1\uC790(\uBCF4\uB77C) \uD68C\uC218  [F]"
+    Text: "<color=#D94238>F</color>  \uBB34\uAE30 \uBCF4\uAE09 \uC0C1\uC790(\uBCF4\uB77C)
+      \uD68C\uC218"
   - Id: obj_weapon
-    Text: "\uBCF4\uAE09 \uBB34\uAE30 [4] \uB85C \uBB34\uB9AC \uCC98\uCE58   {0} /
-      {1}"
+    Text: "<color=#D94238>4</color>  \uBCF4\uAE09 \uBB34\uAE30\uB85C \uBB34\uB9AC
+      \uCC98\uCE58   {0} / {1}"
   - Id: obj_upgrade
     Text: "\uC7A5\uBE44 \uAC1C\uC870 \uAD6C\uC5ED\uC73C\uB85C \uC774\uB3D9"
   - Id: obj_exit
     Text: "\uC804\uCD08\uAE30\uC9C0 \uAC8C\uC774\uD2B8\uB85C \uC774\uB3D9"
+  - Id: wp_move
+    Text: "\uBAA9\uD45C \uC9C0\uC810"
+  - Id: wp_next
+    Text: "\uB2E4\uC74C \uACFC\uBAA9"
+  - Id: wp_upgrade
+    Text: "\uC7A5\uBE44 \uAC1C\uC870 \uAD6C\uC5ED"
+  - Id: wp_exit
+    Text: "\uC804\uCD08\uAE30\uC9C0 \uAC8C\uC774\uD2B8"
   SprintSeconds: 2
   BarrierDamage: 10
   DormantMonsterId: 1001
