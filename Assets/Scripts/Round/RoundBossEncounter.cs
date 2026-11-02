@@ -61,6 +61,7 @@ namespace HybridShooter.Round
                 def = bossDef;
             }
             Transform point = spawnPoint != null ? spawnPoint : transform;
+            if (TryGetComponent<RunDirector>(out var director) && director.CurrentRound == 1) point.position = player.Root.position;
             boss = Instantiate(prefab, point.position, point.rotation);
             boss.gameObject.SetActive(true);
             boss.Died += OnBossDied;

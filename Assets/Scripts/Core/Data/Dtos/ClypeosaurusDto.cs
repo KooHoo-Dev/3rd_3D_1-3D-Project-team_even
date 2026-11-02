@@ -38,6 +38,8 @@
         public float SixOpenHpRatio;  // 예: 0.4 = HP 40% 이하
         
         // 공기 흡입
+        public int SuctionDamage;
+        public float SuctionDamageRadius;
         public float SuctionTelegraphTime;
         public float SuctionMaxDuration;
         public float SuctionRecoveryTime;

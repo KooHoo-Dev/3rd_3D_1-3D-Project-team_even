@@ -43,6 +43,8 @@ namespace HybridShooter.Core.Data.Defs
         public float SixOpenHpRatio { get; }
         
         // 공기 흡입
+        public int SuctionDamage { get; }
+        public float SuctionDamageRadius { get; }
         public float SuctionTelegraphTime { get; }
         public float SuctionMaxDuration { get; }
         public float SuctionRecoveryTime { get; }
@@ -84,6 +86,8 @@ namespace HybridShooter.Core.Data.Defs
             FourOpenHpRatio = dto.FourOpenHpRatio;
             SixOpenHpRatio = dto.SixOpenHpRatio;
             
+            SuctionDamage = dto.SuctionDamage;
+            SuctionDamageRadius = dto.SuctionDamageRadius;
             SuctionTelegraphTime = dto.SuctionTelegraphTime;
             SuctionMaxDuration = dto.SuctionMaxDuration;
             SuctionRecoveryTime = dto.SuctionRecoveryTime;
@@ -127,6 +131,8 @@ namespace HybridShooter.Core.Data.Defs
             report.Check(SixOpenHpRatio > 0f && SixOpenHpRatio < FourOpenHpRatio && FourOpenHpRatio < 1f, Table, "Antenna", "체력 기준은 0 < SixOpenHpRatio < FourOpenHpRatio < 1이어야 합니다.");
             
             // 공기 흡입 검증
+            report.Check(SuctionDamage >= 0, Table, "Suction", "Damage는 0 이상이어야 합니다.");
+            report.Check(SuctionDamageRadius > 0f && SuctionDamageRadius < SuctionNearRadius, Table, "Suction", "DamageRadius는 0보다 크고 NearRadius보다 작아야 합니다.");
             report.Check(SuctionTelegraphTime >= 0f, Table, "Suction", "TelegraphTime은 0 이상이어야 합니다.");
             report.Check(SuctionMaxDuration > 0f, Table, "Suction", "MaxDuration은 0보다 커야 합니다.");
             report.Check(SuctionRecoveryTime >= 0f, Table, "Suction", "RecoveryTime은 0 이상이어야 합니다.");
