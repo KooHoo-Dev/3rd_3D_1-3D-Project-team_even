@@ -8,7 +8,8 @@ namespace HybridShooter.Boss.Tyranopode
     /// Tyranopode 이동. NavMeshAgent 를 직접 쓴다 (BossMovement 는 초기화 직후 멈춰 둔다).
     ///  - Circle: 공격 사이에 플레이어를 바라본 채 일정 반경으로 빠르게 맴돈다. 막히거나 일정 시간이 지나면 방향을 바꾼다
     ///  - Manual: 공격이 직접 움직인다 (MoveFree·Face)
-    ///  - 경기장 경계: 맴돌기는 몸 중심이 경기장 끝에서 wallMargin 안쪽에 머문다 (NavMesh 는 사람 크기 기준이라 그대로 두면 촉수가 벽을 뚫는다).
+    ///  - 경기장 경계: 맴돌기는 몸 중심이 실제 벽(NavMesh 가장자리)에서 wallMargin 안쪽에 머문다 (NavMesh 는 사람 크기 기준이라 그대로 두면 촉수가 벽을 뚫는다).
+    ///    경기장 원은 가장 먼 벽까지의 바깥 상한이고, 벽 모양(사각형·울퉁불퉁)은 KeepAwayFromWalls 가 따른다.
     ///    경기장은 원으로 어림한 값이라 실제 벽이 아니다 → 돌진·도약은 이 원에 막히지 않는다 (실제 벽은 몸통 벽 감지·FindLanding 이 맡는다)
     /// 회전은 항상 여기서 한다 (agent.updateRotation 끔)
     ///  - MoveFree: 돌진·도약용. NavMesh 의 작은 틈·돌멩이 구멍에 멈추지 않도록 transform 을 직접 옮기고 높이는 바닥에 맞춘다.
@@ -54,6 +55,9 @@ namespace HybridShooter.Boss.Tyranopode
         /// <summary>착지점까지 걷는 길이 직선의 이 배 + LandingDetourSlack 을 넘으면 벽 너머(크게 돌아야 함)</summary>
         private const float MaxLandingDetour = 2f;
         private const float LandingDetourSlack = 6f;
+        /// <summary>벽 거리 두기: 목표 근처 NavMesh 를 찾는 반경(m)·밀어내기 되풀이 횟수 (밀린 자리가 다른 벽에 가까워질 수 있다)</summary>
+        private const float WallSample = 4f;
+        private const int WallPushIterations = 3;
 
         private NavMeshAgent agent;
         private TyranopodeView view;
@@ -92,6 +96,8 @@ namespace HybridShooter.Boss.Tyranopode
         public Transform Target => target;
         /// <summary>몸 중심이 머물 수 있는 반지름 (경기장 반지름 - wallMargin). 경계가 없으면 0</summary>
         public float InnerRadius => hasBounds ? Mathf.Max(1f, boundsRadius - wallMargin) : 0f;
+        /// <summary>벽에서 몸 중심까지 둘 거리(m)</summary>
+        public float WallMargin => wallMargin;
         public Vector3 Velocity => agent != null && agent.isActiveAndEnabled ? agent.velocity : Vector3.zero;
 
         private void Awake()
@@ -128,6 +134,39 @@ namespace HybridShooter.Boss.Tyranopode
             Vector3 clamped = boundsCenter + offset.normalized * inner;
             clamped.y = point.y;
             return clamped;
+        }
+
+        /// <summary>
+        /// point 를 실제 벽(걸을 수 있는 바닥의 끝)에서 wallMargin 안쪽으로 민다. 경기장이 원이 아니어도(울퉁불퉁한 사각형 등) 벽마다 같은 거리를 둔다.
+        /// 가장 가까운 NavMesh 가장자리의 반대쪽으로 밀고, 밀린 자리가 다른 벽에 가까워질 수 있어 몇 번 되풀이한다.
+        /// 경기장 안 바위·기둥 둘레도 가장자리라 같은 거리만큼 피한다. 근처에 NavMesh 가 없으면 그대로
+        /// </summary>
+        public Vector3 KeepAwayFromWalls(Vector3 point)
+        {
+            int mask = agent != null ? agent.areaMask : NavMesh.AllAreas;
+            if (NavMesh.SamplePosition(point, out var onMesh, WallSample, mask) == false) return point;
+
+            Vector3 result = onMesh.position;
+            for (int i = 0; i < WallPushIterations; i++)
+            {
+                if (NavMesh.FindClosestEdge(result, out var edge, mask) == false) break;
+                float push = wallMargin - edge.distance;
+                if (push <= 0.05f) break;
+
+                // 가장자리에서 지금 자리 쪽이 안쪽. 가장자리 위에 있으면 방향을 알 수 없어 가장자리 법선을 쓴다
+                Vector3 away = result - edge.position;
+                away.y = 0f;
+                if (away.sqrMagnitude < 0.01f)
+                {
+                    away = edge.normal;
+                    away.y = 0f;
+                }
+                if (away.sqrMagnitude < 0.0001f) break;
+
+                if (NavMesh.SamplePosition(result + away.normalized * push, out var moved, WallSample, mask) == false) break;
+                result = moved.position;
+            }
+            return result;
         }
 
         /// <summary>플레이어 주위를 맴돈다. 매 프레임 불러도 된다 (값만 갱신)</summary>
@@ -443,7 +482,8 @@ namespace HybridShooter.Boss.Tyranopode
             offset.y = 0f;
             if (offset.sqrMagnitude < 0.01f) offset = -transform.forward;
             Vector3 around = Quaternion.Euler(0f, circleStepAngle * circleSign, 0f) * offset.normalized;
-            Vector3 destination = ClampToBounds(target.position + around * circleRadius);
+            // 경기장 원(바깥 상한) 안으로 당긴 뒤 실제 벽에서 거리를 둔다
+            Vector3 destination = KeepAwayFromWalls(ClampToBounds(target.position + around * circleRadius));
 
             agent.speed = circleSpeed;
             agent.acceleration = circleSpeed * 4f;

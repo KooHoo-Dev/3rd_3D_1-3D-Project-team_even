@@ -377,10 +377,12 @@ namespace HybridShooter.Boss.Tyranopode
             analysis = TyranopodeAnalysisHud.Create(finaleAssets.Font, techFont, playerCamera);
             SetupArena();
             // 열린 맵이면 경계 없음 (맵 끝은 MoveFree 의 낭떠러지 판정이 막는다)
-            locomotion.SetBounds(Minions.Center, Minions.HasBounds ? Minions.Radius : 0f);
+            // 경계 원은 가장 먼 벽까지 = 바깥 상한. 사각형 같은 실제 벽 모양은 locomotion.KeepAwayFromWalls 가 따른다
+            locomotion.SetBounds(Minions.Center, Minions.HasBounds ? Minions.FarRadius : 0f);
             // 몸이 커질수록 벽 여유가 늘어 움직일 공간이 준다 → 맴돌 공간이 모자라면 알린다 (크기 배율·CircleRadius 조정)
-            if (Minions.HasBounds && locomotion.InnerRadius < Def.CircleRadius)
-                Debug.LogWarning($"[Tyranopode] 경기장이 좁습니다: 움직일 수 있는 반지름 {locomotion.InnerRadius:0.#}m < 맴돌기 반경 {Def.CircleRadius:0.#}m", this);
+            float roomRadius = Minions.Radius - locomotion.WallMargin;
+            if (Minions.HasBounds && roomRadius < Def.CircleRadius)
+                Debug.LogWarning($"[Tyranopode] 경기장이 좁습니다: 움직일 수 있는 반지름(중앙값) {roomRadius:0.#}m < 맴돌기 반경 {Def.CircleRadius:0.#}m", this);
 
             IsPhase2 = false;
             spawnScale = transform.localScale;
@@ -986,7 +988,8 @@ namespace HybridShooter.Boss.Tyranopode
             Vector3 origin = new Vector3(beaconPoint.x, transform.position.y, beaconPoint.z);
             Vector3 offset = origin - Minions.Center;
             offset.y = 0f;
-            float cover = Minions.Radius + offset.magnitude;
+            // 가장 먼 벽 기준: 사각형 경기장의 모서리까지 닿게
+            float cover = Minions.FarRadius + offset.magnitude;
             for (int i = 0; i < Def.WaveCount; i++)
                 waves.Add((Time.time + i * Def.WaveInterval, origin, cover * (i + 1) / Def.WaveCount, i == Def.WaveCount - 1));
         }
@@ -1282,13 +1285,18 @@ namespace HybridShooter.Boss.Tyranopode
         }
 
 #if UNITY_EDITOR
-        /// <summary>선택하면: 경기장 벽(회색)·몸이 머무는 경계(노랑)·근/원거리 구간(빨강/파랑)·맴돌기 반경(초록)</summary>
+        /// <summary>선택하면: 측정한 벽(회색 선, 없으면 대표 반지름 원)·이동 경계 바깥 상한(노랑)·근/원거리 구간(빨강/파랑)·맴돌기 반경(초록)</summary>
         private void OnDrawGizmosSelected()
         {
             if (Application.isPlaying == false || Def == null) return;
             var handles = UnityEditor.Handles.color;
             UnityEditor.Handles.color = Color.gray;
-            UnityEditor.Handles.DrawWireDisc(Minions.Center, Vector3.up, Minions.Radius);
+            var walls = Minions.WallPoints;
+            if (walls.Count >= 2)
+            {
+                for (int i = 0; i < walls.Count; i++) UnityEditor.Handles.DrawLine(walls[i], walls[(i + 1) % walls.Count]);
+            }
+            else UnityEditor.Handles.DrawWireDisc(Minions.Center, Vector3.up, Minions.Radius);
             UnityEditor.Handles.color = Color.yellow;
             UnityEditor.Handles.DrawWireDisc(Minions.Center, Vector3.up, locomotion.InnerRadius);
             UnityEditor.Handles.color = Color.red;
