@@ -1944,10 +1944,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.MonsterMovement
   profile: {fileID: 11400000, guid: c619edd1badc47247a173191b35665e2, type: 2}
-  coordinator: {fileID: 0}
+  assignedController: {fileID: 0}
   directTargetSource: {fileID: 0}
   turnSpeed: 8
-  destinationFollowRate: 5
+  destinationFollowRate: 0
 --- !u!114 &-5282420452375643821
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1960,8 +1960,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6bd407663bf54957bb767c38a5136591, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Movement::HybridShooter.Monster.Movement.NavMeshMoveExecutor
-  repathDistance: 0.5
-  minRepathInterval: 0.25
+  repathDistance: 0
+  minRepathInterval: 0.5
   sampleRadius: 4
   engagedPriority: 40
   defaultPriority: 50

@@ -180,6 +180,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             Vector3 randomOffset = UnityEngine.Random.insideUnitSphere;
             randomOffset.y = 0;
+            randomOffset.Normalize();
             aimOffset = randomOffset * AimOffsetRadius;
         }
 
