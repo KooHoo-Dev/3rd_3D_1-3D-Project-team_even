@@ -1,5 +1,6 @@
 using System;
 using HybridShooter.Core.Contracts;
+using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -23,6 +24,7 @@ namespace HybridShooter.Monster.Behaviour
         private readonly IMonsterFactory monsterFactory;
         private readonly ISpawnZoneProvider spawnZones;
         private readonly int groupSeed;  // Herd 방향. 실행마다 무작위라 라운드마다 방향이 바뀐다
+        private readonly SpawnNest nest;  // Nest 패턴일 때만. 같은 웨이브·같은 StartDelay 의 Nest 스포너와 공유한다
 
         // ── 진행 상태 ──
         private float elapsedTime;  // 초, 이 실행이 시작된 뒤 지난 시간
@@ -41,12 +43,17 @@ namespace HybridShooter.Monster.Behaviour
         /// <param name="spawner">실행할 스포너 행 (Monster 가 Link 된 것)</param>
         /// <param name="monsterFactory">소환에 쓸 팩토리 (보통 ServiceLocator 의 MonsterPool)</param>
         /// <param name="spawnZones">소환 위치 계산 (보통 ServiceLocator 의 RingSpawnZoneProvider)</param>
-        public MonsterSpawner(WaveSpawnerDef spawner, IMonsterFactory monsterFactory, ISpawnZoneProvider spawnZones)
+        /// <param name="sharedNest">웨이브가 나눠 준 둥지 (Nest 패턴만). null 이고 Nest 패턴이면 이 스포너 혼자 쓰는 둥지를 만든다 (실험 씬처럼 스포너만 따로 돌릴 때)</param>
+        public MonsterSpawner(WaveSpawnerDef spawner, IMonsterFactory monsterFactory, ISpawnZoneProvider spawnZones, SpawnNest sharedNest = null)
         {
             this.spawner = spawner;
             this.monsterFactory = monsterFactory;
             this.spawnZones = spawnZones;
             groupSeed = Random.Range(int.MinValue, int.MaxValue);
+
+            bool needsOwnNest = sharedNest == null && spawner.SpawnPattern == SpawnPattern.Nest;
+            if (needsOwnNest) nest = new SpawnNest(spawnZones);
+            else nest = sharedNest;
         }
 
         /// <summary>
@@ -103,7 +110,7 @@ namespace HybridShooter.Monster.Behaviour
         {
             for (int attempt = 0; attempt < MaxPoseAttempts; attempt++)
             {
-                bool hasPose = spawnZones.TryGetSpawnPose(spawner.SpawnPattern, groupSeed, out Vector3 position, out Quaternion rotation);
+                bool hasPose = TryGetSpawnPose(out Vector3 position, out Quaternion rotation);
                 if (hasPose == false) continue;
 
                 monsterFactory.Spawn(spawner.Monster, position, rotation);
@@ -111,6 +118,18 @@ namespace HybridShooter.Monster.Behaviour
             }
 
             Debug.LogWarning($"[MonsterSpawner] 스포너 {spawner.Id}: 위치를 {MaxPoseAttempts}번 못 구해 {spawnedCount + 1}번째 몬스터를 건너뜀");
+        }
+
+        /// <summary>
+        /// 소환 위치를 한 번 뽑는다. Nest 면 둥지 주위, 아니면 패턴별 링 포인트.
+        /// </summary>
+        /// <param name="position">소환 위치</param>
+        /// <param name="rotation">소환 회전</param>
+        /// <returns>false = 이번 점은 못 씀 (SpawnOne 이 다시 뽑는다)</returns>
+        private bool TryGetSpawnPose(out Vector3 position, out Quaternion rotation)
+        {
+            if (nest != null) return nest.TryGetSpawnPose(out position, out rotation);
+            return spawnZones.TryGetSpawnPose(spawner.SpawnPattern, groupSeed, out position, out rotation);
         }
     }
 }
