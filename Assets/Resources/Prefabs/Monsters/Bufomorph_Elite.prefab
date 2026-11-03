@@ -13,12 +13,16 @@ PrefabInstance:
       value: 1101
       objectReference: {fileID: 0}
     - target: {fileID: -6963252850141782799, guid: 9518c69773724531b266d3719bd54bd7, type: 3}
+      propertyPath: hitReaction
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -6963252850141782799, guid: 9518c69773724531b266d3719bd54bd7, type: 3}
       propertyPath: hitTimeRatio
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -6963252850141782799, guid: 9518c69773724531b266d3719bd54bd7, type: 3}
       propertyPath: hitRangeRatio
-      value: 3
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: -6963252850141782799, guid: 9518c69773724531b266d3719bd54bd7, type: 3}
       propertyPath: maxHitsPerAttack
