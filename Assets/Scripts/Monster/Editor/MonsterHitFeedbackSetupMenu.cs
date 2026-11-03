@@ -116,17 +116,20 @@ namespace HybridShooter.Monster.EditorTools
         /// <returns>저장된 프리팹 3개의 PooledEffect (몬스터 프리팹 연결에 쓴다)</returns>
         private static BloodEffects BuildBloodEffects()
         {
-            // 재질: 방울·분무·연무는 씬 조명을 받고, 번쩍임만 언릿
+            // 재질: 방울·분무·연무는 씬 조명을 받고, 번쩍임만 언릿.
+            // 자체 발광(빨강)을 조금 넣어 어두운 곳에서도 회색이 아니라 피 색으로 보이게 한다
             EnsureFolder(BloodMaterialFolder);
-            Material dropletMaterial = SaveLitMaterial("M_Blood_Droplet", DropletTexturePath);
-            Material mistMaterial = SaveLitMaterial("M_Blood_Mist", PuffSheetTexturePath);
-            Material hazeMaterial = SaveLitMaterial("M_Blood_Haze", HazeTexturePath);
+            var bloodGlow = new Color(0.25f, 0.01f, 0.01f);
+            var hazeGlow = new Color(0.15f, 0.01f, 0.01f);
+            Material dropletMaterial = SaveLitMaterial("M_Blood_Droplet", DropletTexturePath, bloodGlow);
+            Material mistMaterial = SaveLitMaterial("M_Blood_Mist", PuffSheetTexturePath, bloodGlow);
+            Material hazeMaterial = SaveLitMaterial("M_Blood_Haze", HazeTexturePath, hazeGlow);
             Material flashMaterial = SaveFlashMaterial("M_Blood_Flash", FlashTexturePath);
 
-            // 색: 조명을 받으므로 실제 피에 가까운 어두운 빨강. 연무는 피색을 탁하게 섞은 반투명
-            var darkBlood = new Color(0.42f, 0.03f, 0.03f, 1f);
-            var brightBlood = new Color(0.65f, 0.05f, 0.04f, 1f);
-            var bloodHaze = new Color(0.30f, 0.10f, 0.09f, 0.3f);
+            // 색: 확실한 피 빨강. 연무도 회색이 섞이지 않은 빨강 반투명
+            var darkBlood = new Color(0.55f, 0.02f, 0.02f, 1f);
+            var brightBlood = new Color(0.85f, 0.04f, 0.03f, 1f);
+            var bloodHaze = new Color(0.45f, 0.03f, 0.03f, 0.3f);
 
             // 맞은 곳: 공격자 쪽으로 좁게 툭 튀는 방울 + 작은 분무 + 잠깐 남는 옅은 연무
             PooledEffect hit = SaveEffectPrefab(HitBloodPath, lifetime: 1.2f, root =>
@@ -383,18 +386,28 @@ namespace HybridShooter.Monster.EditorTools
         /// 씬 조명을 받는 반투명 피 재질(URP Particles/Lit, 알파 블렌드)을 만들거나 덮어쓴다.
         /// 재질 색은 흰색이고 실제 피 색은 파티클 색이 정한다. Soft Particles 로 몸·바닥과 겹치는 경계를 부드럽게 한다.
         /// </summary>
+        /// <remarks>
+        /// Preserve Specular 를 끄고 반사(Smoothness)를 0 으로 둔다. 켜 두면 반사광이 알파와 상관없이 더해져서
+        /// 텍스처의 투명한 부분까지 회색 사각형으로 보이고 피 색이 회색으로 바랜다.
+        /// </remarks>
         /// <param name="name">재질 이름 (BloodMaterialFolder 안 파일 이름)</param>
         /// <param name="texturePath">파티클 텍스처 경로</param>
+        /// <param name="glowColor">자체 발광 색. 어두운 곳에서도 피 색이 남게 하는 최소 밝기 (검정 = 발광 없음)</param>
         /// <returns>저장된 재질 에셋</returns>
-        private static Material SaveLitMaterial(string name, string texturePath)
+        private static Material SaveLitMaterial(string name, string texturePath, Color glowColor)
         {
             Material material = LoadOrCreateMaterial(name, FindShader(LitParticleShader));
             material.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath));
             material.SetColor("_BaseColor", Color.white);
             material.SetFloat("_Surface", 1f); // Transparent
             material.SetFloat("_Blend", 0f);   // Alpha
+            material.SetFloat("_BlendModePreserveSpecular", 0f);
+            material.SetFloat("_Smoothness", 0f);
+            material.SetFloat("_Metallic", 0f);
             material.SetFloat("_ColorMode", 0f);
             material.SetFloat("_ReceiveShadows", 0f);
+            material.SetColor("_EmissionColor", glowColor);
+            material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             material.SetFloat("_SoftParticlesEnabled", 1f);
             material.SetFloat("_SoftParticlesNearFadeDistance", 0f);
             material.SetFloat("_SoftParticlesFarFadeDistance", 0.5f);
