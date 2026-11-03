@@ -400,7 +400,7 @@ namespace HybridShooter.UI
 
             foreach (var gun in LockedGuns())
                 AddCandidate("Locked" + gun.WeaponId, gun, TitleOf(gun),
-                    $"잠김 · 스테이지 클리어 {UnlockOrderOf(gun)}회째에 해금", false, true);
+                    $"잠김 · {UnlockOrderOf(gun)}라운드 클리어 시 해금", false, true);
         }
 
         /// <summary>이름 + 작은 글씨 사격 방식 (능력치 줄이 넘치지 않게 이름 줄로 올림)</summary>

@@ -10,7 +10,7 @@ namespace HybridShooter.Supply
     /// <summary>
     /// 보스 클리어 후 다음 라운드 시작 지급. 수류탄·회복 팩·예비 탄창(1~3번 칸 모든 총)을 ConfigTable.RoundStart* 개씩 준다.
     ///
-    ///  - RoundStartedEvent 의 Round 가 2 이상일 때만 (Round 1 = 처음 시작·재시작). 다음 라운드는 보스를 처치해야만 시작된다 (RunDirector)
+    ///  - RoundStartedEvent 의 Round 가 2 이상일 때만 (Round 1 = 처음 시작·재시작). 다음 라운드는 라운드를 클리어해야만(보스 처치·섬멸 목표·생존 시간) 시작된다 (RunDirector)
     ///  - 값이 음수(-1)면 '최대치까지 가득' (예: 수류탄을 매 라운드 채워 수류탄 최대 보유량 강화가 의미 있게)
     ///  - 탄약은 앞선 RoundCleanupEvent 에서 '아껴 둔 탄창 유지(시작값 이상)' 처리된 뒤에 더한다. 수류탄·회복 팩은 라운드 사이 유지되므로 그대로 더한다
     ///  - 최대치를 넘는 만큼은 버려진다. 실제로 늘어난 양이 있으면 RoundSupplyGrantedEvent 발행 (알림 = RoundSupplyToastHud·SupplyHud, 소리 = GameSoundRouter)

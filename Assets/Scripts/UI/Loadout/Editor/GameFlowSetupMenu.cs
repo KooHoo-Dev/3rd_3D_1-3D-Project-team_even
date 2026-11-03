@@ -57,6 +57,12 @@ namespace HybridShooter.UI.EditorTools
             Debug.Log($"[GameFlowSetup] Build Settings 맨 앞에 메인 메뉴 씬을 추가했습니다: {MainMenuScenePath}");
         }
 
+        // 해금은 저장하지 않고 실행 중인 Ledger 에만 있다 → 해금 메뉴는 플레이 중에만 켠다
+        [MenuItem(Menu + "무기 해금 초기화 (기본 무기만)", true)]
+        [MenuItem(Menu + "다음 무기 1개 해금", true)]
+        [MenuItem(Menu + "무기 모두 해금", true)]
+        private static bool CanEditUnlocks() => Application.isPlaying;
+
         [MenuItem(Menu + "무기 해금 초기화 (기본 무기만)")]
         private static void ResetUnlocks()
         {
@@ -88,10 +94,7 @@ namespace HybridShooter.UI.EditorTools
             Debug.Log("[GameFlowSetup] 저장된 무기 선택(Loadout.Slot*)을 지웠습니다");
         }
 
-        /// <summary>플레이 중이면 등록된 Ledger (화면·이벤트와 맞물림), 아니면 같은 저장 키를 쓰는 새 Ledger</summary>
-        private static WeaponUnlockLedger Ledger() =>
-            Application.isPlaying && ServiceLocator.TryGet<IWeaponUnlocks>(out var unlocks) && unlocks is WeaponUnlockLedger playing
-                ? playing
-                : new WeaponUnlockLedger();
+        /// <summary>플레이 중 등록된 Ledger (화면·이벤트와 맞물림). 해금 메뉴는 플레이 중에만 켜진다 (CanEditUnlocks)</summary>
+        private static WeaponUnlockLedger Ledger() => (WeaponUnlockLedger)ServiceLocator.Get<IWeaponUnlocks>();
     }
 }
