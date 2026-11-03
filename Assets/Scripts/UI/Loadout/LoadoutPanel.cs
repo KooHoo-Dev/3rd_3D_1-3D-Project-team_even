@@ -27,7 +27,7 @@ namespace HybridShooter.UI
     ///  - 4칸: 1번 Sidearm(고정) · 2·3번 선택 · 4번 "보급 전용"(선택 불가)
     ///  - 칸 클릭 → 후보: Category = Loadout · 해금(IWeaponUnlocks) · 다른 칸에 없는 총 + [비우기] + 잠긴 총(자물쇠, UnlockOrder 번째 해금)
     ///  - 2·3번 중 한 칸은 채워야 출발. 마지막 선택은 PlayerPrefs(Loadout.Slot1, Loadout.Slot2, 0 = 빈 칸)
-    /// 스타일은 UiTheme (시안 03): 상자 스프라이트 대신 얇은 윗선·밑선과 붉은 표식, 왼쪽 정렬 제목, 메인 메뉴식 [출발] 글자 버튼.
+    /// 스타일은 UiTheme (시안 03): 상자 스프라이트 대신 얇은 윗선·밑선과 붉은 표식, 왼쪽 정렬 제목, 아래 가운데 붉은 [출발] 버튼.
     /// 자물쇠 아이콘만 GameFlowUiSkin 스프라이트를 청회색으로 쓴다
     /// </summary>
     [DisallowMultipleComponent]
@@ -535,21 +535,35 @@ namespace HybridShooter.UI
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = 3;
 
-            // 출발: 오른쪽 아래 메인 메뉴식 글자 버튼
-            var start = UiThemeKit.TextButton(root, "StartButton", string.Empty, 40f, new Vector2(1f, 0f), new Vector2(-MarginX - 340f, 96f),
-                new Vector2(340f, 84f), textFont);
-            startLabel = start.transform.Find("Label").GetComponent<TextMeshProUGUI>();
+            // 출발: 아래 가운데 붉은 버튼 (이 화면의 주 행동이라 유일하게 면을 칠한다). 호버·선택 때 밝아지고 누르면 어두워진다
+            var start = CreateButton(root, "StartButton", new Vector2(360f, 76f), out startLabel);
+            var startRt = (RectTransform)start.transform;
+            startRt.anchorMin = startRt.anchorMax = new Vector2(0.5f, 0f);
+            startRt.pivot = new Vector2(0.5f, 0f);
+            startRt.anchoredPosition = new Vector2(0f, 64f);
+            ((Image)start.targetGraphic).color = UiTheme.Red;
+            var startColors = ColorBlock.defaultColorBlock;
+            startColors.normalColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            startColors.highlightedColor = Color.white;
+            startColors.selectedColor = Color.white;
+            startColors.pressedColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+            startColors.disabledColor = new Color(0.9f, 0.9f, 0.9f, 1f); // 비활성은 CanvasGroup 으로 흐리게
+            startColors.colorMultiplier = 1.15f;
+            startColors.fadeDuration = 0.08f;
+            start.colors = startColors;
+            startLabel.fontSize = 30f;
+            startLabel.fontStyle = FontStyles.Bold;
+            startLabel.characterSpacing = 6f;
+            startLabel.color = UiTheme.MoonWhite;
             start.gameObject.AddComponent<CanvasGroup>();
             start.onClick.AddListener(Confirm);
             startButton = start;
 
-            // 빈 칸 경고 (왼쪽 아래, 호박색 표식). 출발은 막지 않는다
-            emptyWarningText = HudFactory.Label(root, "EmptySlotWarning", textFont, 20f, TextAlignmentOptions.MidlineLeft,
-                Vector2.zero, Vector2.zero, new Vector2(MarginX + 16f, 118f), new Vector2(1100f, 36f));
+            // 빈 칸 경고 (출발 버튼 바로 위 가운데, 호박색). 출발은 막지 않는다
+            emptyWarningText = HudFactory.Label(root, "EmptySlotWarning", textFont, 20f, TextAlignmentOptions.Center,
+                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 156f), new Vector2(1100f, 36f));
             emptyWarningText.text = "[주의] 비어 있는 무기 칸이 있습니다. 그대로 출발하면 그 칸은 사용할 수 없습니다";
             emptyWarningText.color = WarningColor;
-            HudFactory.NewImage(HudFactory.Rect(emptyWarningText.rectTransform, "Marker", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-                new Vector2(-16f, 0f), new Vector2(3f, 22f)), null, UiTheme.Ember);
             emptyWarningText.gameObject.SetActive(false);
 
             canvas.gameObject.SetActive(false);
