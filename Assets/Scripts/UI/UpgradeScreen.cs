@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using HybridShooter.Core.Data;
 using HybridShooter.Reward;
 using HybridShooter.UI.Theme;
@@ -419,7 +419,7 @@ namespace HybridShooter.UI
             PlaceLeft(card.Highlight.rectTransform, 0f, 28f, 5f, 34f);
 
             card.Grade = CreateText("Grade", c, UiTheme.TextFont, 18f, TextAlignmentOptions.MidlineLeft, Color.white, string.Empty);
-            card.Grade.fontStyle = FontStyles.Bold;
+            // 굵게 하지 않는다 (Noto Sans KR 은 Regular 하나라 Bold 가 가짜 굵기로 그려진다)
             card.Grade.characterSpacing = 4f;
             PlaceLeft(card.Grade.rectTransform, Pad, 30f, inner - 160f, 30f);
 

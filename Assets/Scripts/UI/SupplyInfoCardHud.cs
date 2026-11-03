@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
@@ -342,7 +342,7 @@ namespace HybridShooter.UI
             // 한 줄 칸들은 높이를 선호 크기로 잡으니 말줄임 대신 넘침 허용 (칸이 줄 높이보다 낮아 통째로 숨는 일 방지)
             titleText.overflowMode = TextOverflowModes.Overflow;
             nameText.overflowMode = TextOverflowModes.Overflow;
-            nameText.fontStyle = FontStyles.Bold;
+            // 굵게 하지 않는다 (Noto Sans KR 은 Regular 하나라 Bold 가 가짜 굵기로 그려진다)
             descriptionText.color = UiTheme.Steel;
             detailText = HudFactory.Label(card, "Detail", textFont, 16f, TextAlignmentOptions.Left, topLeft, topLeft, Vector2.zero, Vector2.zero);
             detailText.overflowMode = TextOverflowModes.Overflow;
