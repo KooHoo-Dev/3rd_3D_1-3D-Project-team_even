@@ -30,6 +30,8 @@ namespace HybridShooter.Player
         [SerializeField, Range(0f, 1f)] private float baseGlitch = 0.25f;
 
         [Header("화면")]
+        [Tooltip("화면 오버레이 전체 불투명도 배율 (글자는 영향 없음). 낮을수록 화면이 덜 가려진다")]
+        [SerializeField, Range(0f, 1f)] private float screenOpacity = 0.5f;
         [Tooltip("3인칭에서는 몸이 보이므로 화면 오버레이를 이만큼 약하게")]
         [SerializeField, Range(0f, 1f)] private float thirdPersonScreenScale = 0.45f;
         [SerializeField] private bool showText = true;
@@ -131,7 +133,7 @@ namespace HybridShooter.Player
             if (player.IsFirstPerson == false) screenIntensity *= thirdPersonScreenScale;
             if (screen != null)
             {
-                screen.SetFloat(IntensityId, screenIntensity);
+                screen.SetFloat(IntensityId, screenIntensity * screenOpacity);
                 screen.SetFloat(GlitchId, warning ? 0.25f : 0f);
                 screen.SetFloat(ScanId, Mathf.Repeat(Time.time * 0.5f, 1f));
             }
@@ -200,7 +202,7 @@ namespace HybridShooter.Player
             if (player.IsFirstPerson == false) screenIntensity *= thirdPersonScreenScale;
             if (screen != null)
             {
-                screen.SetFloat(IntensityId, screenIntensity);
+                screen.SetFloat(IntensityId, screenIntensity * screenOpacity);
                 screen.SetFloat(GlitchId, glitch);
                 screen.SetFloat(ScanId, Mathf.Repeat(Time.time * 0.9f, 1f));
             }
