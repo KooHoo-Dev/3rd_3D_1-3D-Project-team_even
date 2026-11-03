@@ -359,7 +359,6 @@ MonoBehaviour:
   hitEndRatio: 0.5
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
-  aimOffsetRadius: 2
   hitRangeRatio: 1.15
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
@@ -480,8 +479,8 @@ MonoBehaviour:
   upwardKickSpeed: 1.5
   randomSpinSpeed: 2
   lyingSeconds: 2.5
-  sinkSeconds: 1.5
-  extraSinkDepth: 0.5
+  sinkSeconds: 3
+  extraSinkDepth: 1
 --- !u!1 &5680596531327945823
 GameObject:
   m_ObjectHideFlags: 0

@@ -1791,7 +1791,6 @@ MonoBehaviour:
   hitEndRatio: 0.5
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
-  aimOffsetRadius: 3
   hitRangeRatio: 1.1
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
@@ -1853,10 +1852,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.77
-  m_Height: 1.88
+  m_Radius: 0.52423
+  m_Height: 1.04846
   m_Direction: 1
-  m_Center: {x: 0.015360773, y: 0.58442056, z: 0.10752675}
+  m_Center: {x: 0.015360773, y: 0.7381865, z: -0.1382432}
 --- !u!114 &-2741675036842919147
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1912,8 +1911,8 @@ MonoBehaviour:
   upwardKickSpeed: 1.5
   randomSpinSpeed: 2
   lyingSeconds: 2.5
-  sinkSeconds: 1.5
-  extraSinkDepth: 0.5
+  sinkSeconds: 3
+  extraSinkDepth: 1
 --- !u!1 &6357135313045127238
 GameObject:
   m_ObjectHideFlags: 0

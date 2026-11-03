@@ -2008,10 +2008,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.45
-  m_Height: 0.9
+  m_Radius: 0.24049787
+  m_Height: 0.9501022
   m_Direction: 1
-  m_Center: {x: 0, y: 0.45, z: 0}
+  m_Center: {x: 0, y: 0.552958, z: 0.072411776}
 --- !u!114 &8422482836028294784
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2082,5 +2082,5 @@ MonoBehaviour:
   upwardKickSpeed: 1.5
   randomSpinSpeed: 2
   lyingSeconds: 2.5
-  sinkSeconds: 1.5
-  extraSinkDepth: 0.5
+  sinkSeconds: 3
+  extraSinkDepth: 1

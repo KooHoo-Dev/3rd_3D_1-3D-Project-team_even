@@ -348,10 +348,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 1.8884966
-  m_Height: 4.3
+  m_Radius: 1.4114094
+  m_Height: 3.7769933
   m_Direction: 1
-  m_Center: {x: 0.022333622, y: 2.4972677, z: 0.29760718}
+  m_Center: {x: 0.06892848, y: 2.5382764, z: 0.29760718}
 --- !u!114 &6040918561269513848
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -407,8 +407,8 @@ MonoBehaviour:
   upwardKickSpeed: 1
   randomSpinSpeed: 2
   lyingSeconds: 2.5
-  sinkSeconds: 1.5
-  extraSinkDepth: 0.5
+  sinkSeconds: 3
+  extraSinkDepth: 1
 --- !u!1 &1905092912942143356
 GameObject:
   m_ObjectHideFlags: 0

@@ -1965,6 +1965,9 @@ MonoBehaviour:
   sampleRadius: 4
   engagedPriority: 40
   defaultPriority: 50
+  smallObstacleProbeDepth: 2.5
+  maxDetourExtraLength: 2
+  maxDetourHeightDifference: 0.75
 --- !u!114 &-6963252850141782799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1987,7 +1990,6 @@ MonoBehaviour:
   hitEndRatio: 1
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
-  aimOffsetRadius: 3
   hitRangeRatio: 2.2
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
@@ -2070,8 +2072,8 @@ MonoBehaviour:
   upwardKickSpeed: 1.5
   randomSpinSpeed: 2
   lyingSeconds: 2.5
-  sinkSeconds: 1.5
-  extraSinkDepth: 0.5
+  sinkSeconds: 3
+  extraSinkDepth: 1
 --- !u!1 &7960356510021968820
 GameObject:
   m_ObjectHideFlags: 0

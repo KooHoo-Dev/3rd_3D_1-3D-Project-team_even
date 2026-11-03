@@ -1966,6 +1966,9 @@ MonoBehaviour:
   sampleRadius: 4
   engagedPriority: 40
   defaultPriority: 50
+  smallObstacleProbeDepth: 2.5
+  maxDetourExtraLength: 2
+  maxDetourHeightDifference: 0.75
 --- !u!114 &-6963252850141782799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1988,7 +1991,6 @@ MonoBehaviour:
   hitEndRatio: 1
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
-  aimOffsetRadius: 1
   hitRangeRatio: 1.7
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
@@ -2026,10 +2028,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.62
-  m_Height: 1.6548433
+  m_Radius: 0.45866978
+  m_Height: 1.6150848
   m_Direction: 1
-  m_Center: {x: 0.010138631, y: 0.74, z: 0}
+  m_Center: {x: 0.020826459, y: 0.7201207, z: 0}
 --- !u!114 &1523295838211662566
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2085,8 +2087,8 @@ MonoBehaviour:
   upwardKickSpeed: 1.5
   randomSpinSpeed: 2
   lyingSeconds: 2.5
-  sinkSeconds: 1.5
-  extraSinkDepth: 0.5
+  sinkSeconds: 3
+  extraSinkDepth: 1
 --- !u!1 &7960356510021968820
 GameObject:
   m_ObjectHideFlags: 0

@@ -104,6 +104,10 @@ namespace HybridShooter.Monster.Behaviour
             switch (stage)
             {
                 case CorpseStage.Lying:
+                    // 남은 시간에 맞춰 현재 회전 속도를 줄이고, 침강 시작 시 0으로 만든다.
+                    float remaining = lyingSeconds - elapsed;
+                    float spinFade = remaining > 0f ? Time.deltaTime / (remaining + Time.deltaTime) : 1f;
+                    body.angularVelocity = Vector3.Lerp(body.angularVelocity, Vector3.zero, spinFade);
                     if (elapsed >= lyingSeconds) StartSinking();
                     return;
                 case CorpseStage.Sinking:

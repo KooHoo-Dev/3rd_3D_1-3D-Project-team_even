@@ -2065,5 +2065,5 @@ MonoBehaviour:
   upwardKickSpeed: 1.5
   randomSpinSpeed: 2
   lyingSeconds: 2
-  sinkSeconds: 1.5
+  sinkSeconds: 3
   extraSinkDepth: 1
