@@ -1076,6 +1076,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
   partKey: Gland
+  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  coreAlpha: 0.12
+  rimPower: 3
+  exposedBrightness: 0.9
+  hiddenBrightness: 0.25
+  pulsesPerSecond: 1.2
+  pulseDepth: 0.6
+  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashSeconds: 0.35
+  hitFlashCoreAlpha: 0.7
+  hitFlashScale: 1.45
 --- !u!1 &3710361424080600933
 GameObject:
   m_ObjectHideFlags: 0
@@ -2659,6 +2670,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
   partKey: Gland
+  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  coreAlpha: 0.12
+  rimPower: 3
+  exposedBrightness: 0.9
+  hiddenBrightness: 0.25
+  pulsesPerSecond: 1.2
+  pulseDepth: 0.597
+  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashSeconds: 0.35
+  hitFlashCoreAlpha: 0.7
+  hitFlashScale: 1.45
 --- !u!1 &8541927153081912611
 GameObject:
   m_ObjectHideFlags: 0

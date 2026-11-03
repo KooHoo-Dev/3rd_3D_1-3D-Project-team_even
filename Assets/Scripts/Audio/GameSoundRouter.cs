@@ -27,6 +27,8 @@ namespace HybridShooter.Audio
         [SerializeField] private string bossWarningKey = "sfx_boss_warning";
         [Tooltip("총알이 몬스터에 맞은 위치에서 나는 타격음 (3D)")]
         [SerializeField] private string hitImpactKey = "sfx_hit_flesh";
+        [Tooltip("드러난 약점을 맞혔을 때 타격음(hitImpactKey) 피치 배율. 1 = 몸통과 같음. SoundTable PitchJitter 는 이 값 주변으로 흔들린다")]
+        [SerializeField] private float weakPointHitPitch = 1.35f;
         [Tooltip("명중 피드백 (2D). 처치한 발에는 내지 않는다 (처치는 몬스터 사망음 + UI 표시)")]
         [SerializeField] private string hitMarkerKey = "ui_hit_marker";
         [SerializeField] private string gameOverKey = "ui_game_over";
@@ -86,6 +88,7 @@ namespace HybridShooter.Audio
             EventBus<RoundCleanupEvent>.Subscribe(OnRoundCleanup);
             EventBus<GameOverEvent>.Subscribe(OnGameOver);
             EventBus<MonsterSpawnedEvent>.Subscribe(OnMonsterSpawned);
+            EventBus<WeakPointHitEvent>.Subscribe(OnWeakPointHit);
             EventBus<DamageDealtEvent>.Subscribe(OnDamageDealt);
             EventBus<PlayerHpChangedEvent>.Subscribe(OnPlayerHpChanged);
             EventBus<PlayerDiedEvent>.Subscribe(OnPlayerDied);
@@ -106,6 +109,7 @@ namespace HybridShooter.Audio
             EventBus<RoundCleanupEvent>.Unsubscribe(OnRoundCleanup);
             EventBus<GameOverEvent>.Unsubscribe(OnGameOver);
             EventBus<MonsterSpawnedEvent>.Unsubscribe(OnMonsterSpawned);
+            EventBus<WeakPointHitEvent>.Unsubscribe(OnWeakPointHit);
             EventBus<DamageDealtEvent>.Unsubscribe(OnDamageDealt);
             EventBus<PlayerHpChangedEvent>.Unsubscribe(OnPlayerHpChanged);
             EventBus<PlayerDiedEvent>.Unsubscribe(OnPlayerDied);

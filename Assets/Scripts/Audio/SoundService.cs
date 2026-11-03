@@ -231,14 +231,31 @@ namespace HybridShooter.Audio
 
         // ───────────────────────── ISoundService ─────────────────────────
 
-        public void PlaySfx(string key, Vector3? position = null)
+        public void PlaySfx(string key, Vector3? position = null) => PlaySfx(key, position, 1f);
+
+        public void PlaySfx(SoundDef sound, Vector3? position = null) => PlaySfx(sound, position, 1f);
+
+        // ───────────────────────── 피치 지정 재생 (ISoundService 밖) ─────────────────────────
+
+        /// <summary>
+        /// 같은 소리를 피치만 바꿔 낸다. GameSoundRouter 가 약점 명중 타격음에 쓴다.
+        /// Cooldown·MaxInstances 는 피치와 상관없이 같은 SoundDef 로 함께 센다
+        /// </summary>
+        /// <param name="key">SoundTable 키. 비었으면 무시</param>
+        /// <param name="position">null = 2D</param>
+        /// <param name="pitchScale">피치 배율. 1 = 원래. PitchJitter 는 이 값 주변으로 흔들린다</param>
+        public void PlaySfx(string key, Vector3? position, float pitchScale)
         {
             if (string.IsNullOrEmpty(key)) return;
-            if (DataManager.Sounds.TryGet(key, out var def)) PlaySfx(def, position);
+            if (DataManager.Sounds.TryGet(key, out var def)) PlaySfx(def, position, pitchScale);
             else if (warnedKeys.Add(key)) Debug.LogWarning($"[SoundService] SoundTable 에 '{key}' 가 없습니다", this);
         }
 
-        public void PlaySfx(SoundDef sound, Vector3? position = null)
+        /// <summary>Def 로 피치 지정 재생. null 이면 무시</summary>
+        /// <param name="sound">재생할 소리</param>
+        /// <param name="position">null = 2D</param>
+        /// <param name="pitchScale">피치 배율. 1 = 원래</param>
+        public void PlaySfx(SoundDef sound, Vector3? position, float pitchScale)
         {
             if (sound == null || sound.Clips.Count == 0) return;
             if (sound.Category == SoundCategory.Bgm)
@@ -257,7 +274,7 @@ namespace HybridShooter.Audio
             if (voice == null) return;
 
             lastPlayTime[sound] = now;
-            StartVoice(voice, sound, spatial ? position : null, null);
+            StartVoice(voice, sound, spatial ? position : null, null, pitchScale);
         }
 
         public SoundHandle PlayLoop(SoundDef sound, Transform follow)
@@ -418,7 +435,7 @@ namespace HybridShooter.Audio
             return victim;
         }
 
-        private void StartVoice(Voice voice, SoundDef sound, Vector3? position, LoopRequest loop)
+        private void StartVoice(Voice voice, SoundDef sound, Vector3? position, LoopRequest loop, float pitchScale = 1f)
         {
             if (voice.Loop != null) voice.Loop.Voice = null; // 빼앗긴 루프는 대기로 돌아감
 
@@ -430,7 +447,7 @@ namespace HybridShooter.Audio
             source.spatialBlend = position.HasValue ? 1f : 0f;
             source.minDistance = minDistance;
             source.maxDistance = sound.MaxDistance > 0f ? Mathf.Max(sound.MaxDistance, minDistance + 0.1f) : unlimitedDistance;
-            source.pitch = 1f + Random.Range(-sound.PitchJitter, sound.PitchJitter);
+            source.pitch = pitchScale * (1f + Random.Range(-sound.PitchJitter, sound.PitchJitter));
             source.priority = Mathf.Clamp(Mathf.RoundToInt((100 - sound.Priority) * 2.55f), 0, 255); // Unity: 0 이 가장 중요
             source.transform.position = position ?? Vector3.zero;
 

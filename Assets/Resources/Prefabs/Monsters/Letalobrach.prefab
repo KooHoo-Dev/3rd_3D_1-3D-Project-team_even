@@ -949,7 +949,7 @@ MonoBehaviour:
   coreAlpha: 0.12
   rimPower: 3
   exposedBrightness: 0.9
-  hiddenBrightness: 0.25
+  hiddenBrightness: 0.05
   pulsesPerSecond: 1.2
   pulseDepth: 0.6
   hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
