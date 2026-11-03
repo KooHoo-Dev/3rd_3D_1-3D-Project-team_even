@@ -12,12 +12,13 @@ namespace HybridShooter.Monster.Behaviour
     /// 몬스터 약점 히트박스 하나 (뼈 아래 자식 구 콜라이더). 총알이 이 콜라이더를 맞히면
     /// MonsterPartTable 의 DamageMultiplier 를 곱한 피해를 MonsterController 에 약점 피해로 넘긴다.
     /// 무기는 TryGetDamageable(부모 방향 탐색)로 몸통보다 먼저 이 컴포넌트를 찾는다.
-    /// 콜라이더와 같은 크기의 반투명 발광 구(가장자리만 은은하게 빛남)를 직접 만들어, 약점이 드러났을 때 맥동하며 또렷하게·숨었을 때 희미하게 보여준다.
-    /// 약점 피해가 들어가면 발광 구가 흰빛으로 번쩍이며 잠깐 커져, 플레이어가 그 부위를 맞혔다는 것을 바로 알게 한다.
+    /// 콜라이더와 같은 크기의 반투명 발광 구(가장자리만 은은하게 빛남)를 직접 만든다. 평소에는 보이지 않는다.
+    /// 약점 피해가 들어가면 발광 구가 흰빛으로 번쩍이며 잠깐 커졌다 사라져, 플레이어가 그 부위를 맞혔다는 것을 바로 알게 한다.
     /// </summary>
     /// <remarks>
     /// 폭발 피해는 받지 않는다. 수류탄은 IDamageable 마다 1번 피해를 주므로, 받으면 몸통과 약점에서 두 번 깎인다.
     /// Exposure(노출 조건)가 WhileAttacking 이면 공격 중에만 약점이고, 그 외에는 몸통 피해(배율 없음)로 넘긴다.
+    /// 숨은 약점(노출 조건 불만족)을 맞히면 몸통 피해라서 반짝이지 않는다.
     /// 발광 구는 프리팹이 아니라 Awake 에서 만든다 (몬스터 프리팹 수정 불필요). 풀 재사용 후에도 Update 가 매 프레임 상태로 다시 칠한다.
     /// </remarks>
     [RequireComponent(typeof(SphereCollider))]
@@ -37,7 +38,7 @@ namespace HybridShooter.Monster.Behaviour
         [SerializeField] private string partKey = "Gland";
 
         [Header("발광 겉모습")]
-        [Tooltip("발광 색. HDR 1 초과면 Bloom 이 켜진 화면에서 번진다. 노출·비노출은 색이 아니라 밝기로 구분한다")]
+        [Tooltip("발광 색. HDR 1 초과면 Bloom 이 켜진 화면에서 번진다. 반짝임이 사그라드는 동안 hitFlashColor 에서 이 색으로 돌아온다")]
         [ColorUsage(false, true)]
         [SerializeField] private Color glowColor = new Color(0.5f, 1.4f, 1.1f);
         [Tooltip("구 가운데 불투명도. 0 = 완전 투명(테두리만 보임), 1 = 테두리만큼 진함")]
@@ -46,20 +47,6 @@ namespace HybridShooter.Monster.Behaviour
         [Tooltip("테두리 빛 두께. 클수록 가장자리에만 얇게 빛난다")]
         [Range(0.5f, 8f)]
         [SerializeField] private float rimPower = 3f;
-
-        [Header("발광 밝기")]
-        [Tooltip("약점이 드러났을 때(배율 적용) 밝기 0~1. 맥동의 가장 밝은 순간 값")]
-        [Range(0f, 1f)]
-        [SerializeField] private float exposedBrightness = 0.9f;
-        [Tooltip("약점이 숨었을 때(몸통 판정) 밝기 0~1. 위치만 알 수 있게 희미하게, 맥동 없음")]
-        [Range(0f, 1f)]
-        [SerializeField] private float hiddenBrightness = 0.25f;
-        [Tooltip("노출 중 맥동 빠르기 (초당 횟수)")]
-        [Range(0f, 5f)]
-        [SerializeField] private float pulsesPerSecond = 1.2f;
-        [Tooltip("노출 중 맥동 깊이 0~1. 0 = 맥동 없음, 0.35 = 가장 어두울 때 노출 밝기의 65%")]
-        [Range(0f, 1f)]
-        [SerializeField] private float pulseDepth = 0.35f;
 
         [Header("피격 반짝임")]
         [Tooltip("약점 명중 순간 발광 색. HDR 1 초과면 Bloom 이 켜진 화면에서 번쩍 번진다")]
@@ -96,8 +83,7 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 발광을 지금 상태로 칠한다. 죽었으면 끄고, 살아 있으면 노출 중엔 맥동하며 또렷하게·숨었을 땐 희미하게.
-        /// 약점 명중 직후면 그 위에 반짝임을 얹는다.
+        /// 발광을 지금 상태로 칠한다. 죽었으면 끄고, 살아 있으면 약점 명중 반짝임만큼만 보인다 (평소 밝기 0 = 안 보임).
         /// 매 프레임 상태에서 다시 계산하므로 풀 재사용(Respawn) 뒤 따로 되돌릴 필요가 없다.
         /// </summary>
         private void Update()
@@ -109,10 +95,7 @@ namespace HybridShooter.Monster.Behaviour
                 return;
             }
 
-            MonsterPartDef part = owner.Def.FindPart(partKey);
-            float brightness = hiddenBrightness;
-            if (IsExposed(part.Exposure)) brightness = PulsingExposedBrightness();
-            ApplyGlow(brightness, TickHitFlash());
+            ApplyGlow(TickHitFlash());
         }
 
         /// <summary>Awake 에서 만든 머티리얼을 지운다 (Renderer.material 과 달리 직접 만든 것은 자동으로 안 지워진다)</summary>
@@ -168,14 +151,6 @@ namespace HybridShooter.Monster.Behaviour
             glowRenderer.receiveShadows = false;
         }
 
-        /// <summary>노출 중 밝기. 사인파로 exposedBrightness 와 그보다 pulseDepth 만큼 어두운 값 사이를 오간다</summary>
-        /// <returns>밝기 0~1</returns>
-        private float PulsingExposedBrightness()
-        {
-            float wave = (Mathf.Sin(Time.time * pulsesPerSecond * 2f * Mathf.PI) + 1f) * 0.5f; // 0~1
-            return exposedBrightness * (1f - pulseDepth * wave);
-        }
-
         /// <summary>약점 명중 반짝임을 처음부터 다시 시작한다. TakeDamage 가 약점 피해를 넘길 때 부른다</summary>
         private void StartHitFlash()
         {
@@ -194,17 +169,17 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// Inspector 값과 이번 프레임 밝기·반짝임을 머티리얼과 구 크기에 넣는다. 겉모습 값도 매 프레임 넣어 플레이 중 Inspector 조정이 바로 보인다.
-        /// 반짝임 세기만큼 색은 hitFlashColor 로, 가운데 불투명도는 hitFlashCoreAlpha 로, 밝기는 1 로, 크기는 hitFlashScale 배로 옮겨 간다.
+        /// Inspector 값과 이번 프레임 반짝임을 머티리얼과 구 크기에 넣는다. 겉모습 값도 매 프레임 넣어 플레이 중 Inspector 조정이 바로 보인다.
+        /// 반짝임 세기만큼 색은 hitFlashColor 로, 가운데 불투명도는 hitFlashCoreAlpha 로, 크기는 hitFlashScale 배로 옮겨 간다.
+        /// 밝기는 반짝임 세기 그대로라 반짝임이 끝나면 0 (셰이더 알파 0 → 안 보임).
         /// </summary>
-        /// <param name="brightness">평소 전체 밝기 0~1 (셰이더가 알파에 곱한다)</param>
-        /// <param name="hitFlash">반짝임 세기 0~1 (0 = 평소 모습)</param>
-        private void ApplyGlow(float brightness, float hitFlash)
+        /// <param name="hitFlash">반짝임 세기 0~1 (0 = 안 보임)</param>
+        private void ApplyGlow(float hitFlash)
         {
             glowMaterial.SetColor(GlowColorProperty, Color.Lerp(glowColor, hitFlashColor, hitFlash));
             glowMaterial.SetFloat(CoreAlphaProperty, Mathf.Lerp(coreAlpha, hitFlashCoreAlpha, hitFlash));
             glowMaterial.SetFloat(RimPowerProperty, rimPower);
-            glowMaterial.SetFloat(BrightnessProperty, Mathf.Lerp(brightness, 1f, hitFlash));
+            glowMaterial.SetFloat(BrightnessProperty, hitFlash);
             glowRenderer.transform.localScale = glowBaseScale * Mathf.Lerp(1f, hitFlashScale, hitFlash);
         }
 

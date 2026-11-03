@@ -11,12 +11,14 @@ namespace HybridShooter.Boss
     /// 보스 약점 히트박스 하나 (뼈 아래 자식 콜라이더). 총알이 이 콜라이더를 맞히면
     /// MonsterPartTable 의 BossId 행 DamageMultiplier 를 곱한 피해를 BossController 에 넘긴다.
     /// 무기는 TryGetDamageable(부모 방향 탐색)로 보스 몸통보다 먼저 이 컴포넌트를 찾는다.
-    /// 콜라이더와 같은 크기의 반투명 발광 구(가장자리만 은은하게 빛남)를 직접 만들어, 보스가 살아 있는 동안 맥동하며 보여준다.
+    /// 콜라이더와 같은 크기의 반투명 발광 구(가장자리만 은은하게 빛남)를 직접 만든다.
+    /// 스폰 직후 introSeconds 동안 맥동하며 약점 위치를 알려 주고, 끝무렵 서서히 사라진다. 그 뒤로는 평소에 보이지 않는다.
     /// 약점 피해가 들어가면 발광 구가 흰빛으로 번쩍이며 잠깐 커져, 플레이어가 그 부위를 맞혔다는 것을 바로 알게 한다.
     /// </summary>
     /// <remarks>
     /// 폭발 피해는 받지 않는다. 수류탄은 IDamageable 마다 1번 피해를 주므로, 받으면 몸통과 약점에서 두 번 깎인다.
-    /// Exposure(노출 조건)는 쓰지 않는다. 지금 보스 부위는 모두 Always 다. 그래서 발광도 살아 있으면 늘 노출 밝기로 맥동한다.
+    /// Exposure(노출 조건)는 쓰지 않는다. 지금 보스 부위는 모두 Always 다. 그래서 명중하면 늘 반짝인다.
+    /// 스폰 강조는 OnEnable 에서 시작한다. 보스는 라운드마다 새로 Instantiate 되므로 활성화 시점 = 스폰 시점이다.
     /// 발광 구는 프리팹이 아니라 Awake 에서 만든다 (보스 프리팹 수정 불필요). 셰이더·발광 방식은 MonsterWeakPoint 와 같다.
     /// 판정 콜라이더는 지금 프리팹(Clypeosaurus)이 쓰는 SphereCollider 만 지원한다.
     /// </remarks>
@@ -47,14 +49,20 @@ namespace HybridShooter.Boss
         [Range(0.5f, 8f)]
         [SerializeField] private float rimPower = 3f;
 
-        [Header("발광 밝기")]
-        [Tooltip("살아 있는 동안 밝기 0~1. 맥동의 가장 밝은 순간 값")]
+        [Header("스폰 강조")]
+        [Tooltip("스폰 직후 약점을 보여 주는 시간 (초). 0 = 강조 없음")]
+        [Min(0f)]
+        [SerializeField] private float introSeconds = 3f;
+        [Tooltip("강조 끝무렵 밝기가 0 으로 사그라드는 시간 (초). introSeconds 안에 포함된다")]
+        [Min(0f)]
+        [SerializeField] private float introFadeOutSeconds = 0.5f;
+        [Tooltip("스폰 강조 밝기 0~1. 맥동의 가장 밝은 순간 값")]
         [Range(0f, 1f)]
-        [SerializeField] private float exposedBrightness = 0.9f;
-        [Tooltip("맥동 빠르기 (초당 횟수)")]
+        [SerializeField] private float introBrightness = 1f;
+        [Tooltip("스폰 강조 중 맥동 빠르기 (초당 횟수)")]
         [Range(0f, 5f)]
-        [SerializeField] private float pulsesPerSecond = 1.2f;
-        [Tooltip("맥동 깊이 0~1. 0 = 맥동 없음, 0.35 = 가장 어두울 때 밝기의 65%")]
+        [SerializeField] private float pulsesPerSecond = 2f;
+        [Tooltip("스폰 강조 중 맥동 깊이 0~1. 0 = 맥동 없음, 0.35 = 가장 어두울 때 강조 밝기의 65%")]
         [Range(0f, 1f)]
         [SerializeField] private float pulseDepth = 0.35f;
 
@@ -79,6 +87,9 @@ namespace HybridShooter.Boss
         private Material glowMaterial; // 약점마다 1개. OnDestroy 에서 지운다
         private Vector3 glowBaseScale; // 콜라이더 지름에 맞춘 크기. 반짝임 크기 배율의 기준
 
+        // ── 스폰 강조 ──
+        private float introRemainingSeconds; // 0 = 강조 끝남
+
         // ── 피격 반짝임 ──
         private float hitFlashRemainingSeconds; // 0 = 반짝이는 중 아님
 
@@ -92,8 +103,14 @@ namespace HybridShooter.Boss
             CreateGlowSphere();
         }
 
+        /// <summary>보스가 스폰(활성화)되면 약점 위치를 알리는 스폰 강조를 시작한다</summary>
+        private void OnEnable()
+        {
+            StartIntroHighlight();
+        }
+
         /// <summary>
-        /// 발광을 지금 상태로 칠한다. 죽었으면 끄고, 살아 있으면 맥동한다. 약점 명중 직후면 그 위에 반짝임을 얹는다.
+        /// 발광을 지금 상태로 칠한다. 죽었으면 끄고, 살아 있으면 스폰 강조 밝기(끝나면 0 = 안 보임)에 약점 명중 반짝임을 얹는다.
         /// 매 프레임 상태에서 다시 계산하므로 보스를 다시 초기화(체력 회복)한 뒤 따로 되돌릴 필요가 없다.
         /// </summary>
         private void Update()
@@ -105,7 +122,7 @@ namespace HybridShooter.Boss
                 return;
             }
 
-            ApplyGlow(PulsingBrightness(), TickHitFlash());
+            ApplyGlow(TickIntroBrightness(), TickHitFlash());
         }
 
         /// <summary>Awake 에서 만든 머티리얼을 지운다 (Renderer.material 과 달리 직접 만든 것은 자동으로 안 지워진다)</summary>
@@ -157,12 +174,36 @@ namespace HybridShooter.Boss
             glowRenderer.receiveShadows = false;
         }
 
-        /// <summary>살아 있는 동안 밝기. 사인파로 exposedBrightness 와 그보다 pulseDepth 만큼 어두운 값 사이를 오간다</summary>
+        /// <summary>스폰 강조를 처음부터 다시 시작한다. OnEnable(보스 스폰)이 부른다</summary>
+        private void StartIntroHighlight()
+        {
+            introRemainingSeconds = introSeconds;
+        }
+
+        /// <summary>
+        /// 이번 프레임 스폰 강조 밝기를 구하고 남은 시간을 줄인다. Update 가 ApplyGlow 에 넘긴다.
+        /// 강조 중엔 맥동하고, 마지막 introFadeOutSeconds 동안은 남은 시간에 비례해 0 으로 사그라든다.
+        /// </summary>
+        /// <returns>밝기 0~1. 0 = 강조 끝남 (안 보임)</returns>
+        private float TickIntroBrightness()
+        {
+            if (introRemainingSeconds <= 0f) return 0f;
+
+            float fadeOutRatio = 1f;
+            if (introRemainingSeconds < introFadeOutSeconds)
+                fadeOutRatio = introRemainingSeconds / introFadeOutSeconds; // 1 → 0
+
+            float brightness = PulsingIntroBrightness() * fadeOutRatio;
+            introRemainingSeconds = Mathf.Max(0f, introRemainingSeconds - Time.deltaTime);
+            return brightness;
+        }
+
+        /// <summary>스폰 강조 중 밝기. 사인파로 introBrightness 와 그보다 pulseDepth 만큼 어두운 값 사이를 오간다</summary>
         /// <returns>밝기 0~1</returns>
-        private float PulsingBrightness()
+        private float PulsingIntroBrightness()
         {
             float wave = (Mathf.Sin(Time.time * pulsesPerSecond * 2f * Mathf.PI) + 1f) * 0.5f; // 0~1
-            return exposedBrightness * (1f - pulseDepth * wave);
+            return introBrightness * (1f - pulseDepth * wave);
         }
 
         /// <summary>약점 명중 반짝임을 처음부터 다시 시작한다. TakeDamage 가 약점 피해를 넘길 때 부른다</summary>
@@ -186,7 +227,7 @@ namespace HybridShooter.Boss
         /// Inspector 값과 이번 프레임 밝기·반짝임을 머티리얼과 구 크기에 넣는다. 겉모습 값도 매 프레임 넣어 플레이 중 Inspector 조정이 바로 보인다.
         /// 반짝임 세기만큼 색은 hitFlashColor 로, 가운데 불투명도는 hitFlashCoreAlpha 로, 밝기는 1 로, 크기는 hitFlashScale 배로 옮겨 간다.
         /// </summary>
-        /// <param name="brightness">평소 전체 밝기 0~1 (셰이더가 알파에 곱한다)</param>
+        /// <param name="brightness">스폰 강조 밝기 0~1 (셰이더가 알파에 곱한다. 0 = 반짝임 없으면 안 보임)</param>
         /// <param name="hitFlash">반짝임 세기 0~1 (0 = 평소 모습)</param>
         private void ApplyGlow(float brightness, float hitFlash)
         {
