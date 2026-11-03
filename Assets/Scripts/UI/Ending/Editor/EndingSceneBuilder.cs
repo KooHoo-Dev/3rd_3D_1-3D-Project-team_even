@@ -3,7 +3,6 @@ using System.Linq;
 using HybridShooter.Audio;
 using HybridShooter.Audio.Editor;
 using HybridShooter.UI.MainMenu;
-using HybridShooter.UI.Theme;
 using TMPro;
 using Unity.Cinemachine;
 using UnityEditor;
@@ -31,9 +30,8 @@ namespace HybridShooter.UI.Ending.Editor
     ///  - Orbit Set (24초 ~): 행성(인트로 HivePlanet, 핏줄을 어둡게 가라앉힘) 위 궤도. 구조선이 대기권에서 올라와 행성 너머 떠오르는 해 쪽으로 →
     ///    36초 도약(섬광) → 멀리서 본 행성 옆으로 크레딧. 크레딧 중 51초부터 금빛 균열 → 63초 폭발
     ///    (섬광 속에 행성이 사라지고 잔해 입자·충격파 고리·광원, EndingPlanetShatter 가 시각으로 계산)
-    /// 카메라는 Cinemachine 트랙의 샷 6개 (넓게 → 뒤따라 → 낮게 → 멀리서 올려다봄 → 궤도 → 크레딧), 음악은 Audio 트랙(믹서 Bgm 그룹)이라
-    /// 건너뛰기로 Timeline 을 옮기면 음악도 같이 옮겨진다
-    /// 글자 UI 는 UiTheme 색: 맺음 로고 HIVE PURGE(달빛 흰색) + 작은 TEAM EVEN + 붉은 선, 건너뛰기 게이지 붉게
+    /// 카메라는 Cinemachine 트랙의 샷 6개 (넓게 → 뒤따라 → 낮게 → 멀리서 올려다봄 → 궤도 → 크레딧), 음악은 Audio 트랙(믹서 Bgm 그룹).
+    /// 건너뛰기를 시도하면 EndingSkipPrank 의 창이 흔들리다 폭발한다 (건너뛰지 않는다)
     /// </summary>
     public static class EndingSceneBuilder
     {
@@ -60,17 +58,11 @@ namespace HybridShooter.UI.Ending.Editor
         private const string NoiseDir = "Packages/com.unity.cinemachine/Presets/Noise/";
         private const string MainMenuScene = "Test_MainMenu";
 
-        private const string SkipLabel = "HOLD TO SKIP";
+        private const string SkipLabel = EndingSkipPrank.SkipQuestion;
         private const string SkipHint = "아무 키나 길게 눌러 건너뛰기";
 
-        /// <summary>맺음 로고 (예전 금색 자리)</summary>
-        private static readonly Color LogoColor = UiTheme.MoonWhite;
-        private static readonly Color Steel = UiTheme.Steel;
-        /// <summary>맺음 로고 아래 작은 팀 이름 (게임 이름은 에셋의 logo)</summary>
-        private const string TeamText = "TEAM EVEN";
-        /// <summary>예전 맺음 로고 기본값. 에셋에 이 값이 남아 있으면 다시 빌드할 때 게임 이름으로 바꾼다</summary>
-        private const string OldLogo = "TEAM EVEN";
-        private const string GameTitle = "HIVE PURGE";
+        private static readonly Color Gold = new Color(1f, 0.83f, 0.34f);
+        private static readonly Color Steel = new Color(0.6f, 0.68f, 0.78f);
 
         // ── 착륙장 (Dawn Set, 구조선 패드 가운데가 원점, 구조선 기수 +Z) ──
         private const float ShipLength = 24f;
@@ -114,7 +106,7 @@ namespace HybridShooter.UI.Ending.Editor
             EndingDawnLook.EnsureFolder(Path.GetDirectoryName(ScenePath));
 
             var text = LoadOrCreateText();
-            var orbit = LoadOrbit(text.AllCharacters() + SkipHint);
+            var orbit = LoadOrbit(text.AllCharacters() + SkipHint + EndingSkipPrank.AllCharacters);
             var music = Load<AudioClip>(MusicPath);
             var mixer = Load<AudioMixer>(MixerPath);
 
@@ -149,6 +141,7 @@ namespace HybridShooter.UI.Ending.Editor
             Set(so, "barBottom", ui.BarBottom);
             Set(so, "skipGroup", ui.SkipGroup);
             Set(so, "skipBar", ui.SkipBar);
+            Set(so, "prank", ui.Prank);
             Set(so, "music", musicSource);
             so.FindProperty("mainMenuScene").stringValue = MainMenuScene;
             so.ApplyModifiedPropertiesWithoutUndo();
@@ -178,17 +171,7 @@ namespace HybridShooter.UI.Ending.Editor
         private static EndingCreditsText LoadOrCreateText()
         {
             var text = AssetDatabase.LoadAssetAtPath<EndingCreditsText>(TextPath);
-            if (text != null)
-            {
-                // 게임 이름을 HIVE PURGE 로 정하기 전 에셋: 맺음 로고만 바꾼다 (팀 이름은 로고 아래 작은 줄로)
-                if (text.logo == OldLogo)
-                {
-                    text.logo = GameTitle;
-                    EditorUtility.SetDirty(text);
-                    AssetDatabase.SaveAssetIfDirty(text);
-                }
-                return text;
-            }
+            if (text != null) return text;
             EndingDawnLook.EnsureFolder(Root.TrimEnd('/'));
             text = ScriptableObject.CreateInstance<EndingCreditsText>();
             AssetDatabase.CreateAsset(text, TextPath);
@@ -925,9 +908,10 @@ namespace HybridShooter.UI.Ending.Editor
             public RectTransform BarBottom;
             public CanvasGroup SkipGroup;
             public RectTransform SkipBar;
+            public EndingSkipPrank Prank;
         }
 
-        /// <summary>순서: 크레딧 → 로고 → 검은 띠 → 도약 섬광 → 암전 → 건너뛰기 안내</summary>
+        /// <summary>순서: 크레딧 → 로고 → 검은 띠 → 도약 섬광 → 암전 → 건너뛰기 안내 → 건너뛰기 창(폭발)</summary>
         private static Overlay CreateOverlay(TMP_FontAsset orbit, EndingCreditsText text)
         {
             var canvas = CreateCanvas("Overlay");
@@ -945,16 +929,92 @@ namespace HybridShooter.UI.Ending.Editor
             overlay.SkipGroup.alpha = 0f;
             overlay.SkipGroup.interactable = false;
             overlay.SkipGroup.blocksRaycasts = false;
-            var label = CreateText(skip, "Label", SkipLabel, TitleFont, 24f, UiTheme.MoonWhite, TextAlignmentOptions.BottomRight);
-            label.characterSpacing = 12f;
+            var label = CreateText(skip, "Label", SkipLabel, orbit, 24f, Color.white, TextAlignmentOptions.BottomRight);
+            label.characterSpacing = 2f;
             Place(label.gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, new Vector2(0f, 34f), new Vector2(1f, 1f));
             var hint = CreateText(skip, "Hint", SkipHint, orbit, 18f, Steel, TextAlignmentOptions.TopRight);
             Place(hint.gameObject, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 6f), new Vector2(0f, 26f), new Vector2(1f, 0f));
             var track = SkipLine(skip, "Track", new Color(Steel.r, Steel.g, Steel.b, 0.35f));
-            overlay.SkipBar = SkipLine(skip, "Fill", UiTheme.Red);
+            overlay.SkipBar = SkipLine(skip, "Fill", Color.white);
             overlay.SkipBar.localScale = new Vector3(0f, 1f, 1f);
             track.SetAsFirstSibling();
+
+            overlay.Prank = CreateSkipDialog(canvas, orbit);
             return overlay;
+        }
+
+        private static readonly Vector2 DialogSize = new Vector2(900f, 420f);
+        private static readonly Color DialogColor = new Color(0.04f, 0.05f, 0.08f, 0.94f);
+
+        /// <summary>
+        /// 건너뛰기 창 (가운데). "터질듯한 스킵 버튼?" 한 줄, 폭발용 조각(창을 4×2 로 나눈 판)과 둥근 섬광,
+        /// 폭발 뒤 문구("터져서 없어짐")는 꺼 둔 채 같은 자리에
+        /// </summary>
+        private static EndingSkipPrank CreateSkipDialog(RectTransform canvas, TMP_FontAsset orbit)
+        {
+            var root = NewRect("Skip Dialog", canvas);
+            Stretch(root);
+            var group = root.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 0f;
+            group.interactable = false;
+            group.blocksRaycasts = false;
+
+            var panel = NewRect("Panel", root);
+            Place(panel.gameObject, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, DialogSize);
+            var background = panel.gameObject.AddComponent<Image>();
+            background.color = DialogColor;
+            background.raycastTarget = false;
+            var outline = panel.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(Gold.r, Gold.g, Gold.b, 0.6f);
+            outline.effectDistance = new Vector2(2f, -2f);
+
+            var question = CreateText(panel, "Question", EndingSkipPrank.SkipQuestion, orbit, 34f, Color.white, TextAlignmentOptions.Center);
+            question.textWrappingMode = TextWrappingModes.Normal;
+            Place(question.gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -30f), new Vector2(-80f, 110f), new Vector2(0.5f, 1f));
+
+            // 조각: 창과 같은 자리·크기를 4×2 로 나눈 판 (가운데 기준 좌표 → 날아가는 방향)
+            var shardRoot = NewRect("Shards", root);
+            Place(shardRoot.gameObject, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, DialogSize);
+            const int columns = 4, rows = 2;
+            var shardSize = new Vector2(DialogSize.x / columns, DialogSize.y / rows);
+            var shards = new RectTransform[columns * rows];
+            for (int y = 0; y < rows; y++)
+            for (int x = 0; x < columns; x++)
+            {
+                var shard = NewRect($"Shard {y * columns + x}", shardRoot);
+                var center = new Vector2((x + 0.5f) * shardSize.x - DialogSize.x * 0.5f, (y + 0.5f) * shardSize.y - DialogSize.y * 0.5f);
+                Place(shard.gameObject, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), center, shardSize - new Vector2(4f, 4f));
+                var image = shard.gameObject.AddComponent<Image>();
+                image.color = DialogColor;
+                image.raycastTarget = false;
+                var edge = shard.gameObject.AddComponent<Outline>();
+                edge.effectColor = new Color(Gold.r, Gold.g, Gold.b, 0.6f);
+                shards[y * columns + x] = shard;
+            }
+
+            var boomRect = NewRect("Boom", root);
+            Place(boomRect.gameObject, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(400f, 400f));
+            var boom = boomRect.gameObject.AddComponent<Image>();
+            boom.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            boom.color = new Color(1f, 0.86f, 0.55f, 0f);
+            boom.raycastTarget = false;
+
+            // 섬광 위에 그려지도록 Boom 다음에
+            var caption = CreateText(root, "Caption", EndingSkipPrank.GoneCaption, orbit, 40f, Gold, TextAlignmentOptions.Center);
+            Place(caption.gameObject, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(DialogSize.x, 120f));
+            caption.gameObject.SetActive(false);
+
+            var prank = root.gameObject.AddComponent<EndingSkipPrank>();
+            var so = new SerializedObject(prank);
+            Set(so, "group", group);
+            Set(so, "panel", panel);
+            Set(so, "caption", caption);
+            var list = so.FindProperty("shards");
+            list.arraySize = shards.Length;
+            for (int i = 0; i < shards.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = shards[i];
+            Set(so, "boom", boom);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return prank;
         }
 
         /// <summary>오른쪽 절반: 위아래가 부드럽게 잘리는 크롤 + 가운데 로고</summary>
@@ -975,7 +1035,7 @@ namespace HybridShooter.UI.Ending.Editor
             rollGroup.interactable = false;
             rollGroup.blocksRaycasts = false;
 
-            var roll = CreateText(viewport, "Roll", "", orbit, 34f, UiTheme.MoonWhite, TextAlignmentOptions.Top);
+            var roll = CreateText(viewport, "Roll", "", orbit, 34f, new Color(0.93f, 0.95f, 1f), TextAlignmentOptions.Top);
             roll.textWrappingMode = TextWrappingModes.Normal;
             roll.richText = true;
             roll.lineSpacing = 8f;
@@ -987,21 +1047,12 @@ namespace HybridShooter.UI.Ending.Editor
             logoGroup.alpha = 0f;
             logoGroup.interactable = false;
             logoGroup.blocksRaycasts = false;
-            // 게임 이름(에셋 logo) → 작은 팀 이름 → 붉은 선 → THANK YOU FOR PLAYING
-            var logoText = CreateText(logo, "Title", "", TitleFont, 110f, LogoColor, TextAlignmentOptions.Center);
+            var logoText = CreateText(logo, "Title", "", TitleFont, 110f, Gold, TextAlignmentOptions.Center);
             logoText.characterSpacing = 24f;
-            Place(logoText.gameObject, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 50f), new Vector2(0f, 140f));
-            var team = CreateText(logo, "Team", TeamText, TitleFont, 28f, Steel, TextAlignmentOptions.Center);
-            team.characterSpacing = 12f;
-            Place(team.gameObject, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, -36f), new Vector2(0f, 40f));
-            var line = NewRect("Line", logo);
-            Place(line.gameObject, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -72f), new Vector2(140f, 3f));
-            var lineImage = line.gameObject.AddComponent<Image>();
-            lineImage.color = UiTheme.Red;
-            lineImage.raycastTarget = false;
-            var thanks = CreateText(logo, "Thanks", "", TitleFont, 22f, Steel, TextAlignmentOptions.Center);
+            Place(logoText.gameObject, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 40f), new Vector2(0f, 140f));
+            var thanks = CreateText(logo, "Thanks", "", TitleFont, 28f, Steel, TextAlignmentOptions.Center);
             thanks.characterSpacing = 16f;
-            Place(thanks.gameObject, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, -108f), new Vector2(0f, 36f));
+            Place(thanks.gameObject, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, -60f), new Vector2(0f, 40f));
 
             var so = new SerializedObject(credits);
             Set(so, "content", text);

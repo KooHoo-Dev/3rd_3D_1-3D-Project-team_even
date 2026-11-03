@@ -12,6 +12,17 @@ using UnityEngine;
 namespace HybridShooter.Monster.Behaviour
 {
     /// <summary>
+    /// 총에 맞았을 때 몬스터의 추가 반응. MonsterController 인스펙터에서 몬스터마다 고른다.
+    /// None = 반응 없음 (엘리트 등), Stun = 잠깐 경직, Slow = 잠깐 이동 감속.
+    /// </summary>
+    public enum HitReaction
+    {
+        None,
+        Stun,
+        Slow
+    }
+
+    /// <summary>
     /// 몬스터 1마리의 Unity 진입점 (Facade).
     /// 체력(단일 체력. 약점은 배율만 곱해 같은 체력을 깎는다)을 직접 가지고(IDamageable), 매 프레임 상태 머신을 돌리고,
     /// 게임 이벤트(보스 정리·라운드 정리·플레이어 사망)를 상태 머신에 전달한다.
@@ -59,6 +70,22 @@ namespace HybridShooter.Monster.Behaviour
         [Tooltip("저체력일 때 이동 속도 배율. 테이블 MoveSpeed × 이 값. 돌진·급강하 같은 공격 이동은 그대로")]
         [SerializeField, Range(0.05f, 1f)] private float lowHealthSpeedRatio = 0.6f;
 
+        [Header("피격 반응")]
+        [Tooltip("총에 맞았을 때 반응. None = 없음 (엘리트), Stun = 일정 시간 안에 쌓인 피해가 임계값 이상이면 잠깐 경직, Slow = 잠깐 감속")]
+        [SerializeField] private HitReaction hitReaction = HitReaction.None;
+        [Tooltip("Stun: 누적 시간 안에 쌓인 피해가 이 값 이상이면 경직한다 (HP). 약점 배율을 곱한 피해로 센다. 0 = 모든 피격에 경직")]
+        [SerializeField, Min(0)] private int hitStunDamageThreshold = 0;
+        [Tooltip("Stun: 피해를 쌓는 시간 (s). 첫 피격부터 센다. 지나면 다음 피격부터 다시 쌓는다")]
+        [SerializeField, Min(0.01f)] private float hitStunDamageWindowSeconds = 1f;
+        [Tooltip("Stun: 경직 시간 (s). 공격 중이면 공격을 끊는다")]
+        [SerializeField, Min(0f)] private float hitStunSeconds = 0.3f;
+        [Tooltip("Stun: 경직이 끝난 뒤 다시 경직되지 않는 시간 (s)")]
+        [SerializeField, Min(0f)] private float hitStunCooldownSeconds = 1f;
+        [Tooltip("Slow: 슬로우 중 이동 속도 배율. 저체력 배율과 곱한다. 돌진·급강하 같은 공격 이동은 그대로")]
+        [SerializeField, Range(0.05f, 1f)] private float hitSlowRatio = 0.5f;
+        [Tooltip("Slow: 마지막 피격부터 슬로우 유지 시간 (s). 맞을 때마다 다시 센다")]
+        [SerializeField, Min(0f)] private float hitSlowSeconds = 1f;
+
         // Base Controller 의 Attack 상태 원본 클립 이름. Override 인덱서는 원본 클립 이름으로 슬롯을 찾는다
         private const string BaseAttackClipName = "Placeholder_Attack";
 
@@ -72,6 +99,13 @@ namespace HybridShooter.Monster.Behaviour
         private MonsterDamageFeedback damageFeedback;
         private MonsterCorpse corpse;
         private Vector3 lastHitDirection;  // 마지막 피격 방향 (공격자 → 몬스터, 월드). 0 = 아직 안 맞음. 시체를 미는 방향
+
+        // ── 피격 반응 ──
+        private float nextHitStunTime;     // 이 시각 전에는 경직하지 않는다 (s, Time.time 기준)
+        private float hitSlowEndTime;      // 이 시각까지 슬로우 (s, Time.time 기준)
+        private bool isHitSlowed;          // 슬로우 적용 중. 끝날 때 속도를 1번만 되돌리려고 둔다
+        private int stunDamageTotal;           // 이번 누적 시간 동안 쌓인 피해 (HP)
+        private float stunDamageWindowEndTime; // 이 시각까지 피해를 쌓는다 (s, Time.time 기준)
 
         // ── 애니메이션 ──
         private Animator animator;
@@ -142,7 +176,8 @@ namespace HybridShooter.Monster.Behaviour
         /// </summary>
         /// <remarks>
         /// Dead 는 상태 머신의 종료 상태라 상태 머신을 새로 만든다. 시체 물리·붉은 기도 되돌린다.
-        /// 이동 속도는 AssembleStateMachine 의 SetCombatTuning 이 테이블 값으로 되돌린다 (저체력 감속 해제).
+        /// 이동 속도는 AssembleStateMachine 의 SetCombatTuning 이 테이블 값으로 되돌린다 (저체력·피격 슬로우 감속 해제).
+        /// 피격 반응의 경직 쿨다운·슬로우 시각도 처음 상태로 되돌리고, 경직 판정용 누적 피해도 비운다.
         /// 마지막에 enabled = true 로 OnEnable 을 태워 이동을 켜고 게임 이벤트를 다시 구독한다.
         /// Animator 는 GameObject 를 끄고 켤 때 초기화된다 (Keep Animator State On Disable 꺼짐 전제).
         /// </remarks>
@@ -153,6 +188,10 @@ namespace HybridShooter.Monster.Behaviour
             dormant = false;
             InitializeHealth(Def.MaxHp);
             lastHitDirection = Vector3.zero;
+            nextHitStunTime = 0f;
+            ResetStunDamage();
+            hitSlowEndTime = 0f;
+            isHitSlowed = false;
             foreach (var col in GetComponentsInChildren<Collider>()) col.enabled = true; // MonsterCorpse 가 끈 피격 판정 복구
             corpse.Restore(); // 이동 재개(AssembleStateMachine) 전에 NavMeshAgent 를 켠다
             damageFeedback.ResetForRespawn();
@@ -237,7 +276,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// 매 프레임 진입점.
         /// 죽었으면 시체 단계(누움 → 침강)를 넘기고, 침강이 끝나면 회수한다.
-        /// 살아 있으면 대상 확보 → 공격 튜닝 → 상태 갱신 → 이동 애니 순서로 돈다.
+        /// 살아 있으면 대상 확보 → 공격 튜닝 → 피격 슬로우 종료 → 상태 갱신 → 이동 애니 순서로 돈다.
         /// </summary>
         private void Update()
         {
@@ -250,6 +289,7 @@ namespace HybridShooter.Monster.Behaviour
 
             AcquireTarget();
             ApplyAttackTuning();
+            EndHitSlowIfExpired();
             StateMachine.Update(Time.time, Time.deltaTime);
             UpdateMoveAnimation();
         }
@@ -443,7 +483,7 @@ namespace HybridShooter.Monster.Behaviour
         /// <summary>
         /// 체력을 깎고 맞을 때마다 DamageDealtEvent 를 발행하고, 맞은 곳에 피를 튀긴다.
         /// 체력이 0 이 된 순간 1번 상태 머신을 Dead 로 보낸다 (보상 지급, 자폭형은 그 전에 폭발). 아니면 피격 모션을 재생하고,
-        /// 저체력 기준을 처음 넘은 순간 1번 느려지고 붉어진다. 이미 죽었으면 무시한다.
+        /// 피해량(약점 배율 포함)을 넘겨 인스펙터의 피격 반응(경직·슬로우)을 건 뒤, 저체력 기준을 처음 넘은 순간 1번 느려지고 붉어진다. 이미 죽었으면 무시한다.
         /// </summary>
         /// <param name="info">피해 정보. Amount 만큼 체력을 깎는다</param>
         /// <param name="isWeakPoint">true = 약점 명중</param>
@@ -469,7 +509,115 @@ namespace HybridShooter.Monster.Behaviour
                 return;
             }
             damageFeedback.PlayHitAnimation(info.Direction);
+            ApplyHitReaction(info.Amount);
             if (becameLowHealth) EnterLowHealth();
+        }
+
+        /// <summary>
+        /// 인스펙터에서 고른 피격 반응을 건다. ApplyDamage 가 살아남은 피격마다 부른다.
+        /// Stun = 피해를 누적해 임계값 이상이면 경직, Slow = 슬로우 시작·갱신, None = 아무것도 하지 않는다.
+        /// </summary>
+        /// <param name="damage">이번 피격 피해 (HP). 약점 배율이 곱해진 값. Stun 누적에만 쓴다</param>
+        private void ApplyHitReaction(int damage)
+        {
+            switch (hitReaction)
+            {
+                case HitReaction.Stun:
+                    TryHitStun(damage);
+                    break;
+                case HitReaction.Slow:
+                    ApplyHitSlow();
+                    break;
+                case HitReaction.None:
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 경직 쿨다운이 지났으면 피해를 누적하고, 누적 시간 안의 합계가 hitStunDamageThreshold 이상이면
+        /// 상태 머신을 hitStunSeconds 동안 경직시킨다 (공격 중이면 공격이 끊긴다). ApplyHitReaction 이 Stun 일 때 부른다.
+        /// 경직 시간 + 쿨다운이 지나기 전의 재피격은 무시하므로, 경직 중 재피격도 시간을 늘리지 않고 누적하지도 않는다.
+        /// </summary>
+        /// <param name="damage">이번 피격 피해 (HP). 약점 배율이 곱해진 값</param>
+        private void TryHitStun(int damage)
+        {
+            if (Time.time < nextHitStunTime) return;
+
+            AddStunDamage(damage);
+            bool hasReachedStunDamage = stunDamageTotal >= hitStunDamageThreshold;
+            if (hasReachedStunDamage == false) return;
+
+            StateMachine.Stun(hitStunSeconds);
+            nextHitStunTime = Time.time + hitStunSeconds + hitStunCooldownSeconds;
+            ResetStunDamage();
+        }
+
+        /// <summary>
+        /// 경직 판정용 피해를 누적 합계에 더한다. TryHitStun 이 쿨다운 밖의 피격마다 부른다.
+        /// 누적 시간이 지났으면 합계를 비우고 지금부터 hitStunDamageWindowSeconds 동안 새로 쌓는다 (첫 피격 기준 고정 구간).
+        /// </summary>
+        /// <param name="damage">더할 피해 (HP). 약점 배율이 곱해진 값</param>
+        private void AddStunDamage(int damage)
+        {
+            bool hasWindowEnded = Time.time >= stunDamageWindowEndTime;
+            if (hasWindowEnded)
+            {
+                stunDamageTotal = 0;
+                stunDamageWindowEndTime = Time.time + hitStunDamageWindowSeconds;
+            }
+
+            stunDamageTotal += damage;
+        }
+
+        /// <summary>
+        /// 경직 판정용 누적 피해와 누적 종료 시각을 비운다. 다음 피격이 새 누적을 시작한다.
+        /// TryHitStun 이 경직시킨 직후와 Respawn 이 피격 반응을 초기화할 때 부른다.
+        /// </summary>
+        private void ResetStunDamage()
+        {
+            stunDamageTotal = 0;
+            stunDamageWindowEndTime = 0f;
+        }
+
+        /// <summary>
+        /// 슬로우를 시작하거나 종료 시각을 지금부터 hitSlowSeconds 뒤로 갱신하고 이동 속도를 다시 계산한다.
+        /// 종료는 Update 의 EndHitSlowIfExpired 가 한다.
+        /// </summary>
+        private void ApplyHitSlow()
+        {
+            hitSlowEndTime = Time.time + hitSlowSeconds;
+            isHitSlowed = true;
+            ApplyMoveSpeed();
+        }
+
+        /// <summary>
+        /// 슬로우 종료 시각이 지났으면 슬로우를 끄고 이동 속도를 되돌린다 (저체력이면 저체력 속도로).
+        /// Update 가 상태 갱신 전에 매 프레임 부른다.
+        /// </summary>
+        private void EndHitSlowIfExpired()
+        {
+            if (isHitSlowed == false) return;
+            if (Time.time < hitSlowEndTime) return;
+
+            isHitSlowed = false;
+            ApplyMoveSpeed();
+        }
+
+        /// <summary>
+        /// 이동 속도 = 테이블 MoveSpeed × 저체력 배율 × 피격 슬로우 배율을 계산해 이동에 넣는다. 배율 곱 규칙은 여기 한 곳에 둔다.
+        /// 저체력 진입(EnterLowHealth)·슬로우 시작(ApplyHitSlow)·슬로우 종료(EndHitSlowIfExpired)가 부른다.
+        /// </summary>
+        private void ApplyMoveSpeed()
+        {
+            float lowHealthMultiplier = 1f;
+            if (IsLowHealth) lowHealthMultiplier = lowHealthSpeedRatio;
+
+            float hitSlowMultiplier = 1f;
+            if (isHitSlowed) hitSlowMultiplier = hitSlowRatio;
+
+            float moveSpeed = Def.MoveSpeed * lowHealthMultiplier * hitSlowMultiplier;
+            float attackRange = StateMachine.Attacks[0].Range; // AssembleStateMachine 과 같은 첫 공격 기준
+            movement.SetCombatTuning(moveSpeed, attackRange);
         }
 
         /// <summary>
@@ -485,13 +633,12 @@ namespace HybridShooter.Monster.Behaviour
         }
 
         /// <summary>
-        /// 저체력에 들어간다: 이동 속도를 테이블 값 × lowHealthSpeedRatio 로 낮추고 몸을 붉게 한다.
-        /// ApplyDamage 가 저체력 기준을 처음 넘은 순간 1번 부른다. Respawn 의 재조립이 속도를 되돌린다.
+        /// 저체력에 들어간다: 이동 속도에 lowHealthSpeedRatio 를 곱하고 (피격 슬로우 중이면 그 배율도 곱한다) 몸을 붉게 한다.
+        /// ApplyDamage 가 체력을 깎은 뒤 저체력 기준을 처음 넘은 순간 1번 부른다 (IsLowHealth 가 이미 true). Respawn 의 재조립이 속도를 되돌린다.
         /// </summary>
         private void EnterLowHealth()
         {
-            float attackRange = StateMachine.Attacks[0].Range; // AssembleStateMachine 과 같은 첫 공격 기준
-            movement.SetCombatTuning(Def.MoveSpeed * lowHealthSpeedRatio, attackRange);
+            ApplyMoveSpeed();
             damageFeedback.ShowLowHealth();
         }
 

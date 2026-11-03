@@ -1228,6 +1228,13 @@ MonoBehaviour:
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
   lowHealthSpeedRatio: 0.6
+  hitReaction: 1
+  hitStunDamageThreshold: 30
+  hitStunDamageWindowSeconds: 1
+  hitStunSeconds: 0.6
+  hitStunCooldownSeconds: 1
+  hitSlowRatio: 0.5
+  hitSlowSeconds: 1
 --- !u!114 &-7821899813460665779
 MonoBehaviour:
   m_ObjectHideFlags: 0

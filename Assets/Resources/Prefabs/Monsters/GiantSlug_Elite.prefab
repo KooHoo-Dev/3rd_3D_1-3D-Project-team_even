@@ -29,8 +29,16 @@ PrefabInstance:
       value: 2103
       objectReference: {fileID: 0}
     - target: {fileID: 1546374712027911385, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: hitStunSeconds
+      value: 1.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 1546374712027911385, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
       propertyPath: aimOffsetRadius
       value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 1546374712027911385, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: hitStunDamageThreshold
+      value: 120
       objectReference: {fileID: 0}
     - target: {fileID: 2915691540627803409, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
       propertyPath: profile

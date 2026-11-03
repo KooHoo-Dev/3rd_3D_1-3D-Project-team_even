@@ -1987,6 +1987,13 @@ MonoBehaviour:
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
   lowHealthSpeedRatio: 0.6
+  hitReaction: 1
+  hitStunDamageThreshold: 0
+  hitStunDamageWindowSeconds: 1
+  hitStunSeconds: 0.3
+  hitStunCooldownSeconds: 1
+  hitSlowRatio: 0.5
+  hitSlowSeconds: 1
 --- !u!136 &5730098645658161961
 CapsuleCollider:
   m_ObjectHideFlags: 0
