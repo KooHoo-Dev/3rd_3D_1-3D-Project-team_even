@@ -2025,6 +2025,7 @@ GameObject:
   m_Component:
   - component: {fileID: 371280596}
   - component: {fileID: 371280595}
+  - component: {fileID: 371280598}
   m_Layer: 0
   m_Name: SoundService
   m_TagString: Untagged
@@ -2062,6 +2063,19 @@ MonoBehaviour:
   sfxVolume: 1
   monsterVolume: 1
   uiVolume: 1
+--- !u!114 &371280598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 371280594}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca9c9d1ec17849e9a3f0205d0a389a98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.SceneBgm
+  bgmKey: bgm_menu
 --- !u!4 &371280596
 Transform:
   m_ObjectHideFlags: 0

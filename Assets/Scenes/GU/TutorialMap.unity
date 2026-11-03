@@ -1830,8 +1830,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfe8fb3f8a637e94fbf82df2f73353e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Audio.GameSoundRouter
+  sceneBgmKey: bgm_tutorial
   crowdBgmKey: bgm_crowd
   bossBgmKey: bgm_boss
+  upgradeBgmKey: 
+  upgradeBgmDelayAfterBoss: 3.5
   bossWarningKey: sfx_boss_warning
   hitImpactKey: sfx_hit_flesh
   hitMarkerKey: ui_hit_marker

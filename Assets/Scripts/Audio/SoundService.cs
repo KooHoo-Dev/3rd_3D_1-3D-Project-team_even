@@ -306,7 +306,9 @@ namespace HybridShooter.Audio
         {
             if (DataManager.Sounds.TryGet(key, out var def) == false || def.Clips.Count == 0)
             {
-                if (warnedKeys.Add(key)) Debug.LogWarning($"[SoundService] BGM '{key}' 를 재생할 수 없습니다 (SoundTable 키 또는 클립 없음)", this);
+                // 이전 곡을 남겨 두면 다른 상황에 엉뚱한 곡이 계속 나오므로 끈다 (클립이 아직 안 들어온 키 = 무음)
+                if (warnedKeys.Add(key)) Debug.LogWarning($"[SoundService] BGM '{key}' 를 재생할 수 없습니다 (SoundTable 키 또는 클립 없음) → BGM 정지", this);
+                bgm.Stop();
                 return;
             }
             if (bgm.CurrentKey == def.Key) return; // 같은 곡 재요청 시 클립을 다시 고르지 않음

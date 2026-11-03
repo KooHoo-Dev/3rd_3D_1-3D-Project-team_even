@@ -37,6 +37,24 @@
 
 보스 소리는 아직 연결 전입니다 (다음 단계, 보스 담당과 함께).
 
+### 배경음 (BGM)
+
+| 언제 | SoundTable 키 | 정하는 곳 | 곡 (`Assets/Resources/Audio/Bgm/`) |
+|---|---|---|---|
+| 메인 메뉴 | `bgm_menu` | 메뉴 씬 SoundService 의 `SceneBgm` | Audimus — Salvage (`S_Salvage_LOOP_120bpm`) |
+| 튜토리얼 | `bgm_tutorial` | 튜토리얼 씬 `GameSoundRouter.sceneBgmKey` (강화 화면에서도 계속) | Audimus — Special Ops (`S_Special_Ops_LOOP_115bpm`) |
+| 1라운드 군중전 | `bgm_r1_crowd` | `RoundTable.CrowdBgm` | Audimus — Infiltration Mission (`S_Infiltration_Mission_LOOP_80bpm`) |
+| 1라운드 보스전 | `bgm_r1_boss` | `RoundTable.BossBgm` | Audimus — At Your Heels (`S_At_Your_Heels_LOOP`) |
+| 2라운드 (섬멸, 보스 없음) | `bgm_r2` | `RoundTable.CrowdBgm` | Audimus — Ticking Time Bomb (`S_Ticking_Time_Bomb_LOOP_145bpm`) |
+| 3라운드 군중전 | `bgm_r3_crowd` | `RoundTable.CrowdBgm` | Audimus — Fire Support (`S_Fire_Support_LOOP_150bpm`) |
+| 3라운드 보스전 | `bgm_r3_boss` | `RoundTable.BossBgm` | Valezart — Flying Swords (`06_FlyingSwords`), 예비 The Great Wall (`07_TheGreatWall`) |
+| 강화(업그레이드) 선택 화면 | `bgm_upgrade` | `GameSoundRouter.upgradeBgmKey` | Audimus — Sensory Shift (`S_Sensory_Shift_LOOP_115bpm`) |
+
+- 곡 교체는 SoundTable 의 Path 만 바꾸면 됩니다 (확장자 제외). 파일이 없으면 로드 경고만 남고 그 구간은 무음입니다 (이전 곡이 이어지지 않음).
+- 곡 전환은 1.5초 크로스페이드 (`SoundService.bgmFadeTime`). 보스 경고 동안은 군중전 곡 유지, 보스 **등장** 때 보스 곡으로 바뀝니다.
+- 보스 처치 → 곡 정지·클리어 효과음 → 강화 화면이면 `upgradeBgmDelayAfterBoss`(기본 3.5초) 뒤 업그레이드 곡. 섬멸 클리어(보스 없음)는 바로 시작합니다.
+- 4라운드 이후는 RoundTable 마지막 행(3라운드) 곡을 씁니다. `CrowdBgm`·`BossBgm` 을 비우면 라우터 기본 곡(`bgm_crowd`·`bgm_boss`).
+
 ---
 
 ## 2. 빌드 씬에 넣는 방법

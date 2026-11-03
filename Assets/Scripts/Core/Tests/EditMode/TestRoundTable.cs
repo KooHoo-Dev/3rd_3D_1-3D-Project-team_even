@@ -59,6 +59,20 @@ namespace HybridShooter.Core.Tests
             }
         }
 
+        [Test]
+        public void RoundBgmKeys_LinkToBgmSounds()
+        {
+            foreach (var round in DataManager.Rounds.All)
+            {
+                if (round.CrowdBgmKey != null)
+                    Assert.IsNotNull(round.CrowdBgm, $"{round.Round} 라운드 CrowdBgm '{round.CrowdBgmKey}' 가 SoundTable 의 Bgm 키여야 함");
+                if (round.BossBgmKey != null)
+                    Assert.IsNotNull(round.BossBgm, $"{round.Round} 라운드 BossBgm '{round.BossBgmKey}' 가 SoundTable 의 Bgm 키여야 함");
+                if (round.HasBoss == false)
+                    Assert.IsNull(round.BossBgmKey, $"{round.Round} 라운드는 보스가 없어 BossBgm 을 비운다");
+            }
+        }
+
         // 필수 소환 수 (ClearBonus 제외). includeSelfDestruct = false 면 DataManager 의 처치 가능 수와 같은 기준
         private static int CountSpawnsBefore(int waveRound, float seconds, bool includeSelfDestruct)
         {
