@@ -2,6 +2,7 @@ using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.GameFlow;
 using HybridShooter.Round;
+using HybridShooter.UI.Theme;
 using TMPro;
 using UnityEngine;
 
@@ -13,13 +14,15 @@ namespace HybridShooter.UI
     /// RoundSequencer 의 공개 값(CurrentRoundDef·RoundNumber·Phase·KillCount·KillTarget·ElapsedSeconds)을 매 프레임 읽어 그린다.
     /// 군중전 동안만 보이고(보스전은 보스 체력 막대가 위쪽을 쓴다), 라운드 시작 직후 잠깐 크게 보여 목표를 알린다.
     /// GameFlowUiBootstrap 이 자동으로 붙인다.
+    /// 스타일은 UiTheme (시안 12): 왼쪽 가장자리부터 오른쪽으로 흐려지는 띠 + 짧은 붉은 표식, 왼쪽 정렬 글자, 얇은 단색 막대
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class RoundObjectiveHud : MonoBehaviour
     {
-        private static readonly Color PanelColor = new Color(0.02f, 0.06f, 0.09f, 0.6f);
-        private static readonly Color BarBackColor = new Color(1f, 1f, 1f, 0.15f);
+        private static readonly Color BarBackColor = UiTheme.GaugeBack;
         private static readonly Vector2 PanelSize = new Vector2(520f, 180f);
+        /// <summary>글자 시작 x (왼쪽 표식 자리)</summary>
+        private const float TextX = 64f;
         // 라벨 상자 높이는 글자 크기 × 1.45 이상 (NotoSansKR 줄 높이). 작으면 Ellipsis 가 줄을 통째로 숨긴다
 
         [Tooltip("한글 글자용 (NotoSansKR SDF). 비워 두면 GameFlowUiSkin 의 글꼴")]
@@ -69,6 +72,7 @@ namespace HybridShooter.UI
             if (canvas == null) Build();
             canvas.gameObject.SetActive(true);
             ShowObjective(roundSequencer.CurrentRoundDef);
+            FitHeight(roundSequencer.CurrentRoundDef.Type);
             UpdateIntroScale();
         }
         #endregion
@@ -116,6 +120,15 @@ namespace HybridShooter.UI
             }
         }
 
+        /// <summary>띠 높이를 보이는 줄에 맞춘다 (보스 라운드는 두 줄뿐이라 빈 공간이 남지 않게). 위쪽 모서리 기준이라 아래만 줄어든다</summary>
+        private void FitHeight(RoundType type)
+        {
+            float height = type == RoundType.CrowdToBoss ? 88f   // 제목 + 목표
+                : type == RoundType.Survival ? 150f              // + 큰 남은 시간 + 막대
+                : 142f;                                          // + 처치 막대 + 증원 시간
+            if (Mathf.Approximately(panel.sizeDelta.y, height) == false) panel.sizeDelta = new Vector2(PanelSize.x, height);
+        }
+
         /// <summary>라운드 시작 뒤 introTime 동안 크게, 마지막 0.5초에 평소 크기(hudScale)로 줄인다</summary>
         private void UpdateIntroScale()
         {
@@ -133,32 +146,40 @@ namespace HybridShooter.UI
         private void Build()
         {
             canvas = HudFactory.CreateCanvas("RoundObjectiveHud", 50, false, out _);
-            panel = HudFactory.Rect(canvas.transform, "Panel", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(20f, -20f), PanelSize);
-            HudFactory.NewImage(panel, null, PanelColor);
+            // 화면 왼쪽 끝에 붙인다 (시작 안내 때 커져도 왼쪽 위 모서리 기준)
+            panel = HudFactory.Rect(canvas.transform, "Panel", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, -28f), PanelSize);
+            UiThemeKit.Band(panel, UiThemeKit.BandShape.FadeRight, 0.8f, 0.5f);
+            var topLeft = new Vector2(0f, 1f);
+            HudFactory.NewImage(HudFactory.Rect(panel, "Marker", topLeft, topLeft, new Vector2(24f, -16f), new Vector2(3f, 22f)), null, UiTheme.Red);
 
-            titleText = HudFactory.Label(panel, "Title", textFont, 20f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -6f), new Vector2(PanelSize.x - 20f, 32f));
-            titleText.color = HudFactory.Amber;
-            objectiveText = HudFactory.Label(panel, "Objective", textFont, 22f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -38f), new Vector2(PanelSize.x - 20f, 34f));
-            valueText = HudFactory.Label(panel, "Value", textFont, 40f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -72f), new Vector2(PanelSize.x - 20f, 60f));
-            detailText = HudFactory.Label(panel, "Detail", textFont, 18f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 8f), new Vector2(PanelSize.x - 20f, 28f));
+            float width = PanelSize.x - TextX - 16f;
+            titleText = HudFactory.Label(panel, "Title", textFont, 18f, TextAlignmentOptions.MidlineLeft,
+                topLeft, topLeft, new Vector2(TextX, -10f), new Vector2(width, 30f));
+            titleText.color = UiTheme.Steel;
+            objectiveText = HudFactory.Label(panel, "Objective", textFont, 22f, TextAlignmentOptions.MidlineLeft,
+                topLeft, topLeft, new Vector2(TextX, -40f), new Vector2(width, 34f));
+            objectiveText.color = UiTheme.MoonWhite;
+            valueText = HudFactory.Label(panel, "Value", UiTheme.NumberFont != null ? UiTheme.NumberFont : textFont, 44f, TextAlignmentOptions.MidlineLeft,
+                topLeft, topLeft, new Vector2(TextX, -74f), new Vector2(width, 56f));
+            valueText.color = UiTheme.MoonWhite;
+            detailText = HudFactory.Label(panel, "Detail", textFont, 16f, TextAlignmentOptions.MidlineLeft,
+                topLeft, topLeft, new Vector2(TextX, -104f), new Vector2(width, 26f));
+            detailText.color = UiTheme.Steel;
 
-            // 생존전 남은 시간 막대 (패널 아래 가장자리)
-            timeBar = HudFactory.Rect(panel, "TimeBar", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 12f), new Vector2(PanelSize.x - 60f, 6f));
+            // 생존전 남은 시간 막대 (큰 시간 아래)
+            timeBar = HudFactory.Rect(panel, "TimeBar", topLeft, topLeft, new Vector2(TextX, -134f), new Vector2(280f, UiTheme.ThinBarHeight));
             HudFactory.NewImage(timeBar, null, BarBackColor);
             timeBarFill = HudFactory.Stretch(timeBar, "Fill");
-            HudFactory.NewImage(timeBarFill, null, HudFactory.TextColor);
+            HudFactory.NewImage(timeBarFill, null, UiTheme.MoonWhite);
 
-            // 섬멸전 처치 막대 (큰 수치 자리) + 막대 위 작은 처치 수
-            killCountText = HudFactory.Label(panel, "KillCount", textFont, 18f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -76f), new Vector2(PanelSize.x - 20f, 28f));
-            killBar = HudFactory.Rect(panel, "KillBar", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -108f), new Vector2(PanelSize.x - 60f, 12f));
+            // 섬멸전 처치 막대 + 오른쪽 작은 처치 수
+            killBar = HudFactory.Rect(panel, "KillBar", topLeft, topLeft, new Vector2(TextX, -88f), new Vector2(280f, 4f));
             HudFactory.NewImage(killBar, null, BarBackColor);
             killBarFill = HudFactory.Stretch(killBar, "Fill");
-            HudFactory.NewImage(killBarFill, null, HudFactory.Amber);
+            HudFactory.NewImage(killBarFill, null, UiTheme.MoonWhite);
+            killCountText = HudFactory.Label(panel, "KillCount", textFont, 16f, TextAlignmentOptions.MidlineLeft,
+                topLeft, topLeft, new Vector2(TextX + 296f, -78f), new Vector2(160f, 24f));
+            killCountText.color = UiTheme.Steel;
         }
     }
 }

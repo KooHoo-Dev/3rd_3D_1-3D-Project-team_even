@@ -7,6 +7,7 @@ using HybridShooter.Core.GameFlow;
 using HybridShooter.Core.Services;
 using HybridShooter.Player;
 using HybridShooter.Round;
+using HybridShooter.UI.Theme;
 using HybridShooter.Weapon;
 using TMPro;
 using UnityEngine;
@@ -26,7 +27,8 @@ namespace HybridShooter.UI
     ///  - 4칸: 1번 Sidearm(고정) · 2·3번 선택 · 4번 "보급 전용"(선택 불가)
     ///  - 칸 클릭 → 후보: Category = Loadout · 해금(IWeaponUnlocks) · 다른 칸에 없는 총 + [비우기] + 잠긴 총(자물쇠, UnlockOrder 번째 해금)
     ///  - 2·3번 중 한 칸은 채워야 출발. 마지막 선택은 PlayerPrefs(Loadout.Slot1, Loadout.Slot2, 0 = 빈 칸)
-    /// 겉모양은 GameFlowUiSkin(SCI-FI UI Pack) 을 쓰고, 스킨이 비었으면 단색으로 그린다
+    /// 스타일은 UiTheme (시안 03): 상자 스프라이트 대신 얇은 윗선·밑선과 붉은 표식, 왼쪽 정렬 제목, 아래 가운데 붉은 [출발] 버튼.
+    /// 자물쇠 아이콘만 GameFlowUiSkin 스프라이트를 청회색으로 쓴다
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class LoadoutPanel : MonoBehaviour, IRoundStartGate
@@ -35,14 +37,14 @@ namespace HybridShooter.UI
 
         private enum Mode { Departure, NextStage }
 
-        private static readonly Color Dim = new Color(0f, 0.02f, 0.04f, 0.82f);
-        private static readonly Color CardColor = new Color(0.05f, 0.12f, 0.16f, 0.92f);
-        private static readonly Color LockedColor = new Color(0.04f, 0.07f, 0.09f, 0.85f);
-        private static readonly Color MutedText = new Color(0.6f, 0.7f, 0.75f, 1f);
-        private static readonly Color WarningColor = new Color(1f, 0.72f, 0.3f, 1f);
-        private static readonly Color ButtonColor = new Color(0.15f, 0.55f, 0.75f, 1f);
-        /// <summary>후보 버튼 (3열 × 360 + 간격 2 × 20 = 1120)</summary>
-        private static readonly Vector2 CandidateSize = new Vector2(360f, 92f);
+        private static readonly Color Dim = new Color(0f, 0f, 0f, 0.55f);
+        private static readonly Color MutedText = UiTheme.Steel;
+        private static readonly Color WarningColor = UiTheme.Ember;
+        private const float MarginX = UiTheme.ScreenMargin;
+        /// <summary>화면 안쪽 폭 (좌우 여백 120)</summary>
+        private const float ContentWidth = 1920f - MarginX * 2f;
+        /// <summary>후보 버튼 (3열 × 544 + 간격 2 × 24 = 1680)</summary>
+        private static readonly Vector2 CandidateSize = new Vector2(544f, 84f);
 
         [Tooltip("비워 두면 씬에서 찾는다")]
         [SerializeField] private GunSlot gunSlot;
@@ -60,7 +62,8 @@ namespace HybridShooter.UI
         private sealed class SlotView
         {
             public int Index;
-            public Image Background, Frame, Icon;
+            /// <summary>Background = 클릭 영역(선택 칸만 옅게), Frame = 윗선, Marker = 선택 칸 붉은 표식</summary>
+            public Image Background, Frame, Marker, Icon;
             public TextMeshProUGUI Key, Name, Note;
             public Button Button;
         }
@@ -321,10 +324,10 @@ namespace HybridShooter.UI
                 bool selectable = loadoutIndex >= 0;
                 bool active = selectable && loadoutIndex == activeSlot;
                 view.Button.interactable = selectable;
-                GameFlowUiSkin.Paint(view.Background, active ? skin.slotSelected : skin.slot, selectable ? CardColor : LockedColor);
-                if (selectable == false && skin.slot != null) view.Background.color = new Color(1f, 1f, 1f, 0.55f);
-                // 스킨이 있으면 선택 칸 스프라이트가 강조를 맡는다
-                view.Frame.enabled = active && skin.slotSelected == null;
+                view.Button.colors = Tint(active ? 0.05f : 0f);
+                view.Frame.color = active ? UiTheme.MoonWhite : UiTheme.SteelDim;
+                view.Marker.enabled = active;
+                view.Key.color = active ? UiTheme.RedText : UiTheme.Steel;
 
                 Gun gun = null;
                 if (view.Index == GunSlot.SupplySlot)
@@ -336,13 +339,13 @@ namespace HybridShooter.UI
                 else if (selectable)
                 {
                     gun = FindGun(selection[loadoutIndex]);
-                    view.Name.color = active ? AimReticleHud.Cyan : HudFactory.TextColor;
+                    view.Name.color = active ? UiTheme.MoonWhite : UiTheme.Steel;
                     view.Note.text = active ? "아래에서 선택" : "클릭해서 변경";
                 }
                 else
                 {
                     gun = gunSlot.GetGun(view.Index);
-                    view.Name.color = HudFactory.TextColor;
+                    view.Name.color = UiTheme.Steel;
                     view.Note.text = "고정";
                 }
                 if (view.Index != GunSlot.SupplySlot) view.Name.text = gun != null ? gun.DisplayName : selectable ? "비어 있음" : "-";
@@ -360,7 +363,12 @@ namespace HybridShooter.UI
                 view.Icon.rectTransform.anchoredPosition = new Vector2(20f, icon != null ? 24f : 12f);
             }
 
-            if (startButton != null) startButton.interactable = HasAnySelection();
+            if (startButton != null)
+            {
+                startButton.interactable = HasAnySelection();
+                // 글자 버튼은 색 전환이 없으므로 누를 수 없을 때 흐리게
+                startButton.GetComponent<CanvasGroup>().alpha = startButton.interactable ? 1f : 0.35f;
+            }
             if (emptyWarningText != null) emptyWarningText.gameObject.SetActive(HasFillableEmptySlot());
             RefreshCandidates();
         }
@@ -403,31 +411,36 @@ namespace HybridShooter.UI
         private static string StatsOf(Gun gun) =>
             gun.Def != null ? $"피해 {gun.Def.Damage} · 연사 {gun.Def.FireRate:0} · 탄창 {gun.Def.MagazineSize}" : "";
 
-        /// <summary>후보 카드 하나. 왼쪽 아이콘, 오른쪽 이름·설명 (아이콘이 없으면 글자를 왼쪽부터). locked 면 누를 수 없고 자물쇠 표시</summary>
+        /// <summary>
+        /// 후보 카드 하나. 왼쪽 아이콘, 오른쪽 이름·설명 (아이콘이 없으면 글자를 왼쪽부터). locked 면 누를 수 없고 자물쇠 표시.
+        /// 고른 카드 = 옅은 면 + 왼쪽 붉은 표식 + 밝은 글자, 나머지 = 밑선만, 잠긴 카드 = 흐리게
+        /// </summary>
         private Button AddCandidate(string objectName, Gun gun, string title, string detail, bool chosen, bool locked)
         {
-            bool skinned = skin.slot != null;
-            Color textColor = chosen ? (skinned ? AimReticleHud.Cyan : Color.black) : locked ? MutedText : HudFactory.TextColor;
+            Color textColor = chosen ? UiTheme.MoonWhite : UiTheme.Steel;
             var button = CreateButton(candidateList, objectName, CandidateSize, out var label);
-            // 잠긴 카드도 보통 카드와 같은 틀(같은 크기·테두리)을 어둡게 쓰고, 자물쇠로 구분한다
-            var background = (Image)button.targetGraphic;
-            GameFlowUiSkin.Paint(background, chosen ? skin.slotSelected : skin.slot, chosen ? AimReticleHud.Cyan : locked ? LockedColor : CardColor);
-            if (locked && skin.slot != null) background.color = new Color(0.55f, 0.55f, 0.55f, 0.85f);
-            GameFlowUiSkin.SetStates(button, skin.slotPressed, null);
+            button.colors = Tint(chosen ? 0.05f : 0f);
             button.interactable = locked == false;
+            if (chosen)
+                HudFactory.NewImage(HudFactory.Rect(button.transform, "Marker", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
+                    new Vector2(UiTheme.MarkerWidth, CandidateSize.y)), null, UiTheme.Red);
+            else
+                HudFactory.NewImage(HudFactory.Rect(button.transform, "Line", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), Vector2.zero,
+                    new Vector2(CandidateSize.x, 1f)), null, new Color(UiTheme.SteelDim.r, UiTheme.SteelDim.g, UiTheme.SteelDim.b, 0.6f));
+            if (locked) button.gameObject.AddComponent<CanvasGroup>().alpha = 0.45f;
 
             Sprite icon = IconOf(gun);
-            float textX = icon != null ? 124f : 16f;
+            float textX = icon != null ? 150f : 30f;
             if (icon != null)
             {
                 var image = HudFactory.NewImage(HudFactory.Rect(button.transform, "Icon", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-                    new Vector2(12f, 0f), new Vector2(104f, 40f)), icon, locked ? new Color(1f, 1f, 1f, 0.3f) : textColor);
+                    new Vector2(24f, 0f), new Vector2(110f, 40f)), icon, locked ? UiTheme.SteelDim : textColor);
                 image.preserveAspect = true;
             }
             if (locked && skin.lockIcon != null)
             {
                 var lockImage = HudFactory.NewImage(HudFactory.Rect(button.transform, "Lock", new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
-                    new Vector2(-14f, 0f), new Vector2(40f, 40f)), skin.lockIcon, Color.white);
+                    new Vector2(-14f, 0f), new Vector2(32f, 32f)), skin.lockIcon, UiTheme.Steel);
                 lockImage.preserveAspect = true;
             }
             label.text = title;
@@ -442,7 +455,7 @@ namespace HybridShooter.UI
             var info = HudFactory.Label(button.transform, "Stats", textFont, 15f, TextAlignmentOptions.MidlineLeft,
                 new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(textX, -20f), new Vector2(CandidateSize.x - textX - rightGap, 26f));
             info.text = detail;
-            info.color = chosen && skinned == false ? new Color(0f, 0f, 0f, 0.75f) : MutedText;
+            info.color = MutedText;
             candidateItems.Add(button.gameObject);
             return button;
         }
@@ -461,76 +474,76 @@ namespace HybridShooter.UI
             canvas = HudFactory.CreateCanvas("LoadoutPanel", 100, true, out _);
             var root = canvas.transform;
             HudFactory.NewImage(HudFactory.Stretch(root, "Dim"), null, Dim).raycastTarget = true;
-            if (skin.window != null)
-                GameFlowUiSkin.Paint(HudFactory.NewImage(HudFactory.Rect(root, "Window", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(0f, 0f), new Vector2(1300f, 940f)), null, Color.clear), skin.window, Color.clear);
+            // 왼쪽이 진하고 오른쪽으로 흐려지는 띠 (오른쪽 끝 35% 만 흐림)
+            UiThemeKit.Band(HudFactory.Stretch(root, "BandArea"), UiThemeKit.BandShape.FadeRight, 0.88f, 0.35f);
 
-            titleText = HudFactory.Label(root, "Title", textFont, 44f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -84f), new Vector2(900f, 72f));
-            hintText = HudFactory.Label(root, "Hint", textFont, 20f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -150f), new Vector2(1200f, 34f));
+            var topLeft = new Vector2(0f, 1f);
+            UiThemeKit.EnLabel(root, "Header", "LOADOUT", UiTheme.LabelSize, UiTheme.Steel, TextAlignmentOptions.BottomLeft,
+                topLeft, topLeft, new Vector2(MarginX, -84f), new Vector2(600f, 26f));
+            titleText = HudFactory.Label(root, "Title", textFont, 44f, TextAlignmentOptions.TopLeft,
+                topLeft, topLeft, new Vector2(MarginX, -118f), new Vector2(900f, 66f));
+            titleText.color = UiTheme.MoonWhite;
+            UiThemeKit.Line(root, "TitleLine", UiTheme.Red, topLeft, topLeft, new Vector2(MarginX, -190f), new Vector2(140f, 3f));
+            hintText = HudFactory.Label(root, "Hint", textFont, 20f, TextAlignmentOptions.TopLeft,
+                topLeft, topLeft, new Vector2(MarginX, -208f), new Vector2(ContentWidth, 34f));
             hintText.color = MutedText;
 
-            // 4칸
+            // 4칸: 윗선 + (선택 칸) 붉은 표식·옅은 면
             var keys = new PlayerController.InputPlayerSettings().slotKeys;
-            const float cardWidth = 260f, cardHeight = 150f, gap = 24f;
-            float rowWidth = cardWidth * GunSlot.SlotCount + gap * (GunSlot.SlotCount - 1);
-            var row = HudFactory.Rect(root, "Slots", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -210f), new Vector2(rowWidth, cardHeight));
+            const float cardHeight = 150f, gap = 24f;
+            float cardWidth = (ContentWidth - gap * (GunSlot.SlotCount - 1)) / GunSlot.SlotCount;
+            var row = HudFactory.Rect(root, "Slots", topLeft, topLeft, new Vector2(MarginX, -264f), new Vector2(ContentWidth, cardHeight));
             slotViews = new SlotView[GunSlot.SlotCount];
             for (int i = 0; i < slotViews.Length; i++)
             {
                 var rt = HudFactory.Rect(row, "Slot" + i, Vector2.zero, Vector2.zero, new Vector2(i * (cardWidth + gap), 0f), new Vector2(cardWidth, cardHeight));
                 var view = new SlotView { Index = i };
                 view.Background = rt.gameObject.AddComponent<Image>();
-                view.Background.color = CardColor;
+                view.Background.color = UiTheme.MoonWhite; // 실제 밝기는 Tint 가 정한다
                 view.Button = rt.gameObject.AddComponent<Button>();
                 view.Button.targetGraphic = view.Background;
-                GameFlowUiSkin.SetStates(view.Button, skin.slotPressed, null);
                 int loadoutIndex = IndexOfLoadout(i);
                 if (loadoutIndex >= 0)
                     view.Button.onClick.AddListener(() => { activeSlot = loadoutIndex; Refresh(); });
 
-                view.Frame = HudFactory.NewImage(HudFactory.Rect(rt, "Active", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(cardWidth, 5f)), null, AimReticleHud.Cyan);
-                view.Key = HudFactory.Label(rt, "Key", numberFont, 26f, TextAlignmentOptions.TopLeft,
-                    new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(18f, -12f), new Vector2(60f, 34f));
+                view.Frame = HudFactory.NewImage(HudFactory.Rect(rt, "TopLine", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(cardWidth, 1f)), null, UiTheme.SteelDim);
+                view.Marker = HudFactory.NewImage(HudFactory.Rect(rt, "Marker", topLeft, topLeft, new Vector2(0f, -18f), new Vector2(UiTheme.MarkerWidth, 28f)), null, UiTheme.Red);
+                view.Key = HudFactory.Label(rt, "Key", numberFont, 22f, TextAlignmentOptions.TopLeft,
+                    topLeft, topLeft, new Vector2(22f, -16f), new Vector2(60f, 34f));
                 view.Key.text = i < keys.Length ? HudFactory.KeyName(keys[i]) : (i + 1).ToString();
                 view.Icon = HudFactory.NewImage(HudFactory.Rect(rt, "Icon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(20f, 12f), new Vector2(160f, 48f)), null, HudFactory.TextColor);
+                    new Vector2(20f, 12f), new Vector2(160f, 48f)), null, UiTheme.MoonWhite);
                 view.Icon.preserveAspect = true;
                 view.Name = HudFactory.Label(rt, "Name", textFont, 28f, TextAlignmentOptions.Center,
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 4f), new Vector2(cardWidth - 20f, 30f));
-                view.Note = HudFactory.Label(rt, "Note", textFont, 18f, TextAlignmentOptions.Center,
+                view.Note = HudFactory.Label(rt, "Note", textFont, 17f, TextAlignmentOptions.Center,
                     new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 6f), new Vector2(cardWidth - 20f, 30f));
                 view.Note.color = MutedText;
                 slotViews[i] = view;
             }
 
-            // 후보 목록
-            candidateTitle = HudFactory.Label(root, "CandidateTitle", textFont, 26f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -396f), new Vector2(900f, 44f));
-            candidateList = HudFactory.Rect(root, "Candidates", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -450f), new Vector2(rowWidth, 220f));
+            // 후보 목록 (머리 + 짧은 붉은 선)
+            candidateTitle = HudFactory.Label(root, "CandidateTitle", textFont, 20f, TextAlignmentOptions.BottomLeft,
+                topLeft, topLeft, new Vector2(MarginX, -446f), new Vector2(900f, 34f));
+            candidateTitle.color = MutedText;
+            UiThemeKit.Line(root, "CandidateLine", UiTheme.Red, topLeft, topLeft, new Vector2(MarginX, -486f), new Vector2(UiTheme.HeaderLineLength, UiTheme.LineWidth));
+            candidateList = HudFactory.Rect(root, "Candidates", topLeft, topLeft, new Vector2(MarginX, -506f), new Vector2(ContentWidth, 300f));
             var grid = candidateList.gameObject.AddComponent<GridLayoutGroup>();
             grid.cellSize = CandidateSize;
-            grid.spacing = new Vector2(20f, 16f);
-            grid.childAlignment = TextAnchor.UpperCenter;
+            grid.spacing = new Vector2(24f, 12f);
+            grid.childAlignment = TextAnchor.UpperLeft;
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = 3;
 
-            // 출발
-            var start = CreateButton(root, "StartButton", new Vector2(340f, 110f), out startLabel);
-            GameFlowUiSkin.Paint((Image)start.targetGraphic, skin.primaryButton, ButtonColor);
-            GameFlowUiSkin.SetStates(start, skin.primaryButtonPressed, skin.disabledButton);
-            var startRt = (RectTransform)start.transform;
-            startRt.anchorMin = startRt.anchorMax = new Vector2(0.5f, 0f);
-            startRt.pivot = new Vector2(0.5f, 0f);
-            startRt.anchoredPosition = new Vector2(0f, 100f);
-            startLabel.fontSize = 32f;
+            // 출발: 아래 가운데 붉은 주 버튼 (이 화면의 주 행동이라 유일하게 면을 칠한다. 보상 화면 [강화 선택]과 같은 모양)
+            var start = UiThemeKit.PrimaryButton(root, "StartButton", string.Empty, textFont, new Vector2(0.5f, 0f), new Vector2(0f, 104f),
+                new Vector2(380f, 80f), out startLabel);
             start.onClick.AddListener(Confirm);
             startButton = start;
 
-            // 빈 칸 경고 (출발 버튼 위). 출발은 막지 않는다
-            emptyWarningText = HudFactory.Label(root, "EmptySlotWarning", textFont, 22f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 226f), new Vector2(1100f, 36f));
+            // 빈 칸 경고 (출발 버튼 바로 위 가운데, 호박색). 출발은 막지 않는다
+            emptyWarningText = HudFactory.Label(root, "EmptySlotWarning", textFont, 20f, TextAlignmentOptions.Center,
+                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 156f), new Vector2(1100f, 36f));
             emptyWarningText.text = "[주의] 비어 있는 무기 칸이 있습니다. 그대로 출발하면 그 칸은 사용할 수 없습니다";
             emptyWarningText.color = WarningColor;
             emptyWarningText.gameObject.SetActive(false);
@@ -538,15 +551,31 @@ namespace HybridShooter.UI
             canvas.gameObject.SetActive(false);
         }
 
+        /// <summary>투명한 판(클릭 영역) + 글자. 배경 밝기는 Tint 로 (평소 0, 호버·누름 때 옅게)</summary>
         private Button CreateButton(Transform parent, string name, Vector2 size, out TextMeshProUGUI label)
         {
             var rt = HudFactory.Rect(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, size);
             var image = rt.gameObject.AddComponent<Image>();
+            image.color = UiTheme.MoonWhite;
             var button = rt.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
+            button.colors = Tint(0f);
             label = HudFactory.Label(rt, "Label", textFont, 24f, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, size);
             return button;
+        }
+
+        /// <summary>흰 판에 곱하는 색 전환: 평소 normalAlpha, 호버·선택 조금 더, 누름 더 밝게, 비활성은 평소와 같게</summary>
+        private static ColorBlock Tint(float normalAlpha)
+        {
+            var block = ColorBlock.defaultColorBlock;
+            block.normalColor = new Color(1f, 1f, 1f, normalAlpha);
+            block.highlightedColor = new Color(1f, 1f, 1f, normalAlpha + 0.05f);
+            block.selectedColor = new Color(1f, 1f, 1f, normalAlpha + 0.03f);
+            block.pressedColor = new Color(1f, 1f, 1f, normalAlpha + 0.1f);
+            block.disabledColor = new Color(1f, 1f, 1f, normalAlpha);
+            block.fadeDuration = 0.08f;
+            return block;
         }
 
         internal static void EnsureEventSystem()

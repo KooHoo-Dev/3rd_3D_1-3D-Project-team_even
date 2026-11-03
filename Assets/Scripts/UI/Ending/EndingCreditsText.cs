@@ -73,21 +73,22 @@ namespace HybridShooter.UI.Ending
         };
 
         [Header("맺음 (크레딧 끝에 가운데)")]
-        public string logo = "TEAM EVEN";
+        [Tooltip("맺음 로고 = 게임 이름. 팀 이름(TEAM EVEN)은 로고 아래 작은 줄로 엔딩 씬 빌더가 넣는다")]
+        public string logo = "HIVE PURGE";
         public string thanks = "THANK YOU FOR PLAYING";
 
-        /// <summary>크레딧 TMP 에 넣을 리치 텍스트 (가운데 정렬: 구역 제목 → 맡은 일(작게, 흐리게) → 이름)</summary>
+        /// <summary>크레딧 TMP 에 넣을 리치 텍스트 (가운데 정렬: 구역 제목(달빛 흰색) → 맡은 일(작게, 청회색) → 이름). 색은 UiTheme 과 같은 값</summary>
         public string BuildCredits()
         {
             var sb = new StringBuilder();
             sb.Append("<size=120%><cspace=0.12em>").Append(title).Append("</cspace></size>\n");
-            sb.Append("<size=80%><color=#9FB0C4>").Append(subtitle).Append("</color></size>\n\n\n\n");
+            sb.Append("<size=80%><color=#99ADC7>").Append(subtitle).Append("</color></size>\n\n\n\n");
             foreach (var section in sections)
             {
-                sb.Append("<size=110%><color=#FFD46B><cspace=0.1em>").Append(section.Heading).Append("</cspace></color></size>\n\n");
+                sb.Append("<size=110%><color=#F0F5FF><cspace=0.1em>").Append(section.Heading).Append("</cspace></color></size>\n\n");
                 foreach (var entry in section.Entries ?? Array.Empty<Entry>())
                 {
-                    sb.Append("<size=70%><color=#9FB0C4><cspace=0.08em>").Append(entry.Role).Append("</cspace></color></size>\n");
+                    sb.Append("<size=70%><color=#99ADC7><cspace=0.08em>").Append(entry.Role).Append("</cspace></color></size>\n");
                     sb.Append((entry.Names ?? "").Trim()).Append("\n\n");
                 }
                 sb.Append("\n\n");

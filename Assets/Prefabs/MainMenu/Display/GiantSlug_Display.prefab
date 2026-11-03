@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3571789570686701935}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyRear3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -41,7 +41,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7382851193073603737}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Tongue2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -73,7 +73,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3508871830908400849}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyRear5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -105,7 +105,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6080114607874674746}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_LipLef2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136,7 +136,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8342777177584707158}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_TongueLeft4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -167,7 +167,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4279770045606470436}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeRightBottom1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -199,7 +199,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3368091941143692732}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeRightMiddle2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -230,7 +230,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3748178298111793611}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_TongueLeft3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -262,7 +262,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1867230329380217680}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeLeftBottom2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -293,7 +293,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1213378611476225405}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyFront4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -325,7 +325,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6661232835917661964}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyFront2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -359,7 +359,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3589476361358034290}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeLeftMiddle1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -391,7 +391,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3054888970287274877}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_LipRight5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -422,7 +422,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5299297637982821124}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeRightTop2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -453,7 +453,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2745614630392927259}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyRear6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -485,7 +485,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 511661538328567286}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -534,7 +534,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4974571361750888361}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterRightFront1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -566,7 +566,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1373783850842986309}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyFront1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -591,6 +591,37 @@ Transform:
   - {fileID: 4974571361750888361}
   m_Father: {fileID: 30389063435646507}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2067790677971117210
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3527796159453074137}
+  m_Layer: 15
+  m_Name: WeakPoint_Gland
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3527796159453074137
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2067790677971117210}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.061, y: -0.03, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2954118305658561568}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2225533923842228325
 GameObject:
   m_ObjectHideFlags: 0
@@ -600,7 +631,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4106539442303455381}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyRear2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -632,7 +663,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7123481333481602073}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Tongue3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -664,7 +695,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9127336561898935341}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyRear4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -696,7 +727,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8209159479023850513}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_WeakPointLeft
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -715,7 +746,8 @@ Transform:
   m_LocalPosition: {x: -0.27501914, y: 0.7360372, z: -1.1314571}
   m_LocalScale: {x: 1, y: 0.99999976, z: 0.9999999}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2971525009666595471}
   m_Father: {fileID: 6661232835917661964}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2534902421556633065
@@ -727,7 +759,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8894498824430300544}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeRightMiddle1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -759,7 +791,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1728598359396659752}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterRightFront3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -790,7 +822,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8151192300378360293}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterLeftFront3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -821,7 +853,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8693637942459839194}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterRightRear2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -853,7 +885,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1422990933531241231}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Tongue1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -885,7 +917,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2954118305658561568}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_WeakPointRight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -904,7 +936,8 @@ Transform:
   m_LocalPosition: {x: -0.2750203, y: 0.7360363, z: 1.1310002}
   m_LocalScale: {x: 1, y: 1.0000002, z: 1.0000002}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 3527796159453074137}
   m_Father: {fileID: 6661232835917661964}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3586212841518793977
@@ -916,7 +949,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5697784491268459258}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyFront6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -948,7 +981,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4715635481320348477}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyRear8
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -979,7 +1012,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2904253457763937909}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterLeftFront2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1011,7 +1044,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 887329279822746733}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Tongue5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1045,7 +1078,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 270237943237455827}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Tongue6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1077,7 +1110,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2599419221989942701}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Tongue4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1109,7 +1142,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3193650919950253159}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_LipLef3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1140,7 +1173,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6046143651002424519}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeRightBottom2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1171,7 +1204,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3695713782370095799}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterLeftFront1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1203,7 +1236,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9018391717777097833}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_LipLeft1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1235,7 +1268,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1583755678275313305}
   - component: {fileID: 578306995780024478}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: SK_GiantSlug
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1397,7 +1430,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1620474099719032684}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterRightRear3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1428,7 +1461,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8940818768913128640}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_LipRight2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1459,7 +1492,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7417068850623280984}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyRear7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1491,7 +1524,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7972520029532373812}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyRear1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1525,7 +1558,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8280247811126761954}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterRightRear1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1557,7 +1590,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5101789906534703866}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_TongueRight1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1589,7 +1622,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6386383265930296764}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Hit Collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1620,7 +1653,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8690677184586882537}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterLeftRear3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1651,7 +1684,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 470460503923827495}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_TongueLeft1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1683,7 +1716,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5910635316135860105}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyFront5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1715,7 +1748,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4019403023035594817}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_LipLef5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1746,7 +1779,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4510789026671472729}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_TongueRight4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1777,7 +1810,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5395513427712056172}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1809,7 +1842,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4849287054614098946}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeLeftTop2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1842,7 +1875,7 @@ GameObject:
   - component: {fileID: 6440156483018780026}
   - component: {fileID: 2522666734588296834}
   - component: {fileID: 5813265430461239753}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Display
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1920,7 +1953,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1497656461451862168}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_LipRight3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1951,7 +1984,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7350700256853141044}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_TongueRight3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1983,7 +2016,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4590566998040327714}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_TongueRight2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2015,7 +2048,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 30389063435646507}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2048,7 +2081,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2819666329321965500}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterRightFront2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2080,7 +2113,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5560250265315509914}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Jaw3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2112,7 +2145,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5513718022289287584}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Tongue7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2144,7 +2177,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1025277197336058275}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Tongue8
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2175,7 +2208,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2664743128916143184}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterLeftRear1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2207,7 +2240,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5580286804364423037}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeLeftBottom1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2239,7 +2272,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3839604023057488213}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_LipRight4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2270,7 +2303,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2641523089046941416}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_TongueLeft2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2302,7 +2335,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4595836479418802777}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Jaw4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2333,7 +2366,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6288448150979323191}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeRightTop1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2365,7 +2398,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5590214305756859527}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Jaw1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2397,7 +2430,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 180295599393073351}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_Jaw2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2429,7 +2462,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8232712986922296442}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_LipRight1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2451,6 +2484,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 511661538328567286}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8739502487980209872
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2971525009666595471}
+  m_Layer: 15
+  m_Name: WeakPoint_Gland
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2971525009666595471
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8739502487980209872}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.098, y: 0.017, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8209159479023850513}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8788595087582198052
 GameObject:
   m_ObjectHideFlags: 0
@@ -2460,7 +2524,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3494994156813385670}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeLeftTop1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2492,7 +2556,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4205941774243626485}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_SpitterLeftRear2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2524,7 +2588,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3595854916245786721}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_LipLef4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2555,7 +2619,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1677657439406603087}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_BodyFront3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2587,7 +2651,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4850285165984227943}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: GiantSlug_EyeLeftMiddle2
   m_TagString: Untagged
   m_Icon: {fileID: 0}

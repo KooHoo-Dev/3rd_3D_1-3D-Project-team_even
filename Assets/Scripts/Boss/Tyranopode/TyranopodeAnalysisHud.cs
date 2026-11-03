@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HybridShooter.UI.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,7 +15,8 @@ namespace HybridShooter.Boss.Tyranopode
     ///  - 약점 조준선: 공중 포자에 돌아가는 괄호 + 거리. 화면 밖이면 가장자리에 붙어 방향을 가리킨다
     ///  - 등장 이름 카드: 같은 배너 틀로 새 목표·흡수량을 알린다 (등장 연출의 검은 띠 아래쪽에 뜬다)
     ///  - 회피 안내 (촉수 폭풍): 화면 아래쪽에 [ EVADE ] + 점프 키. 촉수가 닿기 직전 JUMP! 가 크게 깜빡이고, 익히면 학습 완료
-    /// TyranopodeController 가 만들고 보스와 함께 사라진다
+    /// TyranopodeController 가 만들고 보스와 함께 사라진다.
+    /// 스타일은 UiTheme: 배너·회피 안내는 양끝이 흐려지는 띠 + 짧은 붉은 선, 머리글 청회색 · 본문 달빛 흰색, 약점은 호박색 괄호
     /// </summary>
     public sealed class TyranopodeAnalysisHud : MonoBehaviour
     {
@@ -48,9 +50,11 @@ namespace HybridShooter.Boss.Tyranopode
         private const string ReticleLabel = "WEAK POINT  {0:0}m";
         private const string ReticleSub = "포자 핵";
 
-        private static readonly Color Cyan = new Color(0.35f, 0.95f, 1f, 1f);
-        private static readonly Color Amber = new Color(1f, 0.75f, 0.25f, 1f);
-        private static readonly Color Panel = new Color(0.02f, 0.08f, 0.1f, 0.6f);
+        /// <summary>머리글·부가 줄·IMMUNE 표시 (예전 시안 자리)</summary>
+        private static readonly Color Cyan = UiTheme.Steel;
+        /// <summary>약점 조준선 (예전 주황 자리)</summary>
+        private static readonly Color Amber = UiTheme.Ember;
+        private static readonly Color Body = UiTheme.MoonWhite;
 
         private sealed class Pop
         {
@@ -231,7 +235,7 @@ namespace HybridShooter.Boss.Tyranopode
                 evadeCue.gameObject.SetActive(false);
                 return;
             }
-            evadeLine.color = Amber;
+            evadeLine.color = Body;
 
             // 촉수가 닿기 직전: 크게 튀어나왔다가 줄며 깜빡인다
             float cue = (Time.time - cueStart) / CueTime;
@@ -240,7 +244,7 @@ namespace HybridShooter.Boss.Tyranopode
             if (cueing)
             {
                 evadeCue.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.6f, 1f, cue);
-                Color c = Amber;
+                Color c = Body;
                 c.a = Mathf.Repeat(Time.time * 12f, 1f) < 0.5f ? 1f : 0.45f;
                 evadeCue.color = c;
             }
@@ -332,18 +336,19 @@ namespace HybridShooter.Boss.Tyranopode
             bannerRect = rect;
             banner = rect.gameObject.AddComponent<CanvasGroup>();
             banner.blocksRaycasts = false;
-            rect.gameObject.AddComponent<Image>().color = Panel;
-            Corners(rect, 28f, 3f, Cyan);
+            UiThemeKit.Band(rect, UiThemeKit.BandShape.FadeBoth, 0.85f, 0.18f);
 
-            header = Label(rect, tech, 20f, Cyan, new Vector2(0f, -22f), 1f);
-            line1 = Label(rect, korean, 32f, Amber, new Vector2(0f, -68f), 1f);
+            header = Label(rect, tech, 18f, Cyan, new Vector2(0f, -22f), 1f);
+            header.characterSpacing = 6f;
+            line1 = Label(rect, korean, 30f, Body, new Vector2(0f, -66f), 1f);
             line1.text = BannerLine1;
-            line2 = Label(rect, korean, 24f, Cyan, new Vector2(0f, -112f), 1f);
+            line2 = Label(rect, korean, 22f, Cyan, new Vector2(0f, -108f), 1f);
             line2.text = BannerLine2;
+            Line(rect, new Vector2(60f, 2f), new Vector2(0f, -140f), UiTheme.Red, new Vector2(0.5f, 1f));
 
-            scanLine = NewRect("ScanLine", rect, new Vector2(800f, 2f));
+            scanLine = NewRect("ScanLine", rect, new Vector2(640f, 1f));
             scanLine.anchorMin = scanLine.anchorMax = new Vector2(0.5f, 1f);
-            scanLine.gameObject.AddComponent<Image>().color = new Color(Cyan.r, Cyan.g, Cyan.b, 0.35f);
+            scanLine.gameObject.AddComponent<Image>().color = new Color(Cyan.r, Cyan.g, Cyan.b, 0.25f);
             rect.gameObject.SetActive(false);
         }
 
@@ -354,13 +359,15 @@ namespace HybridShooter.Boss.Tyranopode
             rect.anchoredPosition = new Vector2(0f, EvadeY);
             evade = rect.gameObject.AddComponent<CanvasGroup>();
             evade.blocksRaycasts = false;
-            rect.gameObject.AddComponent<Image>().color = Panel;
-            Corners(rect, 20f, 3f, Cyan);
+            UiThemeKit.Band(rect, UiThemeKit.BandShape.FadeBoth, 0.85f, 0.2f);
 
-            var header = Label(rect, tech, 18f, Cyan, new Vector2(0f, -18f), 1f);
+            // 위험 안내라 머리글만 붉게
+            var header = Label(rect, tech, 16f, UiTheme.RedText, new Vector2(0f, -18f), 1f);
             header.text = EvadeHeader;
-            evadeLine = Label(rect, korean, 30f, Amber, new Vector2(0f, -60f), 1f);
-            evadeCue = Label(rect, tech, 64f, Amber, new Vector2(0f, 70f), 1f);
+            header.characterSpacing = 8f;
+            evadeLine = Label(rect, korean, 28f, Body, new Vector2(0f, -60f), 1f);
+            evadeCue = Label(rect, tech, 64f, Body, new Vector2(0f, 70f), 1f);
+            evadeCue.characterSpacing = 16f;
             evadeCue.text = EvadeCue;
             evadeCue.gameObject.SetActive(false);
             evade.alpha = 0f;
@@ -392,8 +399,9 @@ namespace HybridShooter.Boss.Tyranopode
             arrowHead.localRotation = Quaternion.Euler(0f, 0f, 45f);
             arrowHead.gameObject.AddComponent<Image>().color = Amber;
 
-            reticleLabel = Label(reticle, tech, 18f, Amber, new Vector2(0f, -62f), 0.5f);
-            var sub = Label(reticle, korean, 18f, Cyan, new Vector2(0f, -84f), 0.5f);
+            reticleLabel = Label(reticle, tech, 16f, Amber, new Vector2(0f, -62f), 0.5f);
+            reticleLabel.characterSpacing = 6f;
+            var sub = Label(reticle, korean, 18f, Body, new Vector2(0f, -84f), 0.5f);
             sub.text = ReticleSub;
             reticle.gameObject.SetActive(false);
         }
@@ -412,9 +420,11 @@ namespace HybridShooter.Boss.Tyranopode
             }
         }
 
-        private static void Line(RectTransform parent, Vector2 size, Vector2 offset, Color color)
+        /// <summary>단색 선. anchor 를 주면 그 기준점(부모 비율)에 둔다 (기본 = 가운데)</summary>
+        private static void Line(RectTransform parent, Vector2 size, Vector2 offset, Color color, Vector2? anchor = null)
         {
             var line = NewRect("Line", parent, size);
+            if (anchor.HasValue) line.anchorMin = line.anchorMax = anchor.Value;
             line.anchoredPosition = offset;
             line.gameObject.AddComponent<Image>().color = color;
         }
