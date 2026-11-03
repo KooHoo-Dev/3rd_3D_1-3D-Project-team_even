@@ -16864,13 +16864,41 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 307408719324333453, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: hitMask.m_Bits
+      value: 131071
+      objectReference: {fileID: 0}
+    - target: {fileID: 3596471693194627413, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: hitMask.m_Bits
+      value: 131071
+      objectReference: {fileID: 0}
+    - target: {fileID: 4410688721398837743, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: mask.m_Bits
+      value: 131071
+      objectReference: {fileID: 0}
+    - target: {fileID: 5362423634708691726, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: hitMask.m_Bits
+      value: 131071
+      objectReference: {fileID: 0}
     - target: {fileID: 5753637828753184512, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 6857540539006955366, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: hitMask.m_Bits
+      value: 131071
+      objectReference: {fileID: 0}
+    - target: {fileID: 6864668485321027824, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: hitMask.m_Bits
+      value: 131071
+      objectReference: {fileID: 0}
     - target: {fileID: 6864668485321027824, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: explosion.force
       value: 53
+      objectReference: {fileID: 0}
+    - target: {fileID: 8282842261137820795, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: hitMask.m_Bits
+      value: 131071
       objectReference: {fileID: 0}
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalPosition.x
@@ -16911,6 +16939,14 @@ PrefabInstance:
     - target: {fileID: 8516537462283346772, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8672625532493296987, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: hitMask.m_Bits
+      value: 131071
+      objectReference: {fileID: 0}
+    - target: {fileID: 8944483826908563616, guid: 4ea94935c308106458064ec04a545802, type: 3}
+      propertyPath: hitMask.m_Bits
+      value: 131071
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
