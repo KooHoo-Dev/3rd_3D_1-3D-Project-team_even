@@ -30,8 +30,8 @@ namespace HybridShooter.UI.Ending.Editor
     ///  - Orbit Set (24초 ~): 행성(인트로 HivePlanet, 핏줄을 어둡게 가라앉힘) 위 궤도. 구조선이 대기권에서 올라와 행성 너머 떠오르는 해 쪽으로 →
     ///    36초 도약(섬광) → 멀리서 본 행성 옆으로 크레딧. 크레딧 중 51초부터 금빛 균열 → 63초 폭발
     ///    (섬광 속에 행성이 사라지고 잔해 입자·충격파 고리·광원, EndingPlanetShatter 가 시각으로 계산)
-    /// 카메라는 Cinemachine 트랙의 샷 6개 (넓게 → 뒤따라 → 낮게 → 멀리서 올려다봄 → 궤도 → 크레딧), 음악은 Audio 트랙(믹서 Bgm 그룹)이라
-    /// 건너뛰기 질문창(EndingSkipPrank)이 Timeline 속도를 바꾸면 음악도 같이 느려진다
+    /// 카메라는 Cinemachine 트랙의 샷 6개 (넓게 → 뒤따라 → 낮게 → 멀리서 올려다봄 → 궤도 → 크레딧), 음악은 Audio 트랙(믹서 Bgm 그룹).
+    /// 건너뛰기를 시도하면 EndingSkipPrank 의 창이 흔들리다 폭발한다 (건너뛰지 않는다)
     /// </summary>
     public static class EndingSceneBuilder
     {
@@ -123,8 +123,7 @@ namespace HybridShooter.UI.Ending.Editor
             var director = go.GetComponent<PlayableDirector>();
             director.playOnAwake = false;
             director.extrapolationMode = DirectorWrapMode.Hold;
-            // 느려지기(EndingSkipPrank)는 timeScale 과 Timeline 루트 속도를 함께 바꾼다 — GameTime 이면 두 번 느려진다
-            director.timeUpdateMode = DirectorUpdateMode.UnscaledGameTime;
+            director.timeUpdateMode = DirectorUpdateMode.GameTime;
             director.playableAsset = BuildTimeline(director, camera.GetComponent<CinemachineBrain>(), dawn, space, musicSource, music);
 
             var so = new SerializedObject(go.GetComponent<EndingDirector>());
@@ -146,10 +145,6 @@ namespace HybridShooter.UI.Ending.Editor
             Set(so, "music", musicSource);
             so.FindProperty("mainMenuScene").stringValue = MainMenuScene;
             so.ApplyModifiedPropertiesWithoutUndo();
-
-            var prank = new SerializedObject(ui.Prank);
-            Set(prank, "timeline", director);
-            prank.ApplyModifiedPropertiesWithoutUndo();
 
             // 씬을 열었을 때 첫 화면(새벽)으로 보이게
             dawn.Environment.Apply();
@@ -916,7 +911,7 @@ namespace HybridShooter.UI.Ending.Editor
             public EndingSkipPrank Prank;
         }
 
-        /// <summary>순서: 크레딧 → 로고 → 검은 띠 → 도약 섬광 → 암전 → 건너뛰기 안내 → 건너뛰기 질문창</summary>
+        /// <summary>순서: 크레딧 → 로고 → 검은 띠 → 도약 섬광 → 암전 → 건너뛰기 안내 → 건너뛰기 창(폭발)</summary>
         private static Overlay CreateOverlay(TMP_FontAsset orbit, EndingCreditsText text)
         {
             var canvas = CreateCanvas("Overlay");
@@ -952,7 +947,8 @@ namespace HybridShooter.UI.Ending.Editor
         private static readonly Color DialogColor = new Color(0.04f, 0.05f, 0.08f, 0.94f);
 
         /// <summary>
-        /// 건너뛰기 질문창 (가운데). 질문 + 선택지 4줄 + 한 줄 문구(고객센터), 폭발용 조각(창을 4×2 로 나눈 판)과 둥근 섬광은 꺼 둔 채 같은 자리에
+        /// 건너뛰기 창 (가운데). "터질듯한 스킵 버튼?" 한 줄, 폭발용 조각(창을 4×2 로 나눈 판)과 둥근 섬광,
+        /// 폭발 뒤 문구("터져서 없어짐")는 꺼 둔 채 같은 자리에
         /// </summary>
         private static EndingSkipPrank CreateSkipDialog(RectTransform canvas, TMP_FontAsset orbit)
         {
@@ -972,20 +968,9 @@ namespace HybridShooter.UI.Ending.Editor
             outline.effectColor = new Color(Gold.r, Gold.g, Gold.b, 0.6f);
             outline.effectDistance = new Vector2(2f, -2f);
 
-            var question = CreateText(panel, "Question", "", orbit, 34f, Color.white, TextAlignmentOptions.Center);
+            var question = CreateText(panel, "Question", EndingSkipPrank.SkipQuestion, orbit, 34f, Color.white, TextAlignmentOptions.Center);
             question.textWrappingMode = TextWrappingModes.Normal;
             Place(question.gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -30f), new Vector2(-80f, 110f), new Vector2(0.5f, 1f));
-
-            var choices = new TMP_Text[4];
-            for (int i = 0; i < choices.Length; i++)
-            {
-                choices[i] = CreateText(panel, $"Choice {i + 1}", "", orbit, 30f, Steel, TextAlignmentOptions.Left);
-                Place(choices[i].gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -170f - i * 54f), new Vector2(-260f, 48f), new Vector2(0.5f, 1f));
-            }
-
-            var message = CreateText(panel, "Message", "", orbit, 40f, Gold, TextAlignmentOptions.Center);
-            Stretch(message.rectTransform);
-            message.gameObject.SetActive(false);
 
             // 조각: 창과 같은 자리·크기를 4×2 로 나눈 판 (가운데 기준 좌표 → 날아가는 방향)
             var shardRoot = NewRect("Shards", root);
@@ -1014,21 +999,20 @@ namespace HybridShooter.UI.Ending.Editor
             boom.color = new Color(1f, 0.86f, 0.55f, 0f);
             boom.raycastTarget = false;
 
+            // 섬광 위에 그려지도록 Boom 다음에
+            var caption = CreateText(root, "Caption", EndingSkipPrank.GoneCaption, orbit, 40f, Gold, TextAlignmentOptions.Center);
+            Place(caption.gameObject, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(DialogSize.x, 120f));
+            caption.gameObject.SetActive(false);
+
             var prank = root.gameObject.AddComponent<EndingSkipPrank>();
             var so = new SerializedObject(prank);
             Set(so, "group", group);
             Set(so, "panel", panel);
-            Set(so, "question", question);
-            var list = so.FindProperty("choices");
-            list.arraySize = choices.Length;
-            for (int i = 0; i < choices.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = choices[i];
-            Set(so, "message", message);
-            list = so.FindProperty("shards");
+            Set(so, "caption", caption);
+            var list = so.FindProperty("shards");
             list.arraySize = shards.Length;
             for (int i = 0; i < shards.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = shards[i];
             Set(so, "boom", boom);
-            so.FindProperty("normalColor").colorValue = Steel;
-            so.FindProperty("selectedColor").colorValue = Gold;
             so.ApplyModifiedPropertiesWithoutUndo();
             return prank;
         }

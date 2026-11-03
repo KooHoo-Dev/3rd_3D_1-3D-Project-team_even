@@ -14,7 +14,7 @@ namespace HybridShooter.UI.Ending
     ///  12  점화 → 18 이륙 → 24 우주(하늘·안개·환경광을 우주로) → 30 해돋이와 함께 궤도 돌파 → 36 도약 섬광
     ///  39  크레딧 (검은 띠가 걷힌다) → 51 행성에 금빛 균열 → 63 행성 폭발(EndingPlanetShatter) → 75 로고 → 84 암전 → 메인 메뉴
     ///      (PRESS ANY KEY 부터 — 새벽으로 바뀐 메뉴를 보여 준다. 메뉴의 새벽은 '떠나던 날 아침')
-    /// 건너뛰기: 아무 키나 길게 누르면 ("정말 스킵할거야?") 건너뛰는 대신 EndingSkipPrank 의 질문창이 뜬다 — 엔딩이 느려지거나, 끝내 창이 폭발한다
+    /// 건너뛰기: 아무 키나 길게 누르면 ("터질듯한 스킵 버튼?") 건너뛰는 대신 EndingSkipPrank 의 창이 뜨고 폭발한다 ("터져서 없어짐") — 이후로는 건너뛸 수 없다
     /// </summary>
     [RequireComponent(typeof(PlayableDirector))]
     public sealed class EndingDirector : MonoBehaviour
@@ -54,7 +54,7 @@ namespace HybridShooter.UI.Ending
         [SerializeField] private float skipHoldTime = 1f;
         [Tooltip("입력이 없으면 안내를 숨기기까지")]
         [SerializeField] private float skipPromptTime = 3f;
-        [Tooltip("게이지가 다 차면 건너뛰는 대신 뜨는 질문창")]
+        [Tooltip("게이지가 다 차면 건너뛰는 대신 뜨고 폭발하는 창")]
         [SerializeField] private EndingSkipPrank prank;
 
         [Header("음악 (Timeline 오디오 트랙이 재생, 믹서 Bgm 그룹)")]
@@ -69,8 +69,6 @@ namespace HybridShooter.UI.Ending
         private bool environmentApplied;
         private float hold;
         private float promptUntil;
-        /// <summary>질문창을 닫은 뒤 모든 키를 뗄 때까지 게이지를 받지 않는다 (선택에 쓴 키로 곧바로 다시 차지 않게)</summary>
-        private bool waitRelease;
         /// <summary>메인 메뉴로 넘어갈 때의 암전 (0~1)</summary>
         private float leaveFade;
         private bool leaving;
@@ -79,8 +77,6 @@ namespace HybridShooter.UI.Ending
         {
             Cursor.visible = false;
             Cursor.lockState = CursorLockMode.Locked;
-            // 느려지기는 EndingSkipPrank 가 timeScale 과 Timeline 루트 속도를 함께 바꿔서 한다 — GameTime 이면 두 번 느려진다
-            timeline.timeUpdateMode = DirectorUpdateMode.UnscaledGameTime;
             timeline.time = 0d;
             timeline.Play();
             Evaluate(0f);
@@ -152,20 +148,16 @@ namespace HybridShooter.UI.Ending
 
         private void UpdateSkip(float dt)
         {
-            // 창이 폭발한 뒤로는 안내도 게이지도 없다
-            if (prank.Exploded && prank.IsOpen == false)
+            // 창이 폭발한(폭발 중 포함) 뒤로는 안내도 게이지도 없다
+            if (prank.Exploded)
             {
-                skipGroup.alpha = 0f;
+                skipGroup.alpha = Mathf.MoveTowards(skipGroup.alpha, 0f, dt * 4f);
                 return;
             }
 
-            if (prank.IsOpen) waitRelease = true;
-            else if (waitRelease && AnyHeld() == false) waitRelease = false;
-            bool blocked = waitRelease;
-
-            if (blocked == false && AnyPressedThisFrame()) promptUntil = Time.unscaledTime + skipPromptTime;
-            bool held = blocked == false && AnyHeld();
-            hold = held ? hold + dt : (blocked ? 0f : Mathf.Max(0f, hold - dt * 2f));
+            if (AnyPressedThisFrame()) promptUntil = Time.unscaledTime + skipPromptTime;
+            bool held = AnyHeld();
+            hold = held ? hold + dt : Mathf.Max(0f, hold - dt * 2f);
             if (hold >= skipHoldTime)
             {
                 hold = 0f;
@@ -173,7 +165,7 @@ namespace HybridShooter.UI.Ending
                 prank.Request();
             }
 
-            bool show = held || (blocked == false && Time.unscaledTime < promptUntil);
+            bool show = held || Time.unscaledTime < promptUntil;
             skipGroup.alpha = Mathf.MoveTowards(skipGroup.alpha, show ? 1f : 0f, dt * 4f);
             skipBar.localScale = new Vector3(Mathf.Clamp01(hold / skipHoldTime), 1f, 1f);
         }
