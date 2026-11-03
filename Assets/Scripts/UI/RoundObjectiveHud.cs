@@ -8,8 +8,8 @@ using UnityEngine;
 namespace HybridShooter.UI
 {
     /// <summary>
-    /// 라운드 목표 HUD (화면 위쪽 가운데 한 블록): 라운드 번호·유형 / 한 줄 목표 / 핵심 수치.
-    /// 섬멸전(섬멸 후 보스 포함) = 큰 "처치 37 / N" + 작은 증원 남은 시간 · 생존전 = 큰 남은 시간 + 얇은 진행 막대 · 보스 라운드 = 목표 문구만.
+    /// 라운드 목표 HUD (화면 좌측 상단 한 블록): 라운드 번호·유형 / 한 줄 목표 / 핵심 수치.
+    /// 섬멸전(섬멸 후 보스 포함) = 처치 비율 막대 + 작은 "처치 37 / N" + 작은 증원 남은 시간 ·생존전 = 큰 남은 시간 + 얇은 진행 막대 · 보스 라운드 = 목표 문구만.
     /// RoundSequencer 의 공개 값(CurrentRoundDef·RoundNumber·Phase·KillCount·KillTarget·ElapsedSeconds)을 매 프레임 읽어 그린다.
     /// 군중전 동안만 보이고(보스전은 보스 체력 막대가 위쪽을 쓴다), 라운드 시작 직후 잠깐 크게 보여 목표를 알린다.
     /// GameFlowUiBootstrap 이 자동으로 붙인다.
@@ -28,6 +28,8 @@ namespace HybridShooter.UI
         [SerializeField, Min(0f)] private float introTime = 3f;
         [Tooltip("시작 안내 때 블록 크기 배율")]
         [SerializeField, Min(1f)] private float introScale = 1.3f;
+        [Tooltip("평소 블록 크기 배율 (1 = 원래 크기)")]
+        [SerializeField, Min(0.1f)] private float hudScale = 0.8f;
 
         private RoundSequencer roundSequencer;
         private Canvas canvas;
@@ -38,6 +40,9 @@ namespace HybridShooter.UI
         private TextMeshProUGUI detailText;
         private RectTransform timeBar;
         private RectTransform timeBarFill;  // 오른쪽 끝(anchorMax.x) = 남은 시간 비율
+        private TextMeshProUGUI killCountText;
+        private RectTransform killBar;
+        private RectTransform killBarFill;  // 오른쪽 끝(anchorMax.x) = 처치 비율
 
         #region 유니티 메시지
         private void Awake()
@@ -80,6 +85,8 @@ namespace HybridShooter.UI
                     objectiveText.text = "적의 공세를 버티고 보스를 처치하세요";
                     valueText.text = "";
                     detailText.text = "";
+                    killCountText.text = "";
+                    killBar.gameObject.SetActive(false);
                     timeBar.gameObject.SetActive(false);
                     break;
                 case RoundType.Annihilation:
@@ -88,8 +95,11 @@ namespace HybridShooter.UI
                     int killTarget = roundSequencer.KillTarget;
                     titleText.text = def.HasBoss ? $"라운드 {roundSequencer.RoundNumber} · 섬멸전 → 보스전" : $"라운드 {roundSequencer.RoundNumber} · 섬멸전";
                     objectiveText.text = def.HasBoss ? $"적 {killTarget}마리를 처치해 보스를 끌어내세요" : $"적 {killTarget}마리를 처치하세요";
-                    valueText.text = $"처치 {roundSequencer.KillCount} / {killTarget}";
+                    valueText.text = "";
                     detailText.text = reinforcementLeft > 0f ? $"증원 종료까지 {FormatTime(reinforcementLeft)}" : "증원 종료";
+                    killCountText.text = $"처치 {roundSequencer.KillCount} / {killTarget}";
+                    killBar.gameObject.SetActive(true);
+                    killBarFill.anchorMax = new Vector2(Mathf.Clamp01(roundSequencer.KillCount / (float)killTarget), 1f);
                     timeBar.gameObject.SetActive(false);
                     break;
                 case RoundType.Survival:
@@ -98,17 +108,19 @@ namespace HybridShooter.UI
                     objectiveText.text = "시간이 끝날 때까지 생존하세요";
                     valueText.text = FormatTime(survivalLeft);
                     detailText.text = "";
+                    killCountText.text = "";
+                    killBar.gameObject.SetActive(false);
                     timeBar.gameObject.SetActive(true);
                     timeBarFill.anchorMax = new Vector2(survivalLeft / def.PhaseTime, 1f);
                     break;
             }
         }
 
-        /// <summary>라운드 시작 뒤 introTime 동안 크게, 마지막 0.5초에 원래 크기로 줄인다</summary>
+        /// <summary>라운드 시작 뒤 introTime 동안 크게, 마지막 0.5초에 평소 크기(hudScale)로 줄인다</summary>
         private void UpdateIntroScale()
         {
             float shrinkProgress = Mathf.Clamp01((roundSequencer.ElapsedSeconds - (introTime - 0.5f)) / 0.5f);
-            panel.localScale = Vector3.one * Mathf.Lerp(introScale, 1f, shrinkProgress);
+            panel.localScale = Vector3.one * hudScale * Mathf.Lerp(introScale, 1f, shrinkProgress);
         }
 
         /// <summary>초를 "02:14" 처럼 분:초로 바꾼다 (올림 — 0초가 되는 순간 끝남)</summary>
@@ -121,7 +133,7 @@ namespace HybridShooter.UI
         private void Build()
         {
             canvas = HudFactory.CreateCanvas("RoundObjectiveHud", 50, false, out _);
-            panel = HudFactory.Rect(canvas.transform, "Panel", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -20f), PanelSize);
+            panel = HudFactory.Rect(canvas.transform, "Panel", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(20f, -20f), PanelSize);
             HudFactory.NewImage(panel, null, PanelColor);
 
             titleText = HudFactory.Label(panel, "Title", textFont, 20f, TextAlignmentOptions.Center,
@@ -139,6 +151,14 @@ namespace HybridShooter.UI
             HudFactory.NewImage(timeBar, null, BarBackColor);
             timeBarFill = HudFactory.Stretch(timeBar, "Fill");
             HudFactory.NewImage(timeBarFill, null, HudFactory.TextColor);
+
+            // 섬멸전 처치 막대 (큰 수치 자리) + 막대 위 작은 처치 수
+            killCountText = HudFactory.Label(panel, "KillCount", textFont, 18f, TextAlignmentOptions.Center,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -76f), new Vector2(PanelSize.x - 20f, 28f));
+            killBar = HudFactory.Rect(panel, "KillBar", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -108f), new Vector2(PanelSize.x - 60f, 12f));
+            HudFactory.NewImage(killBar, null, BarBackColor);
+            killBarFill = HudFactory.Stretch(killBar, "Fill");
+            HudFactory.NewImage(killBarFill, null, HudFactory.Amber);
         }
     }
 }
