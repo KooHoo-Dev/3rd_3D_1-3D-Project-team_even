@@ -1,6 +1,6 @@
 // 부활 연출: 화면 전체에 덮는 글리치 오버레이 (PlayerReviveEffect 의 RawImage).
 // 가장자리 청록 번짐 + 주사선 + 디지털 격자 + 가로 글리치 띠 + 픽셀 반짝임 + 위→아래로 훑는 스캔 선.
-// _Intensity 0 이면 완전히 투명하다.
+// _Intensity 0 이면 완전히 투명하다. _CenterClear 만큼 화면 중앙(조준점 근처)을 비운다.
 Shader "HybridShooter/UI/ReviveScreen"
 {
     Properties
@@ -11,6 +11,7 @@ Shader "HybridShooter/UI/ReviveScreen"
         _Intensity ("Intensity", Range(0, 1)) = 0
         _Glitch ("Glitch", Range(0, 1)) = 0
         _Scan ("Scan Line Position (0 top ~ 1 bottom)", Range(0, 1)) = 0
+        _CenterClear ("Center Clear", Range(0, 1)) = 0.7
     }
 
     SubShader
@@ -49,6 +50,7 @@ Shader "HybridShooter/UI/ReviveScreen"
             float _Intensity;
             float _Glitch;
             float _Scan;
+            float _CenterClear;
 
             float Hash11(float p)
             {
@@ -88,7 +90,11 @@ Shader "HybridShooter/UI/ReviveScreen"
 
                 // 가장자리 번짐
                 float2 c = (uv - 0.5) * float2(aspect, 1.0);
-                float edge = smoothstep(0.35, 1.05, length(c) / max(aspect * 0.5, 0.5));
+                float dist = length(c) / max(aspect * 0.5, 0.5);
+                float edge = smoothstep(0.35, 1.05, dist);
+
+                // 중앙 비우기: 조준점 근처는 덜 덮는다. 글리치 띠·스캔 선은 반만 줄여 다시 쓰기 순간 가림은 유지
+                float clear = _CenterClear * (1.0 - smoothstep(0.15, 0.6, dist));
 
                 // 주사선 · 격자
                 float scan = 0.5 + 0.5 * sin((suv.y * _ScreenParams.y * 0.5) + _Time.y * 8.0);
@@ -101,16 +107,13 @@ Shader "HybridShooter/UI/ReviveScreen"
                 // 훑는 스캔 선 (_Scan: 0 위 ~ 1 아래)
                 float sweep = 1.0 - saturate(abs((1.0 - uv.y) - _Scan) * 40.0);
 
-                float a = 0.10
+                float a = (0.10 + scan * 0.05 + sparkle * 0.6) * (1.0 - clear)
                         + edge * 0.65
-                        + scan * 0.05
-                        + grid * 0.10 * (0.4 + edge)
-                        + band * 0.22
-                        + sparkle * 0.6
-                        + sweep * 0.35;
+                        + grid * 0.10 * (0.4 + edge) * (1.0 - clear)
+                        + (band * 0.22 + sweep * 0.35) * (1.0 - clear * 0.5);
                 a = saturate(a) * _Intensity * i.color.a;
 
-                fixed3 col = _Color.rgb * (0.7 + edge + sweep) + _GlitchColor.rgb * band * 0.6;
+                fixed3 col = _Color.rgb * (0.5 + edge + sweep) + _GlitchColor.rgb * band * 0.6;
                 return fixed4(col * i.color.rgb, a);
             }
             ENDCG
