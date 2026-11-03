@@ -3,6 +3,7 @@ using HybridShooter.Core.Data;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
 using HybridShooter.Player;
+using HybridShooter.UI.Theme;
 using HybridShooter.Weapon;
 using TMPro;
 using UnityEngine;
@@ -20,7 +21,8 @@ namespace HybridShooter.UI
     ///  - 오른쪽 아래: 무기 이름·사격 모드, 탄창 안 탄약/탄창 크기 (AmmoChangedEvent), 예비 탄창 칸·개수/최대 (별도 줄), 탄창 눈금 바.
     ///    재장전 중엔 바가 차오르고, 취소되면 바로 원래대로 (ReloadStarted/FinishedEvent). 예비 탄창 없이 R → 예비 탄창 줄이 빨갛게 깜빡임 (ReloadDeniedEvent)
     /// 스코프 화면에서는 탄약만 남기고, 사망 때는 목숨만 남기고, 강화 선택·게임 오버·일시정지 때는 모두 숨긴다.
-    /// 그림은 SCI-FI UI Pack (컴포넌트를 붙일 때 자동 연결), 수류탄 아이콘은 실행 중에 그린다
+    /// 스타일은 UiTheme (Moonlit Night): 상자·팩 막대 대신 얇은 단색 게이지 + 가장자리에서 사라지는 띠. 수류탄·탄창·목숨 표식은 실행 중에 그린다
+    /// (SCI-FI UI Pack 스프라이트 칸은 이전 프리팹 호환용으로 남겨 두고 쓰지 않는다)
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class PlayerHud : MonoBehaviour
@@ -35,10 +37,13 @@ namespace HybridShooter.UI
         private const string NumberFontGuid = "4d0bb7337f597634b94b9005947e8e28";   // Aldrich-Regular SDF
         private const string LabelFontGuid = "7fd30bfeb37f5884dabd391567e6530d";    // Play-Bold SDF
 
-        private static readonly Color Amber = new Color(1f, 0.72f, 0.2f, 1f);
-        private static readonly Color Red = new Color(1f, 0.27f, 0.22f, 1f);
-        private static readonly Color TextColor = new Color(0.85f, 0.97f, 1f, 1f);
-        private static readonly Color BackColor = new Color(1f, 1f, 1f, 0.3f);
+        private static readonly Color Amber = UiTheme.Ember;
+        private static readonly Color Red = UiTheme.Red;
+        private static readonly Color TextColor = UiTheme.MoonWhite;
+        private static readonly Color BackColor = UiTheme.GaugeBack;
+        /// <summary>평소 게이지·표식 색</summary>
+        private static readonly Color Normal = UiTheme.MoonWhite;
+        private static Sprite white;
 
         [SerializeField] private PlayerController player;
         [SerializeField] private GunSlot gunSlot;
@@ -227,7 +232,7 @@ namespace HybridShooter.UI
             float ratio = maxHp > 0 ? Mathf.Clamp01((float)hp / maxHp) : 0f;
             hpBar.fillAmount = ratio;
             bool low = ratio <= lowHealthRatio;
-            Color color = low ? WithAlpha(Red, blink) : AimReticleHud.Cyan;
+            Color color = low ? WithAlpha(Red, blink) : Normal;
             hpBar.color = color;
             hpText.color = low ? color : TextColor;
             if (shownHp != hp)
@@ -245,11 +250,11 @@ namespace HybridShooter.UI
             {
                 shownLives = lives;
                 shownMaxLives = maxLives;
-                livesText.SetText("×{0}<size=60%><color=#9FE8F5> / {1}</color></size>", lives, maxLives);
+                livesText.SetText("×{0}<size=60%><color=#99ADC7> / {1}</color></size>", lives, maxLives);
             }
 
             bool last = lives <= 1;
-            Color color = last ? Red : AimReticleHud.Cyan;
+            Color color = last ? Red : Normal;
             if (Time.time < livesFlashUntil)
                 color = Mathf.Repeat(Time.time * 6f, 1f) < 0.5f ? Color.white : Red;
             livesIcon.color = color;
@@ -267,7 +272,7 @@ namespace HybridShooter.UI
             staminaGroup.alpha = Mathf.MoveTowards(staminaGroup.alpha, target, speed * Time.deltaTime);
 
             staminaBar.fillAmount = ratio;
-            staminaBar.color = player != null && player.IsStaminaExhausted ? Amber : AimReticleHud.Cyan;
+            staminaBar.color = player != null && player.IsStaminaExhausted ? Amber : UiTheme.Steel;
         }
 
         private void UpdateAmmo(float blink)
@@ -276,7 +281,7 @@ namespace HybridShooter.UI
             {
                 shownAmmo = ammo;
                 shownMagazine = magazine;
-                ammoText.SetText("{0}<size=50%><color=#9FE8F5> / {1}</color></size>", ammo, magazine);
+                ammoText.SetText("{0}<size=50%><color=#99ADC7> / {1}</color></size>", ammo, magazine);
             }
 
             if (reloading)
@@ -314,7 +319,7 @@ namespace HybridShooter.UI
             }
             else
             {
-                ammoBar.color = AimReticleHud.Cyan;
+                ammoBar.color = Normal;
                 ammoText.color = TextColor;
                 SetStatus(null, TextColor);
             }
@@ -332,14 +337,14 @@ namespace HybridShooter.UI
                 shownMaxSpare = maxSpare;
                 shownInfiniteSpare = infiniteSpare;
                 if (infiniteSpare) spareText.SetText("MAG <size=80%>INF</size>");
-                else spareText.SetText("MAG {0}<size=70%><color=#9FE8F5>/{1}</color></size>", spare, maxSpare);
+                else spareText.SetText("MAG {0}<size=70%><color=#99ADC7>/{1}</color></size>", spare, maxSpare);
 
                 bool pips = infiniteSpare == false && maxSpare <= sparePips.Length;
                 for (int i = 0; i < sparePips.Length; i++)
                     sparePips[i].gameObject.SetActive(pips && i < maxSpare);
             }
 
-            Color full = AimReticleHud.Cyan;
+            Color full = Normal;
             Color text = TextColor;
             if (infiniteSpare == false && spare <= 0) full = text = Red;
             else if (infiniteSpare == false && spare == 1) full = text = Amber;
@@ -463,7 +468,7 @@ namespace HybridShooter.UI
             Vector2 start = center + new Vector2(0f, icon.rect.height * 0.5f);
             rt.anchoredPosition = start;
             label.text = $"+{amount}";
-            label.color = AimReticleHud.Cyan;
+            label.color = Amber; // 얻은 양은 재화·보상과 같은 호박색
 
             DOTween.Sequence()
                 .Join(DOTween.To(() => rt.anchoredPosition, p => rt.anchoredPosition = p, start + Vector2.up * gainRise, gainDuration).SetEase(Ease.OutCubic))
@@ -484,7 +489,7 @@ namespace HybridShooter.UI
         private static void SetItem(GameObject slot, TextMeshProUGUI text, int current, int max)
         {
             slot.SetActive(current > 0);
-            text.SetText("{0}<size=70%><color=#9FE8F5>/{1}</color></size>", current, max);
+            text.SetText("{0}<size=70%><color=#99ADC7>/{1}</color></size>", current, max);
         }
 
         private void OnGunChanged(int index, Gun gun)
@@ -526,21 +531,32 @@ namespace HybridShooter.UI
             mainGroup.interactable = false;
             Transform root = main;
 
-            // 왼쪽 아래, 체력 위: 목숨
-            livesGroup = Group(go.transform, "Lives", new Vector2(0f, 0f), new Vector2(56f, 158f), new Vector2(300f, 44f));
-            livesIcon = NewImage(Rect(livesGroup.transform, "Icon", Vector2.zero, new Vector2(0f, 0.5f), new Vector2(0f, 22f), new Vector2(34f, 34f)), HeartSprite());
-            livesIcon.preserveAspect = true;
-            livesIcon.color = AimReticleHud.Cyan;
-            livesText = Label(livesGroup.transform, "Count", numberFont, 32f, TextAlignmentOptions.MidlineLeft,
-                new Vector2(44f, 2f), new Vector2(240f, 40f));
+            float margin = UiTheme.HudMargin;
 
-            // 왼쪽 아래: 체력 + 소모품
-            vitalsGroup = Group(root, "Vitals", new Vector2(0f, 0f), new Vector2(56f, 40f), new Vector2(560f, 110f));
-            Label(vitalsGroup.transform, "HpLabel", labelFont, 24f, TextAlignmentOptions.MidlineLeft,
-                new Vector2(0f, 52f), new Vector2(50f, 40f)).text = "HP";
-            hpBar = Bar(vitalsGroup.transform, "Hp", hpBack, hpFill, new Vector2(52f, 55f), new Vector2(400f, 34f));
-            hpText = Label(vitalsGroup.transform, "HpValue", numberFont, 34f, TextAlignmentOptions.MidlineLeft,
-                new Vector2(466f, 52f), new Vector2(100f, 40f));
+            // 왼쪽 아래, 체력 위: 목숨 (마름모 표식 + ×n / 최대)
+            livesGroup = Group(go.transform, "Lives", new Vector2(0f, 0f), new Vector2(margin, 162f), new Vector2(300f, 36f));
+            livesIcon = NewImage(Rect(livesGroup.transform, "Icon", Vector2.zero, new Vector2(0.5f, 0.5f), new Vector2(9f, 18f), new Vector2(13f, 13f)), WhiteSprite());
+            livesIcon.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            livesIcon.color = Normal;
+            livesText = Label(livesGroup.transform, "Count", numberFont, 24f, TextAlignmentOptions.MidlineLeft,
+                new Vector2(30f, 0f), new Vector2(240f, 36f));
+
+            // 왼쪽 아래: 체력(큰 숫자 + 얇은 게이지) + 소모품. 뒤에 오른쪽으로 사라지는 띠 (목숨 줄까지 덮는다)
+            vitalsGroup = Group(root, "Vitals", new Vector2(0f, 0f), new Vector2(margin, 40f), new Vector2(560f, 110f));
+            var vitalsBand = Rect(vitalsGroup.transform, "Band", Vector2.zero, Vector2.zero, new Vector2(-margin, -24f), new Vector2(640f, 210f));
+            UiThemeKit.Band(vitalsBand, UiThemeKit.BandShape.FadeRight, 0.75f);
+            vitalsBand.SetAsFirstSibling();
+            hpText = Label(vitalsGroup.transform, "HpValue", numberFont, 56f, TextAlignmentOptions.BottomLeft,
+                new Vector2(0f, 40f), new Vector2(120f, 64f));
+            var hpLabel = Label(vitalsGroup.transform, "HpLabel", numberFont, 15f, TextAlignmentOptions.BottomLeft,
+                new Vector2(124f, 58f), new Vector2(60f, 24f));
+            hpLabel.text = "HP";
+            hpLabel.color = UiTheme.Steel;
+            hpLabel.characterSpacing = 8f;
+            hpBar = Bar(vitalsGroup.transform, "Hp", new Vector2(124f, 46f), new Vector2(340f, UiTheme.GaugeHeight));
+            // 저체력 기준선 (이 아래로 내려가면 붉게 깜빡인다)
+            NewImage(Rect(vitalsGroup.transform, "LowMark", Vector2.zero, new Vector2(0.5f, 0f), new Vector2(124f + 340f * lowHealthRatio, 43f), new Vector2(1f, 12f)), WhiteSprite())
+                .color = UiTheme.Red;
 
             var items = Rect(vitalsGroup.transform, "Items", Vector2.zero, Vector2.zero, new Vector2(0f, 0f), new Vector2(400f, 40f));
             var row = items.gameObject.AddComponent<HorizontalLayoutGroup>();
@@ -555,19 +571,23 @@ namespace HybridShooter.UI
             grenadeSlot.SetActive(false);
             healSlot.SetActive(false);
 
-            // 가운데 아래: 스태미나
-            staminaGroup = Group(root, "Stamina", new Vector2(0.5f, 0f), new Vector2(-140f, 70f), new Vector2(280f, 10f));
-            staminaBar = Bar(staminaGroup.transform, "Stamina", staminaBack, staminaFill, Vector2.zero, new Vector2(280f, 10f));
+            // 가운데 아래: 스태미나 (얇은 청회색 선)
+            staminaGroup = Group(root, "Stamina", new Vector2(0.5f, 0f), new Vector2(-140f, 72f), new Vector2(280f, UiTheme.ThinBarHeight));
+            staminaBar = Bar(staminaGroup.transform, "Stamina", Vector2.zero, new Vector2(280f, UiTheme.ThinBarHeight));
             staminaGroup.alpha = 0f;
 
-            // 오른쪽 아래: 무기 (위에서부터 이름·모드 / 탄창 안 탄약 / 예비 탄창 / 탄창 바)
+            // 오른쪽 아래: 무기 (위에서부터 이름·모드 / 탄창 안 탄약 / 예비 탄창 / 탄창 바). 뒤에 왼쪽으로 사라지는 띠 (무기 칸 줄까지 덮는다)
+            // x 는 WeaponSlotHud 칸 줄(-416)과 맞춘다
             var weapon = Group(root, "Weapon", new Vector2(1f, 0f), new Vector2(-416f, 40f), new Vector2(360f, 188f)).transform;
-            infoText = Label(weapon, "Info", labelFont, 22f, TextAlignmentOptions.BottomRight, new Vector2(0f, 150f), new Vector2(360f, 30f));
-            infoText.color = WithAlpha(TextColor, 0.75f);
-            infoText.characterSpacing = 4f;
-            ammoText = Label(weapon, "Ammo", numberFont, 64f, TextAlignmentOptions.BottomRight, new Vector2(0f, 66f), new Vector2(360f, 80f));
-            statusText = Label(weapon, "Status", labelFont, 22f, TextAlignmentOptions.BottomLeft, new Vector2(0f, 74f), new Vector2(180f, 30f));
-            statusText.characterSpacing = 4f;
+            var weaponBand = Rect(weapon, "Band", Vector2.zero, Vector2.zero, new Vector2(-220f, -24f), new Vector2(220f + 416f, 300f));
+            UiThemeKit.Band(weaponBand, UiThemeKit.BandShape.FadeLeft, 0.75f);
+            weaponBand.SetAsFirstSibling();
+            infoText = Label(weapon, "Info", numberFont, 17f, TextAlignmentOptions.BottomRight, new Vector2(0f, 152f), new Vector2(360f, 26f));
+            infoText.color = UiTheme.Steel;
+            infoText.characterSpacing = 6f;
+            ammoText = Label(weapon, "Ammo", numberFont, 72f, TextAlignmentOptions.BottomRight, new Vector2(0f, 60f), new Vector2(360f, 86f));
+            statusText = Label(weapon, "Status", numberFont, 15f, TextAlignmentOptions.BottomLeft, new Vector2(0f, 76f), new Vector2(200f, 26f));
+            statusText.characterSpacing = 6f;
             statusText.gameObject.SetActive(false);
 
             // 예비 탄창: 칸(오른쪽 정렬) + 개수/최대
@@ -581,15 +601,16 @@ namespace HybridShooter.UI
             sparePips = new Image[MaxSparePips];
             for (int i = 0; i < MaxSparePips; i++)
             {
-                sparePips[i] = NewImage(Rect(pips, "Pip" + i, Vector2.zero, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(12f, 24f)), pipSprite);
+                sparePips[i] = NewImage(Rect(pips, "Pip" + i, Vector2.zero, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(9f, 18f)), pipSprite);
                 sparePips[i].gameObject.SetActive(false);
             }
-            spareText = Label(weapon, "Spare", numberFont, 26f, TextAlignmentOptions.MidlineRight, new Vector2(236f, 28f), new Vector2(124f, 32f));
+            spareText = Label(weapon, "Spare", numberFont, 17f, TextAlignmentOptions.MidlineRight, new Vector2(236f, 28f), new Vector2(124f, 32f));
+            spareText.characterSpacing = 4f;
             // 획득 피드백이 가운데 기준으로 튀도록 피벗을 가운데로 (위치는 그대로)
             spareText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             spareText.rectTransform.anchoredPosition += spareText.rectTransform.sizeDelta * 0.5f;
 
-            ammoBar = Bar(weapon, "Magazine", ammoBack, ammoFill, new Vector2(20f, 0f), new Vector2(340f, 20f));
+            ammoBar = Bar(weapon, "Magazine", new Vector2(20f, 0f), new Vector2(340f, UiTheme.ThinBarHeight));
         }
 
         /// <summary>예비 탄창 칸 최대 수. 최대 예비 탄창이 이보다 많으면 칸 없이 숫자만</summary>
@@ -616,26 +637,26 @@ namespace HybridShooter.UI
             return rt;
         }
 
-        /// <summary>배경 + 왼쪽부터 차오르는 채움. 채움 Image 를 돌려준다</summary>
-        private static Image Bar(Transform parent, string name, Sprite back, Sprite fill, Vector2 position, Vector2 size)
+        /// <summary>얇은 단색 게이지: 바탕 + 왼쪽부터 차오르는 채움. 채움 Image 를 돌려준다 (Filled 는 스프라이트가 있어야 해서 흰 스프라이트를 쓴다)</summary>
+        private static Image Bar(Transform parent, string name, Vector2 position, Vector2 size)
         {
-            var bg = NewImage(Rect(parent, name + "Back", Vector2.zero, Vector2.zero, position, size), back);
+            var bg = NewImage(Rect(parent, name + "Back", Vector2.zero, Vector2.zero, position, size), WhiteSprite());
             bg.color = BackColor;
-            var bar = NewImage(Rect(parent, name + "Fill", Vector2.zero, Vector2.zero, position, size), fill);
+            var bar = NewImage(Rect(parent, name + "Fill", Vector2.zero, Vector2.zero, position, size), WhiteSprite());
             bar.type = Image.Type.Filled;
             bar.fillMethod = Image.FillMethod.Horizontal;
             bar.fillOrigin = (int)Image.OriginHorizontal.Left;
-            bar.color = AimReticleHud.Cyan;
+            bar.color = Normal;
             return bar;
         }
 
         private GameObject ItemSlot(Transform parent, string name, Sprite icon, out TextMeshProUGUI count)
         {
             var slot = Rect(parent, name, Vector2.zero, new Vector2(0f, 0.5f), Vector2.zero, new Vector2(110f, 40f));
-            var image = NewImage(Rect(slot, "Icon", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(30f, 30f)), icon);
-            image.color = AimReticleHud.Cyan;
+            var image = NewImage(Rect(slot, "Icon", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(26f, 26f)), icon);
+            image.color = UiTheme.Steel;
             image.preserveAspect = true;
-            count = Label(slot, "Count", numberFont, 28f, TextAlignmentOptions.MidlineLeft, new Vector2(40f, 0f), new Vector2(70f, 40f));
+            count = Label(slot, "Count", numberFont, 24f, TextAlignmentOptions.MidlineLeft, new Vector2(36f, 0f), new Vector2(74f, 40f));
             count.rectTransform.anchorMin = count.rectTransform.anchorMax = new Vector2(0f, 0.5f);
             count.rectTransform.pivot = new Vector2(0f, 0.5f);
             return slot.gameObject;
@@ -692,30 +713,11 @@ namespace HybridShooter.UI
             return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
         }
 
-        /// <summary>목숨 하트 (64px, 흰색). 하트 곡선 (x²+y²-1)³ - x²y³ ≤ 0 을 4×4 표본으로 가장자리를 부드럽게. 색은 Image.color 로</summary>
-        private static Sprite HeartSprite()
+        /// <summary>흰 단색 스프라이트 (게이지·목숨 마름모. 색은 Image.color 로)</summary>
+        private static Sprite WhiteSprite()
         {
-            const int size = 64;
-            const int samples = 4;
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "HudHeart", wrapMode = TextureWrapMode.Clamp };
-            var pixels = new Color32[size * size];
-            for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                int inside = 0;
-                for (int sy = 0; sy < samples; sy++)
-                for (int sx = 0; sx < samples; sx++)
-                {
-                    float hx = ((x + (sx + 0.5f) / samples) / size - 0.5f) * 2.6f;
-                    float hy = ((y + (sy + 0.5f) / samples) / size - 0.45f) * 2.6f;
-                    float a = hx * hx + hy * hy - 1f;
-                    if (a * a * a - hx * hx * hy * hy * hy <= 0f) inside++;
-                }
-                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(255 * inside / (samples * samples)));
-            }
-            texture.SetPixels32(pixels);
-            texture.Apply(false, true);
-            return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+            if (white == null) white = Sprite.Create(Texture2D.whiteTexture, new Rect(0f, 0f, 4f, 4f), new Vector2(0.5f, 0.5f));
+            return white;
         }
 
         /// <summary>예비 탄창 칸 (16×32px, 흰색): 살짝 앞으로 휜 탄창 몸통 + 위쪽 급탄구. 색은 Image.color 로</summary>
