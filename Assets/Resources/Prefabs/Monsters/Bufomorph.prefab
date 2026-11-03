@@ -1990,7 +1990,7 @@ MonoBehaviour:
   hitReaction: 1
   hitStunDamageThreshold: 0
   hitStunDamageWindowSeconds: 1
-  hitStunSeconds: 0.3
+  hitStunSeconds: 0.75
   hitStunCooldownSeconds: 1
   hitSlowRatio: 0.5
   hitSlowSeconds: 1
