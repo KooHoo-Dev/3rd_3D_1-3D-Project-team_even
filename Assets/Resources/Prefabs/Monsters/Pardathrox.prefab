@@ -336,7 +336,6 @@ GameObject:
   - component: {fileID: 7657703144553812332}
   - component: {fileID: -716610186761490424}
   - component: {fileID: 81547760911233001}
-  - component: {fileID: 3967654826282314174}
   - component: {fileID: 1401033444075153407}
   - component: {fileID: -714129639538112546}
   - component: {fileID: 849710739580989391}
@@ -504,33 +503,6 @@ MonoBehaviour:
   obstacleMask:
     serializedVersion: 2
     m_Bits: 969
---- !u!114 &3967654826282314174
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1716452437149150959}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d6faa67555b911c498251ad6cdb30012, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.FlankModeVisualizer
-  showFlankRing: 1
-  showSwitchBoundary: 1
-  showDestination: 1
-  showLabel: 1
-  showViewCone: 1
-  showAttackRange: 1
-  showTrail: 1
-  trailSeconds: 3
-  trailSampleInterval: 0.1
-  farColor: {r: 1, g: 0.55, b: 0, a: 1}
-  nearColor: {r: 1, g: 0, b: 0, a: 1}
-  flankRingColor: {r: 0.4, g: 0.8, b: 1, a: 1}
-  boundaryColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  viewConeColor: {r: 1, g: 1, b: 1, a: 1}
-  attackRangeColor: {r: 0, g: 1, b: 0, a: 1}
 --- !u!136 &1401033444075153407
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -550,10 +522,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.8795427
-  m_Height: 3.54
+  m_Radius: 1.2881095
+  m_Height: 3.068778
   m_Direction: 1
-  m_Center: {x: 0.005047798, y: 1.1799998, z: 0.2895428}
+  m_Center: {x: -0.022321463, y: 1.4156108, z: 0.009408474}
 --- !u!114 &-714129639538112546
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -605,12 +577,12 @@ MonoBehaviour:
   bodyCollider: {fileID: 0}
   mass: 60
   angularDamping: 0.5
-  hitPushSpeed: 5
+  hitPushSpeed: 15
   upwardKickSpeed: 1.5
   randomSpinSpeed: 2
   lyingSeconds: 2.5
-  sinkSeconds: 1.5
-  extraSinkDepth: 0.5
+  sinkSeconds: 3
+  extraSinkDepth: 1
 --- !u!1 &1743906209014602706
 GameObject:
   m_ObjectHideFlags: 0
@@ -1719,7 +1691,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.14
+  m_Radius: 0.3
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1789730922615293568
 MonoBehaviour:
@@ -1737,11 +1709,7 @@ MonoBehaviour:
   glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 3
-  exposedBrightness: 0.9
-  hiddenBrightness: 0.25
-  pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
   hitFlashSeconds: 0.35
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.45

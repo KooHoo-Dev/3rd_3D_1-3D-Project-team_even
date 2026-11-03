@@ -67,14 +67,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossWeakPoint
   partKey: Antenna
-  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  glowColor: {r: 1.8630273, g: 1.1564223, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 1.38
-  exposedBrightness: 0.9
+  introSeconds: 10
+  introFadeOutSeconds: 0.5
+  introBrightness: 1
   pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
-  hitFlashSeconds: 0.15
+  pulseDepth: 1
+  hitFlashColor: {r: 0.7490196, g: 0.3405695, b: 0, a: 1}
+  hitFlashSeconds: 0.3
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.3
 --- !u!1 &445346457059702531
@@ -175,14 +177,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossWeakPoint
   partKey: Antenna
-  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  glowColor: {r: 1.8630273, g: 1.1564223, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 1.38
-  exposedBrightness: 0.9
+  introSeconds: 10
+  introFadeOutSeconds: 0.5
+  introBrightness: 1
   pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
-  hitFlashSeconds: 0.15
+  pulseDepth: 1
+  hitFlashColor: {r: 0.7490196, g: 0.3405695, b: 0, a: 1}
+  hitFlashSeconds: 0.3
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.3
 --- !u!1 &914981718097747855
@@ -252,14 +256,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossWeakPoint
   partKey: Antenna
-  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  glowColor: {r: 1.8630273, g: 1.1564223, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 1.38
-  exposedBrightness: 0.9
+  introSeconds: 10
+  introFadeOutSeconds: 0.5
+  introBrightness: 1
   pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
-  hitFlashSeconds: 0.15
+  pulseDepth: 1
+  hitFlashColor: {r: 0.7490196, g: 0.3405695, b: 0, a: 1}
+  hitFlashSeconds: 0.3
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.3
 --- !u!1 &1271720263303429617
@@ -454,14 +460,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossWeakPoint
   partKey: Antenna
-  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  glowColor: {r: 1.8630273, g: 1.1564223, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 1.38
-  exposedBrightness: 0.9
+  introSeconds: 10
+  introFadeOutSeconds: 0.5
+  introBrightness: 1
   pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
-  hitFlashSeconds: 0.15
+  pulseDepth: 1
+  hitFlashColor: {r: 0.7490196, g: 0.3405695, b: 0, a: 1}
+  hitFlashSeconds: 0.3
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.3
 --- !u!1 &4338259690579617783
@@ -531,14 +539,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossWeakPoint
   partKey: Antenna
-  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  glowColor: {r: 1.8630273, g: 1.1564223, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 1.38
-  exposedBrightness: 0.9
+  introSeconds: 10
+  introFadeOutSeconds: 0.5
+  introBrightness: 1
   pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
-  hitFlashSeconds: 0.15
+  pulseDepth: 1
+  hitFlashColor: {r: 0.7490196, g: 0.3405695, b: 0, a: 1}
+  hitFlashSeconds: 0.3
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.3
 --- !u!1 &5193697860653635588
@@ -2201,6 +2211,9 @@ MonoBehaviour:
   sampleRadius: 4
   engagedPriority: 30
   defaultPriority: 60
+  smallObstacleProbeDepth: 2.5
+  maxDetourExtraLength: 2
+  maxDetourHeightDifference: 0.75
 --- !u!114 &6465869196583418968
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2281,6 +2294,8 @@ MonoBehaviour:
     Source: {x: 0, y: 0, z: 0}
     Radius: 0
   footstepShakeRadius: 40
+  staggerCooldown: 8
+  staggerSfxKey: mon_clypeosaurus_hurt
 --- !u!114 &7874530854670405339
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4281,14 +4296,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossWeakPoint
   partKey: Head
-  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  glowColor: {r: 1.8630273, g: 0, b: 0, a: 1}
   coreAlpha: 0.403
   rimPower: 3
-  exposedBrightness: 0.9
+  introSeconds: 10
+  introFadeOutSeconds: 0.5
+  introBrightness: 1
   pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
-  hitFlashSeconds: 0.15
+  pulseDepth: 1
+  hitFlashColor: {r: 0.7490196, g: 0, b: 0, a: 1}
+  hitFlashSeconds: 0.3
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.3
 --- !u!1 &7128792421623505780
@@ -4455,14 +4472,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossWeakPoint
   partKey: Antenna
-  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  glowColor: {r: 1.8630273, g: 1.1564223, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 1.38
-  exposedBrightness: 0.9
+  introSeconds: 10
+  introFadeOutSeconds: 0.5
+  introBrightness: 1
   pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
-  hitFlashSeconds: 0.15
+  pulseDepth: 1
+  hitFlashColor: {r: 0.7490196, g: 0.3405695, b: 0, a: 1}
+  hitFlashSeconds: 0.3
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.3
 --- !u!1 &7662392895340778607
@@ -4532,14 +4551,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossWeakPoint
   partKey: Antenna
-  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  glowColor: {r: 1.8630273, g: 1.1564223, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 1.38
-  exposedBrightness: 0.9
+  introSeconds: 10
+  introFadeOutSeconds: 0.5
+  introBrightness: 1
   pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
-  hitFlashSeconds: 0.15
+  pulseDepth: 1
+  hitFlashColor: {r: 0.7490196, g: 0.3405695, b: 0, a: 1}
+  hitFlashSeconds: 0.3
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.3
 --- !u!1 &8076722774767653112
@@ -4640,13 +4661,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossWeakPoint
   partKey: Antenna
-  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  glowColor: {r: 1.8630273, g: 1.1564223, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 1.38
-  exposedBrightness: 0.9
+  introSeconds: 10
+  introFadeOutSeconds: 0.5
+  introBrightness: 1
   pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
-  hitFlashSeconds: 0.15
+  pulseDepth: 1
+  hitFlashColor: {r: 0.7490196, g: 0.3405695, b: 0, a: 1}
+  hitFlashSeconds: 0.3
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.3

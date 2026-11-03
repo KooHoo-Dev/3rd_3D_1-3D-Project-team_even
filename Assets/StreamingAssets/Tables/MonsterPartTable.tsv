@@ -1,17 +1,9 @@
 Id	MonsterId	BossId	PartKey	Name	DamageMultiplier	Exposure	PartHp	LinkedAttackId	TransformToMonsterId
 # MonsterId·BossId: 둘 중 하나만 0 이 아님 (보스 부위 = MonsterId 0 + BossTable.Id)  ·  Exposure: Always/WhileAttacking/WhileRecovering  ·  PartHp 0 = 파괴 불가  ·  LinkedAttackId: 파괴 시 약화되는 공격(보스 발사관 → 마그마 일제 사격 구역 수 -1)  ·  TransformToMonsterId: 파괴 시 전환(남은 체력 유지)
 1	1003	0	Wings	날개	1	Always	10	0	1002
-2	2001	0	Mouth	입 안	2	WhileAttacking	0	0	0
+2	2001	0	Mouth	입 안	2	Always	0	0	0
 3	2002	0	Mouth	도약 몬스터 입안	2	Always	0	0	0
-4	2003	0	Gland	등 분비샘	2	Always	0	0	0
-# [구형 보스 부위 보관] 부위별 피격·파괴 대신 ClypeosaurusTable의 HP 기준 안테나 개방을 사용한다.
-# 5	3001	0	Antenna	안테나 발광구	2.5	Always	0	0	0
-# 6	3001	0	Spitter1	등 발사관 1	1	Always	120	300105	0
-# 7	3001	0	Spitter2	등 발사관 2	1	Always	120	300105	0
-# 8	3001	0	Spitter3	등 발사관 3	1	Always	120	300105	0
-# 9	3001	0	Spitter4	등 발사관 4	1	Always	120	300105	0
-# 10	3001	0	Spitter5	등 발사관 5	1	Always	120	300105	0
-# 11	3001	0	Spitter6	등 발사관 6	1	Always	120	300105	0
+4	2003	0	Eye	눈	2	Always	0	0	0
 # 강화 개체: 원형의 역할/등급 유지, 보상 2~3배
 101	1103	0	Wings	날개	1	Always	18	0	1102
 102	2101	0	Mouth	입 안	2	WhileAttacking	0	0	0

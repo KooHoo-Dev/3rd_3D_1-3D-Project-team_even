@@ -355,10 +355,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 2.15
-  m_Height: 4.23
+  m_Radius: 2.5252523
+  m_Height: 5.0505047
   m_Direction: 1
-  m_Center: {x: 0.022333503, y: 2.4972677, z: 0.55911064}
+  m_Center: {x: 0.06892824, y: 2.3595924, z: -0.35668087}
 --- !u!114 &6040918561269513848
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -408,14 +408,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterCorpse
   corpseLayerName: MonsterCorpse
   bodyCollider: {fileID: 0}
-  mass: 60
+  mass: 30
   angularDamping: 0.5
   hitPushSpeed: 5
   upwardKickSpeed: 1
   randomSpinSpeed: 2
-  lyingSeconds: 2.5
-  sinkSeconds: 1.5
-  extraSinkDepth: 0.5
+  lyingSeconds: 3
+  sinkSeconds: 2.5
+  extraSinkDepth: 1
 --- !u!1 &1905092912942143356
 GameObject:
   m_ObjectHideFlags: 0
@@ -697,7 +697,8 @@ Transform:
   m_LocalPosition: {x: -0.81316817, y: 0.23256744, z: 0.000000028309294}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 3087034819689832331}
   m_Father: {fileID: 671453987816746816}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4674709220686473772
@@ -913,12 +914,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5326008953529612867}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.863, y: 1.055, z: 0}
+  m_LocalRotation: {x: -0.000000019146434, y: 0.000000024896332, z: -0.00000005960463, w: 1}
+  m_LocalPosition: {x: -1.06, y: -0.3, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 761027778978897864}
+  m_Father: {fileID: 461264230210944764}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!135 &862114235037915083
 SphereCollider:
@@ -939,8 +940,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.34
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Radius: 0.5487842
+  m_Center: {x: 0.0000000042692787, y: -0.05878419, z: 8.355537e-10}
 --- !u!114 &3438445699420021215
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -957,11 +958,7 @@ MonoBehaviour:
   glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 3
-  exposedBrightness: 0.9
-  hiddenBrightness: 0.05
-  pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
   hitFlashSeconds: 0.35
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.45
@@ -1122,8 +1119,7 @@ Transform:
   m_LocalPosition: {x: 0.10146587, y: 1.2225337, z: 0.0000015258788}
   m_LocalScale: {x: 0.99999994, y: 0.9999998, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 3087034819689832331}
+  m_Children: []
   m_Father: {fileID: 671453987816746816}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7095907652350947092

@@ -2073,14 +2073,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterCorpse
   corpseLayerName: MonsterCorpse
   bodyCollider: {fileID: 0}
-  mass: 60
+  mass: 20
   angularDamping: 0.5
   hitPushSpeed: 5
   upwardKickSpeed: 1.5
   randomSpinSpeed: 2
   lyingSeconds: 2.5
-  sinkSeconds: 1.5
-  extraSinkDepth: 0.5
+  sinkSeconds: 3
+  extraSinkDepth: 1
 --- !u!1 &7960356510021968820
 GameObject:
   m_ObjectHideFlags: 0

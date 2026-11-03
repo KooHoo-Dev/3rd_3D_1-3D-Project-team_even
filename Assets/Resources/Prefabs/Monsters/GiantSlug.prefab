@@ -32,6 +32,80 @@ Transform:
   - {fileID: 1800870750422103315}
   m_Father: {fileID: 5310590531677701197}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &151735433681702415
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6391820233388812811}
+  - component: {fileID: 6169481730818185784}
+  - component: {fileID: 2275867542521822131}
+  m_Layer: 15
+  m_Name: WeakPoint_Eye (5)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6391820233388812811
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 151735433681702415}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.70403713, y: -0.06581474, z: 0.68423265, w: 0.17839803}
+  m_LocalPosition: {x: -0.45, y: 0.07, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7208829064412963846}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &6169481730818185784
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 151735433681702415}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.14
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2275867542521822131
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 151735433681702415}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10567a424f984f28b776978aa00c0274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
+  partKey: Eye
+  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  coreAlpha: 0.12
+  rimPower: 3
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
+  hitFlashSeconds: 0.35
+  hitFlashCoreAlpha: 0.7
+  hitFlashScale: 1.45
 --- !u!1 &460631599273404094
 GameObject:
   m_ObjectHideFlags: 0
@@ -60,8 +134,7 @@ Transform:
   m_LocalPosition: {x: -0.2750203, y: 0.7360363, z: 1.1310002}
   m_LocalScale: {x: 1, y: 1.0000002, z: 1.0000002}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 3892813108792012377}
+  m_Children: []
   m_Father: {fileID: 5716897913528419568}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &617325973672690036
@@ -254,6 +327,80 @@ Transform:
   - {fileID: 8905105112179644648}
   m_Father: {fileID: 8933141370682410527}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1224170558570303615
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 227825671617454442}
+  - component: {fileID: 4213391911532660294}
+  - component: {fileID: 8230336810039909092}
+  m_Layer: 15
+  m_Name: WeakPoint_Eye (2)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &227825671617454442
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1224170558570303615}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.17839706, y: -0.6842328, z: -0.06581526, w: 0.70403725}
+  m_LocalPosition: {x: -0.45, y: -0.07, z: -0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7390433362537529247}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &4213391911532660294
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1224170558570303615}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.14
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &8230336810039909092
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1224170558570303615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10567a424f984f28b776978aa00c0274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
+  partKey: Eye
+  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  coreAlpha: 0.12
+  rimPower: 3
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
+  hitFlashSeconds: 0.35
+  hitFlashCoreAlpha: 0.7
+  hitFlashScale: 1.45
 --- !u!1 &1240643878536695453
 GameObject:
   m_ObjectHideFlags: 0
@@ -410,6 +557,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3008179122991505270}
+  - {fileID: 8042536875516045773}
   m_Father: {fileID: 5907789283112165184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1894422167064249818
@@ -475,6 +623,80 @@ Transform:
   - {fileID: 3638258699180205356}
   m_Father: {fileID: 2494946960569953948}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2188858041454573468
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1899989398934845251}
+  - component: {fileID: 3310046406140654429}
+  - component: {fileID: 3374491189796228525}
+  m_Layer: 15
+  m_Name: WeakPoint_Eye (4)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1899989398934845251
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2188858041454573468}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.6991773, y: -0.10559835, z: 0.69324106, w: 0.13934399}
+  m_LocalPosition: {x: -0.79, y: 0.04, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4167097686091822375}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &3310046406140654429
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2188858041454573468}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.17
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3374491189796228525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2188858041454573468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10567a424f984f28b776978aa00c0274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
+  partKey: Eye
+  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  coreAlpha: 0.12
+  rimPower: 3
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
+  hitFlashSeconds: 0.35
+  hitFlashCoreAlpha: 0.7
+  hitFlashScale: 1.45
 --- !u!1 &2360252023653023058
 GameObject:
   m_ObjectHideFlags: 0
@@ -539,6 +761,80 @@ Transform:
   - {fileID: 4659041319059501489}
   m_Father: {fileID: 2700274275604915726}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2506979204947730937
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7921788878512405737}
+  - component: {fileID: 1099343898532918219}
+  - component: {fileID: 7906309700214328290}
+  m_Layer: 15
+  m_Name: WeakPoint_Eye (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7921788878512405737
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2506979204947730937}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.13934377, y: -0.69324124, z: -0.10559834, w: 0.6991774}
+  m_LocalPosition: {x: -0.78, y: -0.04, z: -0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8676824832667019485}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &1099343898532918219
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2506979204947730937}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.17
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7906309700214328290
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2506979204947730937}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10567a424f984f28b776978aa00c0274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
+  partKey: Eye
+  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  coreAlpha: 0.12
+  rimPower: 3
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
+  hitFlashSeconds: 0.35
+  hitFlashCoreAlpha: 0.7
+  hitFlashScale: 1.45
 --- !u!1 &2613060359638129459
 GameObject:
   m_ObjectHideFlags: 0
@@ -666,6 +962,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 726210440680482203}
+  - {fileID: 1892813108792012376}
   m_Father: {fileID: 5907789283112165184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3010518706435499590
@@ -1010,92 +1307,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterCorpse
   corpseLayerName: MonsterCorpse
   bodyCollider: {fileID: 18421219675180418}
-  mass: 60
+  mass: 30
   angularDamping: 0.5
   hitPushSpeed: 5
   upwardKickSpeed: 1.5
   randomSpinSpeed: 2
   lyingSeconds: 2.5
-  sinkSeconds: 1.5
-  extraSinkDepth: 0.5
---- !u!1 &3461620352980666168
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3892813108792012377}
-  - component: {fileID: 3575495802397306712}
-  - component: {fileID: 3800081795552322593}
-  m_Layer: 15
-  m_Name: WeakPoint_Gland
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3892813108792012377
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3461620352980666168}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.061, y: -0.03, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 8598167847506654918}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &3575495802397306712
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3461620352980666168}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.29
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &3800081795552322593
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3461620352980666168}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 10567a424f984f28b776978aa00c0274, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
-  partKey: Gland
-  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
-  coreAlpha: 0.12
-  rimPower: 3
-  exposedBrightness: 0.9
-  hiddenBrightness: 0.25
-  pulsesPerSecond: 1.2
-  pulseDepth: 0.6
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
-  hitFlashSeconds: 0.35
-  hitFlashCoreAlpha: 0.7
-  hitFlashScale: 1.45
+  sinkSeconds: 3
+  extraSinkDepth: 1
 --- !u!1 &3710361424080600933
 GameObject:
   m_ObjectHideFlags: 0
@@ -1355,6 +1574,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8359355108252015219}
+  - {fileID: 7921788878512405737}
   m_Father: {fileID: 5907789283112165184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4327864404763674876
@@ -1512,6 +1732,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6431865709384113465}
+  - {fileID: 227825671617454442}
   m_Father: {fileID: 5907789283112165184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4782540227879746276
@@ -1637,8 +1858,7 @@ Transform:
   m_LocalPosition: {x: -0.27501914, y: 0.7360372, z: -1.1314571}
   m_LocalScale: {x: 1, y: 0.99999976, z: 0.9999999}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1892813108792012376}
+  m_Children: []
   m_Father: {fileID: 5716897913528419568}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5530161025490498999
@@ -1881,9 +2101,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 1.54
-  m_Height: 10.05
+  m_Height: 9.203858
   m_Direction: 1
-  m_Center: {x: 0, y: -0.12, z: -0.1701082}
+  m_Center: {x: 0, y: -0.54307127, z: -0.1701082}
 --- !u!1 &6269572043631333172
 GameObject:
   m_ObjectHideFlags: 0
@@ -2198,6 +2418,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8438048527080921692}
+  - {fileID: 6391820233388812811}
   m_Father: {fileID: 5907789283112165184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7137221054901269305
@@ -2624,7 +2845,7 @@ GameObject:
   - component: {fileID: 8575495802397306711}
   - component: {fileID: 7800081795552322592}
   m_Layer: 15
-  m_Name: WeakPoint_Gland
+  m_Name: WeakPoint_Eye
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2638,12 +2859,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8461620352980666167}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.098, y: 0.017, z: 0}
+  m_LocalRotation: {x: 0.107685015, y: -0.61215526, z: -0.13571982, w: 0.7715245}
+  m_LocalPosition: {x: -0.51, y: 0, z: 0.03}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 8302234154543984003}
+  m_Father: {fileID: 8276432335108076255}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!135 &8575495802397306711
 SphereCollider:
@@ -2664,7 +2885,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.29
+  m_Radius: 0.14
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &7800081795552322592
 MonoBehaviour:
@@ -2678,15 +2899,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 10567a424f984f28b776978aa00c0274, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
-  partKey: Gland
+  partKey: Eye
   glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 3
-  exposedBrightness: 0.9
-  hiddenBrightness: 0.25
-  pulsesPerSecond: 1.2
-  pulseDepth: 0.597
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
   hitFlashSeconds: 0.35
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.45
@@ -2817,6 +3034,80 @@ Transform:
   - {fileID: 2700274275604915726}
   m_Father: {fileID: 3638258699180205356}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8986065993480511251
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8042536875516045773}
+  - component: {fileID: 948412085696405109}
+  - component: {fileID: 6174313008609855694}
+  m_Layer: 15
+  m_Name: WeakPoint_Eye (3)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8042536875516045773
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8986065993480511251}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.6121551, y: -0.107685134, z: 0.7715246, w: 0.13571997}
+  m_LocalPosition: {x: -0.56, y: 0, z: 0.04}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3588663679771840335}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &948412085696405109
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8986065993480511251}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.14
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6174313008609855694
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8986065993480511251}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10567a424f984f28b776978aa00c0274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
+  partKey: Eye
+  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
+  coreAlpha: 0.12
+  rimPower: 3
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
+  hitFlashSeconds: 0.35
+  hitFlashCoreAlpha: 0.7
+  hitFlashScale: 1.45
 --- !u!1 &9065380792973324746
 GameObject:
   m_ObjectHideFlags: 0
@@ -2915,6 +3206,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6345126421974867767}
+  - {fileID: 1899989398934845251}
   m_Father: {fileID: 5907789283112165184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &9208947959345022143
