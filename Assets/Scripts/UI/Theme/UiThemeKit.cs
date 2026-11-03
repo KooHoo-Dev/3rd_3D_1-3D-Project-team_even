@@ -213,8 +213,9 @@ namespace HybridShooter.UI.Theme
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, size);
             labelText.text = text;
             labelText.color = UiTheme.MoonWhite;
-            labelText.fontStyle = FontStyles.Bold;
-            labelText.characterSpacing = 6f;
+            // 굵게 하지 않는다: Noto Sans KR 에셋은 Regular 하나라 Bold 를 주면 TMP 가 획을 억지로 두껍게 그려 다른 글꼴처럼 보인다.
+            // 자간도 다른 한글 글자(TextButton 의 한글 버튼)와 같게
+            labelText.characterSpacing = 2f;
             labelText.raycastTarget = false;
             return button;
         }
