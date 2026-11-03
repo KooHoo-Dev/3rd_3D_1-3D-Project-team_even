@@ -17,5 +17,7 @@ namespace HybridShooter.Core.Data.Dtos
         public float SupplyStartTime;
         public float SupplyInterval;
         public int BossReward;
+        public string CrowdBgm;  // SoundTable 키 (Category Bgm). 라운드 시작부터 재생. 비우면 GameSoundRouter 기본 곡
+        public string BossBgm;  // SoundTable 키 (Category Bgm). 보스 등장부터 재생. 보스 없는 라운드·비우면 GameSoundRouter 기본 곡
     }
 }
