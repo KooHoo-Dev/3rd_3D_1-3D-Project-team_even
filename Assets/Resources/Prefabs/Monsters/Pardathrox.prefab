@@ -470,12 +470,12 @@ MonoBehaviour:
   hitIntervalSeconds: 0
   hitRangeRatio: 2
   windupTurnSpeed: 360
-  lowHealthRatio: 0.3
+  lowHealthRatio: 0.4
   lowHealthSpeedRatio: 0.6
   hitReaction: 1
-  hitStunDamageThreshold: 46
+  hitStunDamageThreshold: 50
   hitStunDamageWindowSeconds: 1
-  hitStunSeconds: 0.3
+  hitStunSeconds: 0.6
   hitStunCooldownSeconds: 1
   hitSlowRatio: 0.65
   hitSlowSeconds: 1

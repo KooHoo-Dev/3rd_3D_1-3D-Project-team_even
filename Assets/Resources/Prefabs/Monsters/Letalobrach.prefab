@@ -310,9 +310,9 @@ MonoBehaviour:
   lowHealthRatio: 0.3
   lowHealthSpeedRatio: 0.6
   hitReaction: 1
-  hitStunDamageThreshold: 60
+  hitStunDamageThreshold: 75
   hitStunDamageWindowSeconds: 1
-  hitStunSeconds: 0.75
+  hitStunSeconds: 0.6
   hitStunCooldownSeconds: 1
   hitSlowRatio: 0.5
   hitSlowSeconds: 1

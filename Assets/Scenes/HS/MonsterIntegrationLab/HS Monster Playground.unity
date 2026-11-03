@@ -2172,7 +2172,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7219419144724798672, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: mouseSensitivity
-      value: 0.18
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: 7219419144724798672, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: groundMask.m_Bits

@@ -26,7 +26,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8182058156753446464, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
       propertyPath: hitReaction
-      value: 0
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8182058156753446464, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
+      propertyPath: hitStunSeconds
+      value: 1.25
       objectReference: {fileID: 0}
     - target: {fileID: 8182058156753446464, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
       propertyPath: hitStunDamageThreshold
