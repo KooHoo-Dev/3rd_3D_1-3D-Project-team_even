@@ -63,6 +63,8 @@ namespace HybridShooter.Core.Contracts
         public static readonly CameraShakeSettings BossFootstep = new CameraShakeSettings(0.45f, 0.35f, 9f, 0.02f, 0.25f);
         /// <summary>짓밟기·착탄 등 강한 한 방</summary>
         public static readonly CameraShakeSettings Impact = new CameraShakeSettings(0.7f, 0.5f, 12f, 0.02f, 0.35f);
+        /// <summary>연료 셀 같은 대형 폭발. 최대 세기로 길고 묵직하게 (진원·반경은 At 으로)</summary>
+        public static readonly CameraShakeSettings Blast = new CameraShakeSettings(1f, 0.9f, 8f, 0.02f, 0.6f);
         /// <summary>가벼운 진동</summary>
         public static readonly CameraShakeSettings Light = new CameraShakeSettings(0.25f, 0.3f, 10f, 0.02f, 0.2f);
     }

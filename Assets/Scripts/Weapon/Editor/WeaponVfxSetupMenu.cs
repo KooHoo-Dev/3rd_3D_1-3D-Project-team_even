@@ -53,7 +53,7 @@ namespace HybridShooter.Weapon.EditorTools
             public GameObject FlashSmall, FlashMedium, FlashLarge, FlashLauncher;
             public BulletTracer TracerStandard, TracerPellet, TracerSniper;
             public GameObject ImpactBullet, ImpactPellet, ImpactSniper;
-            public GameObject ExplosionGrenade, ExplosionRocket;
+            public GameObject ExplosionGrenade, ExplosionRocket, ExplosionFuelCell;
             public ProjectileTrail RocketTrail, GrenadeTrail;
         }
 
@@ -79,19 +79,7 @@ namespace HybridShooter.Weapon.EditorTools
                 return;
             }
             if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo() == false) return;
-
-            Shader shader = Shader.Find(ParticleShader);
-            if (shader == null)
-            {
-                EditorUtility.DisplayDialog("무기 이펙트 설정", $"셰이더를 찾지 못했습니다:\n{ParticleShader}\n(QFX Sci-Fi VFX 에셋 필요)", "확인");
-                return;
-            }
-            Shader heatShader = Shader.Find(HeatDistortionShader);
-            if (heatShader == null)
-            {
-                EditorUtility.DisplayDialog("무기 이펙트 설정", $"셰이더를 찾지 못했습니다:\n{HeatDistortionShader}\n({Root}/Shaders/ExplosionHeatDistortion.shader)", "확인");
-                return;
-            }
+            if (TryFindShaders(out Shader shader, out Shader heatShader) == false) return;
 
             EnsureFolder(Root);
             EnsureFolder(TextureFolder);
@@ -99,12 +87,77 @@ namespace HybridShooter.Weapon.EditorTools
 
             MakeTextures(out var star, out var glow, out var smoke, out var line);
             VfxSet set = BuildAll(MakeMaterials(shader, star, glow, smoke, line), heatShader);
-            if (set.ExplosionGrenade == null || set.ExplosionRocket == null) return;
+            if (set.ExplosionGrenade == null || set.ExplosionRocket == null || set.ExplosionFuelCell == null) return;
 
             int guns = AssignPlayerPrefab(set) + AssignScene(set);
             AssetDatabase.SaveAssets();
             Debug.Log($"[WeaponVfxSetup] 이펙트 생성 완료 ({Root}), 총 {guns}개에 연결");
             EditorUtility.DisplayDialog("무기 이펙트 설정", $"이펙트를 만들고 총 {guns}개에 연결했습니다.\n{Root}", "확인");
+        }
+
+        /// <summary>
+        /// 연료 셀 폭발(Explosion_FuelCell)만 다시 만든다. 다른 무기 이펙트·Player 프리팹·PlayerTest 씬은 건드리지 않는다.
+        /// 재질·피해 지점 이펙트(Impact_Explosion)가 이미 있으면 그대로 쓴다 (없을 때만 만든다)
+        /// </summary>
+        [MenuItem("Tools/HybridShooter/Map/연료 셀/0. 연료 셀 폭발 이펙트만 만들기")]
+        private static void BuildFuelCellExplosionMenu()
+        {
+            var prefab = BuildFuelCellExplosion();
+            if (prefab == null) return;
+            AssetDatabase.SaveAssets();
+            Selection.activeObject = prefab;
+            Debug.Log($"[WeaponVfxSetup] 연료 셀 폭발 이펙트 생성: {FuelCellExplosionPath}");
+        }
+
+        public const string FuelCellExplosionPath = Root + "/Explosion_FuelCell.prefab";
+
+        /// <summary>연료 셀 폭발만 만든다 (FuelCellSceneTool 이 프리팹이 없을 때 부른다). 실패하면 null</summary>
+        internal static GameObject BuildFuelCellExplosion()
+        {
+            if (TryFindShaders(out Shader shader, out Shader heatShader) == false) return null;
+            EnsureFolder(Root);
+            EnsureFolder(TextureFolder);
+            EnsureFolder(MaterialFolder);
+
+            Materials m = LoadMaterials();
+            if (m == null)
+            {
+                MakeTextures(out var star, out var glow, out var smoke, out var line);
+                m = MakeMaterials(shader, star, glow, smoke, line);
+            }
+            var hit = AssetDatabase.LoadAssetAtPath<GameObject>($"{Root}/Impact_Explosion.prefab") ?? BuildExplosionHit(m);
+            return BuildOrangeExplosion("Grenade/PS_Explosion_Grenade", "Explosion_FuelCell",
+                new GrenadeBlast { Materials = m, HeatDistortion = heatShader, HitEffect = hit }, fuel: true);
+        }
+
+        private static bool TryFindShaders(out Shader shader, out Shader heatShader)
+        {
+            shader = Shader.Find(ParticleShader);
+            heatShader = Shader.Find(HeatDistortionShader);
+            if (shader == null)
+            {
+                EditorUtility.DisplayDialog("무기 이펙트 설정", $"셰이더를 찾지 못했습니다:\n{ParticleShader}\n(QFX Sci-Fi VFX 에셋 필요)", "확인");
+                return false;
+            }
+            if (heatShader == null)
+            {
+                EditorUtility.DisplayDialog("무기 이펙트 설정", $"셰이더를 찾지 못했습니다:\n{HeatDistortionShader}\n({Root}/Shaders/ExplosionHeatDistortion.shader)", "확인");
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>이미 만든 재질을 읽는다. 하나라도 없으면 null (그때는 MakeMaterials 로 새로)</summary>
+        private static Materials LoadMaterials()
+        {
+            Material Load(string name) => AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/{name}.mat");
+            var m = new Materials
+            {
+                Star = Load("M_MuzzleStar"), Core = Load("M_FlashCore"), Glow = Load("M_FlameGlow"), Spark = Load("M_Spark"),
+                Smoke = Load("M_Smoke"), Tracer = Load("M_Tracer"), Dust = Load("M_ExplosionDust"), FireLitSmoke = Load("M_ExplosionSmoke"),
+            };
+            bool complete = m.Star && m.Core && m.Glow && m.Spark && m.Smoke && m.Tracer && m.Dust && m.FireLitSmoke;
+            return complete ? m : null;
         }
 
         #region 텍스처·재질
@@ -220,6 +273,7 @@ namespace HybridShooter.Weapon.EditorTools
         #region 프리팹
         private static VfxSet BuildAll(Materials m, Shader heatDistortion)
         {
+            var explosionHit = BuildExplosionHit(m);
             return new VfxSet
             {
                 FlashSmall = BuildMuzzleFlash(m, new FlashSpec
@@ -252,9 +306,14 @@ namespace HybridShooter.Weapon.EditorTools
                 GrenadeTrail = BuildGrenadeTrail(m),
                 ExplosionGrenade = BuildOrangeExplosion("Grenade/PS_Explosion_Grenade", "Explosion_Grenade", new GrenadeBlast
                 {
-                    Materials = m, HeatDistortion = heatDistortion, HitEffect = BuildExplosionHit(m),
+                    Materials = m, HeatDistortion = heatDistortion, HitEffect = explosionHit,
                 }),
                 ExplosionRocket = BuildOrangeExplosion("Rocket/PS_Explosion_Rocket", "Explosion_Rocket", null),
+                // 연료 셀(맵 폭발물): 유탄 폭발 위에 바닥을 휩쓰는 화염·불덩이·잔불을 더한다 (무기에는 연결하지 않는다)
+                ExplosionFuelCell = BuildOrangeExplosion("Grenade/PS_Explosion_Grenade", "Explosion_FuelCell", new GrenadeBlast
+                {
+                    Materials = m, HeatDistortion = heatDistortion, HitEffect = explosionHit,
+                }, fuel: true),
             };
         }
 
@@ -624,7 +683,7 @@ namespace HybridShooter.Weapon.EditorTools
         /// QFX 폭발을 복사해 파란 계열 색을 모두 주황 계열로. 텍스처는 흑백이라 색 값만 바꾸면 된다.
         /// blast 가 있으면 어두운 맵에 맞게 층을 더한다 (null = 원본 그대로)
         /// </summary>
-        private static GameObject BuildOrangeExplosion(string sourceName, string targetName, GrenadeBlast blast)
+        private static GameObject BuildOrangeExplosion(string sourceName, string targetName, GrenadeBlast blast, bool fuel = false)
         {
             string sourcePath = $"{QfxPrefabs}/{sourceName}.prefab";
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(sourcePath);
@@ -652,6 +711,7 @@ namespace HybridShooter.Weapon.EditorTools
             }
             // 주황으로 바뀐 뒤에 복제해야 새 파티클이 다시 색을 바꾸지 않고, FitToDamageRadius 보다 먼저여야 피해 반경을 따라 커진다
             if (blast != null) AddGrenadeBlast(go, blast);
+            if (blast != null && fuel) AddFuelBlast(go, blast.Materials);
             FitToDamageRadius(go, blast?.HitEffect);
             return SavePrefab(go, targetName);
         }
@@ -780,6 +840,201 @@ namespace HybridShooter.Weapon.EditorTools
             // 바닥 충격파 원판: 0.25초 만에 지나가는 링으로
             var shockMain = RequireChild(go, "PS_ShockWave").GetComponent<ParticleSystem>().main;
             shockMain.startLifetime = 0.25f;
+        }
+
+        /// <summary>
+        /// 연료 셀 폭발: 유탄 폭발(AddGrenadeBlast) 위에 연료가 터지는 층을 더한다. 수치는 루트 구 반경(5m) 기준이고 피해 반경(9m)에 맞춰 커진다.
+        ///  - 바닥을 휩쓰는 화염 띠: 0.3초 만에 반경 끝까지 밀려나간다 (피해는 폭발 순간에 들어가므로 빨리 퍼져야 어긋나 보이지 않는다)
+        ///  - 굴러 오르는 불덩이 → 그을음 연기 기둥 (연료 폭발은 연기가 짙고 오래 남는다)
+        ///  - 잔불·불티 5초 + 일렁이는 불빛 (피해 없음, 보기만)
+        ///  - 달아오른 금속 파편 (꼬리를 끌며 높이 튄다)
+        ///  - 불빛은 길게: 섬광 뒤 1.2초 동안 일렁이며 꺼진다. 오브젝트 수명 8초 (ExplosiveProp.effectLifetime 과 같게)
+        /// 폭발 중심은 셀 가운데(지면 위 약 0.85m)라 바닥 층은 Ground 만큼 내려 놓는다 (배율 1.8 이 곱해진다)
+        /// </summary>
+        private static void AddFuelBlast(GameObject go, Materials m)
+        {
+            const float Ground = -0.45f;
+            float radius = RangeSphereRadius(go);
+
+            go.GetComponent<QFX.SFX.SFX_SelfDestroyer>().LifeTime = 8f;
+
+            // 주 불빛: 더 밝고 넓게, 1.2초 동안 일렁이며 꺼진다
+            Transform lightTransform = RequireChild(go, "Point light");
+            lightTransform.GetComponent<Light>().range = radius * 1.6f;
+            var lightAnimator = lightTransform.GetComponent<QFX.SFX.SFX_LightAnimator>();
+            lightAnimator.LightIntensity.AnimationCurve = new AnimationCurve(
+                new Keyframe(0f, 16f), new Keyframe(0.1f, 9f), new Keyframe(0.3f, 6f), new Keyframe(0.45f, 7f),
+                new Keyframe(0.7f, 4f), new Keyframe(0.9f, 4.5f), new Keyframe(1.2f, 1.5f), new Keyframe(1.6f, 0f));
+
+            // 잔불 불빛: 바닥 가까이에서 5초 동안 낮게 일렁인다 (QFX 불빛을 복사 → RunAtStart 로 스스로 켜진다)
+            var burnLight = Object.Instantiate(lightTransform.gameObject, go.transform, false);
+            burnLight.name = "Light_Burn";
+            burnLight.transform.localPosition = new Vector3(0f, Ground + 0.4f, 0f);
+            burnLight.GetComponent<Light>().range = radius * 0.8f;
+            burnLight.GetComponent<QFX.SFX.SFX_LightAnimator>().LightIntensity.AnimationCurve = new AnimationCurve(
+                new Keyframe(0f, 0f), new Keyframe(0.4f, 3f), new Keyframe(0.8f, 2.2f), new Keyframe(1.3f, 2.8f),
+                new Keyframe(2f, 2f), new Keyframe(2.7f, 2.5f), new Keyframe(3.5f, 1.6f), new Keyframe(4.3f, 1.8f),
+                new Keyframe(5.2f, 0.6f), new Keyframe(6f, 0f));
+
+            // 바닥을 휩쓰는 화염 띠: 바닥 원에서 바깥으로. 이동 거리 = 32 × 0.55 × 0.55 / 2 ≈ 4.8 (반경 끝)
+            var wave = AddSystem(go.transform, "PS_FireWave", m.Glow, local: false);
+            wave.transform.localPosition = new Vector3(0f, Ground, 0f);
+            Burst(wave, 48, 48);
+            SetMain(wave, lifetime: (0.5f, 0.6f), size: (1.4f, 2.2f), speed: (30f, 34f), randomRotation: true);
+            var waveMain = wave.main;
+            waveMain.gravityModifier = -0.3f;
+            FlatCircle(wave, 0.3f);
+            Brake(wave, 0.55f);
+            Grow(wave, 1.6f);
+            FlameColor(wave);
+
+            // 화염 띠 뒤로 깔리는 그을음 (불빛 받은 주황 → 짙은 갈색 → 어두운 회색)
+            var waveSmoke = AddSystem(go.transform, "PS_FireWaveSmoke", m.FireLitSmoke, local: false);
+            waveSmoke.transform.localPosition = new Vector3(0f, Ground + 0.2f, 0f);
+            Burst(waveSmoke, 24, 24);
+            SetMain(waveSmoke, lifetime: (1.8f, 2.4f), size: (1.6f, 2.4f), speed: (24f, 28f), randomRotation: true);
+            var waveSmokeMain = waveSmoke.main;
+            waveSmokeMain.gravityModifier = -0.05f;
+            FlatCircle(waveSmoke, 0.3f);
+            Brake(waveSmoke, 0.35f / 2.1f);
+            Grow(waveSmoke, 2.2f);
+            SootColor(waveSmoke);
+            BehindFire(waveSmoke);
+
+            // 굴러 오르는 불덩이: 크게 부풀며 솟고 노랑 → 주황 → 검붉게 식는다
+            var fireball = AddSystem(go.transform, "PS_Fireball", m.Glow, local: false);
+            Burst(fireball, 16, 16);
+            SetMain(fireball, lifetime: (0.9f, 1.3f), size: (2.2f, 3.2f), speed: (2f, 5f), randomRotation: true);
+            var fireballMain = fireball.main;
+            fireballMain.gravityModifier = -0.45f;
+            var fireballShape = fireball.shape;
+            fireballShape.enabled = true;
+            fireballShape.shapeType = ParticleSystemShapeType.Sphere;
+            fireballShape.radius = 0.6f;
+            Grow(fireball, 1.8f);
+            FlameColor(fireball);
+            var roll = fireball.rotationOverLifetime;
+            roll.enabled = true;
+            roll.z = new ParticleSystem.MinMaxCurve(-1.5f, 1.5f);
+            var fireballNoise = fireball.noise;
+            fireballNoise.enabled = true;
+            fireballNoise.strength = 0.8f;
+            fireballNoise.frequency = 0.6f;
+
+            // 그을음 연기 기둥: 4~6초 동안 굵게 솟는다
+            var soot = AddSystem(go.transform, "PS_SootColumn", m.FireLitSmoke, local: false);
+            Burst(soot, 16, 16);
+            SetMain(soot, lifetime: (4f, 6f), size: (2.5f, 3.5f), speed: (1.5f, 3f), randomRotation: true);
+            Cone(soot, 20f, 0.8f);
+            PointUp(soot);
+            Grow(soot, 3f);
+            var sootMain = soot.main;
+            sootMain.gravityModifier = -0.05f;
+            SootColor(soot);
+            BehindFire(soot);
+
+            // 잔불: 5초 동안 바닥에서 낮게 타오르다 잦아든다
+            var groundFire = AddSystem(go.transform, "PS_GroundFire", m.Glow, local: false);
+            groundFire.transform.localPosition = new Vector3(0f, Ground, 0f);
+            SustainedRate(groundFire, 5f, 26f);
+            SetMain(groundFire, lifetime: (0.6f, 1f), size: (0.6f, 1.3f), speed: (0.5f, 1.5f), randomRotation: true);
+            var groundFireMain = groundFire.main;
+            groundFireMain.gravityModifier = -0.6f;
+            FlatCircle(groundFire, 1.6f);
+            FlameColor(groundFire);
+
+            // 잔불 불티: 떠오르며 흔들린다
+            var groundEmbers = AddSystem(go.transform, "PS_GroundEmbers", m.Spark, local: false);
+            groundEmbers.transform.localPosition = new Vector3(0f, Ground, 0f);
+            SustainedRate(groundEmbers, 5f, 14f);
+            SetMain(groundEmbers, lifetime: (1f, 2f), size: (0.04f, 0.08f), speed: (1f, 3f));
+            Tint(groundEmbers, new Color(0.35f, 0.35f, 0.35f, 1f));
+            var groundEmberMain = groundEmbers.main;
+            groundEmberMain.gravityModifier = -0.2f;
+            FlatCircle(groundEmbers, 2f);
+            var groundEmberNoise = groundEmbers.noise;
+            groundEmberNoise.enabled = true;
+            groundEmberNoise.strength = 0.6f;
+            groundEmberNoise.frequency = 1f;
+            Fade(groundEmbers, 1f, fadeIn: false);
+
+            // 달아오른 금속 파편: 높이 튀며 불꽃 꼬리를 끈다
+            var shrapnel = AddSystem(go.transform, "PS_Shrapnel", m.Spark, local: false);
+            Burst(shrapnel, 30, 30);
+            SetMain(shrapnel, lifetime: (1f, 1.6f), size: (0.08f, 0.16f), speed: (12f, 20f));
+            Tint(shrapnel, new Color(0.25f, 0.25f, 0.25f, 1f));
+            var shrapnelMain = shrapnel.main;
+            shrapnelMain.gravityModifier = 1.6f;
+            Cone(shrapnel, 70f, 0.3f);
+            PointUp(shrapnel);
+            var trails = shrapnel.trails;
+            trails.enabled = true;
+            trails.lifetime = 0.15f;
+            trails.widthOverTrail = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 0f)));
+            trails.dieWithParticles = true;
+            shrapnel.GetComponent<ParticleSystemRenderer>().trailMaterial = m.Spark;
+        }
+
+        /// <summary>바닥(XZ 면)에 눕힌 원에서 바깥으로 퍼진다</summary>
+        private static void FlatCircle(ParticleSystem ps, float radius)
+        {
+            var shape = ps.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = radius;
+            shape.rotation = new Vector3(90f, 0f, 0f); // 원(로컬 XY 면)을 바닥(XZ 면)으로
+        }
+
+        /// <summary>duration 초 동안 처음 perSecond 개/초로 내뿜다가 0 으로 줄어든다 (잦아드는 불)</summary>
+        private static void SustainedRate(ParticleSystem ps, float duration, float perSecond)
+        {
+            var main = ps.main;
+            main.duration = duration;
+            main.maxParticles = 200;
+            var emission = ps.emission;
+            emission.rateOverTime = new ParticleSystem.MinMaxCurve(perSecond,
+                new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(0.6f, 0.7f), new Keyframe(1f, 0f)));
+        }
+
+        /// <summary>불꽃: 흰빛 노랑 → 주황 → 검붉게 식으며 사라진다 (재질 M_FlameGlow 의 주황 Tint 에 곱해진다)</summary>
+        private static void FlameColor(ParticleSystem ps)
+        {
+            var colorOverLifetime = ps.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[]
+                {
+                    new GradientColorKey(new Color(1f, 0.95f, 0.8f), 0f),
+                    new GradientColorKey(new Color(1f, 0.6f, 0.3f), 0.3f),
+                    new GradientColorKey(new Color(0.55f, 0.15f, 0.05f), 1f),
+                },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.85f, 0.4f), new GradientAlphaKey(0f, 1f) });
+            colorOverLifetime.color = gradient;
+        }
+
+        /// <summary>
+        /// 연료 그을음: 불빛 받은 주황 → 짙은 갈색 → 어두운 회색. 유탄 연기(FireLitSmokeColor)보다 어둡고 진하지만
+        /// 완전히 검으면 어두운 맵에 묻히므로 안개색보다 조금 밝게 남긴다
+        /// </summary>
+        private static void SootColor(ParticleSystem ps)
+        {
+            var colorOverLifetime = ps.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[]
+                {
+                    new GradientColorKey(new Color(0.8f, 0.35f, 0.1f), 0f),
+                    new GradientColorKey(new Color(0.18f, 0.13f, 0.1f), 0.12f),
+                    new GradientColorKey(new Color(0.13f, 0.13f, 0.15f), 0.6f),
+                },
+                new[]
+                {
+                    new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.6f, 0.06f),
+                    new GradientAlphaKey(0.45f, 0.5f), new GradientAlphaKey(0f, 1f),
+                });
+            colorOverLifetime.color = gradient;
         }
 
         /// <summary>QFX 원본 구조(하위 오브젝트 이름)에 기대는 곳. 없으면 원본이 바뀐 것이라 바로 멈춘다</summary>

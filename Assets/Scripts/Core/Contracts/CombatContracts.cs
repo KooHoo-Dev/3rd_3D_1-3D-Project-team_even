@@ -53,6 +53,20 @@ namespace HybridShooter.Core.Contracts
         void TakeDamage(in DamageInfo info);
     }
 
+    /// <summary>
+    /// 환경 폭발(연료 셀 등) 같은 큰 충격에 움찔(피격 경직)할 수 있는 대상 (보스).
+    /// 경직을 받을지·쿨다운은 대상이 정한다. 폭발 쪽은 피해를 준 뒤 TryStagger 를 한 번 부른다
+    /// </summary>
+    public interface IStaggerable
+    {
+        /// <summary>등장·전환·최후 연출처럼 환경 충격을 받지 않는 중 (몸에 닿은 연료 셀은 터지지 않고 찌그러진다)</summary>
+        bool IsInCinematic { get; }
+
+        /// <summary>경직을 건다. 실제로 걸렸으면 true (무적·쿨다운·특수 패턴 중이면 false)</summary>
+        /// <param name="source">충격 진원 (폭발 중심)</param>
+        bool TryStagger(Vector3 source);
+    }
+
     public static class DamageableExtensions
     {
         /// <summary>콜라이더가 자식(히트박스)에 있어도 찾도록 부모 방향으로 탐색</summary>
