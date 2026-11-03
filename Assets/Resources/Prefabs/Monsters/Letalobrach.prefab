@@ -280,6 +280,9 @@ MonoBehaviour:
   sampleRadius: 4
   engagedPriority: 40
   defaultPriority: 50
+  smallObstacleProbeDepth: 2.5
+  maxDetourExtraLength: 2
+  maxDetourHeightDifference: 0.75
 --- !u!114 &8182058156753446464
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -302,7 +305,6 @@ MonoBehaviour:
   hitEndRatio: 0.5
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
-  aimOffsetRadius: 2.25
   hitRangeRatio: 1.05
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
@@ -346,10 +348,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 2.15
-  m_Height: 4.23
+  m_Radius: 1.8884966
+  m_Height: 4.3
   m_Direction: 1
-  m_Center: {x: 0.022333503, y: 2.4972677, z: 0.55911064}
+  m_Center: {x: 0.022333622, y: 2.4972677, z: 0.29760718}
 --- !u!114 &6040918561269513848
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -904,12 +906,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5326008953529612867}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.863, y: 1.055, z: 0}
+  m_LocalRotation: {x: -4.1140008e-10, y: 0.00000080378663, z: -0.30032548, w: 0.9538368}
+  m_LocalPosition: {x: -1.9593534, y: 1.5950154, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 761027778978897864}
+  m_Father: {fileID: 671453987816746816}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!135 &862114235037915083
 SphereCollider:
@@ -930,8 +932,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.34
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Radius: 0.5487842
+  m_Center: {x: 0.0000000042692787, y: -0.05878419, z: 8.355537e-10}
 --- !u!114 &3438445699420021215
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -948,10 +950,6 @@ MonoBehaviour:
   glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 3
-  exposedBrightness: 0.9
-  hiddenBrightness: 0.05
-  pulsesPerSecond: 1.2
-  pulseDepth: 0.6
   hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
   hitFlashSeconds: 0.35
   hitFlashCoreAlpha: 0.7
@@ -1113,8 +1111,7 @@ Transform:
   m_LocalPosition: {x: 0.10146587, y: 1.2225337, z: 0.0000015258788}
   m_LocalScale: {x: 0.99999994, y: 0.9999998, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 3087034819689832331}
+  m_Children: []
   m_Father: {fileID: 671453987816746816}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7095907652350947092
@@ -1341,6 +1338,7 @@ Transform:
   - {fileID: 461264230210944764}
   - {fileID: 761027778978897864}
   - {fileID: 4647515226987302433}
+  - {fileID: 3087034819689832331}
   m_Father: {fileID: 4716855239108739071}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8522780148348711200

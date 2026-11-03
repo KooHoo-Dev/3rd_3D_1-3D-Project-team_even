@@ -443,6 +443,9 @@ MonoBehaviour:
   sampleRadius: 4
   engagedPriority: 40
   defaultPriority: 50
+  smallObstacleProbeDepth: 2.5
+  maxDetourExtraLength: 2
+  maxDetourHeightDifference: 0.75
 --- !u!114 &-716610186761490424
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -465,7 +468,6 @@ MonoBehaviour:
   hitEndRatio: 0.5
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
-  aimOffsetRadius: 1
   hitRangeRatio: 2
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
@@ -1710,7 +1712,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.14
+  m_Radius: 0.3
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1789730922615293568
 MonoBehaviour:
@@ -1728,10 +1730,6 @@ MonoBehaviour:
   glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 3
-  exposedBrightness: 0.9
-  hiddenBrightness: 0.25
-  pulsesPerSecond: 1.2
-  pulseDepth: 0.6
   hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
   hitFlashSeconds: 0.35
   hitFlashCoreAlpha: 0.7

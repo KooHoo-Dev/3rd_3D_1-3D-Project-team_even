@@ -124,6 +124,7 @@ namespace HybridShooter.Monster.Behaviour
             int amount = ScaleDamage(info.Amount, part.DamageMultiplier);
             var weakPointInfo = new DamageInfo(amount, info.Kind, info.AttackerFaction, info.Attacker,
                                                info.HitPoint, info.Direction, info.SourceDefId);
+            Debug.Log($"{gameObject.name}: {weakPointInfo}");
             EventBus<WeakPointHitEvent>.Publish(new WeakPointHitEvent(owner.gameObject, info.HitPoint));
             StartHitFlash();
             owner.TakeWeakPointDamage(weakPointInfo);
