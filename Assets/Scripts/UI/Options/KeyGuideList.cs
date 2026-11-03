@@ -17,9 +17,11 @@ namespace HybridShooter.UI.Options
         [Tooltip("줄을 만들어 넣을 곳 (Grid/Vertical LayoutGroup)")]
         [SerializeField] private RectTransform content;
         [SerializeField] private TMP_FontAsset font;
-        [SerializeField] private float fontSize = 24f;
-        [SerializeField] private Color labelColor = new Color(0.75f, 0.85f, 0.88f);
-        [SerializeField] private Color keyColor = new Color(0.2f, 0.9f, 1f);
+        [SerializeField] private float fontSize = 21f;
+        [Tooltip("설명 글자 (UiTheme Steel)")]
+        [SerializeField] private Color labelColor = new Color(0.6f, 0.68f, 0.78f);
+        [Tooltip("키 이름 (UiTheme 붉은 글자, 메인 메뉴 조작 힌트와 같은 색)")]
+        [SerializeField] private Color keyColor = new Color(0.88f, 0.34f, 0.3f);
 
         private bool built;
 

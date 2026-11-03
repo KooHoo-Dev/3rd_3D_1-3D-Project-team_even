@@ -22,7 +22,7 @@ namespace HybridShooter.Boss.Tyranopode
     /// 라운드에서는 RoundBossEncounter 가 Initialize 를 부르고, 씬에 직접 놓으면 Start 에서 스스로 초기화한다
     /// </summary>
     [RequireComponent(typeof(BossController), typeof(TyranopodeView), typeof(TyranopodeLocomotion))]
-    public sealed class TyranopodeController : MonoBehaviour, IBossEncounterInitializer, IBossCameraProfile
+    public sealed class TyranopodeController : MonoBehaviour, IBossEncounterInitializer, IBossCameraProfile, IStaggerable
     {
         /// <summary>
         /// 소리 신호 (지역 이벤트). 패턴 단계(BossAttack.PhaseChanged)로 알 수 없는 순간만 알린다.
@@ -147,6 +147,8 @@ namespace HybridShooter.Boss.Tyranopode
 
         [Header("흐름")]
         [SerializeField, Min(0f)] private float flinchMaxTime = 1.2f;
+        [Tooltip("연료 셀 폭발 등 환경 충격으로 움찔한 뒤 다시 움찔할 수 있기까지(초)")]
+        [SerializeField, Min(0f)] private float staggerCooldown = 8f;
 
         [Header("플레이어 보스전 카메라")]
         [Tooltip("보스전 카메라 거리 배율 (플레이어 인스펙터 값 × 이 값). 몸이 커서 화면에 다 들어오게")]
@@ -199,6 +201,7 @@ namespace HybridShooter.Boss.Tyranopode
         private readonly List<(float time, Vector3 origin, float radius, bool last)> waves = new List<(float, Vector3, float, bool)>();
         private float quietUntil;
         private bool summonImmune;
+        private float nextStaggerTime;
         private int immuneHits;
         private float nextRicochetTime;
         private TyranopodeAnalysisHud analysis;
@@ -600,6 +603,26 @@ namespace HybridShooter.Boss.Tyranopode
             view.PlayGroggy();
             groggyVfx.SetActive(true);
             Debug.Log($"[Tyranopode] 그로기 {seconds:0.#}초", this);
+        }
+
+        /// <summary>등장·페이즈 전환·최후 연출 중에는 환경 충격을 받지 않는다</summary>
+        public bool IsInCinematic => boss == null || boss.IsInvulnerable
+                                     || state == State.Waiting || state == State.Intro || state == State.Transition || state == State.Finale;
+
+        /// <summary>
+        /// 환경 폭발(연료 셀) 경직. 싸우는 중에만 움찔한다: 그로기·움찔·전환 중이거나, 포자 면역·특수 기믹(포효 소환·촉수 폭풍) 중이거나, 쿨다운이면 거절
+        /// </summary>
+        public bool TryStagger(Vector3 source)
+        {
+            if (IsAlive == false || state != State.Fight || summonImmune) return false;
+            if (currentAttack is SummonRoarAttack || currentAttack is TentacleStormAttack) return false;
+            if (Time.time < nextStaggerTime) return false;
+
+            nextStaggerTime = Time.time + staggerCooldown;
+            EnterFlinch();
+            view.Flash();
+            RaiseSoundCue(TyranopodeSoundCue.WallHit, mouth.position); // 큰 충격에 부딪힌 신음 (벽 충돌과 같은 소리)
+            return true;
         }
 
         private void EnterFlinch()

@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using HybridShooter.Audio;
 using HybridShooter.Audio.Editor;
+using HybridShooter.UI.Theme;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -24,6 +25,7 @@ namespace HybridShooter.UI.Intro.Editor
     ///  - 빛: 왼쪽에서 비춰 행성 왼쪽만 밝고 오른쪽 밤 면에 혈관이 빛난다
     ///  - 우주선: 카메라 뒤·위에서 숙인 시선 방향으로 내려가다 행성 위 약 70m 에서 격추 → 표면으로 추락
     /// 폰트: 크롤·도입 문구는 Orbit(한글 SF 서체, OFL), 로고·영문 안내는 Aldrich
+    /// 화면 안내(진행·건너뛰기·배속)는 UiTheme 색 (달빛 흰색·청회색, 건너뛰기 게이지만 붉게). 크롤·로고 색은 그대로
     /// </summary>
     public static class IntroSceneBuilder
     {
@@ -55,7 +57,9 @@ namespace HybridShooter.UI.Intro.Editor
         private static readonly Color CrawlGold = new Color(1f, 0.83f, 0.34f);
         /// <summary>도입 문구: 차가운 하늘색</summary>
         private static readonly Color OpeningBlue = new Color(0.33f, 0.72f, 0.95f);
-        private static readonly Color Steel = new Color(0.6f, 0.68f, 0.78f);
+        private static readonly Color Steel = UiTheme.Steel;
+        /// <summary>안내 글자·진행 채움</summary>
+        private static readonly Color MoonWhite = UiTheme.MoonWhite;
 
         // ── 카메라·크롤 ──
         private const float FieldOfView = 50f;
@@ -576,14 +580,14 @@ namespace HybridShooter.UI.Intro.Editor
             overlay.SkipGroup.interactable = false;
             overlay.SkipGroup.blocksRaycasts = false;
 
-            var label = CreateText(skip, "Label", SkipLabel, TitleFont, 24f, Color.white, TextAlignmentOptions.BottomRight);
+            var label = CreateText(skip, "Label", SkipLabel, TitleFont, 24f, MoonWhite, TextAlignmentOptions.BottomRight);
             label.characterSpacing = 12f;
             Place(label.gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, new Vector2(0f, 34f), new Vector2(1f, 1f));
             var hint = CreateText(skip, "Hint", SkipHint, orbit, 18f, Steel, TextAlignmentOptions.TopRight);
             Place(hint.gameObject, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 6f), new Vector2(0f, 26f), new Vector2(1f, 0f));
 
             var track = Bar(skip, "Track", new Color(Steel.r, Steel.g, Steel.b, 0.35f));
-            var fill = Bar(skip, "Fill", Color.white);
+            var fill = Bar(skip, "Fill", UiTheme.Red);
             fill.localScale = new Vector3(0f, 1f, 1f);
             overlay.SkipBar = fill;
             track.SetAsFirstSibling();
@@ -602,10 +606,10 @@ namespace HybridShooter.UI.Intro.Editor
             overlay.SpeedGroup.interactable = false;
             overlay.SpeedGroup.blocksRaycasts = false;
 
-            var label = CreateText(speed, "Label", SpeedLabel, TitleFont, 24f, Color.white, TextAlignmentOptions.BottomLeft);
+            var label = CreateText(speed, "Label", SpeedLabel, TitleFont, 24f, Steel, TextAlignmentOptions.BottomLeft);
             label.characterSpacing = 12f;
             Place(label.gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, new Vector2(0f, 34f), new Vector2(0f, 1f));
-            var value = CreateText(speed, "Value", "x1", TitleFont, 24f, CrawlGold, TextAlignmentOptions.BottomLeft);
+            var value = CreateText(speed, "Value", "x1", TitleFont, 24f, MoonWhite, TextAlignmentOptions.BottomLeft);
             Place(value.gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(130f, 0f), new Vector2(-130f, 34f), new Vector2(0f, 1f));
             overlay.SpeedText = value;
             var hint = CreateText(speed, "Hint", SpeedHint, orbit, 18f, Steel, TextAlignmentOptions.TopLeft);
@@ -625,14 +629,15 @@ namespace HybridShooter.UI.Intro.Editor
             overlay.ProgressGroup.interactable = false;
             overlay.ProgressGroup.blocksRaycasts = false;
 
-            var record = CreateText(root, "Record", "", orbit, 20f, CrawlGold, TextAlignmentOptions.Bottom);
+            // 글자는 청회색, 숫자는 IntroCrawlDirector 가 달빛 흰색으로 칠한다
+            var record = CreateText(root, "Record", "", orbit, 20f, Steel, TextAlignmentOptions.Bottom);
             record.characterSpacing = 6f;
             Place(record.gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, new Vector2(0f, 30f), new Vector2(0.5f, 1f));
             overlay.RecordText = record;
 
             const float barY = 22f;
             ProgressLine(root, "Track", new Color(Steel.r, Steel.g, Steel.b, 0.35f), -ProgressWidth * 0.5f, barY, ProgressWidth, 2f);
-            overlay.ProgressFill = ProgressLine(root, "Fill", new Color(0.94f, 0.96f, 1f, 0.9f), -ProgressWidth * 0.5f, barY, ProgressWidth, 2f);
+            overlay.ProgressFill = ProgressLine(root, "Fill", MoonWhite, -ProgressWidth * 0.5f, barY, ProgressWidth, 2f);
             overlay.ProgressFill.localScale = new Vector3(0f, 1f, 1f);
 
             foreach (var (time, label) in ProgressMarks)

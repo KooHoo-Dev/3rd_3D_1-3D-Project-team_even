@@ -8,7 +8,10 @@ using UnityEngine;
 
 namespace HybridShooter.Round
 {
-    /// <summary>라운드 반복·최종 사망·재시작을 관리한다. 진행 횟수와 관계없이 1라운드 RoundDef 를 재사용한다. 웨이브 라운드는 RoundSequencer 가 진행 횟수로 순환한다.</summary>
+    /// <summary>
+    /// 라운드 반복·최종 사망·재시작을 관리한다. 진행 횟수(CurrentRound)의 RoundTable 행으로 라운드를 시작한다
+    /// (유형·웨이브 편성·보스는 그 행이 정함, 마지막 행 이후는 마지막 행 재사용).
+    /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(RoundSequencer))]
     public sealed class RunDirector : MonoBehaviour
@@ -85,12 +88,12 @@ namespace HybridShooter.Round
 
         private void BeginNextRound()
         {
-            var def = DataManager.GetRound(1);
+            var def = DataManager.GetRound(CurrentRound + 1);
             if (def == null || roundSequencer.CanStartRound() == false) return;
 
             isRunning = true;
             CurrentRound++;
-            // Round는 진행 횟수다. RoundDef 는 항상 1이고, 웨이브 번호는 RoundSequencer 가 이 횟수로 순환해 고른다.
+            // Round 는 진행 횟수다. def 는 그 횟수의 RoundTable 행 (유형·웨이브 편성·보스)
             EventBus<RoundStartedEvent>.Publish(new RoundStartedEvent(CurrentRound, def));
             if (isRunning) roundSequencer.StartRound(def, CurrentRound);
         }
@@ -143,7 +146,7 @@ namespace HybridShooter.Round
             CurrentState = state;
             SetSimulationPaused(state == GameState.Reward || state == GameState.GameOver);
             EventBus<GameStateChangedEvent>.Publish(new GameStateChangedEvent(previous, state));
-            // Reward 는 보스를 처치해야만 들어온다 (RoundSequencer) → 스테이지 클리어. 보상 화면이 열린 뒤에 알린다
+            // Reward 는 라운드 클리어(보스 처치 · 섬멸 목표 · 생존 시간)로만 들어온다 (RoundSequencer) → 스테이지 클리어. 보상 화면이 열린 뒤에 알린다
             if (state == GameState.Reward) EventBus<StageClearedEvent>.Publish(new StageClearedEvent(CurrentRound));
         }
 

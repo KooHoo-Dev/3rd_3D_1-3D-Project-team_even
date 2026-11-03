@@ -39,6 +39,13 @@ sfx_weapon_switch	Sfx	Audio/Weapon/Reload/Reload_Rifle_MagIn	0.5	false	false	1	0
 sfx_grenade_explode	Sfx	Audio/Weapon/Grenade/Grenade_Explode	0.9	false	true	3	0.05	0.05	90	120
 sfx_explosion_large	Sfx	Audio/Weapon/Explosion/Explosion_Large_01;Audio/Weapon/Explosion/Explosion_Large_02	1.0	false	true	3	0.05	0.05	90	150
 sfx_explosion_small	Sfx	Audio/Weapon/Explosion/Explosion_Small_01;Audio/Weapon/Explosion/Explosion_Small_02	0.9	false	true	3	0.05	0.05	85	100
+# ── 연료 셀 (ExplosiveProp, SciFiMap 폭발물) ──  클립: tools/audio/FuelCellSfx 로 합성. burn 은 sfx_explosion_large 와 겹쳐 낸다
+sfx_fuelcell_hit	Sfx	Audio/Sfx/FuelCell/FuelCell_Hit_01;Audio/Sfx/FuelCell/FuelCell_Hit_02;Audio/Sfx/FuelCell/FuelCell_Hit_03	0.7	false	true	4	0.04	0.08	55	60
+sfx_fuelcell_critical	Sfx	Audio/Sfx/FuelCell/FuelCell_Puncture	0.85	false	true	3	0.05	0.05	70	70
+sfx_fuelcell_leak_loop	Sfx	Audio/Sfx/FuelCell/FuelCell_LeakLoop	0.45	true	true	3	0	0	45	30
+sfx_fuelcell_fuse	Sfx	Audio/Sfx/FuelCell/FuelCell_Fuse	0.8	false	true	3	0.05	0.05	80	70
+sfx_fuelcell_burn	Sfx	Audio/Sfx/FuelCell/FuelCell_Burn	0.85	false	true	3	0.1	0.05	80	100
+sfx_fuelcell_crush	Sfx	Audio/Sfx/FuelCell/FuelCell_Crush	0.9	false	true	3	0.05	0.05	75	80
 # ── 전투 피드백 ──
 sfx_hit_flesh	Sfx	Audio/Sfx/HitFlesh_01;Audio/Sfx/HitFlesh_02	0.6	false	true	4	0.04	0.1	50	60
 sfx_boss_warning	Sfx	Audio/Sfx/BossWarning	1.0	false	false	1	1	0	100	0

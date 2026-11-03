@@ -30,6 +30,8 @@ namespace HybridShooter.Player
         [SerializeField, Range(0f, 1f)] private float baseGlitch = 0.25f;
 
         [Header("화면")]
+        [Tooltip("화면 오버레이 전체 불투명도 배율 (글자는 영향 없음). 낮을수록 화면이 덜 가려진다")]
+        [SerializeField, Range(0f, 1f)] private float screenOpacity = 0.5f;
         [Tooltip("3인칭에서는 몸이 보이므로 화면 오버레이를 이만큼 약하게")]
         [SerializeField, Range(0f, 1f)] private float thirdPersonScreenScale = 0.45f;
         [SerializeField] private bool showText = true;
@@ -131,7 +133,7 @@ namespace HybridShooter.Player
             if (player.IsFirstPerson == false) screenIntensity *= thirdPersonScreenScale;
             if (screen != null)
             {
-                screen.SetFloat(IntensityId, screenIntensity);
+                screen.SetFloat(IntensityId, screenIntensity * screenOpacity);
                 screen.SetFloat(GlitchId, warning ? 0.25f : 0f);
                 screen.SetFloat(ScanId, Mathf.Repeat(Time.time * 0.5f, 1f));
             }
@@ -200,7 +202,7 @@ namespace HybridShooter.Player
             if (player.IsFirstPerson == false) screenIntensity *= thirdPersonScreenScale;
             if (screen != null)
             {
-                screen.SetFloat(IntensityId, screenIntensity);
+                screen.SetFloat(IntensityId, screenIntensity * screenOpacity);
                 screen.SetFloat(GlitchId, glitch);
                 screen.SetFloat(ScanId, Mathf.Repeat(Time.time * 0.9f, 1f));
             }
@@ -280,11 +282,12 @@ namespace HybridShooter.Player
                 rt.anchorMin = new Vector2(0f, 0.18f);
                 rt.anchorMax = new Vector2(1f, 0.26f);
                 rt.offsetMin = rt.offsetMax = Vector2.zero;
-                label.font = TMP_Settings.defaultFontAsset;
+                // UI 리디자인: 숫자·영문 글꼴(Aldrich) · 달빛 흰색 (글꼴이 없으면 TMP 기본)
+                label.font = UI.Theme.UiTheme.NumberFont != null ? UI.Theme.UiTheme.NumberFont : TMP_Settings.defaultFontAsset;
                 label.fontSize = 30f;
                 label.characterSpacing = 18f;
                 label.alignment = TextAlignmentOptions.Center;
-                label.color = new Color(0.55f, 1f, 1f, 1f);
+                label.color = UI.Theme.UiTheme.MoonWhite;
                 label.raycastTarget = false;
             }
             canvasObject.SetActive(false);

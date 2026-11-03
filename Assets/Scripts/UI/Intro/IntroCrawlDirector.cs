@@ -208,7 +208,7 @@ namespace HybridShooter.UI.Intro
                 if ((top + recordTops[r]) * PixelToMeter >= readLine) record = r + 1;
             if (record == shownRecord) return;
             shownRecord = record;
-            recordText.text = $"작전 기록  {record} / {recordTops.Length}";
+            recordText.text = $"작전 기록  <color=#F0F5FF>{record} / {recordTops.Length}</color>"; // 숫자만 달빛 흰색 (글자는 청회색)
         }
 
         // ───────────────────────── 장면 ─────────────────────────

@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.Services;
+using HybridShooter.UI.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -22,16 +23,20 @@ namespace HybridShooter.UI
     ///     사격 중(WeaponFiredEvent 뒤 hideAfterFire 초)에도 숨긴다
     /// 카드 높이는 설명 길이에 맞춰 늘어난다 (글자가 잘리지 않게). 위치·크기·시간·사거리는 Inspector.
     /// GameFlowUiBootstrap 이 자동으로 붙인다. 소리는 GameSoundRouter(획득음) 담당
+    /// 스타일은 UiTheme: 상자 스프라이트 대신 왼쪽 끝이 흐려지는 띠, 제목 앞 짧은 표식 (획득 = 호박색, 조준 = 청회색)
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class SupplyInfoCardHud : MonoBehaviour
     {
         private enum Mode { None, Pickup, Aim }
 
-        private static readonly Color CardColor = new Color(0.03f, 0.1f, 0.13f, 0.92f);
-        /// <summary>무기 상자 빛기둥과 같은 연보라 (SupplyTable.BeaconColor 기본값)</summary>
-        private static readonly Color Lavender = new Color(0.784f, 0.635f, 1f, 1f);
-        private static readonly Color WarningColor = new Color(1f, 0.55f, 0.45f, 1f);
+        /// <summary>획득 카드 강조색 (보급 무기 = 보상과 같은 호박색)</summary>
+        private static readonly Color PickupAccent = UiTheme.Ember;
+        /// <summary>조준 카드 강조색</summary>
+        private static readonly Color AimAccent = UiTheme.Steel;
+        private static readonly Color WarningColor = UiTheme.Ember;
+        /// <summary>띠가 카드 왼쪽 밖으로 더 나가는 길이 (흐려지는 구간이 글자 밖에 오게)</summary>
+        private const float BandOverhang = 120f;
         /// <summary>Unity 기본 Ignore Raycast 레이어 (상자 근접 영역). 조준 판정에서 뺀다</summary>
         private const int IgnoreRaycastLayer = 2;
         private const int MaxHits = 16;
@@ -130,7 +135,7 @@ namespace HybridShooter.UI
             WeaponDef weapon = DataManager.Weapons.TryGet(supply.WeaponId, out var w) ? w : null;
             Sprite icon = weapon != null ? HudFactory.WeaponIcon(weapon.IconKey) : null;
 
-            SetContent("보급 무기 획득", Lavender, icon, "", weapon != null ? weapon.Name : supply.DisplayName, supply.Description, slotHint, false);
+            SetContent("보급 무기 획득", PickupAccent, icon, "", weapon != null ? weapon.Name : supply.DisplayName, supply.Description, slotHint, false);
             mode = Mode.Pickup;
             aimTarget = null;
             canvas.gameObject.SetActive(true);
@@ -183,7 +188,7 @@ namespace HybridShooter.UI
             if (mode != Mode.Aim || ReferenceEquals(target, aimTarget) == false || prompt.Equals(aimPrompt) == false)
             {
                 bool hasWarning = string.IsNullOrEmpty(prompt.Warning) == false;
-                SetContent("보급 상자", AimReticleHud.Cyan, null, "", prompt.Title, prompt.Description, hasWarning ? prompt.Warning : "", hasWarning);
+                SetContent("보급 상자", AimAccent, null, "", prompt.Title, prompt.Description, hasWarning ? prompt.Warning : "", hasWarning);
                 if (mode != Mode.Aim) rootGroup.alpha = 0f;
                 mode = Mode.Aim;
                 aimTarget = target;
@@ -259,7 +264,7 @@ namespace HybridShooter.UI
             nameText.text = itemName;
             descriptionText.text = description;
             detailText.text = footer;
-            detailText.color = footerIsWarning ? WarningColor : new Color(HudFactory.TextColor.r, HudFactory.TextColor.g, HudFactory.TextColor.b, 0.7f);
+            detailText.color = footerIsWarning ? WarningColor : UiTheme.Steel;
             Layout(icon != null);
         }
 
@@ -276,6 +281,8 @@ namespace HybridShooter.UI
             float titleHeight = LineHeight(titleText, width);
             Place(titleText.rectTransform, left, y, width, titleHeight);
             Place(distanceText.rectTransform, left, y, width, titleHeight);
+            // 제목 앞 짧은 세로 표식
+            Place(accentImage.rectTransform, left - 14f, y + titleHeight * 0.2f, 3f, titleHeight * 0.6f);
             y += titleHeight + 2f;
 
             y = Stack(nameText, left, y, width, 4f);
@@ -284,7 +291,6 @@ namespace HybridShooter.UI
 
             float height = Mathf.Max(minCardHeight, y + 14f);
             card.sizeDelta = new Vector2(cardWidth, height);
-            accentImage.rectTransform.sizeDelta = new Vector2(6f, height);
         }
 
         /// <summary>글자가 있으면 선호 높이로 배치하고 다음 줄 위치를 돌려준다 (비었으면 자리 없음)</summary>
@@ -313,31 +319,31 @@ namespace HybridShooter.UI
         {
             canvas = HudFactory.CreateCanvas("SupplyInfoCardHud", 105, false, out rootGroup);
             card = HudFactory.Rect(canvas.transform, "Card", new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), cardPosition, new Vector2(cardWidth, minCardHeight));
-            var background = HudFactory.NewImage(card, null, CardColor);
-            GameFlowUiSkin.Paint(background, skin.banner, CardColor);
-            // 반투명 (스킨 스프라이트를 칠하면 흰색 불투명이 되므로 알파를 다시 준다)
-            var tint = background.color;
-            tint.a = cardAlpha;
-            background.color = tint;
-            // 왼쪽 띠 (획득 카드 = 무기 상자 연보라, 조준 카드 = 시안)
-            accentImage = HudFactory.NewImage(HudFactory.Rect(card, "Accent", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(6f, minCardHeight)), null, Lavender);
+            // 바탕: 카드보다 왼쪽으로 조금 더 나간 띠. 왼쪽 끝만 흐려 글자 뒤는 진하다 (카드 높이를 따라 늘어난다)
+            var bandArea = HudFactory.Stretch(card, "BandArea");
+            bandArea.offsetMin = new Vector2(-BandOverhang, 0f);
+            UiThemeKit.Band(bandArea, UiThemeKit.BandShape.FadeLeft, Mathf.Clamp01(cardAlpha + 0.15f), 0.3f);
+            // 제목 앞 표식 (획득 카드 = 호박색, 조준 카드 = 청회색). 위치는 Layout 이 잡는다
+            accentImage = HudFactory.NewImage(HudFactory.Rect(card, "Accent", new Vector2(0f, 1f), new Vector2(0f, 1f), Vector2.zero, new Vector2(3f, 20f)), null, PickupAccent);
 
             var iconRt = HudFactory.Rect(card, "Icon", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(22f, -40f), new Vector2(88f, 88f));
-            iconImage = HudFactory.NewImage(iconRt, null, Color.white);
+            iconImage = HudFactory.NewImage(iconRt, null, UiTheme.MoonWhite);
             iconImage.preserveAspect = true;
 
             Vector2 topLeft = new Vector2(0f, 1f);
             titleText = HudFactory.Label(card, "Title", textFont, 18f, TextAlignmentOptions.Left, topLeft, topLeft, Vector2.zero, Vector2.zero);
-            distanceText = HudFactory.Label(card, "Distance", textFont, 18f, TextAlignmentOptions.Right, topLeft, topLeft, Vector2.zero, Vector2.zero);
+            distanceText = HudFactory.Label(card, "Distance", UiTheme.NumberFont != null ? UiTheme.NumberFont : textFont, 18f, TextAlignmentOptions.Right, topLeft, topLeft, Vector2.zero, Vector2.zero);
+            distanceText.color = UiTheme.MoonWhite;
             nameText = HudFactory.Label(card, "Name", textFont, 32f, TextAlignmentOptions.Left, topLeft, topLeft, Vector2.zero, Vector2.zero);
+            nameText.color = UiTheme.MoonWhite;
             descriptionText = HudFactory.Label(card, "Description", textFont, 20f, TextAlignmentOptions.TopLeft, topLeft, topLeft, Vector2.zero, Vector2.zero);
             descriptionText.textWrappingMode = TextWrappingModes.Normal;
             descriptionText.overflowMode = TextOverflowModes.Overflow;
             // 한 줄 칸들은 높이를 선호 크기로 잡으니 말줄임 대신 넘침 허용 (칸이 줄 높이보다 낮아 통째로 숨는 일 방지)
             titleText.overflowMode = TextOverflowModes.Overflow;
             nameText.overflowMode = TextOverflowModes.Overflow;
-            nameText.fontStyle = FontStyles.Bold;
-            descriptionText.color = Color.white;
+            // 굵게 하지 않는다 (Noto Sans KR 은 Regular 하나라 Bold 가 가짜 굵기로 그려진다)
+            descriptionText.color = UiTheme.Steel;
             detailText = HudFactory.Label(card, "Detail", textFont, 16f, TextAlignmentOptions.Left, topLeft, topLeft, Vector2.zero, Vector2.zero);
             detailText.overflowMode = TextOverflowModes.Overflow;
             detailText.textWrappingMode = TextWrappingModes.Normal;

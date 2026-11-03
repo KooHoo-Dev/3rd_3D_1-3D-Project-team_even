@@ -510,14 +510,17 @@ MonoBehaviour:
     damage: 10
     fireRate: 600
     magazineSize: 30
+    startMagazines: 3
+    maxMagazines: 6
     reloadTime: 2
     range: 100
     spreadAngle: 1
+  infiniteMagazines: 0
   muzzle: {fileID: 0}
   equipTime: 0.25
   hitMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 131071
   impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 5613628641074969012, guid: eee3da5c99e8cfe41ae2d154761dc8e0, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
@@ -530,6 +533,7 @@ MonoBehaviour:
   recoilPitch: 0.25
   recoilYaw: 0.35
   aimRecoilMultiplier: 0.7
+  recoilKickTime: 0.06
   recoilRecoverRatio: 0.7
   recoilRecoverSpeed: 15
   aimFovMultiplier: 0.85
@@ -756,14 +760,17 @@ MonoBehaviour:
     damage: 10
     fireRate: 600
     magazineSize: 30
+    startMagazines: 3
+    maxMagazines: 6
     reloadTime: 2
     range: 100
     spreadAngle: 1
+  infiniteMagazines: 0
   muzzle: {fileID: 0}
   equipTime: 0.8
   hitMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 131071
   impactEffectPrefab: {fileID: 0}
   muzzleFlashPrefab: {fileID: 5283753518260634811, guid: 4f2b24f8cc507254b8f5e7ded5360d1c, type: 3}
   tracerPrefab: {fileID: 0}
@@ -776,6 +783,7 @@ MonoBehaviour:
   recoilPitch: 2.5
   recoilYaw: 0.6
   aimRecoilMultiplier: 0.7
+  recoilKickTime: 0.06
   recoilRecoverRatio: 0.8
   recoilRecoverSpeed: 10
   aimFovMultiplier: 0.7
@@ -787,12 +795,13 @@ MonoBehaviour:
   rocketSpeed: 30
   rocketRadius: 0.15
   armDistance: 2
+  unarmedDamageRatio: 0.5
   directHitBonusRatio: 0.5
   explosion:
     damage: 0
     radius: 12
     minDamageRatio: 0.3
-    force: 12
+    force: 53
     effectPrefab: {fileID: 5543976136519851074, guid: 9d8acd80d0e8af34c8d9bbfec68150be, type: 3}
     sfxKey: sfx_grenade_explode
 --- !u!1 &5642289898383000563
@@ -845,14 +854,17 @@ MonoBehaviour:
     damage: 10
     fireRate: 600
     magazineSize: 30
+    startMagazines: 3
+    maxMagazines: 6
     reloadTime: 2
     range: 100
     spreadAngle: 1
+  infiniteMagazines: 0
   muzzle: {fileID: 0}
   equipTime: 0.35
   hitMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 131071
   impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 2916307278277949526, guid: 353aa8731541509449a96d6bf5760179, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
@@ -865,6 +877,7 @@ MonoBehaviour:
   recoilPitch: 0.5
   recoilYaw: 0.2
   aimRecoilMultiplier: 0.7
+  recoilKickTime: 0.06
   recoilRecoverRatio: 0.5
   recoilRecoverSpeed: 15
   aimFovMultiplier: 0.75
@@ -1161,6 +1174,8 @@ MonoBehaviour:
   - {fileID: 8944483826908563616}
   - {fileID: 6864668485321027824}
   startSlot: 0
+  reloadInterruptOnHit: 1
+  reloadInterruptDamage: 20
 --- !u!114 &1009040220543551216
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1187,10 +1202,14 @@ MonoBehaviour:
   throwDuration: 0.5
   releaseTime: 0.12
   releaseByAnimationEvent: 0
-  upwardAngle: 10
   throwHand: {fileID: 1301782267767824112}
   spawnForward: 0.6
-  inheritVelocity: 0.111
+  maxThrowRange: 20
+  minThrowRange: 2
+  minFlightTime: 0.5
+  maxFlightTime: 1.4
+  fuseMargin: 0.25
+  groundProbeHeight: 10
   startHealPacks: 1
   maxHealPacks: 3
   baseHealStats:
@@ -1237,6 +1256,8 @@ MonoBehaviour:
   firstPersonSpineWeight: 0.7
   firstPersonSpineWeightDown: 0.3
   firstPersonDownPitch: 55
+  firstPersonSpineWeightUp: 0.3
+  firstPersonUpPitch: 70
 --- !u!114 &4034804946924796211
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1286,6 +1307,8 @@ MonoBehaviour:
   maxWallPull: 0.35
   wallPitch: 40
   wallSmoothTime: 0.08
+  maxReachRatio: 0.95
+  minNeckBelowEye: 0.1
 --- !u!114 &8073468692622176083
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1373,62 +1396,11 @@ MonoBehaviour:
   lowAmmoRatio: 0.25
   blinkRate: 2.5
   livesFlashTime: 1.2
+  reloadDeniedFlashTime: 0.6
   staminaFadeTime: 0.5
---- !u!114 &4410688721398837743
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5753637828753184512}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 87cb65cabe2945d6a93e362bd8544f05, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerInteractor
-  interactRange: 3
-  bodyCenterHeight: 1
-  rayPadding: 2
-  mask:
-    serializedVersion: 2
-    m_Bits: 4294967295
---- !u!114 &7651834859522776489
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5753637828753184512}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 37a1ca076e50410f84313bff0a5b464c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.UI.WeaponSlotHud
-  gunSlot: {fileID: 8891840968360981808}
-  player: {fileID: 7219419144724798672}
-  aimView: {fileID: 5994095664501175038}
-  numberFont: {fileID: 11400000, guid: 4d0bb7337f597634b94b9005947e8e28, type: 2}
-  textFont: {fileID: 11400000, guid: 659ceb8947c683b4a9e1216df0a67515, type: 2}
-  position: {x: -416, y: 238}
-  cellSize: {x: 84, y: 58}
-  spacing: 8
-  emptyAmmoAlpha: 0.35
---- !u!114 &1761413600349868233
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5753637828753184512}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 256c43bbe3ef4d6a812f13bd67666d83, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.UI.InteractPromptHud
-  numberFont: {fileID: 11400000, guid: 4d0bb7337f597634b94b9005947e8e28, type: 2}
-  textFont: {fileID: 11400000, guid: 659ceb8947c683b4a9e1216df0a67515, type: 2}
-  position: {x: 0, y: -70}
-  fadeTime: 0.08
+  gainPunch: 0.35
+  gainDuration: 0.5
+  gainRise: 36
 --- !u!114 &4815162342108153829
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1467,6 +1439,7 @@ MonoBehaviour:
   bodyRoot: {fileID: 0}
   bodyHeight: 1.95
   baseGlitch: 0.25
+  screenOpacity: 0.5
   thirdPersonScreenScale: 0.45
   showText: 1
   bitsColorA: {r: 0.35, g: 1, b: 1, a: 1}
@@ -1477,6 +1450,62 @@ MonoBehaviour:
   buffScreenIntensity: 0.22
   buffTrailRate: 40
   buffWarningTime: 1.2
+--- !u!114 &4410688721398837743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5753637828753184512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87cb65cabe2945d6a93e362bd8544f05, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Player.PlayerInteractor
+  interactRange: 3
+  bodyCenterHeight: 1
+  rayPadding: 2
+  mask:
+    serializedVersion: 2
+    m_Bits: 131071
+--- !u!114 &7651834859522776489
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5753637828753184512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37a1ca076e50410f84313bff0a5b464c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.UI.WeaponSlotHud
+  gunSlot: {fileID: 8891840968360981808}
+  player: {fileID: 7219419144724798672}
+  aimView: {fileID: 5994095664501175038}
+  numberFont: {fileID: 11400000, guid: 4d0bb7337f597634b94b9005947e8e28, type: 2}
+  textFont: {fileID: 11400000, guid: 659ceb8947c683b4a9e1216df0a67515, type: 2}
+  position: {x: -416, y: 238}
+  cellSize: {x: 84, y: 58}
+  spacing: 8
+  emptyAmmoAlpha: 0.35
+  emptyWarningTime: 1.6
+--- !u!114 &1761413600349868233
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5753637828753184512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 256c43bbe3ef4d6a812f13bd67666d83, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.UI.InteractPromptHud
+  numberFont: {fileID: 11400000, guid: 4d0bb7337f597634b94b9005947e8e28, type: 2}
+  textFont: {fileID: 11400000, guid: 659ceb8947c683b4a9e1216df0a67515, type: 2}
+  position: {x: 0, y: -70}
+  fadeTime: 0.08
 --- !u!1 &6833522934525979748
 GameObject:
   m_ObjectHideFlags: 0
@@ -1567,14 +1596,17 @@ MonoBehaviour:
     damage: 10
     fireRate: 600
     magazineSize: 30
+    startMagazines: 3
+    maxMagazines: 6
     reloadTime: 2
     range: 100
     spreadAngle: 1
+  infiniteMagazines: 0
   muzzle: {fileID: 2326322023148935776}
   equipTime: 0.35
   hitMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 131071
   impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 2916307278277949526, guid: 353aa8731541509449a96d6bf5760179, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
@@ -1587,6 +1619,7 @@ MonoBehaviour:
   recoilPitch: 0.55
   recoilYaw: 0.25
   aimRecoilMultiplier: 0.7
+  recoilKickTime: 0.06
   recoilRecoverRatio: 0.6
   recoilRecoverSpeed: 15
   aimFovMultiplier: 0.75
@@ -1711,14 +1744,17 @@ MonoBehaviour:
     damage: 10
     fireRate: 600
     magazineSize: 30
+    startMagazines: 3
+    maxMagazines: 6
     reloadTime: 2
     range: 100
     spreadAngle: 1
+  infiniteMagazines: 0
   muzzle: {fileID: 0}
   equipTime: 0.6
   hitMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 131071
   impactEffectPrefab: {fileID: 3135451856461241760, guid: f4807c26312187c4ab351ee90479788e, type: 3}
   muzzleFlashPrefab: {fileID: 3158766558265931166, guid: 5884ef90c12467a49b43757449083aa1, type: 3}
   tracerPrefab: {fileID: 4207196726780303395, guid: 402740e791d5e2d4180130c8d95d5c07, type: 3}
@@ -1731,6 +1767,7 @@ MonoBehaviour:
   recoilPitch: 3
   recoilYaw: 0.5
   aimRecoilMultiplier: 0.7
+  recoilKickTime: 0.06
   recoilRecoverRatio: 1
   recoilRecoverSpeed: 10
   aimFovMultiplier: 0.3
@@ -1821,14 +1858,17 @@ MonoBehaviour:
     damage: 10
     fireRate: 600
     magazineSize: 30
+    startMagazines: 3
+    maxMagazines: 6
     reloadTime: 2
     range: 100
     spreadAngle: 1
+  infiniteMagazines: 0
   muzzle: {fileID: 0}
   equipTime: 0.45
   hitMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 131071
   impactEffectPrefab: {fileID: 4282389121136097272, guid: e7d185f3584a2a04abe1f4e8db953ae1, type: 3}
   muzzleFlashPrefab: {fileID: 3158766558265931166, guid: 5884ef90c12467a49b43757449083aa1, type: 3}
   tracerPrefab: {fileID: 5853604608837392148, guid: 24286bef60761174e885a82cfccad4d9, type: 3}
@@ -1841,6 +1881,7 @@ MonoBehaviour:
   recoilPitch: 4
   recoilYaw: 1
   aimRecoilMultiplier: 0.7
+  recoilKickTime: 0.06
   recoilRecoverRatio: 0.8
   recoilRecoverSpeed: 25
   aimFovMultiplier: 0.9
@@ -1903,14 +1944,17 @@ MonoBehaviour:
     damage: 10
     fireRate: 600
     magazineSize: 30
+    startMagazines: 3
+    maxMagazines: 6
     reloadTime: 2
     range: 100
     spreadAngle: 1
+  infiniteMagazines: 1
   muzzle: {fileID: 0}
   equipTime: 0.2
   hitMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 131071
   impactEffectPrefab: {fileID: 3511982436708777154, guid: f32019ee56d37f54a840c8b31058de34, type: 3}
   muzzleFlashPrefab: {fileID: 5613628641074969012, guid: eee3da5c99e8cfe41ae2d154761dc8e0, type: 3}
   tracerPrefab: {fileID: 6453015781392267577, guid: fa14c9d693179b840895f08829d31445, type: 3}
@@ -1923,6 +1967,7 @@ MonoBehaviour:
   recoilPitch: 1.2
   recoilYaw: 0.3
   aimRecoilMultiplier: 0.7
+  recoilKickTime: 0.06
   recoilRecoverRatio: 0.8
   recoilRecoverSpeed: 20
   aimFovMultiplier: 0.85
@@ -2011,14 +2056,17 @@ MonoBehaviour:
     damage: 10
     fireRate: 600
     magazineSize: 30
+    startMagazines: 3
+    maxMagazines: 6
     reloadTime: 2
     range: 100
     spreadAngle: 1
+  infiniteMagazines: 0
   muzzle: {fileID: 0}
   equipTime: 0.6
   hitMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 131071
   impactEffectPrefab: {fileID: 0}
   muzzleFlashPrefab: {fileID: 5283753518260634811, guid: 4f2b24f8cc507254b8f5e7ded5360d1c, type: 3}
   tracerPrefab: {fileID: 0}
@@ -2031,6 +2079,7 @@ MonoBehaviour:
   recoilPitch: 3
   recoilYaw: 0.4
   aimRecoilMultiplier: 0.7
+  recoilKickTime: 0.06
   recoilRecoverRatio: 0.8
   recoilRecoverSpeed: 12
   aimFovMultiplier: 0.8
@@ -2046,7 +2095,7 @@ MonoBehaviour:
   bounciness: 0.45
   fuseTime: 2.5
   armDistance: 4
-  impactDamageRatio: 0.3
+  unarmedDamageRatio: 0.5
   explosion:
     damage: 0
     radius: 3

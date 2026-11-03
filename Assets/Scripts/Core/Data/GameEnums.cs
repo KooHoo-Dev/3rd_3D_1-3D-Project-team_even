@@ -60,4 +60,11 @@ namespace HybridShooter.Core.Data
 
     /// <summary>군중전 스테이지 종류. Normal = StartTime 에 시작 · ClearBonus = EndTime 전에 본 웨이브를 전멸시키면 1번 시작하는 특수 웨이브</summary>
     public enum WaveStageKind { Normal, ClearBonus }
+
+    /// <summary>
+    /// 라운드 유형 = 군중전이 끝나는 조건. CrowdToBoss = 보스 시각에 보스 등장 → 보스 처치로 클리어 ·
+    /// Annihilation(섬멸) = PhaseTime 동안 소환, 누적 처치 목표(KillRatio) 달성으로 클리어 · Survival(생존) = PhaseTime 생존으로 클리어 ·
+    /// AnnihilationToBoss(섬멸 후 보스) = 섬멸 목표 달성 → 보스 등장 → 보스 처치로 클리어
+    /// </summary>
+    public enum RoundType { CrowdToBoss, Annihilation, Survival, AnnihilationToBoss }
 }

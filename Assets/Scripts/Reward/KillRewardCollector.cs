@@ -12,6 +12,7 @@ namespace HybridShooter.Reward
     ///
     ///   일반 몬스터 : MonsterDiedEvent 수신 → MonsterDef.Reward 지급         (MonsterTable.tsv 의 Reward 열)
     ///   보스        : BossDefeatedEvent 수신 → 보스 Reward + RoundDef.BossReward 지급 (RoundTable.tsv 의 BossReward 열)
+    ///   게임 씬 시작   : Awake → 재화 0, 강화 초기화 (지갑·강화는 앱 실행 내내 살아 있어 메인 메뉴를 거쳐 다시 들어와도 남기 때문)
     ///   처음부터 재시작 : RoundCleanupEvent(FullReset = true) 수신 → 재화를 0 으로, 구매한 강화를 전부 초기화 (BL-033)
     ///   다음 라운드 진행 : RoundCleanupEvent(FullReset = false) → 재화·강화 유지 (강화 선택 화면에서 사용)
     ///
@@ -45,6 +46,12 @@ namespace HybridShooter.Reward
         /// <summary>도메인 리로드를 꺼도 플레이 시작마다 비워지도록 (EventBus·ServiceLocator 와 같은 방식)</summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => active = null;
+
+        /// <summary>
+        /// 게임 씬이 열릴 때 이전 판의 재화·강화를 버린다. 지갑·강화(CoreBootstrap 기본 구현)는 앱 실행 동안 하나라
+        /// 메인 메뉴 → 게임 시작으로 씬을 다시 열어도 값이 남는다. 무기·수류탄이 Start 에서 강화 값을 읽기 전에 비우려고 Awake 에서 한다.
+        /// </summary>
+        private void Awake() => ResetRunProgress();
 
         /// <summary>
         /// 이벤트 구독 (OnDisable 과 짝).
@@ -114,6 +121,12 @@ namespace HybridShooter.Reward
             if (e.FullReset == false) return;
 
             currentRound = null;
+            ResetRunProgress();
+        }
+
+        /// <summary>재화를 StartBalance 로, 구매한 강화를 전부 처음으로 되돌린다. 씬 시작(Awake)과 처음부터 재시작(FullReset)이 부른다</summary>
+        private static void ResetRunProgress()
+        {
             if (ServiceLocator.TryGet<ICurrencyWallet>(out var wallet)) wallet.ResetTo(StartBalance);
             // 강화 레벨도 처음으로. 무기·수류탄은 GetTotalValue 로 능력치를 다시 계산한다
             if (ServiceLocator.TryGet<IUpgradeState>(out var upgrades)) upgrades.ResetAll();

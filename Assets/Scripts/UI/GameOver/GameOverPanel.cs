@@ -6,8 +6,10 @@ using HybridShooter.Core.Services;
 using HybridShooter.Player;
 using HybridShooter.Round;
 using HybridShooter.UI.MainMenu;
+using HybridShooter.UI.Theme;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace HybridShooter.UI
@@ -18,16 +20,16 @@ namespace HybridShooter.UI
     ///  - [재시작] → RunDirector.ReturnToReady → 무기 선택 화면(LoadoutPanel)이 다시 열리고 [출발]로 1스테이지부터.
     ///    무기 선택 화면(IRoundStartGate)이 없는 씬이면 RestartRun 으로 바로 다시 시작
     ///  - [메인 메뉴] → MainMenuController.SkipPressAnyKey 를 켜고 SceneTransition 으로 메인 메뉴 씬 (Build Settings 에 있어야 한다)
-    /// 겉모양은 GameFlowUiSkin(GameOver_bg · Title_GAMEOVER · Btn_Rectangle01Cyan · Btn_MainMenuCyan)
+    /// 스타일은 UiTheme (메인 메뉴와 같은 모양): 왼쪽에서 사라지는 어두운 띠 위에 큰 GAME OVER + 붉은 선, 메인 메뉴식 글자 버튼(영문 + 작은 한글).
+    /// 열리면 [재시작]이 선택된 상태라 키보드·패드로 바로 고를 수 있다
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class GameOverPanel : MonoBehaviour
     {
         public const string DefaultMainMenuScene = "Test_MainMenu";
 
-        private static readonly Color Dim = new Color(0f, 0f, 0f, 0.7f);
-        private static readonly Color ButtonColor = new Color(0.15f, 0.55f, 0.75f, 1f);
-        private static readonly Color MutedText = new Color(0.6f, 0.7f, 0.75f, 1f);
+        private static readonly Color Dim = new Color(0f, 0f, 0f, 0.55f);
+        private const float MarginX = UiTheme.ScreenMargin;
 
         [Tooltip("비워 두면 씬에서 찾는다")]
         [SerializeField] private RunDirector runDirector;
@@ -99,6 +101,7 @@ namespace HybridShooter.UI
             IsOpen = true;
             canvas.gameObject.SetActive(true);
             if (player != null) player.SetMenuInputBlocked(true);
+            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(restartButton.gameObject);
         }
 
         /// <summary>처음부터 다시. 무기 선택 화면이 있으면 그 화면을 거친다</summary>
@@ -145,48 +148,47 @@ namespace HybridShooter.UI
             canvas = HudFactory.CreateCanvas("GameOverPanel", 105, true, out _);
             var root = canvas.transform;
             HudFactory.NewImage(HudFactory.Stretch(root, "Dim"), null, Dim).raycastTarget = true;
+            // 왼쪽 글자 뒤 어두운 띠 (오른쪽으로 사라짐)
+            var band = HudFactory.Rect(root, "Band", Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(1100f, 0f));
+            band.anchorMax = new Vector2(0f, 1f);
+            UiThemeKit.Band(band, UiThemeKit.BandShape.FadeRight, 0.9f, 0.6f);
 
-            // GAME OVER 띠 + 글자 (팩의 Popup_GameOver 구성)
-            var band = HudFactory.Rect(root, "Band", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 140f), new Vector2(1126f, 228f));
-            if (skin.gameOverBackground != null) GameFlowUiSkin.Paint(HudFactory.NewImage(band, null, Color.clear), skin.gameOverBackground, Color.clear);
-            if (skin.gameOverTitle != null)
-            {
-                var titleImage = HudFactory.NewImage(HudFactory.Rect(band, "Title", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 120f)), skin.gameOverTitle, Color.white);
-                titleImage.preserveAspect = true;
-            }
-            else
-            {
-                var title = HudFactory.Label(band, "Title", textFont, 72f, TextAlignmentOptions.Center,
-                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 110f));
-                title.text = "GAME OVER";
-                title.color = new Color(1f, 0.35f, 0.3f, 1f);
-            }
+            var topLeft = new Vector2(0f, 1f);
+            UiThemeKit.EnLabel(root, "Header", "SIGNAL LOST", UiTheme.LabelSize, UiTheme.RedText, TextAlignmentOptions.BottomLeft,
+                topLeft, topLeft, new Vector2(MarginX, -280f), new Vector2(600f, 26f));
+            UiThemeKit.EnLabel(root, "Title", "GAME OVER", 96f, UiTheme.MoonWhite, TextAlignmentOptions.TopLeft,
+                topLeft, topLeft, new Vector2(MarginX, -314f), new Vector2(1000f, 110f), 22f);
+            UiThemeKit.Line(root, "Line", UiTheme.Red, topLeft, topLeft, new Vector2(MarginX, -432f), new Vector2(140f, 3f));
+            roundText = HudFactory.Label(root, "Round", textFont, 26f, TextAlignmentOptions.TopLeft,
+                topLeft, topLeft, new Vector2(MarginX, -456f), new Vector2(900f, 40f));
+            roundText.color = UiTheme.Steel;
 
-            roundText = HudFactory.Label(root, "Round", textFont, 24f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 0f), new Vector2(900f, 40f));
-            roundText.color = MutedText;
-
-            restartButton = CreateButton(root, "RestartButton", "재시작", new Vector2(-220f, -140f), new Vector2(360f, 120f),
-                skin.primaryButton, skin.primaryButtonPressed, skin.disabledButton);
+            // 메인 메뉴식 글자 버튼 (위아래로 돈다)
+            restartButton = CreateButton(root, "RestartButton", "RETRY", "재시작", 46f, -650f);
             restartButton.onClick.AddListener(Restart);
-            menuButton = CreateButton(root, "MainMenuButton", "메인 메뉴", new Vector2(220f, -140f), new Vector2(380f, 120f),
-                skin.menuButton, skin.menuButtonPressed, null);
+            menuButton = CreateButton(root, "MainMenuButton", "MAIN MENU", "메인 메뉴", 40f, -744f);
             menuButton.onClick.AddListener(GoToMainMenu);
+            restartButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnUp = menuButton, selectOnDown = menuButton };
+            menuButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnUp = restartButton, selectOnDown = restartButton };
+
+            var hint = HudFactory.Label(root, "Hint", textFont, 22f, TextAlignmentOptions.BottomRight,
+                new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-80f, 40f), new Vector2(500f, 34f));
+            hint.text = "<color=#E0574D>ENTER</color>  선택";
+            hint.color = UiTheme.Steel;
 
             canvas.gameObject.SetActive(false);
         }
 
-        private Button CreateButton(Transform parent, string name, string text, Vector2 position, Vector2 size, Sprite normal, Sprite pressed, Sprite disabled)
+        /// <summary>영문 글자 버튼 + 오른쪽에 작은 한글 이름 (선택 효과는 영문 글자만)</summary>
+        private Button CreateButton(Transform parent, string name, string text, string koreanText, float fontSize, float y)
         {
-            var rt = HudFactory.Rect(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), position, size);
-            var image = rt.gameObject.AddComponent<Image>();
-            GameFlowUiSkin.Paint(image, normal, ButtonColor);
-            var button = rt.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-            GameFlowUiSkin.SetStates(button, pressed, disabled);
-            var label = HudFactory.Label(rt, "Label", textFont, 32f, TextAlignmentOptions.Center,
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, size);
-            label.text = text;
+            var button = UiThemeKit.TextButton(parent, name, text, fontSize, new Vector2(0f, 1f), new Vector2(MarginX, y), new Vector2(640f, 84f));
+            var label = button.transform.Find("Label").GetComponent<TextMeshProUGUI>();
+            float textWidth = label.GetPreferredValues(text).x;
+            var korean = HudFactory.Label(button.transform, "Korean", textFont, 20f, TextAlignmentOptions.MidlineLeft,
+                new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(34f + textWidth + 40f, -2f), new Vector2(200f, 30f));
+            korean.text = koreanText;
+            korean.color = UiTheme.SteelDim;
             return button;
         }
     }
