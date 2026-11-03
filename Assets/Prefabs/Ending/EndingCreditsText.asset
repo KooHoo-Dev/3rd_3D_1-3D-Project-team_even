@@ -15,24 +15,30 @@ MonoBehaviour:
   title: 'OPERATION : HIVE PURGE'
   subtitle: "\uC791\uC804 \uC644\uB8CC \u2014 \uD558\uC774\uBE0C \uADFC\uC6D0 \uD589\uC131 \uC18C\uBA78"
   sections:
+  - Heading: Thanks to Claude
+    Entries:
+    - Role: "AI \uAC1C\uBC1C \uC9C0\uC6D0"
+      Names: Claude (Anthropic)
   - Heading: TEAM EVEN
     Entries:
-    - Role: "\uAE30\uD68D"
-      Names: "(\uC774\uB984)"
-    - Role: "\uD504\uB85C\uADF8\uB798\uBC0D"
-      Names: "(\uC774\uB984)"
-    - Role: "\uBCF4\uC2A4\xB7\uC5F0\uCD9C"
-      Names: "(\uC774\uB984)"
-    - Role: "\uB9F5\xB7\uC0AC\uC6B4\uB4DC"
-      Names: "(\uC774\uB984)"
-    - Role: UI
-      Names: "(\uC774\uB984)"
+    - Role: "\uD300\uC7A5 \xB7 \uBCF4\uC2A4(Clypeosaurus) \xB7 \uB77C\uC6B4\uB4DC \uD750\uB984 \xB7 UI \uB514\uC790\uC778"
+      Names: "\uC774\uCC2C\uC601"
+    - Role: "\uBAAC\uC2A4\uD130 AI \xB7 \uC6E8\uC774\uBE0C \xB7 \uC2A4\uD3F0 \xB7 \uC57D\uC810 \uC2DC\uC2A4\uD15C"
+      Names: "\uD64D\uC0B0"
+    - Role: "\uD50C\uB808\uC774\uC5B4 \xB7 \uBB34\uAE30 \xB7 \uBCF4\uC2A4(Tyranopode) \xB7 \uC778\uD2B8\uB85C\xB7\uC5D4\uB529 \uC5F0\uCD9C"
+      Names: "\uAE40\uBBFC\uC131"
+    - Role: "\uB9F5 \xB7 \uC0AC\uC6B4\uB4DC \xB7 \uBA54\uC778\uBA54\uB274 \xB7 \uBCF4\uAE09 \xB7 \uAC15\uD654 \xB7 \uD29C\uD1A0\uB9AC\uC5BC"
+      Names: "\uC724\uAC74\uC6B0"
   - Heading: "\uC0AC\uC6A9\uD55C \uC5D0\uC14B"
     Entries:
     - Role: "\uBAAC\uC2A4\uD130"
       Names: Monsters Full Pack Vol 1
     - Role: "\uCE90\uB9AD\uD130"
       Names: G2 Cyborg Characters
+    - Role: "\uC560\uB2C8\uBA54\uC774\uC158"
+      Names: 'Ultimate Animation Collection (PROTOFACTOR)
+
+        Final IK'
     - Role: "\uBB34\uAE30"
       Names: Sci-Fi Weapons
     - Role: "\uD658\uACBD"
