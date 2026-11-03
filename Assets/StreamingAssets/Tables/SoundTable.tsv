@@ -71,6 +71,7 @@ sfx_player_footstep_metal	Sfx	Audio/Player/Footstep/Footstep_Metal_Walk_01;Audio
 sfx_player_breath_loop	Sfx	Audio/Player/Voice/Voice_BreathLoop	0.5	true	false	1	0	0	40	0
 sfx_player_cough	Sfx	Audio/Player/Voice/Voice_Cough_01;Audio/Player/Voice/Voice_Cough_02	0.8	false	false	1	1.5	0.05	60	0
 sfx_grenade_throw	Sfx	Audio/Player/Throw/Throw_01;Audio/Player/Throw/Throw_02;Audio/Player/Throw/Throw_03;Audio/Player/Throw/Throw_04;Audio/Player/Throw/Throw_05	0.7	false	false	1	0.2	0.08	50	0
+sfx_player_heal_use	Sfx	Audio/Player/Heal/HealPack_Use	0.8	false	false	1	0.3	0.03	70	0
 # ── UI ──
 ui_menu_cursor	Ui	Audio/UI/UI_MenuCursor	0.4	false	false	2	0.03	0	55	0
 ui_menu_select	Ui	Audio/UI/UI_MenuSelect	0.5	false	false	2	0.05	0	60	0
