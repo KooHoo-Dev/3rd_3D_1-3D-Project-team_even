@@ -23,7 +23,7 @@ namespace HybridShooter.Core.Data
 
     public enum EffectType { DamageOverTime }
 
-    public enum PartExposure { Always, WhileAttacking, WhileRecovering }
+    public enum PartExposure { Always, WhileAttacking, WhileNotAttacking }
 
     /// <summary>군중 생성 방식 (BL-015)</summary>
     public enum SpawnPattern

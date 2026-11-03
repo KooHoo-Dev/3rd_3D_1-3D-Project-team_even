@@ -195,6 +195,8 @@ namespace HybridShooter.Monster.Behaviour
                     return true;
                 case PartExposure.WhileAttacking:
                     return owner.IsAttacking;
+                case PartExposure.WhileNotAttacking:
+                    return !owner.IsAttacking;
                 default:
                     throw new NotSupportedException($"{exposure} 노출 조건은 아직 일반 몬스터 약점에서 쓸 수 없다");
             }
