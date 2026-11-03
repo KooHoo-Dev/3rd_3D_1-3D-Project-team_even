@@ -56,12 +56,6 @@ namespace HybridShooter.UI
         private const float Pad = 34f;
         /// <summary>누를 수 없는 글자 버튼 투명도</summary>
         private const float DisabledAlpha = 0.35f;
-        /// <summary>
-        /// 다음으로 넘어가는 버튼 끝 표시. ▶ 는 Noto Sans KR 폰트 에셋에 없어 네모(□)로 나오므로 › 를 붉게 쓴다.
-        /// 한글 글꼴(Aldrich 에는 한글이 없다)로 그리는 글자에만 붙인다
-        /// </summary>
-        private const string NextMark = "  <color=#E0574D>›</color>";
-
         private static Sprite white;
 
         /// <summary>강화 카드 한 장의 화면 요소</summary>
@@ -164,7 +158,8 @@ namespace HybridShooter.UI
             SetInteractable(finishButton, manager.CanFinish);
             SetInteractable(rerollButton, manager.CanReroll);
             rerollCostText.text = manager.RerollCost.ToString();
-            finishLabel.text = manager.HasPurchased ? "다음 라운드" + NextMark : "건너뛰기" + NextMark;
+            // 붉은 주 버튼이라 › 는 흰색 (▶ 는 Noto Sans KR 폰트 에셋에 없어 네모로 나온다)
+            finishLabel.text = manager.HasPurchased ? "다음 라운드  ›" : "건너뛰기  ›";
             subtitleText.text = anyPurchasable
                 ? (manager.HasPurchased ? $"강화 {manager.PurchaseCount}회 · 재화가 남아 있으면 계속 강화할 수 있습니다"
                                         : "재화가 있는 만큼 강화할 수 있습니다 · 다음 라운드까지 유지됩니다")
@@ -397,8 +392,10 @@ namespace HybridShooter.UI
             rerollCostText.rectTransform.sizeDelta = new Vector2(120f, 0f);
             rerollButton.onClick.AddListener(() => manager.TryReroll());
 
-            finishButton = CreateTextButton(p, "FinishButton", string.Empty, 32f, UiTheme.TextFont, out finishLabel);
-            PlaceLeft((RectTransform)finishButton.transform, 1920f - MarginX - 330f, 916f, 360f, 70f);
+            // 다음으로 넘어가는 주 행동이라 붉은 면 버튼 (보상 화면 [강화 선택]과 같은 모양)
+            finishButton = UiThemeKit.PrimaryButton(p, "FinishButton", string.Empty, UiTheme.TextFont, new Vector2(0f, 1f), Vector2.zero,
+                new Vector2(380f, 80f), out finishLabel);
+            PlaceLeft((RectTransform)finishButton.transform, 1920f - MarginX - 380f, 911f, 380f, 80f);
             finishButton.onClick.AddListener(manager.Finish);
 
             rerollButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = finishButton, selectOnRight = finishButton };
