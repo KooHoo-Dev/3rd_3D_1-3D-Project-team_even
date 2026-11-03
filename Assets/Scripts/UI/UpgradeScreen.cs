@@ -54,6 +54,8 @@ namespace HybridShooter.UI
         private const float CardTop = 300f, CardHeight = 560f, CardGap = 40f;
         /// <summary>카드 안쪽 여백</summary>
         private const float Pad = 34f;
+        /// <summary>리롤 비용 상자 안 숫자의 시작 위치 (마름모 뒤)</summary>
+        private const float RerollCostX = 32f;
         /// <summary>누를 수 없는 글자 버튼 투명도</summary>
         private const float DisabledAlpha = 0.35f;
         private static Sprite white;
@@ -71,11 +73,15 @@ namespace HybridShooter.UI
             public RectTransform StarRow;
             public Button Buy;
             public Image BuyCoin, BuyUnderline;
+            /// <summary>마우스·키보드로 고른 카드 강조 + 구매 줄 붉은 면</summary>
+            public UpgradeCardFx Fx;
         }
 
         private GameObject root, rewardPanel, upgradePanel;
         private TextMeshProUGUI crowdText, bossText, totalText, rewardBalanceText;
         private TextMeshProUGUI balanceText, subtitleText, finishLabel, rerollLabel, rerollCostText, ownedText;
+        /// <summary>리롤 비용 상자 (마름모 + 숫자, 숫자 폭에 맞춰 늘어난다)</summary>
+        private RectTransform rerollCostBox;
         private Button selectButton, finishButton, rerollButton;
         private readonly List<CardView> cards = new List<CardView>();
         private readonly System.Text.StringBuilder ownedBuilder = new System.Text.StringBuilder();
@@ -158,6 +164,7 @@ namespace HybridShooter.UI
             SetInteractable(finishButton, manager.CanFinish);
             SetInteractable(rerollButton, manager.CanReroll);
             rerollCostText.text = manager.RerollCost.ToString();
+            rerollCostBox.sizeDelta = new Vector2(RerollCostX + rerollCostText.GetPreferredValues(rerollCostText.text).x + 14f, rerollCostBox.sizeDelta.y);
             // 붉은 주 버튼이라 › 는 흰색 (▶ 는 Noto Sans KR 폰트 에셋에 없어 네모로 나온다)
             finishLabel.text = manager.HasPurchased ? "다음 라운드  ›" : "건너뛰기  ›";
             subtitleText.text = anyPurchasable
@@ -211,6 +218,7 @@ namespace HybridShooter.UI
                 card.Cost.color = canBuy ? UiTheme.Ember : UiTheme.Steel;
                 card.Cost.rectTransform.anchoredPosition = new Vector2(24f, 0f);
             }
+            card.Fx.SetBuyable(option.CanBuy);
         }
 
         /// <summary>보유 강화 목록: 이름 + 레벨마다 산 등급 색 점 (리롤 판단용)</summary>
@@ -377,18 +385,22 @@ namespace HybridShooter.UI
 
             rerollButton = CreateTextButton(p, "RerollButton", "리롤", 28f, UiTheme.TextFont, out rerollLabel);
             PlaceLeft((RectTransform)rerollButton.transform, MarginX - 34f, 916f, 360f, 70f);
-            // "리롤" 뒤에 재화 마름모 + 비용 (글자 자식이라 선택 때 같이 밀린다)
+            // "리롤" 뒤에 호박색 테두리 상자 [◆ 비용] (글자 자식이라 선택 때 같이 밀린다). 비용은 ConfigTable.UpgradeRerollCost (Refresh 에서 채움)
             float rerollTextWidth = rerollLabel.GetPreferredValues("리롤").x;
-            var rerollCoin = CreateImage("CoinIcon", rerollLabel.transform, UiTheme.Ember);
+            rerollCostBox = CreateFrame("CostBox", rerollLabel.transform, new Color(UiTheme.Ember.r, UiTheme.Ember.g, UiTheme.Ember.b, 0.6f), 1f);
+            rerollCostBox.anchorMin = rerollCostBox.anchorMax = rerollCostBox.pivot = new Vector2(0f, 0.5f);
+            rerollCostBox.anchoredPosition = new Vector2(rerollTextWidth + 18f, 0f);
+            rerollCostBox.sizeDelta = new Vector2(RerollCostX + 30f, 44f);
+            var rerollCoin = CreateImage("CoinIcon", rerollCostBox, UiTheme.Ember);
             rerollCoin.rectTransform.anchorMin = rerollCoin.rectTransform.anchorMax = rerollCoin.rectTransform.pivot = new Vector2(0f, 0.5f);
-            rerollCoin.rectTransform.anchoredPosition = new Vector2(rerollTextWidth + 22f, 0f);
+            rerollCoin.rectTransform.anchoredPosition = new Vector2(14f, 0f);
             rerollCoin.rectTransform.sizeDelta = new Vector2(10f, 10f);
             rerollCoin.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-            rerollCostText = CreateText("Cost", rerollLabel.transform, UiTheme.NumberFont, 28f, TextAlignmentOptions.MidlineLeft, UiTheme.Ember, string.Empty);
+            rerollCostText = CreateText("Cost", rerollCostBox, UiTheme.NumberFont, 28f, TextAlignmentOptions.MidlineLeft, UiTheme.Ember, string.Empty);
             rerollCostText.rectTransform.anchorMin = new Vector2(0f, 0f);
             rerollCostText.rectTransform.anchorMax = new Vector2(0f, 1f);
             rerollCostText.rectTransform.pivot = new Vector2(0f, 0.5f);
-            rerollCostText.rectTransform.anchoredPosition = new Vector2(rerollTextWidth + 40f, 0f);
+            rerollCostText.rectTransform.anchoredPosition = new Vector2(RerollCostX, 0f);
             rerollCostText.rectTransform.sizeDelta = new Vector2(120f, 0f);
             rerollButton.onClick.AddListener(() => manager.TryReroll());
 
@@ -398,8 +410,18 @@ namespace HybridShooter.UI
             PlaceLeft((RectTransform)finishButton.transform, 1920f - MarginX - 380f, 911f, 380f, 80f);
             finishButton.onClick.AddListener(manager.Finish);
 
-            rerollButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = finishButton, selectOnRight = finishButton };
-            finishButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = rerollButton, selectOnRight = rerollButton };
+            // 키보드·패드: 카드끼리 좌우, 카드 ↓ 리롤(왼쪽 절반)·다음 라운드(오른쪽 절반), 버튼 ↑ 첫·마지막 카드
+            Button firstBuy = count > 0 ? cards[0].Buy : null, lastBuy = count > 0 ? cards[count - 1].Buy : null;
+            for (int i = 0; i < count; i++)
+                cards[i].Buy.navigation = new Navigation
+                {
+                    mode = Navigation.Mode.Explicit,
+                    selectOnLeft = i > 0 ? cards[i - 1].Buy : null,
+                    selectOnRight = i < count - 1 ? cards[i + 1].Buy : null,
+                    selectOnDown = i < count / 2 ? rerollButton : finishButton,
+                };
+            rerollButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = finishButton, selectOnRight = finishButton, selectOnUp = firstBuy };
+            finishButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = rerollButton, selectOnRight = rerollButton, selectOnUp = lastBuy };
         }
 
         /// <summary>카드 한 장 (left = 패널 왼쪽에서의 위치). 아이콘·등급·내용은 Refresh 때 카드에 뽑힌 강화로 채운다</summary>
@@ -408,10 +430,18 @@ namespace HybridShooter.UI
             var card = new CardView();
             var bg = CreateImage("Card", parent, new Color(UiTheme.MoonWhite.r, UiTheme.MoonWhite.g, UiTheme.MoonWhite.b, 0.05f));
             PlaceLeft(bg.rectTransform, left, CardTop, width, CardHeight);
+            // 마우스가 카드 어디에 올라와도 고른 카드가 되도록 바탕이 레이캐스트를 받는다 (UpgradeCardFx)
+            bg.raycastTarget = true;
             card.Root = bg.gameObject;
             card.Group = bg.gameObject.AddComponent<CanvasGroup>();
             var c = bg.transform;
             float inner = width - Pad * 2f;
+
+            // 고른 카드 테두리 (평소 꺼짐)
+            var frameRect = CreateFrame("Frame", c, new Color(UiTheme.MoonWhite.r, UiTheme.MoonWhite.g, UiTheme.MoonWhite.b, 0.55f), 1f);
+            Stretch(frameRect);
+            var frame = frameRect.gameObject.AddComponent<CanvasGroup>();
+            frame.blocksRaycasts = false;
 
             card.TopLine = CreateImage("TopLine", c, UiTheme.SteelDim);
             PlaceLeft(card.TopLine.rectTransform, 0f, 0f, width, 2f);
@@ -461,6 +491,12 @@ namespace HybridShooter.UI
             buyRect.GetComponent<Image>().color = Color.clear;
             card.Buy = buyRect.GetComponent<Button>();
             card.Buy.transition = Selectable.Transition.None;
+            // 고른 카드가 살 수 있을 때 차오르는 붉은 면 (구매 줄보다 조금 넓게, 맨 뒤)
+            var buyFill = CreateImage("Fill", buyRect, UiTheme.Red);
+            Stretch(buyFill.rectTransform);
+            buyFill.rectTransform.offsetMin = new Vector2(-16f, 4f);
+            buyFill.rectTransform.offsetMax = new Vector2(16f, -4f);
+            buyFill.enabled = false;
             card.BuyCoin = CreateImage("CoinIcon", buyRect, UiTheme.Ember);
             card.BuyCoin.rectTransform.anchorMin = card.BuyCoin.rectTransform.anchorMax = card.BuyCoin.rectTransform.pivot = new Vector2(0f, 0.5f);
             card.BuyCoin.rectTransform.anchoredPosition = new Vector2(4f, 0f);
@@ -476,7 +512,32 @@ namespace HybridShooter.UI
 
             card.Shortage = CreateText("Shortage", buyRect, UiTheme.TextFont, 20f, TextAlignmentOptions.MidlineRight, UiTheme.RedText, "재화 부족");
             Stretch(card.Shortage.rectTransform);
+
+            card.Fx = bg.gameObject.AddComponent<UpgradeCardFx>();
+            card.Fx.Setup(card.Buy, bg, card.TopLine, frame, buyFill, card.BuyCoin, card.BuyUnderline, card.Cost, card.BuyLabel);
             return card;
+        }
+
+        /// <summary>네 변 가는 선 상자 (안쪽은 비어 있음). 배치는 부른 쪽이 정한다</summary>
+        private static RectTransform CreateFrame(string name, Transform parent, Color color, float thickness)
+        {
+            var rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            FrameSide(rect, "Top", color, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, thickness));
+            FrameSide(rect, "Bottom", color, Vector2.zero, new Vector2(1f, 0f), new Vector2(0f, thickness));
+            FrameSide(rect, "Left", color, Vector2.zero, new Vector2(0f, 1f), new Vector2(thickness, 0f));
+            FrameSide(rect, "Right", color, new Vector2(1f, 0f), Vector2.one, new Vector2(thickness, 0f));
+            return rect;
+        }
+
+        private static void FrameSide(RectTransform frame, string name, Color color, Vector2 anchorMin, Vector2 anchorMax, Vector2 size)
+        {
+            var side = CreateImage(name, frame, color).rectTransform;
+            side.anchorMin = anchorMin;
+            side.anchorMax = anchorMax;
+            side.pivot = new Vector2(Mathf.Lerp(anchorMin.x, anchorMax.x, 0.5f), Mathf.Lerp(anchorMin.y, anchorMax.y, 0.5f));
+            side.anchoredPosition = Vector2.zero;
+            side.sizeDelta = size;
         }
 
         /// <summary>A 화면의 한 줄: 왼쪽 항목명(청회색), 오른쪽 값(Aldrich), 아래 가는 선. 값 글자를 돌려준다</summary>
