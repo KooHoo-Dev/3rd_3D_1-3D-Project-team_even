@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1317588972261714542, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
+      propertyPath: mass
+      value: 40
+      objectReference: {fileID: 0}
     - target: {fileID: 1438301292820702486, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
       propertyPath: m_Name
       value: Letalobrach_Elite

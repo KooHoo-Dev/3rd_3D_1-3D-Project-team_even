@@ -40,6 +40,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: GiantSlug_Elite
       objectReference: {fileID: 0}
+    - target: {fileID: 3580393049943838657, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
+      propertyPath: mass
+      value: 45
+      objectReference: {fileID: 0}
     - target: {fileID: 7236625778570586377, guid: f80b0571a88e9864fa67bde3fbdfedd2, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.4

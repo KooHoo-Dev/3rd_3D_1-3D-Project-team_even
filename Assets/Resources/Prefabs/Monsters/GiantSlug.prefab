@@ -59,7 +59,7 @@ Transform:
   m_GameObject: {fileID: 151735433681702415}
   serializedVersion: 2
   m_LocalRotation: {x: -0.70403713, y: -0.06581474, z: 0.68423265, w: 0.17839803}
-  m_LocalPosition: {x: -0.95, y: 0.15, z: 0}
+  m_LocalPosition: {x: -0.45, y: 0.07, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -102,7 +102,7 @@ MonoBehaviour:
   glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 3
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
   hitFlashSeconds: 0.35
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.45
@@ -134,8 +134,7 @@ Transform:
   m_LocalPosition: {x: -0.2750203, y: 0.7360363, z: 1.1310002}
   m_LocalScale: {x: 1, y: 1.0000002, z: 1.0000002}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 3892813108792012377}
+  m_Children: []
   m_Father: {fileID: 5716897913528419568}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &617325973672690036
@@ -355,7 +354,7 @@ Transform:
   m_GameObject: {fileID: 1224170558570303615}
   serializedVersion: 2
   m_LocalRotation: {x: 0.17839706, y: -0.6842328, z: -0.06581526, w: 0.70403725}
-  m_LocalPosition: {x: -0.95, y: -0.15, z: 0}
+  m_LocalPosition: {x: -0.45, y: -0.07, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -398,7 +397,7 @@ MonoBehaviour:
   glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 3
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
   hitFlashSeconds: 0.35
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.45
@@ -651,7 +650,7 @@ Transform:
   m_GameObject: {fileID: 2188858041454573468}
   serializedVersion: 2
   m_LocalRotation: {x: -0.6991773, y: -0.10559835, z: 0.69324106, w: 0.13934399}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -0.79, y: 0.04, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -694,7 +693,7 @@ MonoBehaviour:
   glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 3
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
   hitFlashSeconds: 0.35
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.45
@@ -789,7 +788,7 @@ Transform:
   m_GameObject: {fileID: 2506979204947730937}
   serializedVersion: 2
   m_LocalRotation: {x: 0.13934377, y: -0.69324124, z: -0.10559834, w: 0.6991774}
-  m_LocalPosition: {x: -1.1, y: -0.06, z: -0}
+  m_LocalPosition: {x: -0.78, y: -0.04, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -832,7 +831,7 @@ MonoBehaviour:
   glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 3
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
   hitFlashSeconds: 0.35
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.45
@@ -1301,7 +1300,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterCorpse
   corpseLayerName: MonsterCorpse
   bodyCollider: {fileID: 18421219675180418}
-  mass: 60
+  mass: 30
   angularDamping: 0.5
   hitPushSpeed: 5
   upwardKickSpeed: 1.5
@@ -1309,80 +1308,6 @@ MonoBehaviour:
   lyingSeconds: 2.5
   sinkSeconds: 3
   extraSinkDepth: 1
---- !u!1 &3461620352980666168
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3892813108792012377}
-  - component: {fileID: 3575495802397306712}
-  - component: {fileID: 3800081795552322593}
-  m_Layer: 15
-  m_Name: WeakPoint_Gland
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3892813108792012377
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3461620352980666168}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.061, y: -0.03, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 8598167847506654918}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &3575495802397306712
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3461620352980666168}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.29
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &3800081795552322593
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3461620352980666168}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 10567a424f984f28b776978aa00c0274, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HybridShooter.Monster.Behaviour::HybridShooter.Monster.Behaviour.MonsterWeakPoint
-  partKey: Gland
-  glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
-  coreAlpha: 0.12
-  rimPower: 3
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
-  hitFlashSeconds: 0.35
-  hitFlashCoreAlpha: 0.7
-  hitFlashScale: 1.45
 --- !u!1 &3710361424080600933
 GameObject:
   m_ObjectHideFlags: 0
@@ -2169,9 +2094,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 1.54
-  m_Height: 10.05
+  m_Height: 9.203858
   m_Direction: 1
-  m_Center: {x: 0, y: -0.12, z: -0.1701082}
+  m_Center: {x: 0, y: -0.54307127, z: -0.1701082}
 --- !u!1 &6269572043631333172
 GameObject:
   m_ObjectHideFlags: 0
@@ -2928,7 +2853,7 @@ Transform:
   m_GameObject: {fileID: 8461620352980666167}
   serializedVersion: 2
   m_LocalRotation: {x: 0.107685015, y: -0.61215526, z: -0.13571982, w: 0.7715245}
-  m_LocalPosition: {x: -1.11, y: -0, z: 0.17}
+  m_LocalPosition: {x: -0.51, y: 0, z: 0.03}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2971,7 +2896,7 @@ MonoBehaviour:
   glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 3
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
   hitFlashSeconds: 0.35
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.45
@@ -3129,7 +3054,7 @@ Transform:
   m_GameObject: {fileID: 8986065993480511251}
   serializedVersion: 2
   m_LocalRotation: {x: -0.6121551, y: -0.107685134, z: 0.7715246, w: 0.13571997}
-  m_LocalPosition: {x: -0.02, y: 0, z: -0.09}
+  m_LocalPosition: {x: -0.56, y: 0, z: 0.04}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3172,7 +3097,7 @@ MonoBehaviour:
   glowColor: {r: 1.8630273, g: 0.033090595, b: 0, a: 1}
   coreAlpha: 0.12
   rimPower: 3
-  hitFlashColor: {r: 3, g: 3, b: 3, a: 1}
+  hitFlashColor: {r: 3, g: 0.06282723, b: 0, a: 1}
   hitFlashSeconds: 0.35
   hitFlashCoreAlpha: 0.7
   hitFlashScale: 1.45
