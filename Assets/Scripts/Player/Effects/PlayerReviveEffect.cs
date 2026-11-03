@@ -280,11 +280,12 @@ namespace HybridShooter.Player
                 rt.anchorMin = new Vector2(0f, 0.18f);
                 rt.anchorMax = new Vector2(1f, 0.26f);
                 rt.offsetMin = rt.offsetMax = Vector2.zero;
-                label.font = TMP_Settings.defaultFontAsset;
+                // UI 리디자인: 숫자·영문 글꼴(Aldrich) · 달빛 흰색 (글꼴이 없으면 TMP 기본)
+                label.font = UI.Theme.UiTheme.NumberFont != null ? UI.Theme.UiTheme.NumberFont : TMP_Settings.defaultFontAsset;
                 label.fontSize = 30f;
                 label.characterSpacing = 18f;
                 label.alignment = TextAlignmentOptions.Center;
-                label.color = new Color(0.55f, 1f, 1f, 1f);
+                label.color = UI.Theme.UiTheme.MoonWhite;
                 label.raycastTarget = false;
             }
             canvasObject.SetActive(false);
