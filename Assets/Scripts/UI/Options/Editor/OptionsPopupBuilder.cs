@@ -2,7 +2,9 @@ using System.IO;
 using HybridShooter.Audio;
 using HybridShooter.Audio.Editor;
 using HybridShooter.Core.Data;
+using HybridShooter.UI.MainMenu;
 using HybridShooter.UI.MainMenu.Editor;
+using HybridShooter.UI.Theme;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -15,11 +17,12 @@ namespace HybridShooter.UI.Options.Editor
 {
     /// <summary>
     /// 상단 메뉴 Tools/MainMenu. 옵션 팝업 프리팹과 메인 메뉴 작업 씬을 코드로 만든다 (다시 실행하면 새로 만든다).
-    /// SCI-FI UI Pack V2(Cyan) 원본 프리팹은 고치지 않고 중첩 프리팹으로 넣는다.
-    ///  - 창 배경: Popup_Settings 프리팹은 데모 내용(Music·Vibration·Language)이 고정 배치라 스프라이트(Popup_Settings.png, 9-slice)만 쓴다
-    ///  - 탭: Toggle_PageTag 는 40px 점(페이지 표시)이라 탭으로 쓰기 어려워 Btn_SettingsMenuCyan/Yellow 스프라이트로 만든다
-    ///  - 컨트롤: Prefabs_Option 의 Slider·Switch·Dropdown, 하단 버튼은 Btn_Rectangle01Yellow/Cyan, 닫기 X 는 Btn_ClosePage
-    /// 한글은 팩 폰트(Aldrich·Play)에 없으므로 본문은 NotoSansKR SDF, 영문 제목만 Aldrich
+    /// 스타일은 UiTheme (UI 리디자인 시안 07): 화면을 어둡게 덮고 오른쪽 전체 높이 패널(왼쪽 끝이 흐려지는 띠)에 그린다.
+    ///  - 제목: OPTIONS (Aldrich, 넓은 자간) + 붉은 선 / 탭: 글자만, 선택된 탭은 달빛 흰색 + 붉은 밑줄 (Toggle.graphic)
+    ///  - 컨트롤: 슬라이더·체크 상자는 단색으로 직접 만들고, 드롭다운만 팩 Prefabs_Option/Dropdown 을 중첩 프리팹으로 넣어 색·스프라이트를 덮어쓴다
+    ///    (TMP_Dropdown 의 목록 템플릿까지 새로 만들기는 번거로워서)
+    ///  - 하단: 기본값 복원 · 적용 · 닫기 는 메인 메뉴식 글자 버튼(MainMenuButtonFx), 오른쪽 아래 "ESC 닫기" 는 닫기 아이콘 버튼 자리
+    /// 한글은 팩 폰트(Aldrich·Play)에 없으므로 본문은 NotoSansKR SDF, 영문 제목·숫자만 Aldrich
     /// </summary>
     public static class OptionsPopupBuilder
     {
@@ -37,12 +40,17 @@ namespace HybridShooter.UI.Options.Editor
         internal static readonly Color Cyan = new Color(0.2f, 0.9f, 1f);
         internal static readonly Color TextColor = new Color(0.85f, 0.95f, 1f);
 
-        private static readonly Vector2 WindowSize = new Vector2(1300f, 860f);
-        private const float RowHeight = 60f;
-        private const float LabelWidth = 300f;
+        /// <summary>오른쪽 패널 폭 (화면 오른쪽 끝에 붙고 위아래로 꽉 찬다)</summary>
+        private const float PanelWidth = 1180f;
+        /// <summary>패널 안 글자 시작 x (왼쪽 흐려지는 구간 밖) / 오른쪽 여백</summary>
+        private const float ContentLeft = 260f;
+        private const float ContentRight = 120f;
+        private const float RowHeight = 64f;
+        private const float LabelWidth = 240f;
         /// <summary>컨트롤 시작 x (라벨 + 간격)</summary>
         private const float ControlX = LabelWidth + 20f;
-        private const float SliderWidth = 560f;
+        private const float SliderWidth = 400f;
+        private const float ValueWidth = 120f;
 
         private static TMP_FontAsset titleFont;
         internal static TMP_FontAsset TitleFont => titleFont;
@@ -125,23 +133,21 @@ namespace HybridShooter.UI.Options.Editor
         {
             var rootRect = (RectTransform)root.transform;
             Stretch(rootRect);
-            root.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.7f); // 뒤 화면 어둡게 + 클릭 막기
+            root.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.55f); // 뒤 화면 어둡게 + 클릭 막기
             var group = root.GetComponent<CanvasGroup>();
             group.alpha = 0f;
 
+            // 오른쪽 전체 높이 패널. 왼쪽 끝 25% 만 흐려 글자 뒤는 진하다 (메뉴 화면이 왼쪽에 비쳐 보인다)
             var window = NewRect("Window", rootRect);
-            Place(window.gameObject, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, WindowSize);
-            var windowImage = window.gameObject.AddComponent<Image>();
-            windowImage.sprite = LoadSprite("PopupsAndPanels/Popup_Settings.png");
-            windowImage.type = Image.Type.Sliced;
+            Place(window.gameObject, new Vector2(1f, 0f), new Vector2(1f, 1f), Vector2.zero, new Vector2(PanelWidth, 0f), new Vector2(1f, 0.5f));
+            UiThemeKit.Band(window, UiThemeKit.BandShape.FadeLeft, 0.95f, 0.25f);
 
-            var title = CreateText(window, "Title", "OPTIONS", titleFont, 46f, Cyan, TextAlignmentOptions.Center);
-            Place(title.gameObject, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -78f), new Vector2(600f, 70f));
+            var title = CreateText(window, "Title", "OPTIONS", titleFont, 52f, UiTheme.MoonWhite, TextAlignmentOptions.TopLeft);
+            title.characterSpacing = 14f;
+            Place(title.gameObject, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(ContentLeft, -84f), new Vector2(700f, 70f), new Vector2(0f, 1f));
+            Line(window, "TitleLine", UiTheme.Red, new Vector2(0f, 1f), new Vector2(ContentLeft, -156f), new Vector2(140f, 3f), new Vector2(0f, 1f));
 
-            var closeIcon = Instantiate(Prefabs + "Prefabs_Button/Btn_ClosePage.prefab", window);
-            Place(closeIcon, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-70f, -80f), new Vector2(67f, 59f));
-
-            // 탭
+            // 탭: 글자만 + 선택 밑줄. 탭 줄 아래 가는 선
             string[] tabNames = { "사운드", "조작", "그래픽" };
             var tabGroup = window.gameObject.AddComponent<ToggleGroup>();
             tabGroup.allowSwitchOff = false;
@@ -149,11 +155,18 @@ namespace HybridShooter.UI.Options.Editor
             var pages = new GameObject[tabNames.Length];
             for (int i = 0; i < tabNames.Length; i++)
             {
-                tabs[i] = CreateTab(window, tabNames[i], new Vector2((i - 1) * 250f, -170f), tabGroup);
+                tabs[i] = CreateTab(window, tabNames[i], new Vector2(ContentLeft + i * TabSpacing, -196f), tabGroup);
                 pages[i] = CreatePage(window, tabNames[i]).gameObject;
                 pages[i].SetActive(i == 0);
             }
             tabs[0].isOn = true;
+            var tabLine = Line(window, "TabLine", WithAlpha(UiTheme.SteelDim, 0.7f), new Vector2(0f, 1f), new Vector2(ContentLeft, -250f), new Vector2(0f, 1f), new Vector2(0f, 1f));
+            tabLine.anchorMax = new Vector2(1f, 1f);
+            tabLine.offsetMax = new Vector2(-ContentRight, tabLine.offsetMax.y);
+            tabLine.SetSiblingIndex(1); // 탭 밑줄이 이 선 위에 그려지게 (0 = 띠)
+
+            // 오른쪽 아래 "ESC 닫기" (닫기 아이콘 버튼 자리. 눌러도 닫힌다)
+            var closeIcon = HintButton(window, "Btn_CloseHint", "<color=#E0574D>ESC</color>  닫기");
 
             // 사운드
             var soundPage = (RectTransform)pages[0].transform;
@@ -178,10 +191,11 @@ namespace HybridShooter.UI.Options.Editor
             var vSync = SwitchRow(graphicPage, "수직 동기화 (V-Sync)");
             var frameRate = DropdownRow(graphicPage, "프레임 제한");
 
-            // 하단 버튼
-            var reset = BottomButton(window, "Prefabs_Button/Btn_Rectangle01Cyan.prefab", "기본값 복원", -300f);
-            var apply = BottomButton(window, "Prefabs_Button/Btn_Rectangle01Yellow.prefab", "적용", 0f);
-            var close = BottomButton(window, "Prefabs_Button/Btn_Rectangle01Cyan.prefab", "닫기", 300f);
+            // 하단 버튼 (메인 메뉴식 글자 버튼. 적용만 평소에도 밝게)
+            var reset = BottomButton(window, "기본값 복원", ContentLeft, UiTheme.Steel);
+            var apply = BottomButton(window, "적용", ContentLeft + 240f, UiTheme.MoonWhite);
+            var close = BottomButton(window, "닫기", ContentLeft + 400f, UiTheme.Steel);
+            LinkHorizontal(reset, apply, close);
 
             var so = new SerializedObject(root.GetComponent<OptionsPopup>());
             Set(so, "group", group);
@@ -216,36 +230,56 @@ namespace HybridShooter.UI.Options.Editor
             Set(so, "applyButton", apply);
             Set(so, "resetButton", reset);
             Set(so, "closeButton", close);
-            Set(so, "closeIconButton", closeIcon.GetComponent<Button>());
+            Set(so, "closeIconButton", closeIcon);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             root.SetActive(false); // OptionsPopup.Open() 이 켠다
         }
 
-        /// <summary>시안 탭 배경 + 선택 시 노란 배경(Toggle.graphic)</summary>
+        /// <summary>탭 사이 간격 (왼쪽 끝 기준)</summary>
+        private const float TabSpacing = 160f;
+
+        /// <summary>
+        /// 글자 탭: 투명한 클릭 영역 + 글자 + 선택 시 붉은 밑줄(Toggle.graphic).
+        /// 글자 색(선택 = 달빛 흰색, 평소 = 청회색)은 OptionsPopup.SelectTab 이 바꾸고, 키보드 포커스는 글자 밝기(ColorTint)로 보인다
+        /// </summary>
         private static Toggle CreateTab(RectTransform parent, string label, Vector2 position, ToggleGroup group)
         {
             var rect = NewRect("Tab_" + label, parent);
-            Place(rect.gameObject, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), position, new Vector2(230f, 108f));
-            var background = rect.gameObject.AddComponent<Image>();
-            background.sprite = LoadSprite("Buttons/Btn_SettingsMenuCyan_n.png");
+            Place(rect.gameObject, new Vector2(0f, 1f), new Vector2(0f, 1f), position, new Vector2(130f, 54f), new Vector2(0f, 1f));
+            var hit = rect.gameObject.AddComponent<Image>();
+            hit.color = Color.clear;
 
-            var on = NewRect("Selected", rect);
-            Stretch(on);
-            var onImage = on.gameObject.AddComponent<Image>();
-            onImage.sprite = LoadSprite("Buttons/Btn_SettingsMenuYellow_n.png");
-            onImage.raycastTarget = false;
-
-            var text = CreateText(rect, "Label", label, bodyFont, 32f, Color.white, TextAlignmentOptions.Center);
+            var text = CreateText(rect, "Label", label, bodyFont, 26f, UiTheme.Steel, TextAlignmentOptions.MidlineLeft);
             Stretch(text.rectTransform);
 
+            var on = NewRect("Selected", rect);
+            Place(on.gameObject, Vector2.zero, new Vector2(0f, 0f), Vector2.zero, new Vector2(text.GetPreferredValues(label).x, 2f), Vector2.zero);
+            var onImage = on.gameObject.AddComponent<Image>();
+            onImage.color = UiTheme.Red;
+            onImage.raycastTarget = false;
+
             var toggle = rect.gameObject.AddComponent<Toggle>();
-            toggle.targetGraphic = background;
+            toggle.targetGraphic = text;
+            toggle.colors = FocusColors();
             toggle.graphic = onImage;
             toggle.group = group;
             toggle.toggleTransition = Toggle.ToggleTransition.None;
             toggle.isOn = false;
             return toggle;
+        }
+
+        /// <summary>포커스·호버 때만 원래 밝기, 평소에는 조금 어둡게 (글자·핸들에 쓰는 ColorTint)</summary>
+        private static ColorBlock FocusColors()
+        {
+            var colors = ColorBlock.defaultColorBlock;
+            colors.normalColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            colors.highlightedColor = Color.white;
+            colors.selectedColor = Color.white;
+            colors.pressedColor = Color.white;
+            colors.disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);
+            colors.fadeDuration = 0.08f;
+            return colors;
         }
 
         /// <summary>탭 아래 ~ 하단 버튼 위 영역. 줄은 위에서부터 쌓는다</summary>
@@ -254,11 +288,11 @@ namespace HybridShooter.UI.Options.Editor
             var page = NewRect("Page_" + label, window);
             page.anchorMin = Vector2.zero;
             page.anchorMax = Vector2.one;
-            page.offsetMin = new Vector2(100f, 150f);
-            page.offsetMax = new Vector2(-100f, -240f);
+            page.offsetMin = new Vector2(ContentLeft, 160f);
+            page.offsetMax = new Vector2(-ContentRight, -282f);
 
             var layout = page.gameObject.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 12f;
+            layout.spacing = 4f;
             layout.childAlignment = TextAnchor.UpperCenter;
             layout.childControlWidth = true;
             layout.childForceExpandWidth = true;
@@ -274,56 +308,128 @@ namespace HybridShooter.UI.Options.Editor
             element.minHeight = height;
             element.preferredHeight = height;
 
-            var text = CreateText(row, "Label", label, bodyFont, 30f, TextColor, TextAlignmentOptions.MidlineLeft);
+            var text = CreateText(row, "Label", label, bodyFont, 24f, UiTheme.Steel, TextAlignmentOptions.MidlineLeft);
             Place(text.gameObject, new Vector2(0f, 0f), new Vector2(0f, 1f), Vector2.zero, new Vector2(LabelWidth, 0f), new Vector2(0f, 0.5f));
             return row;
         }
 
+        /// <summary>
+        /// 얇은 단색 슬라이더: 3px 바탕선 + 달빛 흰색 채움 + 3×19 핸들. 줄 높이 전체가 클릭 영역 (핸들이 가늘어도 잡기 쉽게).
+        /// 이름(Background · Fill Area/Fill · Handle Slide Area/Handle)은 Unity 기본 슬라이더와 같다
+        /// </summary>
         private static (Slider, TMP_Text) SliderRow(RectTransform page, string label)
         {
             var row = Row(page, label);
-            var slider = Instantiate(Prefabs + "Prefabs_Option/Slider.prefab", row);
-            Place(slider, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(ControlX, 0f), new Vector2(SliderWidth, 26f), new Vector2(0f, 0.5f));
+            var rect = NewRect("Slider", row);
+            Place(rect.gameObject, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(ControlX, 0f), new Vector2(SliderWidth, 40f), new Vector2(0f, 0.5f));
+            rect.gameObject.AddComponent<Image>().color = Color.clear; // 클릭 영역
 
-            var value = CreateText(row, "Value", "100%", bodyFont, 30f, Cyan, TextAlignmentOptions.MidlineRight);
-            Place(value.gameObject, new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(ControlX + SliderWidth + 20f, 0f), new Vector2(130f, 0f), new Vector2(0f, 0.5f));
-            return (slider.GetComponent<Slider>(), value);
+            var track = Line(rect, "Background", WithAlpha(UiTheme.SteelDim, 0.8f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(0f, UiTheme.ThinBarHeight), new Vector2(0f, 0.5f));
+            track.anchorMax = new Vector2(1f, 0.5f);
+
+            var fillArea = NewRect("Fill Area", rect);
+            Stretch(fillArea);
+            var fill = Line(fillArea, "Fill", UiTheme.MoonWhite, new Vector2(0f, 0.5f), Vector2.zero, new Vector2(0f, UiTheme.ThinBarHeight), new Vector2(0f, 0.5f));
+
+            var handleArea = NewRect("Handle Slide Area", rect);
+            Stretch(handleArea);
+            var handle = Line(handleArea, "Handle", UiTheme.MoonWhite, new Vector2(0f, 0.5f), Vector2.zero, new Vector2(3f, 19f), new Vector2(0.5f, 0.5f));
+            handle.GetComponent<Image>().raycastTarget = true;
+
+            var slider = rect.gameObject.AddComponent<Slider>();
+            slider.fillRect = fill;
+            slider.handleRect = handle;
+            slider.targetGraphic = handle.GetComponent<Image>();
+            slider.direction = Slider.Direction.LeftToRight;
+            slider.colors = FocusColors();
+
+            var value = CreateText(row, "Value", "100%", titleFont, 24f, UiTheme.MoonWhite, TextAlignmentOptions.MidlineRight);
+            Place(value.gameObject, new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(ControlX + SliderWidth + 20f, 0f), new Vector2(ValueWidth, 0f), new Vector2(0f, 0.5f));
+            return (slider, value);
         }
 
+        /// <summary>체크 상자: 어두운 칸 + 가는 청회색 테두리, 켜지면 안쪽 달빛 흰색 네모 (Toggle.graphic)</summary>
         private static Toggle SwitchRow(RectTransform page, string label)
         {
             var row = Row(page, label);
-            var toggle = Instantiate(Prefabs + "Prefabs_Option/Switch.prefab", row);
-            Place(toggle, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(ControlX, 0f), new Vector2(122f, 54f), new Vector2(0f, 0.5f));
-            foreach (var legacy in toggle.GetComponentsInChildren<Text>(true)) legacy.text = ""; // 데모 문구 제거
-            return toggle.GetComponent<Toggle>();
+            var rect = NewRect("Switch", row);
+            Place(rect.gameObject, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(ControlX, 0f), new Vector2(34f, 34f), new Vector2(0f, 0.5f));
+            var background = rect.gameObject.AddComponent<Image>();
+            background.color = UiTheme.Night;
+            Frame(rect, WithAlpha(UiTheme.Steel, 0.8f));
+
+            var check = Line(rect, "Checkmark", UiTheme.MoonWhite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(18f, 18f), new Vector2(0.5f, 0.5f));
+
+            var toggle = rect.gameObject.AddComponent<Toggle>();
+            toggle.targetGraphic = background;
+            toggle.colors = FocusColors();
+            toggle.graphic = check.GetComponent<Image>();
+            toggle.toggleTransition = Toggle.ToggleTransition.None;
+            return toggle;
         }
 
+        /// <summary>
+        /// 팩 드롭다운(중첩 프리팹)의 겉만 바꾼다: 상자는 어두운 단색 + 가는 테두리, 화살표 청회색, 펼친 목록은 어두운 판 + 붉은 체크.
+        /// 목록 템플릿·스크롤 구성은 팩 그대로 쓴다
+        /// </summary>
         private static TMP_Dropdown DropdownRow(RectTransform page, string label)
         {
             var row = Row(page, label);
             var dropdown = Instantiate(Prefabs + "Prefabs_Option/Dropdown.prefab", row);
-            Place(dropdown, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(ControlX, 0f), new Vector2(460f, 56f), new Vector2(0f, 0.5f));
+            Place(dropdown, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(ControlX, 0f), new Vector2(SliderWidth, 48f), new Vector2(0f, 0.5f));
+            var component = dropdown.GetComponent<TMP_Dropdown>();
+
+            foreach (var image in dropdown.GetComponentsInChildren<Image>(true))
+            {
+                string name = image.gameObject.name;
+                if (image.gameObject == dropdown)
+                {
+                    image.sprite = null;
+                    image.color = UiTheme.Night;
+                }
+                else if (name.Contains("Arrow")) image.color = UiTheme.Steel;
+                else if (name.Contains("Checkmark")) image.color = UiTheme.Red;
+                else if (name.Contains("Item Background"))
+                {
+                    image.sprite = null;
+                    image.color = WithAlpha(UiTheme.MoonWhite, 0.06f);
+                }
+                else if (name.Contains("Handle")) { image.sprite = null; image.color = UiTheme.Steel; }
+                else if (name.Contains("Scrollbar")) { image.sprite = null; image.color = WithAlpha(UiTheme.SteelDim, 0.6f); }
+                else if (component.template != null && image.transform == component.template)
+                {
+                    image.sprite = null;
+                    image.color = new Color(UiTheme.Night.r, UiTheme.Night.g, UiTheme.Night.b, 0.97f);
+                }
+            }
+            component.colors = FocusColors();
+            Frame((RectTransform)dropdown.transform, WithAlpha(UiTheme.Steel, 0.6f));
+            if (component.template != null) Frame(component.template, WithAlpha(UiTheme.SteelDim, 0.8f));
+
             foreach (var text in dropdown.GetComponentsInChildren<TMP_Text>(true))
             {
                 text.font = bodyFont;
-                text.fontSize = 26f;
+                text.fontSize = 22f;
+                text.color = text.gameObject.name.Contains("Item") ? UiTheme.MoonWhite : UiTheme.Steel;
             }
-            return dropdown.GetComponent<TMP_Dropdown>();
+            if (component.captionText != null) component.captionText.color = UiTheme.MoonWhite;
+            return component;
         }
 
         /// <summary>조작 탭 아래쪽: 제목 + 두 줄 그리드 스크롤 목록 (KeyGuideList 가 실행 시 채움)</summary>
         private static void CreateKeyGuide(RectTransform page)
         {
-            var header = CreateText(page, "KeyGuideTitle", "키 안내", bodyFont, 26f, Cyan, TextAlignmentOptions.BottomLeft);
+            var header = CreateText(page, "KeyGuideTitle", "키 안내", bodyFont, 20f, UiTheme.Steel, TextAlignmentOptions.BottomLeft);
             var headerElement = header.gameObject.AddComponent<LayoutElement>();
-            headerElement.minHeight = headerElement.preferredHeight = 36f;
+            headerElement.minHeight = headerElement.preferredHeight = 40f;
 
             var area = NewRect("KeyGuide", page);
             var areaElement = area.gameObject.AddComponent<LayoutElement>();
             areaElement.minHeight = 120f;
             areaElement.flexibleHeight = 1f;
-            area.gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.3f);
+            area.gameObject.AddComponent<Image>().color = WithAlpha(UiTheme.Night, 0.5f);
+            Line(area, "TopLine", WithAlpha(UiTheme.SteelDim, 0.7f), new Vector2(0f, 1f), Vector2.zero, new Vector2(0f, 1f), new Vector2(0f, 1f))
+                .anchorMax = Vector2.one;
 
             var viewport = NewRect("Viewport", area);
             Stretch(viewport);
@@ -335,9 +441,10 @@ namespace HybridShooter.UI.Options.Editor
             content.pivot = new Vector2(0.5f, 1f);
             content.offsetMin = content.offsetMax = Vector2.zero;
             var grid = content.gameObject.AddComponent<GridLayoutGroup>();
-            grid.padding = new RectOffset(16, 16, 10, 10);
-            grid.cellSize = new Vector2(510f, 40f);
-            grid.spacing = new Vector2(36f, 4f);
+            // 패널 안쪽 폭(800) 에 두 칸: 12 + 372 + 32 + 372 + 12
+            grid.padding = new RectOffset(12, 12, 10, 10);
+            grid.cellSize = new Vector2(372f, 38f);
+            grid.spacing = new Vector2(32f, 4f);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = 2;
             content.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -353,16 +460,113 @@ namespace HybridShooter.UI.Options.Editor
             var so = new SerializedObject(list);
             Set(so, "content", content);
             Set(so, "font", bodyFont);
+            so.FindProperty("fontSize").floatValue = 21f;
+            so.FindProperty("labelColor").colorValue = UiTheme.Steel;
+            so.FindProperty("keyColor").colorValue = UiTheme.RedText;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static Button BottomButton(RectTransform window, string prefab, string label, float x)
+        /// <summary>
+        /// 하단 글자 버튼 (메인 메뉴 버튼과 같은 모양·효과: 선택하면 왼쪽 붉은 표식 + 글자 밀림 + 붉은 밑줄).
+        /// 클릭음은 OptionsPopup 이 내므로 MainMenuButtonFx 의 클릭음은 끈다 (두 번 울리지 않게)
+        /// </summary>
+        private static Button BottomButton(RectTransform window, string label, float x, Color normalColor)
         {
-            var go = Instantiate(Prefabs + prefab, window);
-            go.name = "Btn_" + label;
-            Place(go, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(x, 85f), new Vector2(250f, 90f));
-            SetButtonText(go, label, bodyFont, 32f);
-            return go.GetComponent<Button>();
+            const float labelX = 34f, fontSize = 26f;
+            var rect = NewRect("Btn_" + label, window);
+            Place(rect.gameObject, Vector2.zero, Vector2.zero, new Vector2(x - labelX, 70f), new Vector2(220f, 56f), new Vector2(0f, 0.5f));
+            var hit = rect.gameObject.AddComponent<Image>();
+            hit.color = Color.clear;
+
+            var marker = Line(rect, "Marker", UiTheme.Red, new Vector2(0f, 0.5f), Vector2.zero, new Vector2(4f, fontSize * 0.95f), new Vector2(0f, 0.5f));
+            var text = CreateText(rect, "Label", label, bodyFont, fontSize, normalColor, TextAlignmentOptions.MidlineLeft);
+            Place(text.gameObject, Vector2.zero, Vector2.one, new Vector2(labelX, 0f), new Vector2(-labelX, 0f), new Vector2(0f, 0.5f));
+            var underline = Line(rect, "Underline", UiTheme.Red, new Vector2(0f, 0.5f), new Vector2(labelX, -fontSize * 0.7f),
+                new Vector2(text.GetPreferredValues(label).x + 20f, 2f), new Vector2(0f, 0.5f));
+            underline.gameObject.AddComponent<UiFade>().Set(1f, 0f);
+
+            var button = rect.gameObject.AddComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            button.targetGraphic = hit;
+
+            var fx = rect.gameObject.AddComponent<MainMenuButtonFx>();
+            var so = new SerializedObject(fx);
+            Set(so, "label", text);
+            Set(so, "marker", marker.GetComponent<Image>());
+            Set(so, "underline", underline);
+            so.FindProperty("clickSoundKey").stringValue = "";
+            so.FindProperty("normalTextColor").colorValue = normalColor;
+            so.FindProperty("selectedTextColor").colorValue = UiTheme.MoonWhite;
+            so.FindProperty("selectedScale").floatValue = 1f;
+            so.FindProperty("labelShift").floatValue = 12f;
+            so.FindProperty("transitionTime").floatValue = 0.15f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return button;
+        }
+
+        /// <summary>오른쪽 아래 키 안내 겸 닫기 버튼 ("ESC  닫기"). 눌러도 닫힌다</summary>
+        private static Button HintButton(RectTransform window, string name, string text)
+        {
+            var rect = NewRect(name, window);
+            Place(rect.gameObject, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-ContentRight, 70f), new Vector2(240f, 44f), new Vector2(1f, 0.5f));
+            var label = CreateText(rect, "Label", text, bodyFont, 20f, UiTheme.Steel, TextAlignmentOptions.MidlineRight);
+            label.richText = true;
+            label.raycastTarget = true;
+            Stretch(label.rectTransform);
+            var button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = label;
+            button.colors = FocusColors();
+            button.navigation = new Navigation { mode = Navigation.Mode.None }; // 키보드 이동 대상은 아님 (Esc 로 닫는다)
+            return button;
+        }
+
+        /// <summary>하단 버튼 좌우 이동 (끝에서 처음으로 돈다)</summary>
+        private static void LinkHorizontal(params Button[] buttons)
+        {
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                buttons[i].navigation = new Navigation
+                {
+                    mode = Navigation.Mode.Explicit,
+                    selectOnLeft = buttons[(i - 1 + buttons.Length) % buttons.Length],
+                    selectOnRight = buttons[(i + 1) % buttons.Length],
+                };
+            }
+        }
+
+        /// <summary>단색 선·면 (Image, 클릭 안 받음)</summary>
+        private static RectTransform Line(RectTransform parent, string name, Color color, Vector2 anchor, Vector2 position, Vector2 size, Vector2 pivot)
+        {
+            var rect = NewRect(name, parent);
+            Place(rect.gameObject, anchor, anchor, position, size, pivot);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+            return rect;
+        }
+
+        /// <summary>rect 둘레에 1px 테두리 (네 변이 rect 크기를 따라 늘어난다)</summary>
+        private static void Frame(RectTransform rect, Color color)
+        {
+            FrameSide(rect, "FrameTop", color, new Vector2(0f, 1f), Vector2.one, new Vector2(0.5f, 1f), new Vector2(0f, 1f));
+            FrameSide(rect, "FrameBottom", color, Vector2.zero, new Vector2(1f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 1f));
+            FrameSide(rect, "FrameLeft", color, Vector2.zero, new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(1f, 0f));
+            FrameSide(rect, "FrameRight", color, new Vector2(1f, 0f), Vector2.one, new Vector2(1f, 0.5f), new Vector2(1f, 0f));
+        }
+
+        private static void FrameSide(RectTransform parent, string name, Color color, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 size)
+        {
+            var side = NewRect(name, parent);
+            Place(side.gameObject, anchorMin, anchorMax, Vector2.zero, size, pivot);
+            var image = side.gameObject.AddComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+        }
+
+        private static Color WithAlpha(Color color, float alpha)
+        {
+            color.a = alpha;
+            return color;
         }
 
         // ───────────────────────── 공통 ─────────────────────────
