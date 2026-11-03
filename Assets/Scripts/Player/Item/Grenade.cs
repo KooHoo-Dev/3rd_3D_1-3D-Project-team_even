@@ -36,6 +36,12 @@ namespace HybridShooter.Player
         [Tooltip("착지 후 회전 감쇠")]
         [SerializeField] private float landedAngularDamping = 5f;
 
+        [Header("몬스터")]
+        [Tooltip("부딪히면 튕기지 않고 그 자리에서 떨어지는 레이어 (살아 있는 몬스터·보스). 이후 이 레이어와는 충돌하지 않는다")]
+        [SerializeField] private LayerMask monsterMask;
+        [Tooltip("몬스터에 부딪힌 뒤 아래로 주는 속도 (m/s)")]
+        [SerializeField] private float monsterDropSpeed = 1f;
+
         private Rigidbody body;
         private GrenadeStats stats;
         private ProjectileContext context;
@@ -82,6 +88,7 @@ namespace HybridShooter.Player
             }
 
             landed = false;
+            body.excludeLayers = 0;
             body.isKinematic = false;
             // 던지는 쪽이 감쇠 없는 포물선으로 착지점을 계산하므로 날아가는 동안은 감쇠를 끈다
             body.linearDamping = 0f;
@@ -97,15 +104,35 @@ namespace HybridShooter.Player
             if (launched && Time.time >= explodeTime) Explode();
         }
 
-        /// <summary>처음 부딪히면 거의 멈춘다 (조준한 곳에서 굴러가지 않게). 벽에 맞으면 그 앞으로 떨어진다</summary>
+        /// <summary>
+        /// 처음 부딪히면 거의 멈춘다 (조준한 곳에서 굴러가지 않게). 벽에 맞으면 그 앞으로 떨어진다.
+        /// 몬스터는 착지 여부와 상관없이 매번: 이동하는 몸(NavMeshAgent)이 밀어내 튕기지 않게 속도를 버리고 몸을 통과해 발밑으로 떨어진다
+        /// </summary>
         private void OnCollisionEnter(Collision collision)
         {
-            if (launched == false || landed) return;
+            if (launched == false) return;
+            if ((monsterMask.value & (1 << collision.collider.gameObject.layer)) != 0)
+            {
+                DropThroughMonsters();
+                return;
+            }
+            if (landed) return;
             landed = true;
             body.linearVelocity *= impactVelocityKeep;
             body.angularVelocity *= impactVelocityKeep;
             body.linearDamping = landedLinearDamping;
             body.angularDamping = landedAngularDamping;
+        }
+
+        /// <summary>
+        /// 충돌 반작용으로 받은 속도를 버리고 아래로 떨어뜨린다. 이후 몬스터와는 충돌하지 않는다.
+        /// landed 는 건드리지 않는다: 공중이면 감쇠 없이 떨어지다가 바닥에 닿을 때 보통 착지 처리를 받는다
+        /// </summary>
+        private void DropThroughMonsters()
+        {
+            body.excludeLayers = body.excludeLayers.value | monsterMask.value;
+            body.linearVelocity = Vector3.down * monsterDropSpeed;
+            body.angularVelocity = Vector3.zero;
         }
 
         private void Explode()

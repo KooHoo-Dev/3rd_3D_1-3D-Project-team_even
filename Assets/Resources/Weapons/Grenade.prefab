@@ -193,3 +193,7 @@ MonoBehaviour:
   impactVelocityKeep: 0.2
   landedLinearDamping: 3
   landedAngularDamping: 5
+  monsterMask:
+    serializedVersion: 2
+    m_Bits: 114688
+  monsterDropSpeed: 1
