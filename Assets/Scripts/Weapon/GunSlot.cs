@@ -125,6 +125,71 @@ namespace HybridShooter.Weapon
         public IReadOnlyList<Gun> AllGuns => allGuns;
         public bool IsAiming => CurrentGun != null && CurrentGun.IsAiming;
 
+        public sealed class CheckpointState
+        {
+            internal readonly int[] WeaponIds;
+            internal readonly int[] Ammo;
+            internal readonly int[] SpareMagazines;
+            internal readonly int CurrentIndex;
+            internal readonly int SlotBeforeSupply;
+
+            internal CheckpointState(int[] weaponIds, int[] ammo, int[] spareMagazines, int currentIndex, int slotBeforeSupply)
+            {
+                WeaponIds = weaponIds;
+                Ammo = ammo;
+                SpareMagazines = spareMagazines;
+                CurrentIndex = currentIndex;
+                SlotBeforeSupply = slotBeforeSupply;
+            }
+        }
+
+        public CheckpointState CaptureCheckpoint()
+        {
+            var weaponIds = new int[SlotCount];
+            var ammo = new int[SlotCount];
+            var spareMagazines = new int[SlotCount];
+            for (int i = 0; i < SlotCount; i++)
+            {
+                if (slots[i] == null) continue;
+                weaponIds[i] = slots[i].WeaponId;
+                ammo[i] = slots[i].Ammo;
+                spareMagazines[i] = slots[i].SpareMagazines;
+            }
+            return new CheckpointState(weaponIds, ammo, spareMagazines, currentIndex, slotBeforeSupply);
+        }
+
+        public void RestoreCheckpoint(CheckpointState state)
+        {
+            int previousSupplyId = SupplyWeaponId;
+            for (int i = 0; i < SlotCount; i++)
+            {
+                if (slots[i] == null) continue;
+                slots[i].Unequip();
+                if (reserve.Contains(slots[i]) == false) reserve.Add(slots[i]);
+                slots[i] = null;
+            }
+            currentIndex = -1;
+            slotBeforeSupply = state.SlotBeforeSupply;
+            supplyDepletedAt = float.PositiveInfinity;
+
+            for (int i = 0; i < SlotCount; i++)
+            {
+                if (state.WeaponIds[i] == 0) continue;
+                Gun gun = FindReserve(state.WeaponIds[i]);
+                if (gun == null)
+                {
+                    Debug.LogError($"[GunSlot] 체크포인트 무기 {state.WeaponIds[i]}를 찾지 못했습니다.", this);
+                    continue;
+                }
+                PlaceFromReserve(i, gun);
+                gun.RestoreCheckpointAmmo(state.Ammo[i], state.SpareMagazines[i]);
+            }
+
+            if (Select(state.CurrentIndex) == false && Select(startSlot) == false && SelectNext(1) == false) GunChanged?.Invoke(-1, null);
+            LoadoutChanged?.Invoke();
+            if (previousSupplyId != SupplyWeaponId) EventBus<SupplyWeaponChangedEvent>.Publish(new SupplyWeaponChangedEvent(previousSupplyId, SupplyWeaponId));
+        }
+
         // ── 총이 읽는 플레이어 정보 ──
         public Faction Faction => Faction.Player;
         public Transform OwnerRoot => transform;

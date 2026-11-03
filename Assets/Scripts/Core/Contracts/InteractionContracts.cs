@@ -83,6 +83,8 @@ namespace HybridShooter.Core.Contracts
     public interface IWeaponUnlocks
     {
         bool IsUnlocked(int weaponId);
+        /// <summary>해금 알림을 다시 재생하지 않고 체크포인트의 해금 상태로 교체한다</summary>
+        void RestoreUnlocked(System.Collections.Generic.IReadOnlyCollection<int> weaponIds);
     }
 
     /// <summary>

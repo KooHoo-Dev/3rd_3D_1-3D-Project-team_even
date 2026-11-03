@@ -199,7 +199,7 @@ namespace HybridShooter.Player
             SyncRigRotationNow();
         }
 
-        private void ResetLife()
+        private void ResetLife(bool resetLives = true)
         {
             isReviving = false;
             reviveBodyRestored = false;
@@ -210,7 +210,9 @@ namespace HybridShooter.Player
             PublishHp();
             RestoreStamina();
             SetMoveInput(Vector3.zero, false);
-            ResetLives(); // LifeReset 전에: 받는 쪽이 새 목숨을 본다
+            // LifeReset 전에: 받는 쪽이 복원된 목숨을 본다.
+            if (resetLives) ResetLives();
+            else PublishLives();
             LifeReset?.Invoke();
         }
         #endregion

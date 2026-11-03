@@ -408,6 +408,21 @@ namespace HybridShooter.Weapon
             PublishAmmo();
         }
 
+        /// <summary>이전 시도의 사격 예약·반동을 버리고 체크포인트의 탄약을 복원한다</summary>
+        public void RestoreCheckpointAmmo(int ammo, int spareMagazines)
+        {
+            CancelActions();
+            RefreshStats();
+            nextFireTime = readyTime = nextDryFireTime = Time.time;
+            lastShotTime = float.NegativeInfinity;
+            triggerDownFrame = -1;
+            bloom = recoilToRecover = 0f;
+            pendingKick = Vector2.zero;
+            SpareMagazines = Mathf.Clamp(spareMagazines, 0, Stats.maxMagazines);
+            OnInitialized();
+            SetAmmo(ammo);
+        }
+
         /// <summary>사격 모드 전환 (B). 지원하지 않는 총은 false</summary>
         public virtual bool ToggleFireMode() => false;
 

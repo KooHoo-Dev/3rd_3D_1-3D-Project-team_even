@@ -61,6 +61,12 @@ namespace HybridShooter.Core.Services
         /// <summary>해금 기록을 지운다 (기본 무기만 남음). 테스트·디버그용</summary>
         public void ResetAll() => unlocked.Clear();
 
+        public void RestoreUnlocked(IReadOnlyCollection<int> weaponIds)
+        {
+            unlocked.Clear();
+            foreach (int id in weaponIds) unlocked.Add(id);
+        }
+
         /// <summary>
         /// 라운드를 클리어하면 UnlockOrder 가 그 라운드 번호 이하인 잠긴 무기를 모두 해금한다.
         /// 앞 라운드 해금을 놓친 경우(라운드 점프 테스터 등)도 함께 채운다. StageClearedEvent 가 부른다.
