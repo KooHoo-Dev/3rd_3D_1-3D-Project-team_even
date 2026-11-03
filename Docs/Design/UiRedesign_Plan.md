@@ -20,7 +20,8 @@
 | `UI/UpgradeScreen.cs` · `UpgradeUiSkin.cs` | pinkshield | 11-02 | 없음 | 보통 |
 | `UI/Options/Editor/OptionsPopupBuilder.cs` + 프리팹 | pinkshield | 11-02 | 없음 | 보통 (프리팹 재생성) |
 | `UI/Intro/*` · `UI/Ending/*` + 씬 | MinSeong | 11-02 | 없음 | 높음 (씬 재생성) |
-| `Boss/Tyranopode/TyranopodeAnalysisHud.cs` | MinSeong | 11-01 | 없음 (weakpoint-feedback 은 다른 파일) | 낮음 |
+| `Boss/Tyranopode/TyranopodeAnalysisHud.cs` | MinSeong | 11-01 | 없음 (weakpoint-feedback 은 develop 에 머지됨, 다른 파일) | 낮음 |
+| `Player/Effects/PlayerReviveEffect.cs` | MinSeong | 10-27 | **feat/MS** (11-03 확인) | 높음 → PR7 은 feat/MS 머지 후 |
 | `Core/Events/GameEvents.cs`, `StreamingAssets/Tables/*.tsv` | 공용 | — | new-round-type · weakpoint-feedback | **수정 안 함** |
 
 작업 시작 직전마다 다시 확인한다:
@@ -71,6 +72,8 @@ PR 은 작게 나누고 develop 에 자주 머지한다. 각 PR 을 시작하기
 | 9 | 정리 | 안 쓰는 스킨 스프라이트 참조 제거 | 1~8 머지 후 |
 
 PR 2·3·4·7 은 서로 파일이 겹치지 않아 순서와 상관없이 병렬로 진행할 수 있다.
+
+진행 (11-03): PR1 테마·아이콘 ✔ · 메인 메뉴 로고 + 씬 재생성 ✔ · PR2 전투 HUD ✔ · PR3 알림·카드 ✔ (develop #107 받아 옴, UI 파일 겹침 없음)
 
 ---
 

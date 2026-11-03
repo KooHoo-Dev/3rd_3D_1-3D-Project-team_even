@@ -24,25 +24,33 @@ namespace HybridShooter.UI.Theme
         private const float EdgeRatio = 0.22f;
 
         #region 띠·선
-        /// <summary>target 을 꽉 채우는 어두운 띠를 맨 뒤 자식으로 깐다</summary>
-        public static RectTransform Band(RectTransform target, BandShape shape, float alpha = 0.82f)
+        /// <summary>
+        /// target 을 꽉 채우는 어두운 띠를 맨 뒤 자식으로 깐다.
+        /// fadeRatio = 흐려지는 구간 비율 (FadeRight·FadeLeft 기본 1 = 전체가 서서히, 0.3 = 끝 30% 만 흐리고 나머지는 진하게.
+        /// FadeBoth 는 양끝 각각, 기본 0.22)
+        /// </summary>
+        public static RectTransform Band(RectTransform target, BandShape shape, float alpha = 0.82f, float fadeRatio = -1f)
         {
             var band = HudFactory.Stretch(target, "Band");
             band.SetAsFirstSibling();
             var color = new Color(UiTheme.Night.r, UiTheme.Night.g, UiTheme.Night.b, alpha);
+            float fade = Mathf.Clamp01(fadeRatio < 0f ? (shape == BandShape.FadeBoth ? EdgeRatio : 1f) : fadeRatio);
+            // 정점 4개짜리 Image 는 양끝 알파만 정할 수 있으므로 흐린 조각 · 진한 조각으로 나눈다
             switch (shape)
             {
                 case BandShape.FadeRight:
-                    Fade(HudFactory.NewImage(band, null, color), 1f, 0f);
+                    if (fade < 1f) BandPiece(band, "Solid", 0f, 1f - fade, color);
+                    Fade(BandPiece(band, "Fade", 1f - fade, 1f, color), 1f, 0f);
                     break;
                 case BandShape.FadeLeft:
-                    Fade(HudFactory.NewImage(band, null, color), 0f, 1f);
+                    Fade(BandPiece(band, "Fade", 0f, fade, color), 0f, 1f);
+                    if (fade < 1f) BandPiece(band, "Solid", fade, 1f, color);
                     break;
                 default:
-                    // 정점 4개짜리 Image 로는 양끝을 못 흐리므로 왼쪽 끝 · 가운데 · 오른쪽 끝 세 조각으로
-                    Fade(BandPiece(band, "Left", 0f, EdgeRatio, color), 0f, 1f);
-                    BandPiece(band, "Middle", EdgeRatio, 1f - EdgeRatio, color);
-                    Fade(BandPiece(band, "Right", 1f - EdgeRatio, 1f, color), 1f, 0f);
+                    fade = Mathf.Min(fade, 0.5f);
+                    Fade(BandPiece(band, "Left", 0f, fade, color), 0f, 1f);
+                    BandPiece(band, "Middle", fade, 1f - fade, color);
+                    Fade(BandPiece(band, "Right", 1f - fade, 1f, color), 1f, 0f);
                     break;
             }
             return band;
