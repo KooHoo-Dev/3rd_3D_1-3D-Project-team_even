@@ -340,8 +340,10 @@ namespace HybridShooter.UI
             totalText = CreateTotalRow(p, 566f);
             rewardBalanceText = CreateRow(p, "보유 재화 (이전 라운드 잔액 포함)", 656f, false);
 
-            selectButton = CreateTextButton(p, "SelectUpgradeButton", "강화 선택" + NextMark, 34f, UiTheme.TextFont, out _);
-            Place((RectTransform)selectButton.transform, 0f, 776f, 340f, 76f);
+            // 이 화면의 주 행동이라 붉은 면 버튼 (› 는 붉은 바탕에서 보이게 흰색)
+            selectButton = UiThemeKit.PrimaryButton(p, "SelectUpgradeButton", "강화 선택  ›", UiTheme.TextFont, new Vector2(0.5f, 1f), Vector2.zero,
+                new Vector2(380f, 80f), out _);
+            Place((RectTransform)selectButton.transform, 0f, 772f, 380f, 80f);
             selectButton.onClick.AddListener(() => ShowUpgrade(true));
         }
 

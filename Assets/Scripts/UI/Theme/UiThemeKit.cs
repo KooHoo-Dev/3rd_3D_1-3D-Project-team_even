@@ -184,6 +184,40 @@ namespace HybridShooter.UI.Theme
             rect.gameObject.AddComponent<UiTextButtonFx>().Setup(label, marker, underline.rectTransform, UiTheme.Steel, UiTheme.MoonWhite);
             return button;
         }
+
+        /// <summary>
+        /// 화면의 주 행동 버튼 (출발 · 강화 선택 등): 붉은 면 + 굵은 달빛 흰색 글자. 화면마다 하나만 쓴다.
+        /// 호버·선택 때 밝아지고 누르면 어두워진다. 누를 수 없을 때 흐리게 하려면 붙어 있는 CanvasGroup 의 alpha 를 낮춘다.
+        /// 피벗은 가운데. 글자는 이름 "Label" 자식 (labelText 로도 돌려준다)
+        /// </summary>
+        public static Button PrimaryButton(Transform parent, string name, string text, TMP_FontAsset font, Vector2 anchor, Vector2 position,
+                                           Vector2 size, out TextMeshProUGUI labelText)
+        {
+            var rect = HudFactory.Rect(parent, name, anchor, new Vector2(0.5f, 0.5f), position, size);
+            var background = rect.gameObject.AddComponent<Image>();
+            background.color = UiTheme.Red;
+            var button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = background;
+            var colors = ColorBlock.defaultColorBlock;
+            colors.normalColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            colors.highlightedColor = Color.white;
+            colors.selectedColor = Color.white;
+            colors.pressedColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+            colors.disabledColor = colors.normalColor; // 비활성은 CanvasGroup 으로 흐리게
+            colors.colorMultiplier = 1.15f;
+            colors.fadeDuration = 0.08f;
+            button.colors = colors;
+            rect.gameObject.AddComponent<CanvasGroup>();
+
+            labelText = HudFactory.Label(rect, "Label", font, size.y * 0.4f, TextAlignmentOptions.Center,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, size);
+            labelText.text = text;
+            labelText.color = UiTheme.MoonWhite;
+            labelText.fontStyle = FontStyles.Bold;
+            labelText.characterSpacing = 6f;
+            labelText.raycastTarget = false;
+            return button;
+        }
         #endregion
 
         private static Image BandPiece(RectTransform band, string name, float fromX, float toX, Color color)

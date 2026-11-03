@@ -535,27 +535,9 @@ namespace HybridShooter.UI
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = 3;
 
-            // 출발: 아래 가운데 붉은 버튼 (이 화면의 주 행동이라 유일하게 면을 칠한다). 호버·선택 때 밝아지고 누르면 어두워진다
-            var start = CreateButton(root, "StartButton", new Vector2(360f, 76f), out startLabel);
-            var startRt = (RectTransform)start.transform;
-            startRt.anchorMin = startRt.anchorMax = new Vector2(0.5f, 0f);
-            startRt.pivot = new Vector2(0.5f, 0f);
-            startRt.anchoredPosition = new Vector2(0f, 64f);
-            ((Image)start.targetGraphic).color = UiTheme.Red;
-            var startColors = ColorBlock.defaultColorBlock;
-            startColors.normalColor = new Color(0.9f, 0.9f, 0.9f, 1f);
-            startColors.highlightedColor = Color.white;
-            startColors.selectedColor = Color.white;
-            startColors.pressedColor = new Color(0.7f, 0.7f, 0.7f, 1f);
-            startColors.disabledColor = new Color(0.9f, 0.9f, 0.9f, 1f); // 비활성은 CanvasGroup 으로 흐리게
-            startColors.colorMultiplier = 1.15f;
-            startColors.fadeDuration = 0.08f;
-            start.colors = startColors;
-            startLabel.fontSize = 30f;
-            startLabel.fontStyle = FontStyles.Bold;
-            startLabel.characterSpacing = 6f;
-            startLabel.color = UiTheme.MoonWhite;
-            start.gameObject.AddComponent<CanvasGroup>();
+            // 출발: 아래 가운데 붉은 주 버튼 (이 화면의 주 행동이라 유일하게 면을 칠한다. 보상 화면 [강화 선택]과 같은 모양)
+            var start = UiThemeKit.PrimaryButton(root, "StartButton", string.Empty, textFont, new Vector2(0.5f, 0f), new Vector2(0f, 104f),
+                new Vector2(380f, 80f), out startLabel);
             start.onClick.AddListener(Confirm);
             startButton = start;
 
