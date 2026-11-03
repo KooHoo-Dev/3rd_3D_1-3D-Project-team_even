@@ -1875,7 +1875,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.25, y: 1.25, z: 1.25}
+  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 6204530840110118074}
@@ -1960,6 +1960,9 @@ MonoBehaviour:
   sampleRadius: 4
   engagedPriority: 30
   defaultPriority: 60
+  smallObstacleProbeDepth: 2.5
+  maxDetourExtraLength: 2
+  maxDetourHeightDifference: 0.75
 --- !u!114 &-6963252850141782799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1982,7 +1985,6 @@ MonoBehaviour:
   hitEndRatio: 0.5
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
-  aimOffsetRadius: 3
   hitRangeRatio: 2
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
