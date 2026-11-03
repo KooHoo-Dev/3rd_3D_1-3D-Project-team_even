@@ -73,7 +73,8 @@ PR 은 작게 나누고 develop 에 자주 머지한다. 각 PR 을 시작하기
 
 PR 2·3·4·7 은 서로 파일이 겹치지 않아 순서와 상관없이 병렬로 진행할 수 있다.
 
-진행 (11-03): PR1 테마·아이콘 ✔ · 메인 메뉴 로고 + 씬 재생성 ✔ · PR2 전투 HUD ✔ · PR3 알림·카드 ✔ (develop #107 받아 옴, UI 파일 겹침 없음) · PR4 보상·강화·게임 오버 ✔ (UpgradeScreen 은 TMP 로 전환, 튜토리얼 강화 체험도 같은 화면) · PR7 중 보스 분석 HUD ✔ (부활 연출은 feat/MS 머지 후)
+진행 (11-03): PR1 테마·아이콘 ✔ · 메인 메뉴 로고 + 씬 재생성 ✔ · PR2 전투 HUD ✔ · PR3 알림·카드 ✔ (develop #107 받아 옴, UI 파일 겹침 없음) · PR4 보상·강화·게임 오버 ✔ (UpgradeScreen 은 TMP 로 전환, 튜토리얼 강화 체험도 같은 화면) · PR7 보스 분석 HUD ✔ · PR5 무기 선택 ✔ · PR6 옵션 (코드 ✔, 프리팹 재생성 남음) · PR7 부활 글자 ✔ · PR8 인트로·엔딩 (코드 ✔, 씬 재생성 남음).
+  feat/new-round-type · feat/MS 와 시험 병합(merge-tree) 충돌 0 — 같은 파일이지만 다른 줄. 남은 것: RoundObjectiveHud (feat/new-round-type 머지 후), 프리팹·씬 재생성, PR9 정리
 
 ---
 
