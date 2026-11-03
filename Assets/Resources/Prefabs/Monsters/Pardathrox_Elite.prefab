@@ -12,6 +12,10 @@ PrefabInstance:
       propertyPath: monsterId
       value: 2102
       objectReference: {fileID: 0}
+    - target: {fileID: -716610186761490424, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
+      propertyPath: hitReaction
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1711293842078478529, guid: cb3a1ce9c3c70244c9f23e5428166654, type: 3}
       propertyPath: m_Materials.Array.size
       value: 2
