@@ -1958,6 +1958,9 @@ MonoBehaviour:
   sampleRadius: 4
   engagedPriority: 30
   defaultPriority: 60
+  smallObstacleProbeDepth: 2.5
+  maxDetourExtraLength: 2
+  maxDetourHeightDifference: 0.75
 --- !u!114 &-6963252850141782799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1980,7 +1983,6 @@ MonoBehaviour:
   hitEndRatio: 1
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
-  aimOffsetRadius: 1
   hitRangeRatio: 1.5
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
@@ -2004,10 +2006,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.45
+  m_Radius: 0.30532363
   m_Height: 0.9
   m_Direction: 1
-  m_Center: {x: 0, y: 0.45, z: 0}
+  m_Center: {x: 0, y: 0.45, z: 0.14467639}
 --- !u!114 &-4614585149263457273
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2058,10 +2060,10 @@ MonoBehaviour:
   corpseLayerName: MonsterCorpse
   bodyCollider: {fileID: 0}
   mass: 60
-  angularDamping: 0.5
+  angularDamping: 3
   hitPushSpeed: 5
   upwardKickSpeed: 1.5
   randomSpinSpeed: 2
-  lyingSeconds: 2.5
+  lyingSeconds: 2
   sinkSeconds: 1.5
-  extraSinkDepth: 0.5
+  extraSinkDepth: 1
