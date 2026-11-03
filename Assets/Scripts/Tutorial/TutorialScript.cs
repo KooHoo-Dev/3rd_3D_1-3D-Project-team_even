@@ -42,11 +42,13 @@ namespace HybridShooter.Tutorial
         [Tooltip("차단막에 그냥 닿았을 때 피해")]
         [Min(1)] public int BarrierDamage = 10;
 
-        [Header("휴면 개체 (②·③·④)")]
+        [Header("휴면 개체 (②·②-B·③·④)")]
         [Tooltip("MonsterTable Id. 기본 1001 부포모프 (지상 최약체)")]
         public int DormantMonsterId = 1001;
         [Tooltip("② 사격 표적 수 (aim 소환 지점 수보다 많으면 지점 수만큼)")]
         [Min(1)] public int AimTargetCount = 3;
+        [Tooltip("②-B 무기 교체 뒤 주무기로 잡을 표적 수 (aim 소환 지점 수보다 많으면 지점 수만큼)")]
+        [Min(1)] public int SwitchTargetCount = 3;
         [Tooltip("③ 수류탄 무리 수")]
         [Min(1)] public int GrenadeGroupCount = 5;
         [Tooltip("③ 수류탄이 없을 때 채워 줄 개수")]

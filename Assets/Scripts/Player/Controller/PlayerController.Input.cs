@@ -12,6 +12,26 @@ namespace HybridShooter.Player
         /// <summary>게임 흐름(Ready·Reward·GameOver·Paused)·메뉴(출발 전 무기 선택 등)·연출(PlayerController.Cinematic) 때문에 입력이 막힘</summary>
         public bool IsGameplayInputBlocked => flowInputBlocked || menuInputBlocked || cinematicActive;
 
+        private PlayerAbility allowedAbilities = PlayerAbility.All;
+        /// <summary>입력으로 할 수 있는 행동 (기본 전부). 튜토리얼이 과목마다 좁힌다</summary>
+        public PlayerAbility AllowedAbilities => allowedAbilities;
+
+        public bool IsAllowed(PlayerAbility ability) => (allowedAbilities & ability) == ability;
+
+        /// <summary>
+        /// 입력으로 할 수 있는 행동을 정한다. 흐름·메뉴 차단(IsGameplayInputBlocked)과 별도라 서로 덮어쓰지 않는다.
+        /// 막히는 순간 하던 이동·조준·사격은 놓는다 (이미 시작한 구르기·투척·회복은 끝까지 간다)
+        /// </summary>
+        public void SetAllowedAbilities(PlayerAbility abilities)
+        {
+            if (allowedAbilities == abilities) return;
+            allowedAbilities = abilities;
+            if (IsAllowed(PlayerAbility.Move) == false) SetMoveInput(Vector3.zero, false);
+            if (gunSlot == null) return;
+            if (IsAllowed(PlayerAbility.Fire) == false) gunSlot.TriggerUp();
+            if (IsAllowed(PlayerAbility.Aim) == false && gunSlot.IsAiming) gunSlot.AimUp();
+        }
+
         /// <summary>
         /// 메뉴 화면(출발 전 무기 선택 등)이 이동·사격·시선 입력을 막고 커서를 보인다.
         /// 게임 흐름 차단(GameStateChangedEvent)과 별도 플래그라 서로 덮어쓰지 않는다
@@ -41,24 +61,27 @@ namespace HybridShooter.Player
 
             // 이동 키 → 로컬 입력 (x = 좌우, y = 앞뒤)
             Vector2 input = Vector2.zero;
-            if (SimpleInput.GetKey(keySettings.frontKey)) input.y += 1f;
-            if (SimpleInput.GetKey(keySettings.backKey)) input.y -= 1f;
-            if (SimpleInput.GetKey(keySettings.rightKey)) input.x += 1f;
-            if (SimpleInput.GetKey(keySettings.leftKey)) input.x -= 1f;
+            if (IsAllowed(PlayerAbility.Move))
+            {
+                if (SimpleInput.GetKey(keySettings.frontKey)) input.y += 1f;
+                if (SimpleInput.GetKey(keySettings.backKey)) input.y -= 1f;
+                if (SimpleInput.GetKey(keySettings.rightKey)) input.x += 1f;
+                if (SimpleInput.GetKey(keySettings.leftKey)) input.x -= 1f;
+            }
             input = Vector2.ClampMagnitude(input, 1f); // 대각선이 더 빨라지지 않게
 
             // 로컬 입력 → 월드 방향
             Vector3 worldMove = InputToWorld(input);
 
             // 이동 + 달리기 (누르고 있는 동안). 조준 중에는 달리지 않는다
-            bool sprint = SimpleInput.GetKey(keySettings.sprintKey) && (gunSlot == null || gunSlot.IsAiming == false);
+            bool sprint = IsAllowed(PlayerAbility.Sprint) && SimpleInput.GetKey(keySettings.sprintKey) && (gunSlot == null || gunSlot.IsAiming == false);
             SetMoveInput(worldMove, sprint);
 
             // 점프
-            if (SimpleInput.GetKeyDown(keySettings.jumpKey)) RequestJump();
+            if (IsAllowed(PlayerAbility.Jump) && SimpleInput.GetKeyDown(keySettings.jumpKey)) RequestJump();
 
             // 구르기: 이동 입력이 있으면 그 방향, 없으면 몸 정면
-            if (SimpleInput.GetKeyDown(keySettings.RollKey))
+            if (IsAllowed(PlayerAbility.Roll) && SimpleInput.GetKeyDown(keySettings.RollKey))
             {
                 Vector3 rollDir = worldMove.sqrMagnitude > 0.0001f ? worldMove : Forward;
                 TryRoll(rollDir);
@@ -73,15 +96,15 @@ namespace HybridShooter.Player
         private void InteractInputHandle()
         {
             if (interactor == null || Cursor.lockState != CursorLockMode.Locked) return;
-            if (SimpleInput.GetKeyDown(keySettings.interactKey)) interactor.TryInteract();
+            if (IsAllowed(PlayerAbility.Interact) && SimpleInput.GetKeyDown(keySettings.interactKey)) interactor.TryInteract();
         }
 
         /// <summary>소모품 입력 → PlayerItems. G 수류탄, V 회복 팩. 커서가 풀려 있으면 무시</summary>
         private void ItemInputHandle()
         {
             if (items == null || Cursor.lockState != CursorLockMode.Locked) return;
-            if (SimpleInput.GetKeyDown(keySettings.grenadeKey)) items.TryThrowGrenade();
-            if (SimpleInput.GetKeyDown(keySettings.healKey)) items.TryUseHeal();
+            if (IsAllowed(PlayerAbility.Grenade) && SimpleInput.GetKeyDown(keySettings.grenadeKey)) items.TryThrowGrenade();
+            if (IsAllowed(PlayerAbility.Heal) && SimpleInput.GetKeyDown(keySettings.healKey)) items.TryUseHeal();
         }
 
         /// <summary>
@@ -98,16 +121,20 @@ namespace HybridShooter.Player
                 return;
             }
 
-            if (SimpleInput.GetMouseButtonDown(SimpleInput.MouseButton.Left)) gunSlot.TriggerDown();
-            if (SimpleInput.GetMouseButtonUp(SimpleInput.MouseButton.Left)) gunSlot.TriggerUp();
+            if (IsAllowed(PlayerAbility.Fire))
+            {
+                if (SimpleInput.GetMouseButtonDown(SimpleInput.MouseButton.Left)) gunSlot.TriggerDown();
+                if (SimpleInput.GetMouseButtonUp(SimpleInput.MouseButton.Left)) gunSlot.TriggerUp();
+            }
             // 조준은 우클릭을 누르고 있고 발이 땅에 닿아 있을 때만. 공중에 뜨면 풀리고, 누른 채 착지하면 다시 조준
-            bool wantAim = SimpleInput.GetMouseButton(SimpleInput.MouseButton.Right) && IsOnGround;
+            bool wantAim = IsAllowed(PlayerAbility.Aim) && SimpleInput.GetMouseButton(SimpleInput.MouseButton.Right) && IsOnGround;
             if (wantAim && gunSlot.IsAiming == false) gunSlot.AimDown();
             else if (wantAim == false && gunSlot.IsAiming) gunSlot.AimUp();
 
-            if (SimpleInput.GetKeyDown(keySettings.reloadKey)) gunSlot.Reload();
-            if (SimpleInput.GetKeyDown(keySettings.fireModeKey)) gunSlot.ToggleFireMode();
+            if (IsAllowed(PlayerAbility.Reload) && SimpleInput.GetKeyDown(keySettings.reloadKey)) gunSlot.Reload();
+            if (IsAllowed(PlayerAbility.FireMode) && SimpleInput.GetKeyDown(keySettings.fireModeKey)) gunSlot.ToggleFireMode();
 
+            if (IsAllowed(PlayerAbility.SwitchWeapon) == false) return;
             for (int i = 0; i < keySettings.slotKeys.Length; i++)
                 if (SimpleInput.GetKeyDown(keySettings.slotKeys[i])) gunSlot.SelectByKey(i);
             // if (SimpleInput.GetKeyDown(keySettings.debugSwapPrimaryKey)) gunSlot.DebugCycleSupplyWeapon();

@@ -4,6 +4,7 @@ using HybridShooter.Core.Data;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
 using HybridShooter.Core.Services;
+using HybridShooter.Player;
 using HybridShooter.Reward;
 using UnityEngine;
 
@@ -26,6 +27,7 @@ namespace HybridShooter.Tutorial.Steps
 
         public override IEnumerator Run()
         {
+            D.Allow(PlayerAbility.Movement); // 강화 화면이 열린 동안은 게임 흐름 차단(Reward)이 따로 막는다
             Objective("obj_upgrade");
             if (D.UpgradeZone != null)
             {

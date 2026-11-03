@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: EndingCreditsText
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.UI.Ending.EndingCreditsText
   title: 'OPERATION : HIVE PURGE'
-  subtitle: "\uC791\uC804 \uC644\uB8CC \u2014 \uD558\uC774\uBE0C \uADFC\uC6D0 \uD589\uC131 \uC18C\uBA78"
+  subtitle: "\uC791\uC804 \uC644\uB8CC \u2014 \uD558\uC774\uBE0C \uADFC\uC6D0 \uD589\uC131
+    \uC18C\uBA78"
   sections:
   - Heading: Thanks to Claude
     Entries:
@@ -59,5 +60,5 @@ MonoBehaviour:
       Names: "Cinemachine \xB7 Timeline"
     - Role: "\uB77C\uC774\uBE0C\uB7EC\uB9AC"
       Names: "DOTween \xB7 UniTask"
-  logo: TEAM EVEN
+  logo: HIVE PURGE
   thanks: THANK YOU FOR PLAYING

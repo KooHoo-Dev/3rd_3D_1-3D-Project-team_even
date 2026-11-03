@@ -1,6 +1,9 @@
+﻿using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
+using HybridShooter.Core.Services;
 using HybridShooter.Player;
+using HybridShooter.UI.Theme;
 using HybridShooter.Weapon;
 using TMPro;
 using UnityEngine;
@@ -15,12 +18,15 @@ namespace HybridShooter.UI
     ///  - GunSlot.GunChanged(바꿔 들기) + LoadoutChanged(구성 변경) 로 갱신
     ///  - 번호 키로 빈 칸을 고르면(GunSlot.EmptySlotSelected) 슬롯 줄 위에 잠깐 경고
     /// 스코프 화면·사망 중·보스 연출 중·강화 선택·게임 오버·일시정지 때는 숨긴다 (PlayerHud 와 같은 규칙)
+    /// 스타일은 UiTheme: 칸 상자 없이 키 번호 + 아이콘, 든 칸만 붉은 밑줄 · 밝은 색, 나머지는 청회색으로 흐리게 (뒤 띠는 PlayerHud 무기 패널이 깐다)
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class WeaponSlotHud : MonoBehaviour
     {
-        private static readonly Color CellColor = new Color(0.02f, 0.06f, 0.09f, 0.55f);
-        private static readonly Color EmptyColor = new Color(0.6f, 0.65f, 0.7f, 0.5f);
+        /// <summary>들지 않은 칸 투명도</summary>
+        private const float IdleAlpha = 0.7f;
+        /// <summary>빈 칸 투명도</summary>
+        private const float EmptyAlpha = 0.45f;
 
         [SerializeField] private GunSlot gunSlot;
         [SerializeField] private PlayerController player;
@@ -39,7 +45,6 @@ namespace HybridShooter.UI
         [Tooltip("빈 칸 번호 키를 눌렀을 때 경고를 띄워 두는 시간(초)")]
         [SerializeField, Min(0.5f)] private float emptyWarningTime = 1.6f;
 
-        private static readonly Color WarningColor = new Color(1f, 0.72f, 0.3f, 1f);
 
         private Canvas canvas;
         private CanvasGroup rootGroup;
@@ -52,7 +57,7 @@ namespace HybridShooter.UI
         private sealed class Cell
         {
             public CanvasGroup Group;
-            public Image Background, Frame, Icon;
+            public Image Frame, Icon;
             public TextMeshProUGUI Key, Name;
         }
 
@@ -112,7 +117,7 @@ namespace HybridShooter.UI
             bool cinematic = player != null && player.IsInCinematic;
             bool alive = player == null || player.IsAlive;
             bool scoped = aimView != null && aimView.Scoped;
-            rootGroup.alpha = stateHidden || cinematic || alive == false || scoped ? 0f : 1f;
+            rootGroup.alpha = stateHidden || cinematic || alive == false || scoped || LoadoutHolding ? 0f : 1f;
 
             // 보급 무기 탄 소진은 이벤트가 없으므로 (든 총만 AmmoChangedEvent) 여기서 본다
             if (SupplyEmpty != shownSupplyEmpty) Refresh();
@@ -147,6 +152,9 @@ namespace HybridShooter.UI
             emptyWarningUntil = Time.unscaledTime + emptyWarningTime;
         }
 
+        /// <summary>무기 선택 화면(LoadoutPanel, IRoundStartGate)이 라운드 시작을 붙잡고 있는 동안 — 그 화면 뒤로 비치지 않게 숨긴다</summary>
+        private static bool LoadoutHolding => ServiceLocator.TryGet<IRoundStartGate>(out var gate) && gate.HoldsStart;
+
         private void OnGameStateChanged(GameStateChangedEvent e)
             => stateHidden = e.Current == GameState.Reward || e.Current == GameState.GameOver || e.Current == GameState.Paused;
 
@@ -163,24 +171,25 @@ namespace HybridShooter.UI
                 bool selected = i == current && gun != null;
 
                 cell.Frame.enabled = selected;
-                cell.Key.color = selected ? AimReticleHud.Cyan : HudFactory.TextColor;
+                cell.Key.color = selected ? UiTheme.RedText : UiTheme.Steel;
 
                 if (gun == null)
                 {
                     cell.Icon.enabled = false;
                     cell.Name.text = i == GunSlot.SupplySlot ? "보급" : "-";
-                    cell.Name.color = EmptyColor;
-                    cell.Group.alpha = 0.6f;
+                    cell.Name.color = UiTheme.Steel;
+                    cell.Group.alpha = EmptyAlpha;
                     continue;
                 }
 
                 Sprite icon = HudFactory.WeaponIcon(gun.Def != null ? gun.Def.IconKey : "");
+                Color color = selected ? UiTheme.MoonWhite : UiTheme.Steel;
                 cell.Icon.sprite = icon;
                 cell.Icon.enabled = icon != null;
-                cell.Icon.color = selected ? AimReticleHud.Cyan : HudFactory.TextColor;
+                cell.Icon.color = color;
                 cell.Name.text = icon != null ? "" : gun.DisplayName;
-                cell.Name.color = selected ? AimReticleHud.Cyan : HudFactory.TextColor;
-                cell.Group.alpha = i == GunSlot.SupplySlot && shownSupplyEmpty ? emptyAmmoAlpha : 1f;
+                cell.Name.color = color;
+                cell.Group.alpha = i == GunSlot.SupplySlot && shownSupplyEmpty ? emptyAmmoAlpha : selected ? 1f : IdleAlpha;
             }
         }
         #endregion
@@ -201,13 +210,12 @@ namespace HybridShooter.UI
                 cell.Group.blocksRaycasts = false;
                 cell.Group.interactable = false;
 
-                cell.Background = HudFactory.NewImage(HudFactory.Stretch(rt, "Back"), null, CellColor);
-                cell.Frame = HudFactory.NewImage(HudFactory.Rect(rt, "Selected", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(cellSize.x, 4f)), null, AimReticleHud.Cyan);
+                cell.Frame = HudFactory.NewImage(HudFactory.Rect(rt, "Selected", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(cellSize.x, 3f)), null, UiTheme.Red);
                 // 아이콘은 가로로 긴 실루엣(256×96)이라 칸 폭을 채우고, 키 번호 아래에 둔다
-                cell.Icon = HudFactory.NewImage(HudFactory.Rect(rt, "Icon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -6f), cellSize - new Vector2(12f, 24f)), null, HudFactory.TextColor);
+                cell.Icon = HudFactory.NewImage(HudFactory.Rect(rt, "Icon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -6f), cellSize - new Vector2(4f, 22f)), null, UiTheme.Steel);
                 cell.Icon.preserveAspect = true;
-                cell.Key = HudFactory.Label(rt, "Key", numberFont, 18f, TextAlignmentOptions.TopLeft,
-                    new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(6f, -3f), new Vector2(24f, 22f));
+                cell.Key = HudFactory.Label(rt, "Key", numberFont, 16f, TextAlignmentOptions.TopLeft,
+                    new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(2f, -2f), new Vector2(24f, 22f));
                 cell.Key.text = i < keys.Length ? HudFactory.KeyName(keys[i]) : (i + 1).ToString();
                 cell.Name = HudFactory.Label(rt, "Name", textFont, 16f, TextAlignmentOptions.Center,
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(4f, -6f), new Vector2(cellSize.x - 10f, 26f));
@@ -216,7 +224,7 @@ namespace HybridShooter.UI
 
             emptyWarning = HudFactory.Label(root, "EmptyWarning", textFont, 18f, TextAlignmentOptions.BottomRight,
                 new Vector2(1f, 1f), new Vector2(1f, 0f), new Vector2(0f, 6f), new Vector2(width + 120f, 26f));
-            emptyWarning.color = WarningColor;
+            emptyWarning.color = UiTheme.Ember;
             emptyWarning.gameObject.SetActive(false);
         }
         #endregion

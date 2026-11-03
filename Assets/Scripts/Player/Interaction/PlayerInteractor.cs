@@ -73,7 +73,8 @@ namespace HybridShooter.Player
         private bool CanInteractNow =>
             player != null && player.IsAlive && player.IsReviving == false && player.IsRolling == false
             && player.IsExternallyControlled == false && player.IsThrowingGrenade == false
-            && player.IsGameplayInputBlocked == false && Cursor.lockState == CursorLockMode.Locked;
+            && player.IsGameplayInputBlocked == false && player.IsAllowed(PlayerAbility.Interact)
+            && Cursor.lockState == CursorLockMode.Locked;
 
         /// <summary>조준 대상 우선, 없으면 근처(획득 영역 안)의 IProximityInteractable</summary>
         private IInteractable FindTarget() => FindAimTarget() ?? FindNearbyTarget();

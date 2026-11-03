@@ -73,6 +73,8 @@ namespace HybridShooter.Tutorial.Editor
             ("obj_sprint", $"{Key("SHIFT")}  질주   {{0}} / {{1}}초"),
             ("obj_roll", $"{Key("CTRL")}  구르기로 차단막 통과   {{0}} / {{1}}"),
             ("obj_aim", $"{Key("우클릭")} 조준 · {Key("좌클릭")} 사격   처치 {{0}} / {{1}}"),
+            ("obj_switch", $"{Key("2")} / {Key("휠")}  주무기로 교체"),
+            ("obj_switch_kill", $"{Key("좌클릭")}  주무기로 표적 처치   {{0}} / {{1}}"),
             ("obj_grenade", $"{Key("G")}  수류탄으로 무리 처치   {{0}} / {{1}}"),
             ("obj_next", "다음 구역으로 이동"),
             ("obj_pickup", $"{Key("F")}  보급 상자 회수   {{0}} / {{1}}"),

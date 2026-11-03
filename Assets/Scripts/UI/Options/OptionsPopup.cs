@@ -5,6 +5,7 @@ using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Services;
 using HybridShooter.Core.Settings;
+using HybridShooter.UI.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -281,7 +282,12 @@ namespace HybridShooter.UI.Options
         private void SelectTab(int index)
         {
             refreshing = true;
-            for (int i = 0; tabs != null && i < tabs.Length; i++) tabs[i].SetIsOnWithoutNotify(i == index);
+            for (int i = 0; tabs != null && i < tabs.Length; i++)
+            {
+                tabs[i].SetIsOnWithoutNotify(i == index);
+                // 글자 탭(빌더가 글자를 targetGraphic 으로 둔 경우): 선택된 탭만 달빛 흰색
+                if (tabs[i].targetGraphic is TMP_Text label) label.color = i == index ? UiTheme.MoonWhite : UiTheme.Steel;
+            }
             refreshing = false;
             for (int i = 0; pages != null && i < pages.Length; i++)
                 if (pages[i] != null) pages[i].SetActive(i == index);

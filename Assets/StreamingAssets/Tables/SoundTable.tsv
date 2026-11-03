@@ -177,6 +177,10 @@ vo_tut_02_shoot	Ui	Audio/Voice/Tutorial/vo_tut_02_shoot	1.0	false	false	1	0	0	90
 vo_tut_02_reward	Ui	Audio/Voice/Tutorial/vo_tut_02_reward	1.0	false	false	1	0	0	90	0
 vo_tut_02_hint	Ui	Audio/Voice/Tutorial/vo_tut_02_hint	1.0	false	false	1	0	0	90	0
 vo_tut_02_clear	Ui	Audio/Voice/Tutorial/vo_tut_02_clear	1.0	false	false	1	0	0	90	0
+vo_tut_02b_switch	Ui	Audio/Voice/Tutorial/vo_tut_02b_switch	1.0	false	false	1	0	0	90	0
+vo_tut_02b_switch_hint	Ui	Audio/Voice/Tutorial/vo_tut_02b_switch_hint	1.0	false	false	1	0	0	90	0
+vo_tut_02b_switch_target	Ui	Audio/Voice/Tutorial/vo_tut_02b_switch_target	1.0	false	false	1	0	0	90	0
+vo_tut_02b_switch_clear	Ui	Audio/Voice/Tutorial/vo_tut_02b_switch_clear	1.0	false	false	1	0	0	90	0
 vo_tut_03_grenade	Ui	Audio/Voice/Tutorial/vo_tut_03_grenade	1.0	false	false	1	0	0	90	0
 vo_tut_03_hint	Ui	Audio/Voice/Tutorial/vo_tut_03_hint	1.0	false	false	1	0	0	90	0
 vo_tut_03_clear	Ui	Audio/Voice/Tutorial/vo_tut_03_clear	1.0	false	false	1	0	0	90	0

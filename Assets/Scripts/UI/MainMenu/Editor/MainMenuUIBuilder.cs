@@ -21,7 +21,9 @@ namespace HybridShooter.UI.MainMenu.Editor
     /// </summary>
     public static class MainMenuUIBuilder
     {
-        private const string LogoText = "TEAM EVEN";
+        private const string LogoText = "HIVE PURGE";
+        /// <summary>제목 아래 붉은 선 옆에 작게 쓰는 팀 이름</summary>
+        private const string TeamText = "TEAM EVEN";
         private const string HintText = "<color=#E0574D>ENTER</color>  선택      <color=#E0574D>ESC</color>  뒤로";
 
         /// <summary>달빛 흰색 (로고·선택된 글자)</summary>
@@ -70,11 +72,14 @@ namespace HybridShooter.UI.MainMenu.Editor
 
             var canvas = CreateCanvas("Canvas");
 
-            // 로고: 넓은 자간 + 아래 붉은 선
-            var logo = CreateText(canvas, "Logo", LogoText, TitleFont, 72f, MoonWhite, TextAlignmentOptions.TopLeft);
-            logo.characterSpacing = 18f;
-            Place(logo.gameObject, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(MarginX, -80f), new Vector2(900f, 90f), new Vector2(0f, 1f));
+            // 로고: 게임 이름(넓은 자간) + 아래 붉은 선 + 선 오른쪽에 작은 팀 이름
+            var logo = CreateText(canvas, "Logo", LogoText, TitleFont, 80f, MoonWhite, TextAlignmentOptions.TopLeft);
+            logo.characterSpacing = 20f;
+            Place(logo.gameObject, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(MarginX, -80f), new Vector2(1000f, 100f), new Vector2(0f, 1f));
             Line(logo.rectTransform, "Line", Accent, new Vector2(0f, 0f), new Vector2(0f, -6f), new Vector2(140f, 3f), new Vector2(0f, 1f));
+            var team = CreateText(logo.rectTransform, "Team", TeamText, TitleFont, 20f, Steel, TextAlignmentOptions.MidlineLeft);
+            team.characterSpacing = 12f;
+            Place(team.gameObject, Vector2.zero, Vector2.zero, new Vector2(164f, -7.5f), new Vector2(400f, 30f), new Vector2(0f, 0.5f));
 
             // PRESS ANY KEY: 넓은 자간 + 양옆 가는 선 (같이 깜빡인다)
             var pressAnyKey = CreateText(canvas, "PressAnyKey", "PRESS ANY KEY", TitleFont, 30f, Steel, TextAlignmentOptions.Center);
