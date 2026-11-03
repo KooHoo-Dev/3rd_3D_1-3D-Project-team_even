@@ -44,16 +44,42 @@ namespace HybridShooter.Audio
             return emitter;
         }
 
+        // ── 약점 명중음 ── 직전 WeakPointHitEvent. 다음 DamageDealtEvent 가 같은 발인지 맞춰 볼 때 쓴다
+        private GameObject weakPointHitTarget;
+        private Vector3 weakPointHitPoint;
+
+        /// <summary>
+        /// 드러난 약점 명중을 기억만 한다. 소리는 바로 뒤 같은 발의 OnDamageDealt 가 피치를 올려 1번 낸다 (타격음 재생 경로 1개 유지)
+        /// </summary>
+        private void OnWeakPointHit(WeakPointHitEvent e)
+        {
+            weakPointHitTarget = e.Target;
+            weakPointHitPoint = e.HitPoint;
+        }
+
         /// <summary>
         /// 플레이어가 준 피해만. 타격음은 총알(Bullet)만 (폭발은 폭발음이 이미 덮음), 히트마커는 처치가 아닐 때만.
+        /// 드러난 약점 명중이면 같은 타격음을 weakPointHitPitch 로 높여 낸다.
         /// 처치에는 따로 UI 소리를 두지 않는다 — 몬스터 사망음(이미터)만 나고 처치·재화 획득은 UI 로 표시 (팀 결정 2026-10-28).
-        /// 한 프레임 여러 발(샷건·폭발 범위)은 SoundTable 의 Cooldown·MaxInstances 가 걸러준다
+        /// 한 프레임 여러 발(샷건·폭발 범위)은 SoundTable 의 Cooldown·MaxInstances 가 걸러준다 (약점·몸통이 같은 키라 함께 걸러진다)
         /// </summary>
         private void OnDamageDealt(DamageDealtEvent e)
         {
             if (e.Info.AttackerFaction != Faction.Player) return;
-            if (e.Info.Kind == DamageKind.Bullet) service.PlaySfx(hitImpactKey, e.Info.HitPoint);
+            if (e.Info.Kind == DamageKind.Bullet) PlayHitImpact(e);
             if (e.IsKill == false) service.PlaySfx(hitMarkerKey);
+        }
+
+        /// <summary>총알 타격음. 직전 약점 명중과 같은 몬스터·같은 위치면 피치를 올린다</summary>
+        /// <param name="e">이번 피해. Target·Info.HitPoint 로 약점 명중인지 맞춰 본다</param>
+        private void PlayHitImpact(DamageDealtEvent e)
+        {
+            bool isSameTarget = e.Target == weakPointHitTarget;
+            bool isSameHitPoint = e.Info.HitPoint == weakPointHitPoint;
+            weakPointHitTarget = null; // 한 발에만 쓴다
+
+            if (isSameTarget && isSameHitPoint) service.PlaySfx(hitImpactKey, e.Info.HitPoint, weakPointHitPitch);
+            else service.PlaySfx(hitImpactKey, e.Info.HitPoint);
         }
     }
 }
