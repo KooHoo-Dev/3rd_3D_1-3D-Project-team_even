@@ -325,6 +325,11 @@ namespace HybridShooter.Player
         private float lastStaminaUseTime = float.NegativeInfinity;
         private bool staminaExhausted;          // 바닥난 뒤 sprintResumeRatio 까지 회복 전 (달리기 막힘)
         private float publishedStamina = -1f;
+
+        // 강화로 더해진 몫 (PlayerController.Upgrade). 기본값은 위 인스펙터 값 그대로
+        private int upgradeMaxHealth;
+        private float upgradeMaxStamina;
+        private float upgradeStaminaRegenRate;  // 회복 속도 증가율 (0.2 = +20%)
         #endregion
     }
 }

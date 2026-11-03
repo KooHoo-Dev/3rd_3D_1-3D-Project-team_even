@@ -16,13 +16,15 @@ namespace HybridShooter.Weapon
     public class ShotGun : Gun
     {
         [Header("산탄총")]
-        [SerializeField] private int pelletCount = 8;
+        [SerializeField] private int pelletCount = 20;
         [Tooltip("패턴 위치에 더하는 무작위 흔들림 (퍼짐 대비 비율)")]
         [SerializeField, Range(0f, 1f)] private float pelletJitter = 0.2f;
+        [Tooltip("패턴 세로 퍼짐 비율. 1 = 원, 작을수록 가로로 넓은 타원 (옆으로 늘어선 무리를 한 번에 맞히도록)")]
+        [SerializeField, Range(0.1f, 1f)] private float verticalSpreadScale = 0.4f;
         [Tooltip("이 거리까지는 100% 피해")]
-        [SerializeField] private float falloffStart = 6f;
+        [SerializeField] private float falloffStart = 10f;
         [Tooltip("사거리 끝에서의 피해 비율")]
-        [SerializeField, Range(0f, 1f)] private float minDamageRatio = 0.2f;
+        [SerializeField, Range(0f, 1f)] private float minDamageRatio = 0.5f;
         [Tooltip("첫 탄을 넣기 전 자세 잡는 시간")]
         [SerializeField] private float reloadStartDelay = 0.3f;
 
@@ -83,18 +85,21 @@ namespace HybridShooter.Weapon
                 pair.Key.TakeDamage(new DamageInfo(pair.Value.Damage, DamageKind.Bullet, Owner.Faction, Owner.gameObject, pair.Value.Point, aim.direction, weaponId));
         }
 
-        /// <summary>0 = 가운데, 1~inner = 안쪽 원(퍼짐 50%), 나머지 = 바깥 원(퍼짐 100%)</summary>
+        /// <summary>0 = 가운데, 1~inner = 안쪽 원(퍼짐 50%), 나머지 = 바깥 원(퍼짐 100%). 세로는 verticalSpreadScale 만큼 눌러 가로 타원</summary>
         private Vector2 PelletOffset(int index, int innerCount, float spread)
         {
-            Vector2 jitter = Random.insideUnitCircle * (spread * pelletJitter);
-            if (index == 0) return jitter;
-
-            bool inner = index <= innerCount;
-            int ringCount = inner ? innerCount : pelletCount - 1 - innerCount;
-            int ringIndex = inner ? index - 1 : index - 1 - innerCount;
-            float angle = (ringIndex / (float)Mathf.Max(1, ringCount) + (inner ? 0f : 0.5f / Mathf.Max(1, ringCount))) * Mathf.PI * 2f;
-            float radius = spread * (inner ? 0.5f : 1f);
-            return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius + jitter;
+            Vector2 offset = Random.insideUnitCircle * (spread * pelletJitter);
+            if (index != 0)
+            {
+                bool inner = index <= innerCount;
+                int ringCount = inner ? innerCount : pelletCount - 1 - innerCount;
+                int ringIndex = inner ? index - 1 : index - 1 - innerCount;
+                float angle = (ringIndex / (float)Mathf.Max(1, ringCount) + (inner ? 0f : 0.5f / Mathf.Max(1, ringCount))) * Mathf.PI * 2f;
+                float radius = spread * (inner ? 0.5f : 1f);
+                offset += new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+            }
+            offset.y *= verticalSpreadScale;
+            return offset;
         }
 
         protected override void StartReload()

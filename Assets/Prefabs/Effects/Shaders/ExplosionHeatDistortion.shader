@@ -1,0 +1,151 @@
+// 폭발 아지랑이 — QFX "QFX/SFX/Distortion/DistortionCutOutFresnel" (SFX_DistortionFresnel.shader, URP 대응본) 복사본.
+//  원본에서 바꾼 것 (원본 셰이더·재질은 그대로 둔다):
+//  - ZWrite On → Off, Queue Transparent+1 → Transparent-1
+//    URP 화면 복사(_CameraOpaqueTexture)에는 투명 파티클이 없어서, 불꽃보다 나중에 그리면 불꽃 없는 배경으로 불꽃을 덮는다.
+//    불꽃보다 먼저 그리고 깊이를 쓰지 않아 불꽃·불똥이 그 위에 그려지게 한다
+// Made with Amplify Shader Editor
+// Available at the Unity Asset Store - http://u3d.as/y3X 
+Shader "HybridShooter/Effects/Explosion Heat Distortion"
+{
+	Properties
+	{
+		_FresnelScale("Fresnel Scale", Range( 0 , 1)) = 0.510905
+		_FresnelPower("Fresnel Power", Range( 0 , 5)) = 2
+		[HDR]_TintColor("Tint Color", Color) = (0,0,0,0)
+		_MainTex("Main Tex", 2D) = "white" {}
+		_CutOutA("CutOut (A)", 2D) = "white" {}
+		_DistortionTexture("Distortion Texture", 2D) = "bump" {}
+		_Scale("Scale", Float) = 1
+		_DistortionSpeed("Distortion Speed", Vector) = (0,0,0,0)
+		_Distortion("Distortion", Range( 0 , 1)) = 0
+		[HideInInspector] _texcoord( "", 2D ) = "white" {}
+	}
+	
+	SubShader
+	{
+		Tags { "RenderType"="Transparent" "Queue"="Transparent-1" }
+		LOD 100
+		CGINCLUDE
+		#pragma target 3.0
+		ENDCG
+		Blend SrcAlpha OneMinusSrcAlpha
+		Cull Back
+		ColorMask RGBA
+		ZWrite Off
+		ZTest LEqual
+		
+		// GrabPass is not supported in URP; _CameraOpaqueTexture (Opaque Texture in the URP asset) is used instead
+
+
+		Pass
+		{
+			Name "Unlit"
+			CGPROGRAM
+			#pragma vertex vert
+			#pragma fragment frag
+			#include "UnityCG.cginc"
+			#include "UnityShaderVariables.cginc"
+
+
+			struct appdata
+			{
+				float4 vertex : POSITION;
+				UNITY_VERTEX_INPUT_INSTANCE_ID
+				float4 ase_texcoord : TEXCOORD0;
+				float4 ase_color : COLOR;
+				float3 ase_normal : NORMAL;
+			};
+			
+			struct v2f
+			{
+				float4 vertex : SV_POSITION;
+				UNITY_VERTEX_OUTPUT_STEREO
+				float4 ase_texcoord : TEXCOORD0;
+				float4 ase_texcoord1 : TEXCOORD1;
+				float4 ase_color : COLOR;
+				float4 ase_texcoord2 : TEXCOORD2;
+				float4 ase_texcoord3 : TEXCOORD3;
+			};
+
+			uniform float4 _TintColor;
+			uniform sampler2D _MainTex;
+			uniform float4 _MainTex_ST;
+			uniform sampler2D _CameraOpaqueTexture;
+			uniform float _Distortion;
+			uniform sampler2D _DistortionTexture;
+			uniform float _Scale;
+			uniform float2 _DistortionSpeed;
+			uniform sampler2D _CutOutA;
+			uniform float4 _CutOutA_ST;
+			uniform float _FresnelScale;
+			uniform float _FresnelPower;
+			inline float4 ASE_ComputeGrabScreenPos( float4 pos )
+			{
+				#if UNITY_UV_STARTS_AT_TOP
+				float scale = -1.0;
+				#else
+				float scale = 1.0;
+				#endif
+				float4 o = pos;
+				// URP opaque texture has the same orientation as ComputeScreenPos, no flip needed
+				return o;
+			}
+			
+			
+			v2f vert ( appdata v )
+			{
+				v2f o;
+				UNITY_SETUP_INSTANCE_ID(v);
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+				float4 ase_clipPos = UnityObjectToClipPos(v.vertex);
+				float4 screenPos = ComputeScreenPos(ase_clipPos);
+				o.ase_texcoord1 = screenPos;
+				float3 ase_worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+				o.ase_texcoord2.xyz = ase_worldPos;
+				float3 ase_worldNormal = UnityObjectToWorldNormal(v.ase_normal);
+				o.ase_texcoord3.xyz = ase_worldNormal;
+				
+				o.ase_texcoord.xy = v.ase_texcoord.xy;
+				o.ase_color = v.ase_color;
+				
+				//setting value to unused interpolator channels and avoid initialization warnings
+				o.ase_texcoord.zw = 0;
+				o.ase_texcoord2.w = 0;
+				o.ase_texcoord3.w = 0;
+				
+				v.vertex.xyz +=  float3(0,0,0) ;
+				o.vertex = UnityObjectToClipPos(v.vertex);
+				return o;
+			}
+			
+			fixed4 frag (v2f i ) : SV_Target
+			{
+				fixed4 finalColor;
+				float2 uv_MainTex = i.ase_texcoord.xy * _MainTex_ST.xy + _MainTex_ST.zw;
+				float2 uv3_g14 = i.ase_texcoord.xy * float2( 1,1 ) + float2( 0,0 );
+				float4 screenPos = i.ase_texcoord1;
+				float4 ase_grabScreenPos = ASE_ComputeGrabScreenPos( screenPos );
+				float4 ase_grabScreenPosNorm = ase_grabScreenPos / ase_grabScreenPos.w;
+				float4 screenColor14_g14 = tex2D( _CameraOpaqueTexture, ( float4( ( _Distortion * UnpackNormal( tex2D( _DistortionTexture, (uv3_g14*_Scale + ( _Time.y * _DistortionSpeed )) ) ) ) , 0.0 ) + ase_grabScreenPosNorm ).xy );
+				float3 temp_output_19_0_g14 = (( ( _TintColor * tex2D( _MainTex, uv_MainTex ) ) + screenColor14_g14 )).rgb;
+				float2 uv_CutOutA = i.ase_texcoord.xy * _CutOutA_ST.xy + _CutOutA_ST.zw;
+				float temp_output_20_0_g14 = ( tex2D( _CutOutA, uv_CutOutA ).a * i.ase_color.a );
+				float3 ase_worldPos = i.ase_texcoord2.xyz;
+				float3 ase_worldViewDir = UnityWorldSpaceViewDir(ase_worldPos);
+				ase_worldViewDir = normalize(ase_worldViewDir);
+				float3 ase_worldNormal = i.ase_texcoord3.xyz;
+				float fresnelNdotV1_g15 = dot( ase_worldNormal, ase_worldViewDir );
+				float fresnelNode1_g15 = ( 0.0 + _FresnelScale * pow( 1.0 - fresnelNdotV1_g15, _FresnelPower ) );
+				float4 appendResult44 = (float4(temp_output_19_0_g14 , ( temp_output_20_0_g14 * saturate( fresnelNode1_g15 ) )));
+				
+				
+				finalColor = appendResult44;
+				return finalColor;
+			}
+			ENDCG
+		}
+	}
+	CustomEditor "ASEMaterialInspector"
+	
+	
+}

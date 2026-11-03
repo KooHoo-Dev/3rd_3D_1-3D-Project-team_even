@@ -159,6 +159,7 @@ Id = MonsterId×100+순번. 일반 몬스터 1행, 보스 6행(기본 2 + 특수
 | 그로기 | Groggy*, WallGroggyTime | 포자 파괴·벽 충돌 그로기 시간, 그로기 중 받는 피해 배율 |
 | 패턴 | Tentacle*, Bite*, Smash*, Charge*, Spit*, Egg*, Tremor*, Summon*, Beacon*, Storm* | 피해·범위·예고(Windup)·경직(Recovery)·쿨타임 |
 | 등장 연출 | Intro* | 남아 있던 웨이브 몬스터를 흡수한 수만큼 보호막을 두르고 시작 (상한 MaxHp×IntroShieldMaxRatio), 두 번째 등장부터 짧은 연출 |
+| 보호막 | Shield*, EnergyFlightTime | 기믹 중 플레이어 사망 시 잡몹 흡수 보호막(상한 MaxHp×ShieldMaxRatio, 겹·파괴 그로기). 보호막이 생길 때마다(등장·부활) 흡수량과 별도로 MaxHp×ShieldBaseRatio 기본량을 더한다. 흡수한 몬스터가 없어도 기본량은 준다 (등장은 포효 순간, 포효 소환 중 사망은 부활 순간) |
 | 난이도 보정 | Assist* | 플레이어가 힘들수록 공격 간격↑, 연속·강공격↓ (예고·피해량은 그대로) |
 
 `SummonMinionIds` 는 MonsterTable.Id 를 `|` 로 구분한다 (예: `1001|1002`).
@@ -197,13 +198,24 @@ Weapon 보급은 보급 칸(4번)에 무기를 장착하고 탄창도 충전한�
 조준하지 않아도 상자 반경 2m(`SupplyCrate.pickupRadius`, Inspector) 안에서 F 로 획득한다 (근접 획득, `IProximityInteractable`).
 
 ## UpgradeTable — BL-030·031
+기획: `Docs/Design/UpgradeSystemExpansion_Proposal.md` (v3). 상점은 무작위 카드(종류 + 등급) `ConfigTable.UpgradeOfferCount` 장, 리롤은 `UpgradeRerollCost` 고정.
+
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
-| UpgradeType | enum | `ReloadSpeed` / `MagazineSize` / `GrenadeCapacity` |
-| Level | int | 종류별 1부터 연속 |
-| Cost | int | 재화 |
-| Value | float | 레벨마다 **누적**. ReloadSpeed = 감소율(0.1 = 10%, 합계 1 미만), MagazineSize = +발, GrenadeCapacity = +개 |
-| Name / Description | string | 강화 화면 표시 |
+| UpgradeType | enum | `ReloadSpeed` / `MagazineSize` / `GrenadeRadius` / `MaxHealth` / `MaxStamina` / `StaminaRegen` / `HealCapacity` / `LuckyGirl` (`GrenadeCapacity` 는 enum 만 남음 · 행 없음) |
+| Level | int | 종류별 1부터 연속 (지금 모두 최대 2) |
+| Cost | int | 재화. 레벨로만 정해짐 (60 / 100) — 등급과 무관 |
+| GradeValues | float×3 | 등급별 증가량 `하급;일반;에픽`. 산 등급의 값이 레벨마다 **누적**. 단위: ReloadSpeed 감소율(0.1 = 10%, 최대 합계 1 미만) · MagazineSize +발 · GrenadeRadius / StaminaRegen 증가율 · MaxHealth / MaxStamina +수치 · HealCapacity +개 · LuckyGirl 에픽 등급 가중치 증가율 |
+| Weight | int | 상점 카드 종류 뽑기 가중치 (같은 종류 모든 레벨 동일, 0 = 안 나옴) |
+| Name / Description | string | 강화 화면 표시. Description 의 `{0}` 에 등급 값이 단위와 함께 들어간다 |
+
+## UpgradeGradeTable — BL-030
+| 컬럼 | 타입 | 설명 |
+|---|---|---|
+| Grade | enum | `Poor`(하급) / `Common`(일반) / `Epic`(에픽) — 3행 모두 필요 |
+| Name | string | 카드에 표시할 등급 이름 |
+| Color | `#RRGGBB` | 카드 등급 이름·강화 이름·테두리 색 |
+| Weight | int | 카드 등급 뽑기 기본 가중치 (40/35/25). 러키걸 강화 값만큼 에픽에 (1 + 값) 배 |
 
 ## SoundTable / ConfigTable
 | 테이블 | 컬럼 |
@@ -231,3 +243,4 @@ Weapon 보급은 보급 칸(4번)에 무기를 장착하고 탄창도 충전한�
 | SupplySurgeSpawnCount / SupplySurgeWindow / SupplySurgeDuration | 몬스터 급증 판정: 최근 Window 초 소환 수 ≥ Count 면 급증, Duration 초 유지 (12 / 10 / 30) | BL-018 |
 | RoundStartGrenades / RoundStartHealPacks / RoundStartMagazines | 보스 클리어 후 다음 라운드 시작 지급: 수류탄 / 회복 팩 / 1~3번 칸 모든 총 예비 탄창 (-1 / 2 / 2, 최대치까지. **-1 = 최대치까지 가득**) | |
 | CameraTransitionTime | 1인칭→3인칭 전환 시간 | BL-022 |
+| UpgradeOfferCount / UpgradeRerollCost | 강화 상점 카드 수 (3) / 리롤 비용 (5, 고정 · 산 카드는 빼고 다시 뽑음) | BL-030 |

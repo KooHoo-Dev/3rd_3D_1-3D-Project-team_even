@@ -2199,14 +2199,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 5523472075301917310}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c77e17071df422eb23a86e8864799f1, type: 3}
+  m_Script: {fileID: 11500000, guid: 35b8f8de322d43edbd4fcef955645448, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossPatternRunner
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.ClypeosaurusPatternRunner
   attacks:
   - {fileID: 534779049517218803}
   - {fileID: 2158953421807436580}
   - {fileID: 7764257687145243604}
   basicAttack: {fileID: 4265325948370636209}
+  barrageWeight: 4
+  suctionWeight: 6
 --- !u!114 &1601464397953940699
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2241,8 +2243,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79214baee515f3a449c71484c753b7d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.Clypeosaurus.EntranceAttack
-  fallHeight: 30
-  fallDuration: 0.8
+  fallHeight: 120
+  fallDuration: 2.5
   shadowPrefab: {fileID: 7329057322042179811, guid: 9234d485a63c9644595cbf8d4efdef78, type: 3}
   shockwavePrefab: {fileID: 8892443149770637752, guid: 23c12557ae01ab44099ab5dda922d953, type: 3}
 --- !u!114 &4265325948370636209

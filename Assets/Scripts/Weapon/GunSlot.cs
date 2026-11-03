@@ -114,6 +114,8 @@ namespace HybridShooter.Weapon
         public event Action<int, Gun> GunChanged;
         /// <summary>슬롯 구성이 바뀜 (시작 배치, 출발 전 선택 적용, 보급 무기 획득·버림). 들고 있는 총이 바뀌었으면 GunChanged 도 따로 발생</summary>
         public event Action LoadoutChanged;
+        /// <summary>번호 키(SelectByKey)로 빈 칸을 골랐음. 인자 = 슬롯 번호. UI 경고용 (WeaponSlotHud)</summary>
+        public event Action<int> EmptySlotSelected;
 
         public Gun CurrentGun => currentIndex >= 0 ? slots[currentIndex] : null;
         public int CurrentIndex => currentIndex;
@@ -250,6 +252,17 @@ namespace HybridShooter.Weapon
 
             GunChanged?.Invoke(currentIndex, CurrentGun);
             return true;
+        }
+
+        /// <summary>번호 키 입력: Select 와 같고, 빈 칸이면 EmptySlotSelected 를 알린다 (휠·내부 교체는 빈 칸을 건너뛰므로 알리지 않음)</summary>
+        public bool SelectByKey(int index)
+        {
+            if (index >= 0 && index < SlotCount && slots[index] == null)
+            {
+                EmptySlotSelected?.Invoke(index);
+                return false;
+            }
+            return Select(index);
         }
 
         /// <summary>휠: 다음(+1)/이전(-1) 의 비어 있지 않은 슬롯</summary>

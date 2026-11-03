@@ -13,6 +13,8 @@ namespace HybridShooter.Monster.Movement
         private const float BearingMarginDeg = 30f;
         // 측면 링 위 후보 지점 간격 (도)
         private const float CandidateStepDeg = 10f;
+        // 슬롯 없이 돌입할 때 목표 앞에서 멈추는 거리 = 공격 사거리 × 이 비율. 도약 쿨다운 중 플레이어 몸까지 파고들지 않게 간격을 둔다
+        private const float RushStopRangeRatio = 0.5f;
 
         /// <summary>거리 모드. Far = 시야 밖 목적지로 접근, Near = 슬롯·토큰 흐름으로 돌입</summary>
         private enum FlankMode { Far, Near }
@@ -163,7 +165,8 @@ namespace HybridShooter.Monster.Movement
         /// 돌입: 기본 이동 속도로 슬롯(또는 목표)으로 이동하는 의도를 만든다.
         /// Evaluate 가 근거리 모드일 때, ApproachOutOfView 가 시야 밖 목적지를 못 찾았을 때 호출한다.
         /// 저장한 시야 밖 목적지는 지워서 다시 원거리가 되면 새로 고르게 한다.
-        /// 슬롯이 없으면 정지 거리 0 으로 목표 자체를 향한다. 사거리 앞에서 미리 감속하지 않고 전속으로 다가가 Attack 진입 때 선다.
+        /// 슬롯이 없으면 목표 자체를 향하되 사거리 × RushStopRangeRatio 앞에서 멈춘다. 쿨다운 중 Chase 에서도 플레이어와 간격을 유지한다.
+        /// 정지 거리가 사거리의 절반이라 감속은 Attack 진입선(사거리) 안쪽에서 시작한다.
         /// </summary>
         /// <param name="ctx">판단 입력. 군중 지시와 유형별 수치를 쓴다</param>
         /// <param name="distanceToTarget">목표까지 수평 거리 (m). 슬롯이 없을 때 도착 판정에 쓴다</param>
@@ -184,7 +187,7 @@ namespace HybridShooter.Monster.Movement
             else
             {
                 dest = ctx.TargetPosition;
-                stop = 0f;
+                stop = t.AttackRange * RushStopRangeRatio;
             }
             bool arrived = dir.HasSlotPosition
                 ? WaitOrbit.HorizontalDistance(ctx.SelfPosition, dest) <= dir.SlotArrivalDistance : distanceToTarget <= t.AttackRange;

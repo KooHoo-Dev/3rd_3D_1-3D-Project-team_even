@@ -1,10 +1,19 @@
-Id	UpgradeType	Level	Cost	Value	Name	Description
-# UpgradeType: ReloadSpeed(재장전 시간 감소율, 0.1=10%)/MagazineSize(+발)/GrenadeCapacity(+개)  ·  Value 는 레벨마다 누적  ·  BL-030/031
-6001	ReloadSpeed	1	80	0.1	빠른 재장전 I	재장전 시간 10% 감소
-6002	ReloadSpeed	2	160	0.1	빠른 재장전 II	재장전 시간 10% 추가 감소
-6003	ReloadSpeed	3	300	0.1	빠른 재장전 III	재장전 시간 10% 추가 감소
-6011	MagazineSize	1	80	10	확장 탄창 I	탄창 +10발
-6012	MagazineSize	2	160	10	확장 탄창 II	탄창 +10발
-6013	MagazineSize	3	300	15	확장 탄창 III	탄창 +15발
-6021	GrenadeCapacity	1	100	1	수류탄 파우치 I	수류탄 최대 보유 +1
-6022	GrenadeCapacity	2	200	1	수류탄 파우치 II	수류탄 최대 보유 +1
+Id	UpgradeType	Level	Cost	GradeValues	Weight	Name	Description
+# v3 (BL-030/031): 모든 강화 최대 2레벨 · 비용은 레벨로만(60/100) · GradeValues = 등급별 증가량 3개(하급;일반;에픽), 산 등급의 값이 레벨마다 누적  ·  Weight = 상점 카드 뽑기 가중치(같은 종류 모든 레벨 동일)  ·  Description: {0} = 등급 값(단위는 강화 화면이 붙임)
+# 단위: ReloadSpeed 감소율(0.1=10%, 최대 합계 1 미만) · MagazineSize +발 · GrenadeRadius 반경 증가율 · MaxHealth +체력 · MaxStamina +스태미나 · StaminaRegen 회복 속도 증가율 · HealCapacity +개 · LuckyGirl 에픽 등급 가중치 증가율
+6001	ReloadSpeed	1	60	0.06;0.08;0.15	10	빠른 재장전 I	재장전 시간 {0}
+6002	ReloadSpeed	2	100	0.06;0.08;0.15	10	빠른 재장전 II	재장전 시간 {0}
+6011	MagazineSize	1	60	4;6;12	10	확장 탄창 I	탄창 크기 {0}
+6012	MagazineSize	2	100	4;6;12	10	확장 탄창 II	탄창 크기 {0}
+6031	GrenadeRadius	1	60	0.08;0.10;0.25	10	광역 장약 I	수류탄 폭발 범위 {0}
+6032	GrenadeRadius	2	100	0.08;0.10;0.25	10	광역 장약 II	수류탄 폭발 범위 {0}
+6041	MaxHealth	1	60	8;10;25	10	강화 슈트 I	최대 체력 {0}
+6042	MaxHealth	2	100	8;10;25	10	강화 슈트 II	최대 체력 {0}
+6051	MaxStamina	1	60	10;15;30	10	지구력 강화 I	최대 스태미나 {0}
+6052	MaxStamina	2	100	10;15;30	10	지구력 강화 II	최대 스태미나 {0}
+6061	StaminaRegen	1	60	0.10;0.15;0.30	10	호흡 조절 I	스태미나 회복 속도 {0}
+6062	StaminaRegen	2	100	0.10;0.15;0.30	10	호흡 조절 II	스태미나 회복 속도 {0}
+6081	HealCapacity	1	60	1;1;2	10	의료 키트 I	회복 팩 최대 보유 {0}
+6082	HealCapacity	2	100	1;1;2	10	의료 키트 II	회복 팩 최대 보유 {0}
+6101	LuckyGirl	1	60	0.10;0.15;0.25	10	러키걸 I	에픽 등급 확률 {0}
+6102	LuckyGirl	2	100	0.10;0.15;0.25	10	러키걸 II	에픽 등급 확률 {0}

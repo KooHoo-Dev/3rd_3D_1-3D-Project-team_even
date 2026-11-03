@@ -54,7 +54,7 @@ namespace HybridShooter.Core.Events
     /// </summary>
     public readonly struct BossFinaleStartedEvent { }
 
-    /// <summary>[최종 보스 최후 연출(Tyranopode)] → 게임 클리어. 클리어 화면은 연출이 직접 띄운다 (다른 파트가 기록·사운드 등에 쓸 수 있게 알림만)</summary>
+    /// <summary>[최종 보스 최후 연출(Tyranopode)] → 게임 클리어. 클리어 문구·엔딩 씬 전환·클리어 기록(GameClearRecord)은 연출이 직접 한다 (다른 파트가 기록·사운드 등에 쓸 수 있게 알림만)</summary>
     public readonly struct GameClearedEvent { }
 
     /// <summary>[코어(RunDirector)] → 무기 해금 등. 보스를 처치하고 보상 단계(Reward)에 들어감 = 스테이지 클리어. 라운드마다 한 번</summary>
@@ -299,6 +299,12 @@ namespace HybridShooter.Core.Events
         public readonly UpgradeDef Upgrade;
         public UpgradePurchasedEvent(UpgradeDef upgrade) { Upgrade = upgrade; }
     }
+
+    /// <summary>
+    /// [보상(UpgradeLedger.ResetAll)] → 무기·수류탄·플레이어. 처음부터 재시작으로 모든 강화가 0 이 됨 (BL-033).
+    /// RoundCleanupEvent(FullReset) 구독 순서와 상관없이 강화가 빠진 능력치로 다시 계산하게 한다
+    /// </summary>
+    public readonly struct UpgradesResetEvent { }
 
     /// <summary>[UI(강화 선택 화면)] → 코어. 강화 선택 종료, 다음 라운드 시작 요청 (BL-032)</summary>
     public readonly struct RewardSelectionFinishedEvent { }

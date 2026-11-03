@@ -227,7 +227,7 @@ namespace HybridShooter.Core.Battlefield
         /// <summary>주어진 XZ에서 지형 표면의 월드 높이를 잰다</summary>
         /// <param name="position">월드 위치 (Y는 무시)</param>
         /// <returns>지형 표면의 월드 Y (m)</returns>
-        private float HeightAt(Vector3 position)
+        public float HeightAt(Vector3 position)
         {
             return terrain.SampleHeight(position) + terrain.transform.position.y;
         }

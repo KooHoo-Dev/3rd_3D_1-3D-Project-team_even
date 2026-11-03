@@ -39,7 +39,18 @@ namespace HybridShooter.Core.Data
     /// <summary>Weapon = 1회용 보급 무기 (SupplyTable.WeaponId)</summary>
     public enum SupplyType { Grenade, Heal, Weapon }
 
-    public enum UpgradeType { ReloadSpeed, MagazineSize, GrenadeCapacity }
+    /// <summary>
+    /// 강화 종류 (UpgradeTable). 새 값은 끝에 추가한다.
+    /// GrenadeCapacity 는 v3 에서 상점에서 뺐다 (테이블 행 없음 · 코드 참조 때문에 값은 유지)
+    /// </summary>
+    public enum UpgradeType
+    {
+        ReloadSpeed, MagazineSize, GrenadeCapacity,
+        GrenadeRadius, MaxHealth, MaxStamina, StaminaRegen, HealCapacity, LuckyGirl,
+    }
+
+    /// <summary>강화 카드 등급 (UpgradeGradeTable). 순서 = 낮은 등급 → 높은 등급</summary>
+    public enum UpgradeGrade { Poor, Common, Epic }
 
     /// <summary>믹서 그룹·볼륨 단위. Monster 는 보스 포효 때 따로 줄이기(덕킹) 위해 Sfx 에서 분리</summary>
     public enum SoundCategory { Bgm, Sfx, Monster, Ui }

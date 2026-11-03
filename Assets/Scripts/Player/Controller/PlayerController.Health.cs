@@ -9,7 +9,7 @@ namespace HybridShooter.Player
     {
         public bool IsAlive => currentHealth > 0;
         public int CurrentHealth => currentHealth;
-        public int MaxHealth => maxHealth;
+        public int MaxHealth => maxHealth + upgradeMaxHealth;
         /// <summary>수류탄을 던지는 동작 중 (이 동안은 총을 쏠 수 없다)</summary>
         public bool IsThrowingGrenade => items != null && items.IsThrowing;
 
@@ -18,13 +18,13 @@ namespace HybridShooter.Player
         /// <summary>죽었거나, 이미 가득 찼거나, amount 가 0 이하면 false (아이템을 소모하지 않게)</summary>
         public bool Heal(int amount)
         {
-            if (amount <= 0 || IsAlive == false || currentHealth >= maxHealth) return false;
-            currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+            if (amount <= 0 || IsAlive == false || currentHealth >= MaxHealth) return false;
+            currentHealth = Mathf.Min(currentHealth + amount, MaxHealth);
             PublishHp();
             return true;
         }
 
-        private void PublishHp() => EventBus<PlayerHpChangedEvent>.Publish(new PlayerHpChangedEvent(currentHealth, maxHealth));
+        private void PublishHp() => EventBus<PlayerHpChangedEvent>.Publish(new PlayerHpChangedEvent(currentHealth, MaxHealth));
 
         public void TakeDamage(in DamageInfo info)
         {

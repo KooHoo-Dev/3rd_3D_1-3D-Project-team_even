@@ -112,7 +112,7 @@ flowchart TB
 | `MonsterWipeRequestedEvent` | 보스(등장 공격) | 몬스터 |
 | `BossAppearedEvent`, `BossDefeatedEvent` | 보스 | 코어, UI·사운드, 보상 (패턴 단계·타격은 `BossAttack` 지역 이벤트) |
 | `BossFinaleStartedEvent` | 보스(`TyranopodeFinale`, 최후 연출 시작) | 코어(`RoundSequencer`: 보급 정지, 처치해도 보상 단계로 가지 않음 → 클리어) |
-| `GameClearedEvent` | 보스(`TyranopodeFinale`, 클리어 화면) | 기록·사운드 등 |
+| `GameClearedEvent` | 보스(`TyranopodeFinale`, 클리어 문구 — 같은 순간 `GameClearRecord` 에 클리어 기록 저장, 잠시 뒤 엔딩 씬 `Ending` 으로) | 기록·사운드 등. 클리어 기록은 메인 메뉴 새벽 버전(`MenuClearedVariant`)이 읽는다 |
 | `SupplyDroppedEvent`, `SupplyCollectedEvent(ItemAmount, MagazinesAdded)` | 보급 | UI(낙하 위치·지급량 표시, `SupplyInfoCardHud` 무기 획득 카드, `PlayerHud` 아이콘 피드백), 사운드(GameSoundRouter: 투하음·안내 방송·랜덤 장전음), 빛기둥, 분석. ItemAmount = 실제 증가 아이템 수 (보급 무기는 장착 1 / 탄창만 0) |
 | `RoundSupplyGrantedEvent(Round, Grenades, HealPacks, MagazinesAdded)` | 보급(`RoundStartSupply`, 보스 클리어 후 다음 라운드 시작 지급) | UI(`RoundSupplyToastHud` 배너, `PlayerHud` 아이콘 피드백), 사운드, 테스트 HUD |
 | `CurrencyChangedEvent`, `UpgradePurchasedEvent` | 보상 | UI, 무기(능력치 갱신) |

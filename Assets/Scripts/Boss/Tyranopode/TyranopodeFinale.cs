@@ -2,8 +2,8 @@ using System;
 using Cysharp.Threading.Tasks;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Events;
+using HybridShooter.Core.GameFlow;
 using HybridShooter.Core.Services;
-using HybridShooter.UI;
 using HybridShooter.UI.MainMenu;
 using TMPro;
 using UnityEngine;
@@ -26,8 +26,9 @@ namespace HybridShooter.Boss.Tyranopode
         public string SupportSubtitle;
         public string ClearTitle;
         public string ClearSubtitle;
-        public string MainMenuButton;
-        [Tooltip("메인 메뉴 씬 이름 (Build Settings)")] public string MainMenuScene;
+        [Tooltip("클리어 문구를 보여 준 뒤 암전을 시작하기까지(초)")] public float ClearHoldTime;
+        [Tooltip("암전하며 엔딩 씬을 로드하는 시간(초, BGM 페이드 포함)")] public float EndingFadeTime;
+        [Tooltip("엔딩 씬 이름 (Build Settings)")] public string EndingScene;
 
         public static TyranopodeFinaleSettings Default => new TyranopodeFinaleSettings
         {
@@ -40,9 +41,10 @@ namespace HybridShooter.Boss.Tyranopode
             SupportTitle = "궤도 지원 도착",
             SupportSubtitle = "목표 고정 — 정밀 타격 개시",
             ClearTitle = "작전 성공",
-            ClearSubtitle = "GAME CLEAR",
-            MainMenuButton = "메인 메뉴로",
-            MainMenuScene = "Test_MainMenu",
+            ClearSubtitle = "구조선 착륙 — 귀환 개시",
+            ClearHoldTime = 3f,
+            EndingFadeTime = 1.6f,
+            EndingScene = "Ending",
         };
     }
 
@@ -63,7 +65,7 @@ namespace HybridShooter.Boss.Tyranopode
     ///  1) 시네마틱 카메라로 전환 (위아래 검은 띠, 플레이어 입력 차단·무적). 보스가 포효하며 땅의 힘을 빨아들이고 점점 커진다
     ///  2) "궤도 지원 도착" 문구
     ///  3) 하늘에서 조준 레이저 → 거대한 궤도 빔이 내리꽂혀 보스 처치 (BossController 사망 → 기존 보상·사운드 흐름)
-    ///  4) 잔해를 비추다 클리어 화면 (GameClearedEvent, [메인 메뉴로])
+    ///  4) 잔해를 비추다 클리어 문구 (GameClearedEvent, 클리어 기록 저장) → 잠시 뒤 암전하며 엔딩 씬(구조선 탑승·이륙·크레딧)으로
     /// </summary>
     public sealed class TyranopodeFinale : MonoBehaviour
     {
@@ -86,11 +88,13 @@ namespace HybridShooter.Boss.Tyranopode
         private LineRenderer beam;
         private CanvasGroup message;
         private CanvasGroup clear;
+        private Image blackout;
 
         private bool messageShown;
         private bool laserShown;
         private bool struck;
         private bool cleared;
+        private bool leaving;
 
         public void Begin(TyranopodeController controller, TyranopodeFinaleSettings finale, TyranopodeFinaleAssets finaleAssets, GroundTelegraph threatTelegraph)
         {
@@ -154,6 +158,9 @@ namespace HybridShooter.Boss.Tyranopode
 
             if (cleared == false && struck && t >= settings.StrikeTime + settings.AftermathTime) ShowClear();
             if (cleared) clear.alpha = Mathf.MoveTowards(clear.alpha, 1f, Time.unscaledDeltaTime * 1.5f);
+            float clearTime = settings.StrikeTime + settings.AftermathTime;
+            if (cleared && leaving == false && t >= clearTime + settings.ClearHoldTime) LeaveForEnding();
+            if (leaving) SetBlackout(blackout.color.a + Time.unscaledDeltaTime / settings.EndingFadeTime);
 
             rig.SetBars(t / 0.6f);
         }
@@ -185,15 +192,22 @@ namespace HybridShooter.Boss.Tyranopode
         {
             cleared = true;
             clear.gameObject.SetActive(true);
+            GameClearRecord.MarkCleared();
             EventBus<GameClearedEvent>.Publish(new GameClearedEvent());
         }
 
-        private void GoToMainMenu()
+        /// <summary>
+        /// 암전하며 엔딩 씬 로드 (BGM 페이드아웃과 함께). 시네마틱(입력 차단·무적)은 풀지 않는다 — 플레이어는 씬과 함께 사라진다.
+        /// 엔딩 씬은 검은 화면에서 시작해 밝아진다
+        /// </summary>
+        private void LeaveForEnding()
         {
-            ServiceLocator.Get<IPlayerCinematic>().SetCinematic(false);
-            MainMenuController.SkipPressAnyKey = true;
-            SceneTransition.LoadAsync(settings.MainMenuScene, 0.6f, this.GetCancellationTokenOnDestroy()).Forget();
+            leaving = true;
+            blackout.gameObject.SetActive(true);
+            SceneTransition.LoadAsync(settings.EndingScene, settings.EndingFadeTime, this.GetCancellationTokenOnDestroy()).Forget();
         }
+
+        private void SetBlackout(float alpha) => blackout.color = new Color(0f, 0f, 0f, Mathf.Clamp01(alpha));
 
         // ───────────────────────── 카메라 ─────────────────────────
 
@@ -258,7 +272,6 @@ namespace HybridShooter.Boss.Tyranopode
 
         private void BuildUi()
         {
-            LoadoutPanel.EnsureEventSystem();
             var root = rig.Canvas;
 
             message = Group(root, "SupportMessage");
@@ -269,12 +282,24 @@ namespace HybridShooter.Boss.Tyranopode
 
             clear = Group(root, "ClearScreen");
             var dim = clear.gameObject.AddComponent<Image>();
-            dim.color = new Color(0f, 0f, 0f, 0.65f);
-            Text(clear.transform, settings.ClearTitle, 80f, new Color(1f, 0.85f, 0.4f), new Vector2(0f, 90f));
-            Text(clear.transform, settings.ClearSubtitle, 36f, Color.white, new Vector2(0f, 10f));
-            Button(clear.transform, settings.MainMenuButton, new Vector2(0f, -110f));
+            dim.color = new Color(0f, 0f, 0f, 0.45f);
+            dim.raycastTarget = false;
+            Text(clear.transform, settings.ClearTitle, 80f, new Color(1f, 0.85f, 0.4f), new Vector2(0f, 50f));
+            Text(clear.transform, settings.ClearSubtitle, 32f, Color.white, new Vector2(0f, -30f));
             clear.alpha = 0f;
             clear.gameObject.SetActive(false);
+
+            // 엔딩 씬으로 넘어가는 암전 (검은 띠·문구 위)
+            var black = new GameObject("Blackout", typeof(RectTransform), typeof(Image));
+            black.transform.SetParent(root, false);
+            var blackRect = (RectTransform)black.transform;
+            blackRect.anchorMin = Vector2.zero;
+            blackRect.anchorMax = Vector2.one;
+            blackRect.offsetMin = blackRect.offsetMax = Vector2.zero;
+            blackout = black.GetComponent<Image>();
+            blackout.raycastTarget = false;
+            SetBlackout(0f);
+            black.SetActive(false);
         }
 
         private static CanvasGroup Group(RectTransform parent, string groupName)
@@ -303,19 +328,6 @@ namespace HybridShooter.Boss.Tyranopode
             rect.anchoredPosition = position;
             rect.sizeDelta = new Vector2(1600f, size * 1.6f);
             return text;
-        }
-
-        private void Button(Transform parent, string label, Vector2 position)
-        {
-            var go = new GameObject("MainMenuButton", typeof(RectTransform), typeof(Image), typeof(Button));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = new Color(0.55f, 0.25f, 0.1f, 0.95f);
-            var rect = (RectTransform)go.transform;
-            rect.anchoredPosition = position;
-            rect.sizeDelta = new Vector2(360f, 80f);
-            go.GetComponent<Button>().onClick.AddListener(GoToMainMenu);
-            var text = Text(go.transform, label, 32f, Color.white, Vector2.zero);
-            ((RectTransform)text.transform).sizeDelta = rect.sizeDelta;
         }
 
         private void OnDestroy()

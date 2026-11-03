@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HybridShooter.Core.Battlefield;
 using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
@@ -174,6 +175,7 @@ namespace HybridShooter.Boss.Tyranopode
         private float stateEndTime;
         private float nextAttackTime;
         private bool wasAttacking;
+        private bool skipNextCombo;
         private TyranopodeAttack currentAttack;
         private TyranopodeAttack lastAttack;
         private TyranopodeAttack forcedAttack;
@@ -202,6 +204,7 @@ namespace HybridShooter.Boss.Tyranopode
         private TyranopodeAnalysisHud analysis;
         private Vector3 initialScale = Vector3.one;
         private float pendingShield;
+        private bool shieldQueued; // 부활하면 보호막이 생긴다 (흡수량 0 이어도 기본량)
         private float shieldHp;
         private float shieldMax;
         private int shieldLayersLeft;
@@ -220,6 +223,7 @@ namespace HybridShooter.Boss.Tyranopode
         private float introDrainTime;
         private int introAbsorbed;
         private float introShieldGiven;
+        private bool introBaseGiven;
 
         public TyranopodeDef Def { get; private set; }
         public Transform Target => player?.Root;
@@ -305,6 +309,9 @@ namespace HybridShooter.Boss.Tyranopode
             if (beaconPrefab != null && beaconPrefab.HasReferences == false) missing.Add("beaconPrefab 의 조명·연출");
             if (missing.Count > 0)
                 throw new InvalidOperationException($"[Tyranopode] 참조가 비어 있습니다: {string.Join(", ", missing)}. 'Tyranopode 프리팹 만들기'를 다시 실행해주세요.");
+            // 최후 연출 끝에 로드한다 → 마지막에 가서야 터지지 않게 생성 순간에 확인
+            if (Application.CanStreamedLevelBeLoaded(finale.EndingScene) == false)
+                throw new InvalidOperationException($"[Tyranopode] 엔딩 씬 '{finale.EndingScene}' 이 Build Settings 에 없습니다. 'Tools > Ending > Rebuild Ending Scene' 을 실행해주세요.");
         }
 
         /// <summary>
@@ -374,14 +381,14 @@ namespace HybridShooter.Boss.Tyranopode
             var playerController = (PlayerController)target;
             playerCamera = () => playerController.CurrentCameraTransform.GetComponent<Camera>();
             analysis = TyranopodeAnalysisHud.Create(finaleAssets.Font, techFont, playerCamera);
-            var arena = FindAnyObjectByType<TyranopodeArena>();
-            if (arena != null) Minions.SetArena(arena.transform.position, arena.Radius);
-            else Minions.MeasureArena(transform.position, fallbackArenaRadius);
+            SetupArena();
             // 열린 맵이면 경계 없음 (맵 끝은 MoveFree 의 낭떠러지 판정이 막는다)
-            locomotion.SetBounds(Minions.Center, Minions.HasBounds ? Minions.Radius : 0f);
+            // 경계 원은 가장 먼 벽까지 = 바깥 상한. 사각형 같은 실제 벽 모양은 locomotion.KeepAwayFromWalls 가 따른다
+            locomotion.SetBounds(Minions.Center, Minions.HasBounds ? Minions.FarRadius : 0f);
             // 몸이 커질수록 벽 여유가 늘어 움직일 공간이 준다 → 맴돌 공간이 모자라면 알린다 (크기 배율·CircleRadius 조정)
-            if (Minions.HasBounds && locomotion.InnerRadius < Def.CircleRadius)
-                Debug.LogWarning($"[Tyranopode] 경기장이 좁습니다: 움직일 수 있는 반지름 {locomotion.InnerRadius:0.#}m < 맴돌기 반경 {Def.CircleRadius:0.#}m", this);
+            float roomRadius = Minions.Radius - locomotion.WallMargin;
+            if (Minions.HasBounds && roomRadius < Def.CircleRadius)
+                Debug.LogWarning($"[Tyranopode] 경기장이 좁습니다: 움직일 수 있는 반지름(중앙값) {roomRadius:0.#}m < 맴돌기 반경 {Def.CircleRadius:0.#}m", this);
 
             IsPhase2 = false;
             spawnScale = transform.localScale;
@@ -392,6 +399,31 @@ namespace HybridShooter.Boss.Tyranopode
             introPlayed = true;
 
             Debug.Log($"[Tyranopode] 초기화 | HP {boss.CurrentHp}/{boss.MaxHp} | 경기장 {Minions.ArenaSource}", this);
+        }
+
+        /// <summary>
+        /// 경기장을 정한다. 라운드 보스는 플레이어 근처 무작위 자리에 생기므로 보스 발밑에서 재면 라운드마다 경기장이 달라진다 → 맵 기준을 먼저 쓴다
+        ///  1. 씬의 TyranopodeArena
+        ///  2. 맵 경계(SpawnPointFinder) 중심에서 NavMesh 측정. 열린 맵으로 나오면 맵 경계 원 그대로
+        ///  3. 보스 발밑에서 NavMesh 측정 (맵 경계가 없는 테스트 씬)
+        /// </summary>
+        private void SetupArena()
+        {
+            var arena = FindAnyObjectByType<TyranopodeArena>();
+            if (arena != null)
+            {
+                Minions.SetArena(arena.transform.position, arena.Radius);
+                return;
+            }
+
+            if (ServiceLocator.TryGet(out SpawnPointFinder map) && TyranopodeMinions.CanMeasureFrom(map.MapCenter))
+            {
+                Minions.MeasureArena(map.MapCenter, map.MapRadius);
+                if (Minions.HasBounds == false) Minions.SetArena(map.MapCenter, map.MapRadius, "맵 경계");
+                return;
+            }
+
+            Minions.MeasureArena(transform.position, fallbackArenaRadius);
         }
 
         private void BuildParts()
@@ -473,6 +505,7 @@ namespace HybridShooter.Boss.Tyranopode
         {
             state = State.Fight;
             wasAttacking = false;
+            skipNextCombo = false;
             currentAttack = null;
             nextAttackTime = Time.time + delay;
         }
@@ -481,15 +514,20 @@ namespace HybridShooter.Boss.Tyranopode
         {
             bool special = currentAttack is SummonRoarAttack || currentAttack is TentacleStormAttack;
             currentAttack = null;
+            bool noCombo = skipNextCombo;
+            skipNextCombo = false;
 
             float combo = (IsPhase2 ? Def.Phase2ComboChance : Def.ComboChance) * assist.ComboMultiplier;
-            if (special == false && Random.value < combo)
+            if (special == false && noCombo == false && Random.value < combo)
             {
                 nextAttackTime = Time.time + ComboDelay;
                 return;
             }
             nextAttackTime = Time.time + Random.Range(Def.CircleTimeMin, Def.CircleTimeMax) * assist.DelayMultiplier;
         }
+
+        /// <summary>지금 공격이 끝나면 콤보로 잇지 않고 평소처럼 맴돌다 다음 공격 (제대로 펼치지 못하고 끝난 공격이 부른다)</summary>
+        public void SkipNextCombo() => skipNextCombo = true;
 
         /// <summary>seconds 동안 공격하지 않고 멀찍이 맴돈다 (알을 깰 틈)</summary>
         public void BeginQuiet(float seconds)
@@ -610,6 +648,7 @@ namespace HybridShooter.Boss.Tyranopode
             Minions.KillAllNow();
             ClearSpawned();
             pendingShield = 0f;
+            shieldQueued = false;
             shieldHp = 0f;
             shield.Hide();
         }
@@ -719,6 +758,7 @@ namespace HybridShooter.Boss.Tyranopode
             Minions.TakeCollapsedPositions();
             ClearSpawned();
             pendingShield = 0f;
+            shieldQueued = false;
             shieldHp = 0f;
             shield.Hide();
 
@@ -764,6 +804,7 @@ namespace HybridShooter.Boss.Tyranopode
             introDraining = false;
             introAbsorbed = 0;
             introShieldGiven = 0f;
+            introBaseGiven = false;
 
             // 플레이어 반대편 벽 너머에서 뛰어든다
             Vector3 away = introLanding - Target.position;
@@ -832,14 +873,19 @@ namespace HybridShooter.Boss.Tyranopode
             Minions.DrainAdopted(transform.position, duration * 0.1f, duration * 0.45f);
         }
 
-        /// <summary>포효: 분석 화면 이름 카드 (흡수한 수·생체막)</summary>
+        /// <summary>포효: 분석 화면 이름 카드 (흡수한 수·생체막). 흡수한 몬스터가 없었으면 기본량 보호막만 이때 돋아난다</summary>
         public void IntroRoar()
         {
             view.Play(TyranopodeView.Roar, 0.9f, 0.25f);
             PlayRoarVfx();
             RaiseSoundCue(TyranopodeSoundCue.CinematicRoar, mouth.position);
             StopGroundEnergy();
-            analysis.ShowIntroCard(introAbsorbed, introShieldGiven > 0f);
+            if (introBaseGiven == false)
+            {
+                introBaseGiven = true;
+                AddShield(WithBaseShield(0f, boss.MaxHp, Def.ShieldBaseRatio));
+            }
+            analysis.ShowIntroCard(introAbsorbed, shieldHp > 0f || orbs.Count > 0);
         }
 
         /// <summary>연출 끝: 전투 시작 (첫 공격까지 delay)</summary>
@@ -872,14 +918,21 @@ namespace HybridShooter.Boss.Tyranopode
             var positions = Minions.TakeCollapsedPositions();
             if (positions.Count == 0) return;
             float amount = DrainShield(positions.Count, Def.IntroShieldPerMonster, Def.IntroShieldMaxRatio * boss.MaxHp, introShieldGiven);
+            // 기본량은 이번 등장에서 보호막이 처음 생길 때 한 번만 (흡수량은 여러 번 나눠 들어온다)
+            float shieldAmount = introBaseGiven ? amount : WithBaseShield(amount, boss.MaxHp, Def.ShieldBaseRatio);
+            introBaseGiven = true;
             introShieldGiven += amount;
             introAbsorbed += positions.Count;
-            SpawnEnergyOrbs(positions, amount, ground: true, flightTime: introDrainTime * 0.4f);
+            SpawnEnergyOrbs(positions, shieldAmount, ground: true, flightTime: introDrainTime * 0.4f);
         }
 
         /// <summary>쓰러진 count 마리가 주는 보호막: 1마리당 perMonster, 지금까지 준 양(given)과 합쳐 cap 을 넘지 않는다</summary>
         public static float DrainShield(int count, float perMonster, float cap, float given)
             => Mathf.Min(count * perMonster, Mathf.Max(0f, cap - given));
+
+        /// <summary>보호막이 생기는 순간의 양: 흡수량에 기본량(maxHp × baseRatio)을 상한 밖으로 더한다. 흡수량이 0 이어도 기본량은 준다</summary>
+        public static float WithBaseShield(float absorbed, float maxHp, float baseRatio)
+            => absorbed + maxHp * baseRatio;
 
         private void StopGroundEnergy()
         {
@@ -944,7 +997,8 @@ namespace HybridShooter.Boss.Tyranopode
         /// </summary>
         private void OnPlayerDied(PlayerDiedEvent e)
         {
-            if (IsAlive == false || state == State.Finale || Minions.CohortAliveCount == 0) return;
+            // 포효 소환 중이면 넘어온 잡몹이 없어도 보호막 생성 시도 (기본량만)
+            if (IsAlive == false || state == State.Finale || (Minions.CohortAliveCount == 0 && (currentAttack is SummonRoarAttack) == false)) return;
             int count = Minions.CollapseCohort(collapseDelay.x, collapseDelay.y);
             QueueEnergyAfterRevive(count);
             if (currentAttack is SummonRoarAttack summon) summon.EndByPlayerDeath();
@@ -962,7 +1016,8 @@ namespace HybridShooter.Boss.Tyranopode
             Vector3 origin = new Vector3(beaconPoint.x, transform.position.y, beaconPoint.z);
             Vector3 offset = origin - Minions.Center;
             offset.y = 0f;
-            float cover = Minions.Radius + offset.magnitude;
+            // 가장 먼 벽 기준: 사각형 경기장의 모서리까지 닿게
+            float cover = Minions.FarRadius + offset.magnitude;
             for (int i = 0; i < Def.WaveCount; i++)
                 waves.Add((Time.time + i * Def.WaveInterval, origin, cover * (i + 1) / Def.WaveCount, i == Def.WaveCount - 1));
         }
@@ -990,14 +1045,16 @@ namespace HybridShooter.Boss.Tyranopode
         {
             float cap = Def.ShieldMaxRatio * boss.MaxHp;
             pendingShield = Mathf.Min(cap, pendingShield + minionCount * Def.ShieldPerMinion);
+            shieldQueued = true;
         }
 
         private void OnPlayerRevived(PlayerRevivedEvent e)
         {
-            if (IsAlive == false || pendingShield <= 0f) return;
+            if (IsAlive == false || shieldQueued == false) return;
 
-            float amount = pendingShield;
+            float amount = WithBaseShield(pendingShield, boss.MaxHp, Def.ShieldBaseRatio);
             pendingShield = 0f;
+            shieldQueued = false;
             SpawnEnergyOrbs(Minions.TakeCollapsedPositions(), amount, ground: false, flightTime: Def.EnergyFlightTime);
         }
 
@@ -1089,7 +1146,8 @@ namespace HybridShooter.Boss.Tyranopode
             shieldHp += amount;
             shieldMax = Mathf.Max(shieldMax, shieldHp); // 겹 크기 기준 = 이번에 쌓인 최대량
             shieldLayersLeft = Def.ShieldLayers;
-            shield.Absorb(shieldHp / (Def.ShieldMaxRatio * boss.MaxHp));
+            // 막 크기 기준 = 기본량 + 흡수 상한
+            shield.Absorb(shieldHp / ((Def.ShieldBaseRatio + Def.ShieldMaxRatio) * boss.MaxHp));
             shield.SetRatio(shieldHp / shieldMax);
         }
 
@@ -1258,13 +1316,18 @@ namespace HybridShooter.Boss.Tyranopode
         }
 
 #if UNITY_EDITOR
-        /// <summary>선택하면: 경기장 벽(회색)·몸이 머무는 경계(노랑)·근/원거리 구간(빨강/파랑)·맴돌기 반경(초록)</summary>
+        /// <summary>선택하면: 측정한 벽(회색 선, 없으면 대표 반지름 원)·이동 경계 바깥 상한(노랑)·근/원거리 구간(빨강/파랑)·맴돌기 반경(초록)</summary>
         private void OnDrawGizmosSelected()
         {
             if (Application.isPlaying == false || Def == null) return;
             var handles = UnityEditor.Handles.color;
             UnityEditor.Handles.color = Color.gray;
-            UnityEditor.Handles.DrawWireDisc(Minions.Center, Vector3.up, Minions.Radius);
+            var walls = Minions.WallPoints;
+            if (walls.Count >= 2)
+            {
+                for (int i = 0; i < walls.Count; i++) UnityEditor.Handles.DrawLine(walls[i], walls[(i + 1) % walls.Count]);
+            }
+            else UnityEditor.Handles.DrawWireDisc(Minions.Center, Vector3.up, Minions.Radius);
             UnityEditor.Handles.color = Color.yellow;
             UnityEditor.Handles.DrawWireDisc(Minions.Center, Vector3.up, locomotion.InnerRadius);
             UnityEditor.Handles.color = Color.red;
@@ -1316,7 +1379,7 @@ namespace HybridShooter.Boss.Tyranopode
             var positions = new List<Vector3>();
             for (int i = 0; i < 30; i++)
                 positions.Add(transform.position + Quaternion.Euler(0f, i * 12f, 0f) * Vector3.forward * Random.Range(10f, Minions.Radius * 0.8f));
-            SpawnEnergyOrbs(positions, Def.ShieldMaxRatio * boss.MaxHp, ground: false, flightTime: Def.EnergyFlightTime);
+            SpawnEnergyOrbs(positions, WithBaseShield(Def.ShieldMaxRatio * boss.MaxHp, boss.MaxHp, Def.ShieldBaseRatio), ground: false, flightTime: Def.EnergyFlightTime);
         }
 
         /// <summary>등장 연출 다시 보기: 경기장에 몬스터를 crowd 마리 흩어 놓고(웨이브 몬스터 대신) 지금 자리에 다시 착지한다</summary>

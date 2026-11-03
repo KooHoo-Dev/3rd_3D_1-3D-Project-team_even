@@ -104,12 +104,12 @@ namespace HybridShooter.Monster.Movement.Tests
         }
 
         [Test]
-        public void NearRushWithoutSlotDoesNotStopBeforeTarget()
+        public void NearRushWithoutSlotStopsAtHalfAttackRange()
         {
             var policy = new FlankPolicy(1);
             MoveIntent intent = policy.Evaluate(Context(new Vector3(0f, 0f, SwitchDistance - 1f), Vector3.forward));
 
-            Assert.AreEqual(0f, intent.StopDistance, Tolerance, "사거리 앞에서 미리 감속하지 않는다");
+            Assert.AreEqual(Tuning.AttackRange * 0.5f, intent.StopDistance, Tolerance, "플레이어 몸까지 파고들지 않고 사거리 절반에서 멈춘다");
         }
 
         [Test]

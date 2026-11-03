@@ -10,8 +10,9 @@ namespace HybridShooter.Core.Data.Dtos
         public string UpgradeType = "";  // UpgradeType enum
         public int Level;
         public int Cost;
-        public float Value;  // 레벨별 증가량(누적)
+        public string GradeValues = "";  // 등급별 증가량 (하급;일반;에픽), 레벨마다 누적
+        public int Weight;               // 상점 카드 뽑기 가중치
         public string Name = "";
-        public string Description = "";
+        public string Description = "";  // {0} = 등급 값
     }
 }

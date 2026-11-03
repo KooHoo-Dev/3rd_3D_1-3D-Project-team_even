@@ -13,7 +13,7 @@ using UnityEngine.AI;
 namespace HybridShooter.Round
 {
     /// <summary>
-    /// 한 라운드의 보스를 SpawnPointFinder 가 고른 위치에 생성·초기화하고, 사망을 기존 보상 이벤트에 연결한다.
+    /// 1라운드 보스는 플레이어 XZ에, 나머지는 SpawnPointFinder 가 고른 위치에 생성·초기화하고 사망을 기존 보상 이벤트에 연결한다.
     /// 보스는 RoundTable.BossId → BossTable 행의 Prefab(Resources 경로)으로 고른다.
     /// 인스펙터 bossId 와 같은 보스는 인스펙터 bossPrefab 을 쓰고, 찾지 못하면 인스펙터 보스로 대신한다.
     /// </summary>
@@ -24,6 +24,8 @@ namespace HybridShooter.Round
         [SerializeField] private Transform spawnPoint;
         [Tooltip("플레이어 기준으로 보스 스폰 위치를 고르는 탐색기")]
         [SerializeField] private SpawnPointFinder spawnPointFinder;
+        [Tooltip("스폰 위치에서 NavMesh 를 찾는 반경 (m). 이 안에 NavMesh 가 없는 자리는 쓰지 않는다")]
+        [SerializeField] private float navMeshSnapDistance = 5f;
         [SerializeField] private int bossId = 1;
 
         private BossController boss;
@@ -71,12 +73,30 @@ namespace HybridShooter.Round
                 def = bossDef;
             }
             Transform point = spawnPoint != null ? spawnPoint : transform;
-            if (TryGetComponent<RunDirector>(out var director) && director.CurrentRound == 1) point.position = player.Root.position;
-            boss = Instantiate(prefab, point.position, point.rotation);
+            bool spawnAtPlayer = TryGetComponent<RunDirector>(out var director) && director.CurrentRound == 1;
+            Vector3 fallbackPosition = point.position;
+            if (spawnAtPlayer)
+            {
+                fallbackPosition = player.Root.position;
+                fallbackPosition.y = spawnPointFinder.HeightAt(fallbackPosition);
+            }
+            else if (UsesNavMesh(prefab))
+            {
+                if (TrySnapToNavMesh(fallbackPosition, out Vector3 snapped)) fallbackPosition = snapped;
+                else Debug.LogError($"[RoundBossEncounter] 대체 스폰 위치 {fallbackPosition} 근처에 NavMesh 가 없습니다. spawnPoint 위치나 NavMesh 베이크 범위를 확인해주세요.", this);
+            }
+            boss = Instantiate(prefab, fallbackPosition, point.rotation);
             boss.gameObject.SetActive(true);
-            MoveToFoundSpawnPoint();
+            if (spawnAtPlayer)
+            {
+                WarpAgent(fallbackPosition);
+                // Agent 활성화·Warp 뒤에도 플레이어 XZ와 지면 Y를 그대로 착지점으로 넘긴다.
+                boss.transform.position = fallbackPosition;
+            }
+            else MoveToFoundSpawnPoint();
             boss.Died += OnBossDied;
             entrance = boss.GetComponent<EntranceAttack>();
+            if (spawnAtPlayer && entrance != null) entrance.SetLandingPoint(fallbackPosition);
             if (entrance != null) entrance.Impacted += OnEntranceImpacted;
 
             initializer = boss.GetComponent<IBossEncounterInitializer>();
@@ -126,6 +146,16 @@ namespace HybridShooter.Round
                 Debug.LogError("[RoundBossEncounter] 보스를 놓을 평탄한 위치를 찾지 못해 대체 스폰 위치를 씁니다.", this);
                 return;
             }
+            // SpawnPointFinder 는 지형 높이·장애물만 본다 → NavMesh 로 움직이는 보스는 NavMesh 위로 옮긴다 (이동·경기장 측정이 NavMesh 기준)
+            if (UsesNavMesh(boss))
+            {
+                if (TrySnapToNavMesh(foundPoint, out Vector3 snapped) == false)
+                {
+                    Debug.LogError($"[RoundBossEncounter] 찾은 위치 {foundPoint} 근처에 NavMesh 가 없어 대체 스폰 위치를 씁니다.", this);
+                    return;
+                }
+                foundPoint = snapped;
+            }
 
             WarpAgent(foundPoint);
             boss.transform.SetPositionAndRotation(foundPoint, FacePlayer(foundPoint, playerPosition));
@@ -153,6 +183,23 @@ namespace HybridShooter.Round
                 found = true;
             }
             return found;
+        }
+
+        /// <summary>켜진 NavMeshAgent 로 움직이는 보스인가 (아니면 스폰 위치에 NavMesh 가 필요 없다)</summary>
+        private static bool UsesNavMesh(Component bossOrPrefab)
+            => bossOrPrefab.TryGetComponent<NavMeshAgent>(out var agent) && agent.enabled;
+
+        /// <summary>position 에서 navMeshSnapDistance 안의 가장 가까운 NavMesh 점</summary>
+        /// <param name="position">찾을 위치</param>
+        /// <param name="snapped">NavMesh 위 점. 못 찾으면 position 그대로</param>
+        /// <returns>NavMesh 를 찾았으면 true</returns>
+        private bool TrySnapToNavMesh(Vector3 position, out Vector3 snapped)
+        {
+            snapped = position;
+            if (NavMesh.SamplePosition(position, out NavMeshHit hit, navMeshSnapDistance, NavMesh.AllAreas) == false) return false;
+
+            snapped = hit.position;
+            return true;
         }
 
         /// <summary>

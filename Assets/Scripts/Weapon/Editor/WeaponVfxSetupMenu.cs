@@ -15,7 +15,8 @@ namespace HybridShooter.Weapon.EditorTools
     ///  1. 텍스처(별 모양 화염·빛 덩어리·연기·빛줄기)를 코드로 그려 PNG 로 저장
     ///  2. QFX Particle HDR 셰이더로 재질을 만든다 (HDR 색이라 Bloom 에서 빛난다)
     ///  3. 총구 화염 4종(소·중·대·발사기), 탄 궤적 3종(일반·산탄·저격), 탄착 3종(일반·산탄·저격), 로켓·유탄 꼬리를 프리팹으로 저장
-    ///  4. QFX 폭발(유탄·로켓)을 복사해 파란색 → 주황색으로 바꾼다 (재질 색 + 파티클·불빛 색)
+    ///  4. QFX 폭발(유탄·로켓)을 복사해 파란색 → 주황색으로 바꾼다 (재질 색 + 파티클·불빛 색). 피해 반경에 맞춰 커지도록 ExplosionVisual 을 붙인다.
+    ///     유탄 폭발은 어두운 맵에 맞게 섬광·불빛·위로 솟는 폭풍·먼지 링·불빛 받은 연기·불씨·파편을 더하고, 피해 지점 이펙트(Impact_Explosion)를 단다
     ///  5. Player 프리팹과 PlayerTest 씬의 총 8종, 수류탄 프리팹에 연결
     ///
     /// 다시 실행하면 같은 경로의 에셋을 덮어쓴다 (GUID 유지 → 연결은 그대로)
@@ -29,12 +30,22 @@ namespace HybridShooter.Weapon.EditorTools
         private const string ScenePath = "Assets/Scenes/MS/Scenes/PlayerTest.unity";
         private const string QfxPrefabs = "Assets/ExternalAssets/QFX/Sci-Fi VFX/Prefabs";
         private const string ParticleShader = "QFX/SFX/Particle/Particle HDR";
+        private const string HeatDistortionShader = "HybridShooter/Effects/Explosion Heat Distortion";
 
         private static readonly Color LightColor = new Color(1f, 0.6f, 0.25f);
 
         private sealed class Materials
         {
-            public Material Star, Core, Glow, Spark, Smoke, Tracer;
+            public Material Star, Core, Glow, Spark, Smoke, Tracer, Dust, FireLitSmoke;
+        }
+
+        /// <summary>유탄 폭발을 어두운 맵에 맞게 꾸밀 재료 (AddGrenadeBlast)</summary>
+        private sealed class GrenadeBlast
+        {
+            public Materials Materials;
+            public Shader HeatDistortion;
+            /// <summary>폭발 피해를 받은 지점에 재생 (ExplosionVisual.PlayHit)</summary>
+            public GameObject HitEffect;
         }
 
         private sealed class VfxSet
@@ -75,13 +86,19 @@ namespace HybridShooter.Weapon.EditorTools
                 EditorUtility.DisplayDialog("무기 이펙트 설정", $"셰이더를 찾지 못했습니다:\n{ParticleShader}\n(QFX Sci-Fi VFX 에셋 필요)", "확인");
                 return;
             }
+            Shader heatShader = Shader.Find(HeatDistortionShader);
+            if (heatShader == null)
+            {
+                EditorUtility.DisplayDialog("무기 이펙트 설정", $"셰이더를 찾지 못했습니다:\n{HeatDistortionShader}\n({Root}/Shaders/ExplosionHeatDistortion.shader)", "확인");
+                return;
+            }
 
             EnsureFolder(Root);
             EnsureFolder(TextureFolder);
             EnsureFolder(MaterialFolder);
 
             MakeTextures(out var star, out var glow, out var smoke, out var line);
-            VfxSet set = BuildAll(MakeMaterials(shader, star, glow, smoke, line));
+            VfxSet set = BuildAll(MakeMaterials(shader, star, glow, smoke, line), heatShader);
             if (set.ExplosionGrenade == null || set.ExplosionRocket == null) return;
 
             int guns = AssignPlayerPrefab(set) + AssignScene(set);
@@ -155,6 +172,11 @@ namespace HybridShooter.Weapon.EditorTools
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
+        /// <summary>
+        /// 셰이더 색 = 2 × 파티클 색 × Tint × 텍스처. 파티클 색은 0~1 로 잘리므로 1 을 넘는 밝기(HDR)는 Tint 가 맡는다.
+        ///  - Dust: 폭발 불빛을 받은 따뜻한 회색 먼지 (어두운 맵에서 묻히지 않게 밝게)
+        ///  - FireLitSmoke: Tint 를 밝게 두고 색은 파티클 수명 색이 정한다 (불빛 주황 → 회색 → 청회색, FireLitSmokeColor)
+        /// </summary>
         private static Materials MakeMaterials(Shader shader, Texture2D star, Texture2D glow, Texture2D smoke, Texture2D line)
         {
             return new Materials
@@ -165,6 +187,8 @@ namespace HybridShooter.Weapon.EditorTools
                 Spark = SaveMaterial("M_Spark", shader, glow, new Color(6f, 2.4f, 0.6f, 1f)),
                 Smoke = SaveMaterial("M_Smoke", shader, smoke, new Color(0.42f, 0.4f, 0.38f, 0.5f)),
                 Tracer = SaveMaterial("M_Tracer", shader, line, new Color(5f, 2.8f, 1.1f, 1f)),
+                Dust = SaveMaterial("M_ExplosionDust", shader, smoke, new Color(0.375f, 0.325f, 0.275f, 0.5f)),
+                FireLitSmoke = SaveMaterial("M_ExplosionSmoke", shader, smoke, new Color(1f, 1f, 1f, 0.5f)),
             };
         }
 
@@ -194,7 +218,7 @@ namespace HybridShooter.Weapon.EditorTools
         #endregion
 
         #region 프리팹
-        private static VfxSet BuildAll(Materials m)
+        private static VfxSet BuildAll(Materials m, Shader heatDistortion)
         {
             return new VfxSet
             {
@@ -226,8 +250,11 @@ namespace HybridShooter.Weapon.EditorTools
                 ImpactSniper = BuildImpact(m, "Impact_Sniper", 1.8f, 12),
                 RocketTrail = BuildRocketTrail(m),
                 GrenadeTrail = BuildGrenadeTrail(m),
-                ExplosionGrenade = BuildOrangeExplosion("Grenade/PS_Explosion_Grenade", "Explosion_Grenade"),
-                ExplosionRocket = BuildOrangeExplosion("Rocket/PS_Explosion_Rocket", "Explosion_Rocket"),
+                ExplosionGrenade = BuildOrangeExplosion("Grenade/PS_Explosion_Grenade", "Explosion_Grenade", new GrenadeBlast
+                {
+                    Materials = m, HeatDistortion = heatDistortion, HitEffect = BuildExplosionHit(m),
+                }),
+                ExplosionRocket = BuildOrangeExplosion("Rocket/PS_Explosion_Rocket", "Explosion_Rocket", null),
             };
         }
 
@@ -342,6 +369,32 @@ namespace HybridShooter.Weapon.EditorTools
             Fade(dust, 0.6f, fadeIn: true);
 
             return SavePrefab(root, name);
+        }
+
+        /// <summary>
+        /// 폭발 피해를 받은 지점: 불똥 + 그을음 연기 (0.3초). 피와 함께 "불에 맞았다"가 보이게.
+        /// 로컬 +Z = 폭발 중심 → 대상 (ExplosionVisual.PlayHit 이 그 방향으로 만들고 1초 뒤 지운다)
+        /// </summary>
+        private static GameObject BuildExplosionHit(Materials m)
+        {
+            var root = new GameObject("Impact_Explosion");
+
+            var sparks = AddSystem(root.transform, "Sparks", m.Spark, local: false);
+            Burst(sparks, 8, 8);
+            SetMain(sparks, lifetime: (0.15f, 0.3f), size: (0.03f, 0.05f), speed: (3f, 7f));
+            var sparkMain = sparks.main;
+            sparkMain.gravityModifier = 1f;
+            Cone(sparks, 40f, 0.05f);
+            Stretch(sparks, 1f, 0.02f);
+
+            var smoke = AddSystem(root.transform, "Smoke", m.Smoke, local: false);
+            Burst(smoke, 2, 2);
+            SetMain(smoke, lifetime: (0.25f, 0.3f), size: (0.4f, 0.6f), speed: (0.5f, 1f), randomRotation: true);
+            Cone(smoke, 30f, 0.05f);
+            Grow(smoke, 2f);
+            Fade(smoke, 0.6f, fadeIn: true);
+
+            return SavePrefab(root, "Impact_Explosion");
         }
 
         /// <summary>로켓 뒤 불꽃(로켓에 붙음) + 연기 줄기(월드에 남음) + 불빛</summary>
@@ -495,6 +548,54 @@ namespace HybridShooter.Weapon.EditorTools
             colorOverLifetime.color = gradient;
         }
 
+        /// <summary>파티클 시작 색 (0~1. 셰이더가 2 × Tint 를 곱한다)</summary>
+        private static void Tint(ParticleSystem ps, Color color)
+        {
+            var main = ps.main;
+            main.startColor = color;
+        }
+
+        /// <summary>모양(원뿔·원)의 로컬 +Z 를 위(+Y)로 돌린다</summary>
+        private static void PointUp(ParticleSystem ps)
+        {
+            var shape = ps.shape;
+            shape.rotation = new Vector3(-90f, 0f, 0f);
+        }
+
+        /// <summary>처음 속도가 수명 비율 stopAt 까지 일정하게 줄어 멈춘다 → 한 번에 퍼진 뒤 그 자리에 머문다. 이동 거리 = 속도 × 수명 × stopAt / 2</summary>
+        private static void Brake(ParticleSystem ps, float stopAt)
+        {
+            float slope = -1f / stopAt;
+            var velocity = ps.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.speedModifier = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, 1f, 0f, slope), new Keyframe(stopAt, 0f, slope, 0f), new Keyframe(1f, 0f, 0f, 0f)));
+        }
+
+        /// <summary>
+        /// 불빛을 받은 연기: 주황(밝기 약 1.5) → 따뜻한 회색(0.5) → 청회색(0.35, 맵 안개색 쪽). 최대 불투명도 0.5 (M_ExplosionSmoke 기준)
+        /// 어두운 맵에서 검은 연기는 묻히므로 배경보다 밝게 식어 가고, 멀리서는 안개에 섞인다
+        /// </summary>
+        private static void FireLitSmokeColor(ParticleSystem ps)
+        {
+            var colorOverLifetime = ps.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[]
+                {
+                    new GradientColorKey(new Color(0.75f, 0.33f, 0.1f), 0f),
+                    new GradientColorKey(new Color(0.25f, 0.23f, 0.21f), 0.15f),
+                    new GradientColorKey(new Color(0.16f, 0.18f, 0.21f), 0.6f),
+                },
+                new[]
+                {
+                    new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.5f, 0.08f),
+                    new GradientAlphaKey(0.35f, 0.5f), new GradientAlphaKey(0f, 1f),
+                });
+            colorOverLifetime.color = gradient;
+        }
+
         private static Gradient MakeGradient(Color from, Color to, float fromAlpha, float toAlpha)
         {
             var gradient = new Gradient();
@@ -519,8 +620,11 @@ namespace HybridShooter.Weapon.EditorTools
         #endregion
 
         #region QFX 폭발 색 바꾸기
-        /// <summary>QFX 폭발을 복사해 파란 계열 색을 모두 주황 계열로. 텍스처는 흑백이라 색 값만 바꾸면 된다</summary>
-        private static GameObject BuildOrangeExplosion(string sourceName, string targetName)
+        /// <summary>
+        /// QFX 폭발을 복사해 파란 계열 색을 모두 주황 계열로. 텍스처는 흑백이라 색 값만 바꾸면 된다.
+        /// blast 가 있으면 어두운 맵에 맞게 층을 더한다 (null = 원본 그대로)
+        /// </summary>
+        private static GameObject BuildOrangeExplosion(string sourceName, string targetName, GrenadeBlast blast)
         {
             string sourcePath = $"{QfxPrefabs}/{sourceName}.prefab";
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(sourcePath);
@@ -546,7 +650,177 @@ namespace HybridShooter.Weapon.EditorTools
                 if (component == null || component is Transform) continue;
                 RecolorSerialized(component);
             }
+            // 주황으로 바뀐 뒤에 복제해야 새 파티클이 다시 색을 바꾸지 않고, FitToDamageRadius 보다 먼저여야 피해 반경을 따라 커진다
+            if (blast != null) AddGrenadeBlast(go, blast);
+            FitToDamageRadius(go, blast?.HitEffect);
             return SavePrefab(go, targetName);
+        }
+
+        /// <summary>
+        /// 유탄 폭발을 어두운 맵(환경광 0.2·청회색 안개·ACES)에 맞게 꾸민다. 범위를 선으로 그리지 않고,
+        /// 섬광 → 불덩이·위로 솟는 폭풍 → 바닥 먼지 링 → 불빛 받은 연기·불씨 순으로 겹쳐 크기를 느끼게 한다.
+        /// 수치는 루트 구 반경(5m) 기준이고 ExplosionVisual.Fit 이 피해 반경에 맞춰 키운다.
+        ///  - 불빛: 어두운 맵에서 가장 잘 보이는 층. 범위 = 반경 × 1.3 → 밝혀진 바닥·공중몹 몸이 곧 범위로 읽힌다
+        ///  - 아지랑이(원본 구): URP 화면 복사에 투명 파티클이 없어 불꽃보다 나중에 그리면 불꽃을 덮는다
+        ///    → 깊이를 쓰지 않고 불꽃보다 먼저 그리는 복사본 셰이더로
+        ///  - 폭발 오브젝트 수명 1 → 3초 (연기가 남도록. GunExplosion 은 5초에 지운다)
+        /// </summary>
+        private static void AddGrenadeBlast(GameObject go, GrenadeBlast blast)
+        {
+            Materials m = blast.Materials;
+            float radius = RangeSphereRadius(go);
+
+            var sphereRenderer = go.GetComponent<ParticleSystemRenderer>();
+            var heat = new Material(sphereRenderer.sharedMaterial) { shader = blast.HeatDistortion };
+            sphereRenderer.sharedMaterial = SaveMaterial($"{MaterialFolder}/Explosion/M_ExplosionHeatDistortion.mat", heat);
+
+            go.GetComponent<QFX.SFX.SFX_SelfDestroyer>().LifeTime = 3f;
+
+            // 불빛: 0초에 바로 최대 → 0.15초에 1/3 → 0.6초에 꺼짐. 1m 올려 공중몹 몸도 비춘다
+            Transform lightTransform = RequireChild(go, "Point light");
+            lightTransform.localPosition += Vector3.up;
+            lightTransform.GetComponent<Light>().range = radius * 1.3f;
+            var lightAnimator = lightTransform.GetComponent<QFX.SFX.SFX_LightAnimator>();
+            lightAnimator.LightIntensity.AnimationCurve = new AnimationCurve(
+                new Keyframe(0f, 12f), new Keyframe(0.15f, 4f), new Keyframe(0.6f, 0f));
+            lightAnimator.LightIntensity.ValueMultiplier = 1f;
+            lightAnimator.LightIntensity.TimeMultiplier = 1f;
+
+            // 섬광: 0.06초 흰빛 노랑 (밝기 약 6 → 블룸)
+            var flash = AddSystem(go.transform, "PS_Flash", m.Core, local: true);
+            Burst(flash, 1, 1);
+            SetMain(flash, lifetime: (0.06f, 0.06f), size: (3f, 3f));
+            Tint(flash, new Color(0.5f, 0.5f, 0.5f, 1f));
+
+            // 불덩이: 중심에 묶어 두던 속도 제한을 풀어 0.3초에 반경 40%(2m)까지
+            var fire = RequireChild(go, "PS_Fire").GetComponent<ParticleSystem>();
+            var fireMain = fire.main;
+            fireMain.startSpeed = new ParticleSystem.MinMaxCurve(4f, 7f);
+            fireMain.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.45f);
+            var fireLimit = fire.limitVelocityOverLifetime;
+            fireLimit.enabled = false;
+
+            // 위로 솟는 폭풍(공중몹 높이를 휩쓴다): 25° 원뿔로 0.2초에 반경 높이(5m)까지. 불꽃 12 + 연기 6
+            var blastFire = Object.Instantiate(fire.gameObject, go.transform, false);
+            blastFire.name = "PS_BlastFire";
+            blastFire.transform.localPosition = Vector3.zero;
+            var blastFirePs = blastFire.GetComponent<ParticleSystem>();
+            var blastFireMain = blastFirePs.main;
+            blastFireMain.startLifetime = 0.45f;
+            blastFireMain.startSpeed = 37f;
+            Cone(blastFirePs, 25f, 0.3f);
+            PointUp(blastFirePs);
+            var blastFireEmission = blastFirePs.emission;
+            blastFireEmission.rateOverTime = 0f;
+            Burst(blastFirePs, 12, 12);
+            Brake(blastFirePs, 0.3f / 0.45f);
+
+            var blastSmoke = AddSystem(go.transform, "PS_BlastSmoke", m.FireLitSmoke, local: false);
+            Burst(blastSmoke, 6, 6);
+            SetMain(blastSmoke, lifetime: (1.6f, 2f), size: (1.5f, 2f), speed: (37f, 37f), randomRotation: true);
+            Cone(blastSmoke, 25f, 0.3f);
+            PointUp(blastSmoke);
+            Brake(blastSmoke, 0.3f / 1.8f);
+            Grow(blastSmoke, 2.5f);
+            FireLitSmokeColor(blastSmoke);
+            BehindFire(blastSmoke);
+
+            // 바닥 먼지 링: 0.3초에 반경까지 퍼지고 1초 동안 흐려진다 → 가로 범위
+            var dust = AddSystem(go.transform, "PS_DustRing", m.Dust, local: false);
+            Burst(dust, 30, 30);
+            SetMain(dust, lifetime: (1.2f, 1.4f), size: (1.2f, 2f), speed: (28f, 33f), randomRotation: true);
+            var dustShape = dust.shape;
+            dustShape.enabled = true;
+            dustShape.shapeType = ParticleSystemShapeType.Circle;
+            dustShape.radius = 0.3f;
+            dustShape.rotation = new Vector3(90f, 0f, 0f); // 원(로컬 XY 면)을 바닥(XZ 면)으로
+            Brake(dust, 0.3f / 1.3f);
+            Grow(dust, 2f);
+            Fade(dust, 0.6f, fadeIn: false);
+            BehindFire(dust);
+
+            // 연기 기둥: 불빛 받은 주황 → 회색 → 청회색으로 식으며 솟는다 → 세로 크기감
+            var smoke = AddSystem(go.transform, "PS_SmokeColumn", m.FireLitSmoke, local: false);
+            Burst(smoke, 10, 10);
+            SetMain(smoke, lifetime: (1.5f, 2.5f), size: (2f, 2f), speed: (1f, 2f), randomRotation: true);
+            Cone(smoke, 15f, 0.5f);
+            PointUp(smoke);
+            Grow(smoke, 2.5f);
+            FireLitSmokeColor(smoke);
+            BehindFire(smoke);
+
+            // 불씨: 어둠 속 하이라이트. 떠오르며 흔들린다
+            var embers = AddSystem(go.transform, "PS_Embers", m.Spark, local: false);
+            Burst(embers, 25, 25);
+            SetMain(embers, lifetime: (0.8f, 2f), size: (0.04f, 0.08f), speed: (1f, 4f));
+            Tint(embers, new Color(0.35f, 0.35f, 0.35f, 1f));
+            var emberMain = embers.main;
+            emberMain.gravityModifier = -0.1f;
+            var emberShape = embers.shape;
+            emberShape.enabled = true;
+            emberShape.shapeType = ParticleSystemShapeType.Sphere;
+            emberShape.radius = 1f;
+            var emberNoise = embers.noise;
+            emberNoise.enabled = true;
+            emberNoise.strength = 0.6f;
+            emberNoise.frequency = 1f;
+            Fade(embers, 1f, fadeIn: false);
+
+            // 파편: 끝이 달아오른 조각 (검은 조각은 어두운 맵에서 안 보인다)
+            var debris = AddSystem(go.transform, "PS_Debris", m.Spark, local: false);
+            Burst(debris, 15, 15);
+            SetMain(debris, lifetime: (0.8f, 0.8f), size: (0.06f, 0.12f), speed: (8f, 14f));
+            Tint(debris, new Color(0.125f, 0.125f, 0.125f, 1f));
+            var debrisMain = debris.main;
+            debrisMain.gravityModifier = 1.5f;
+            Cone(debris, 60f, 0.3f);
+            PointUp(debris);
+            Stretch(debris, 1f, 0.02f);
+
+            // 바닥 충격파 원판: 0.25초 만에 지나가는 링으로
+            var shockMain = RequireChild(go, "PS_ShockWave").GetComponent<ParticleSystem>().main;
+            shockMain.startLifetime = 0.25f;
+        }
+
+        /// <summary>QFX 원본 구조(하위 오브젝트 이름)에 기대는 곳. 없으면 원본이 바뀐 것이라 바로 멈춘다</summary>
+        private static Transform RequireChild(GameObject go, string name)
+        {
+            Transform child = go.transform.Find(name);
+            if (child == null) throw new System.InvalidOperationException($"'{go.name}' 에 {name} 가 없습니다 (QFX 원본 구조가 바뀜)");
+            return child;
+        }
+
+        /// <summary>반투명 연기·먼지가 불꽃 앞을 덮지 않게 정렬을 뒤로 민다 (Sorting Fudge 가 클수록 먼저 = 뒤에 그린다)</summary>
+        private static void BehindFire(ParticleSystem ps)
+        {
+            ps.GetComponent<ParticleSystemRenderer>().sortingFudge = 50f;
+        }
+
+        /// <summary>루트 구(Sphere 메시 반경 1m)의 반경 = 시작 크기. 배율 1 일 때 보이는 범위</summary>
+        private static float RangeSphereRadius(GameObject go) => go.GetComponent<ParticleSystem>().main.startSize.constant;
+
+        /// <summary>
+        /// 피해 반경에 맞춰 키울 수 있게 만든다 (GunExplosion 이 ExplosionVisual.Fit 을 부른다).
+        ///  - 하위 파티클도 루트 크기를 따르도록 Hierarchy, 위쪽 반구로만 퍼지던 불꽃·스파크는 구로 (공중 폭발도 둥글게)
+        ///  - 기준 반경 = 루트 구(Sphere 메시 반경 1m) 크기. 충격파 원판(Disk 메시 반경 약 1.09m)은 그 구와 같은 반경으로
+        ///  - hitEffect: 폭발 피해를 받은 지점에 재생할 이펙트 (null = 없음)
+        /// </summary>
+        private static void FitToDamageRadius(GameObject go, GameObject hitEffect)
+        {
+            const float diskMeshRadius = 1.0928f;
+            float baseRadius = RangeSphereRadius(go);
+            foreach (var ps in go.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var main = ps.main;
+                main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+                var shape = ps.shape;
+                if (shape.shapeType == ParticleSystemShapeType.Hemisphere) shape.shapeType = ParticleSystemShapeType.Sphere;
+                if (ps.name == "PS_ShockWave") main.startSize = baseRadius / diskMeshRadius;
+            }
+            var visual = new SerializedObject(go.AddComponent<ExplosionVisual>());
+            visual.FindProperty("baseRadius").floatValue = baseRadius;
+            visual.FindProperty("hitEffectPrefab").objectReferenceValue = hitEffect;
+            visual.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static Material OrangeMaterial(Material source, Dictionary<Material, Material> cache)

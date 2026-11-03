@@ -4,6 +4,8 @@
 //  - 빛: 메인 라이트(Directional) 램버트 + 부드러운 명암 경계
 //  - 대기: 1패스 안쪽 가장자리 프레넬 + 2패스(SRPDefaultUnlit) 바깥 껍질 — 법선 방향으로 부풀린 구의 뒷면만 가산으로 그려 행성 둘레에 빛 테를 두른다
 //  - 큐: Transparent-100 (아래 Tags 주석 참고)
+//  - 엔딩 붕괴(EndingPlanetShatter): _CrackAmount 로 금빛 균열이 퍼지고 _VeinFade 로 핏줄 빛이 꺼진다.
+//    새 속성은 기본값이면 꺼져 있어 인트로 행성은 그대로
 // 메시는 반지름 0.5 구 (IntroSceneBuilder 가 고해상도 구를 만들어 넣는다)
 Shader "HybridShooter/Intro/Hive Planet"
 {
@@ -25,6 +27,13 @@ Shader "HybridShooter/Intro/Hive Planet"
         _RimPower ("Inner Rim Power", Range(0.5, 8)) = 3
         _AtmosphereThickness ("Shell Thickness (radius ratio)", Range(0.005, 0.2)) = 0.045
         _ShellIntensity ("Shell Intensity", Range(0, 4)) = 1.4
+
+        // 엔딩 붕괴 연출 (EndingPlanetShatter). 기본값이면 위 결과와 같다 → 인트로 행성은 그대로
+        [Header(Crack Ending)]
+        _CrackAmount ("Crack Amount", Range(0, 1)) = 0
+        [HDR] _CrackColor ("Crack Color", Color) = (6, 4.2, 2.2, 1)
+        _CrackScale ("Crack Scale", Range(1, 20)) = 5
+        _VeinFade ("Vein Fade", Range(0, 1)) = 0
     }
 
     HLSLINCLUDE
@@ -43,6 +52,10 @@ Shader "HybridShooter/Intro/Hive Planet"
         half _RimPower;
         float _AtmosphereThickness;
         half _ShellIntensity;
+        half _CrackAmount;
+        half4 _CrackColor;
+        float _CrackScale;
+        half _VeinFade;
     CBUFFER_END
 
     uint3 Pcg3d(uint3 v)
@@ -82,6 +95,28 @@ Shader "HybridShooter/Intro/Hive Planet"
             amplitude *= 0.5;
         }
         return sum / 0.96875;
+    }
+
+    float3 Hash33(float3 p)
+    {
+        return float3(Pcg3d(asuint(int3(floor(p))))) * (1.0 / 4294967295.0);
+    }
+
+    // 3D 보로노이 경계까지 거리 (F2 - F1, 0 = 칸 경계) — 엔딩 균열
+    float CellEdge(float3 p)
+    {
+        float3 cell = floor(p);
+        float f1 = 8.0, f2 = 8.0;
+        for (int z = -1; z <= 1; z++)
+        for (int y = -1; y <= 1; y++)
+        for (int x = -1; x <= 1; x++)
+        {
+            float3 c = cell + float3(x, y, z);
+            float d = length(c + Hash33(c) - p);
+            if (d < f1) { f2 = f1; f1 = d; }
+            else if (d < f2) f2 = d;
+        }
+        return f2 - f1;
     }
     ENDHLSL
 
@@ -144,7 +179,19 @@ Shader "HybridShooter/Intro/Hive Planet"
                 float fine = 1.0 - abs(Fbm(input.surfaceOS * _VeinScale * 2.7 + warp * 3.0 + 5.0) * 2.0 - 1.0);
                 float vein = smoothstep(1.0 - _VeinWidth, 1.0, ridge) + 0.45 * smoothstep(1.0 - _VeinWidth * 0.6, 1.0, fine);
                 float pulse = 0.55 + 0.45 * sin(_Time.y * _PulseSpeed * 6.2832 * 0.5 + h * 14.0);
-                half3 emission = _VeinColor.rgb * vein * pulse * lerp(1.0, 0.35, lit);
+                half3 emission = _VeinColor.rgb * vein * pulse * lerp(1.0, 0.35, lit) * (1.0 - _VeinFade);
+
+                // 엔딩 균열: 보로노이 경계를 따라 금이 가고, 퍼지는 순서는 큰 얼룩 노이즈가 정한다 (_CrackAmount 0 이면 없음)
+                if (_CrackAmount > 0.0)
+                {
+                    float spread = saturate((_CrackAmount * 1.25 - Fbm(input.surfaceOS * 1.7 + 11.0)) * 4.0);
+                    float width = 0.015 + 0.09 * _CrackAmount * _CrackAmount;
+                    float edge = CellEdge(input.surfaceOS * _CrackScale + warp * 0.35);
+                    float crack = (1.0 - smoothstep(width * 0.4, width, edge)) * spread;
+                    float halo = exp(-edge / (width * 3.5)) * spread * 0.35;
+                    float flicker = 0.8 + 0.2 * sin(_Time.y * 9.0 + h * 20.0);
+                    emission += _CrackColor.rgb * (crack + halo) * flicker * (0.4 + _CrackAmount);
+                }
 
                 half3 color = albedo * light.color * lit + albedo * 0.025 + emission;
 

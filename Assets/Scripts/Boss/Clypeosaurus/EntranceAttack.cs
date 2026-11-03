@@ -33,6 +33,7 @@ namespace  HybridShooter.Boss.Clypeosaurus
 
         private Vector3 landingPoint;
         private Vector3 fallStartPoint;
+        private bool fixedLandingPoint;
 
         private float windupStatedAt;
         private float fallStartedAt;
@@ -63,6 +64,13 @@ namespace  HybridShooter.Boss.Clypeosaurus
             used = false;
         }
         
+        /// <summary>지정한 XZ와 지면 높이를 입장 연출의 착지점으로 유지한다.</summary>
+        public void SetLandingPoint(Vector3 point)
+        {
+            landingPoint = point;
+            fixedLandingPoint = true;
+        }
+
         protected override bool MeetsStartCondition()
         {
             return (used == false) && agent.isActiveAndEnabled && agent.isOnNavMesh;
@@ -75,7 +83,7 @@ namespace  HybridShooter.Boss.Clypeosaurus
             used = true;
             windupStatedAt = Time.time;
 
-            landingPoint = transform.position;
+            if (fixedLandingPoint == false) landingPoint = transform.position;
             fallStartPoint = landingPoint + Vector3.up * fallHeight;
 
             agent.enabled = false;
@@ -88,6 +96,8 @@ namespace  HybridShooter.Boss.Clypeosaurus
 
         private void LateUpdate()
         {
+            // 착지 후 Agent가 다시 켜져도 입장 연출 중에는 지정한 위치를 유지한다.
+            if (fixedLandingPoint && IsRunning && agentDetached == false) transform.position = landingPoint;
             if (Phase != SkillPhase.Windup) return;
             float duration = data.EntranceTelegraphTime;
             
@@ -188,7 +198,9 @@ namespace  HybridShooter.Boss.Clypeosaurus
 
             if (gameObject.activeInHierarchy == false) return true;
 
-            return agent.isOnNavMesh && agent.Warp(landingPoint);
+            bool restored = agent.isOnNavMesh && agent.Warp(landingPoint);
+            if (fixedLandingPoint) transform.position = landingPoint;
+            return restored;
         }
 
         protected override void OnCancelled()
