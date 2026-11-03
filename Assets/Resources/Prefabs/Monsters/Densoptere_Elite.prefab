@@ -52,6 +52,14 @@ PrefabInstance:
       propertyPath: monsterId
       value: 1104
       objectReference: {fileID: 0}
+    - target: {fileID: 8857605372768615403, guid: cef6afe5881e41ff935ab0e0c4a892b0, type: 3}
+      propertyPath: hitReaction
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8857605372768615403, guid: cef6afe5881e41ff935ab0e0c4a892b0, type: 3}
+      propertyPath: hitStunSeconds
+      value: 1.25
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

@@ -289,6 +289,7 @@ MonoBehaviour:
   bossBgmKey: bgm_boss
   bossWarningKey: sfx_boss_warning
   hitImpactKey: sfx_hit_flesh
+  weakPointHitPitch: 1.35
   hitMarkerKey: ui_hit_marker
   gameOverKey: ui_game_over
   stageClearKey: ui_stage_clear
@@ -818,7 +819,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Scenes.HS.MonsterIntegrationLab.Runtime.MonsterPoolLab
   isDebug: 1
   monsterPool: {fileID: 782320108}
-  monsterIds: e9030000ea030000eb0300004d0400004e0400004f040000
+  monsterIds: e9030000d1070000d20700004d0400004e0400004f040000
   spawnCount: 2
   spawnRadius: 35
   spawnSampleDistance: 3
@@ -2171,7 +2172,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7219419144724798672, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: mouseSensitivity
-      value: 0.18
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: 7219419144724798672, guid: 4ea94935c308106458064ec04a545802, type: 3}
       propertyPath: groundMask.m_Bits

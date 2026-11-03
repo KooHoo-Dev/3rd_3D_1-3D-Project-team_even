@@ -1987,8 +1987,15 @@ MonoBehaviour:
   hitIntervalSeconds: 0
   hitRangeRatio: 2
   windupTurnSpeed: 360
-  lowHealthRatio: 0.3
+  lowHealthRatio: 0.26
   lowHealthSpeedRatio: 0.6
+  hitReaction: 2
+  hitStunDamageThreshold: 35
+  hitStunDamageWindowSeconds: 1
+  hitStunSeconds: 0.6
+  hitStunCooldownSeconds: 1
+  hitSlowRatio: 0.7
+  hitSlowSeconds: 1
 --- !u!136 &5730098645658161961
 CapsuleCollider:
   m_ObjectHideFlags: 0

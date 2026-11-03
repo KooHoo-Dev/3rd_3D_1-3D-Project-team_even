@@ -280,6 +280,9 @@ MonoBehaviour:
   sampleRadius: 4
   engagedPriority: 40
   defaultPriority: 50
+  smallObstacleProbeDepth: 2.5
+  maxDetourExtraLength: 2
+  maxDetourHeightDifference: 0.75
 --- !u!114 &8182058156753446464
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -302,11 +305,17 @@ MonoBehaviour:
   hitEndRatio: 0.5
   maxHitsPerAttack: 1
   hitIntervalSeconds: 0
-  aimOffsetRadius: 2.25
   hitRangeRatio: 1.05
   windupTurnSpeed: 360
   lowHealthRatio: 0.3
   lowHealthSpeedRatio: 0.6
+  hitReaction: 1
+  hitStunDamageThreshold: 75
+  hitStunDamageWindowSeconds: 1
+  hitStunSeconds: 0.6
+  hitStunCooldownSeconds: 1
+  hitSlowRatio: 0.5
+  hitSlowSeconds: 1
 --- !u!114 &4691132091533479145
 MonoBehaviour:
   m_ObjectHideFlags: 0

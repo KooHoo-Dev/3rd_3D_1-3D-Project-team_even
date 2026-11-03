@@ -24,6 +24,18 @@ PrefabInstance:
       propertyPath: monsterId
       value: 2101
       objectReference: {fileID: 0}
+    - target: {fileID: 8182058156753446464, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
+      propertyPath: hitReaction
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8182058156753446464, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
+      propertyPath: hitStunSeconds
+      value: 1.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 8182058156753446464, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
+      propertyPath: hitStunDamageThreshold
+      value: 125
+      objectReference: {fileID: 0}
     - target: {fileID: 9069896505416824339, guid: c67d8ea7d0e604f4dad70fe5060f316b, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.25

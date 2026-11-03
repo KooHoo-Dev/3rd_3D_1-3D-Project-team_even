@@ -25,16 +25,16 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _Darken: 0.15
+    - _Darken: 0.69
     - _PulseRate: 2.5
-    - _PulseStrength: 1
+    - _PulseStrength: 2
     - _RimPower: 2
-    - _ShellThickness: 0.012
+    - _ShellThickness: 0.05
     - _VeinScale: 8
     - _VeinSpeed: 0.9
     - _VeinWidth: 0.12
     m_Colors:
-    - _RimColor: {r: 6, g: 2.2, b: 0.2, a: 1}
-    - _VeinColor: {r: 5, g: 3.5, b: 0.3, a: 1}
+    - _RimColor: {r: 8.010471, g: 0, b: 0, a: 1}
+    - _VeinColor: {r: 5, g: 0.8437713, b: 0.31413615, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
