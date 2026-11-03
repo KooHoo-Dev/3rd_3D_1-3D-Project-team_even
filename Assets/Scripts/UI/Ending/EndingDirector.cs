@@ -14,7 +14,7 @@ namespace HybridShooter.UI.Ending
     ///  12  점화 → 18 이륙 → 24 우주(하늘·안개·환경광을 우주로) → 30 해돋이와 함께 궤도 돌파 → 36 도약 섬광
     ///  39  크레딧 (검은 띠가 걷힌다) → 51 행성에 금빛 균열 → 63 행성 폭발(EndingPlanetShatter) → 75 로고 → 84 암전 → 메인 메뉴
     ///      (PRESS ANY KEY 부터 — 새벽으로 바뀐 메뉴를 보여 준다. 메뉴의 새벽은 '떠나던 날 아침')
-    /// 건너뛰기: 아무 키나 길게 누른다. 이야기 중이면 크레딧으로, 크레딧 중이면 메인 메뉴로 (인트로와 같은 조작)
+    /// 건너뛰기: 아무 키나 길게 누르면 ("터질듯한 스킵 버튼?") 건너뛰는 대신 EndingSkipPrank 의 창이 뜨고 폭발한다 ("터져서 없어짐") — 이후로는 건너뛸 수 없다
     /// </summary>
     [RequireComponent(typeof(PlayableDirector))]
     public sealed class EndingDirector : MonoBehaviour
@@ -54,8 +54,8 @@ namespace HybridShooter.UI.Ending
         [SerializeField] private float skipHoldTime = 1f;
         [Tooltip("입력이 없으면 안내를 숨기기까지")]
         [SerializeField] private float skipPromptTime = 3f;
-        [Tooltip("크레딧으로 건너뛸 때 암전 → 이동 → 밝아짐 시간(각각)")]
-        [SerializeField] private float jumpFade = 0.4f;
+        [Tooltip("게이지가 다 차면 건너뛰는 대신 뜨고 폭발하는 창")]
+        [SerializeField] private EndingSkipPrank prank;
 
         [Header("음악 (Timeline 오디오 트랙이 재생, 믹서 Bgm 그룹)")]
         [SerializeField] private AudioSource music;
@@ -69,9 +69,8 @@ namespace HybridShooter.UI.Ending
         private bool environmentApplied;
         private float hold;
         private float promptUntil;
-        /// <summary>건너뛰기 암전 (0~1). jumping 이면 다 어두워진 순간 크레딧으로 옮기고 다시 밝힌다</summary>
-        private float skipFade;
-        private bool jumping;
+        /// <summary>메인 메뉴로 넘어갈 때의 암전 (0~1)</summary>
+        private float leaveFade;
         private bool leaving;
 
         private void Start()
@@ -90,14 +89,12 @@ namespace HybridShooter.UI.Ending
 
             if (leaving)
             {
-                skipFade = Mathf.MoveTowards(skipFade, 1f, dt / loadMinWait);
-                music.volume = 1f - skipFade;
+                leaveFade = Mathf.MoveTowards(leaveFade, 1f, dt / loadMinWait);
+                music.volume = 1f - leaveFade;
             }
             else
             {
-                UpdateSkip(dt, t);
-                if (jumping) UpdateJump(dt);
-                else skipFade = Mathf.MoveTowards(skipFade, 0f, dt / jumpFade);
+                UpdateSkip(dt);
                 if (t >= EndingTimeline.End) Leave();
             }
             Evaluate(t);
@@ -125,7 +122,7 @@ namespace HybridShooter.UI.Ending
 
             float black = Mathf.Max(1f - Mathf.SmoothStep(0f, 1f, t / openFade),
                                     Mathf.SmoothStep(0f, 1f, (t - (EndingTimeline.End - endFade)) / endFade));
-            SetAlpha(blackout, Mathf.Max(black, skipFade));
+            SetAlpha(blackout, Mathf.Max(black, leaveFade));
             SetAlpha(flash, FlashAmount(t));
         }
 
@@ -149,32 +146,28 @@ namespace HybridShooter.UI.Ending
 
         // ───────────────────────── 건너뛰기·종료 ─────────────────────────
 
-        private void UpdateSkip(float dt, float t)
+        private void UpdateSkip(float dt)
         {
+            // 창이 폭발한(폭발 중 포함) 뒤로는 안내도 게이지도 없다
+            if (prank.Exploded)
+            {
+                skipGroup.alpha = Mathf.MoveTowards(skipGroup.alpha, 0f, dt * 4f);
+                return;
+            }
+
             if (AnyPressedThisFrame()) promptUntil = Time.unscaledTime + skipPromptTime;
-            bool held = AnyHeld() && jumping == false;
+            bool held = AnyHeld();
             hold = held ? hold + dt : Mathf.Max(0f, hold - dt * 2f);
             if (hold >= skipHoldTime)
             {
                 hold = 0f;
-                // 이야기 중이면 크레딧으로, 크레딧 중이면 끝으로
-                if (t < EndingTimeline.Credits - jumpFade) jumping = true;
-                else Leave();
+                promptUntil = 0f;
+                prank.Request();
             }
 
             bool show = held || Time.unscaledTime < promptUntil;
-            skipGroup.alpha = Mathf.MoveTowards(skipGroup.alpha, show && leaving == false ? 1f : 0f, dt * 4f);
+            skipGroup.alpha = Mathf.MoveTowards(skipGroup.alpha, show ? 1f : 0f, dt * 4f);
             skipBar.localScale = new Vector3(Mathf.Clamp01(hold / skipHoldTime), 1f, 1f);
-        }
-
-        /// <summary>암전 → 크레딧 시각으로 Timeline 이동(음악도 같이) → 다시 밝아짐</summary>
-        private void UpdateJump(float dt)
-        {
-            skipFade = Mathf.MoveTowards(skipFade, 1f, dt / jumpFade);
-            if (skipFade < 1f) return;
-            jumping = false;
-            timeline.time = EndingTimeline.Credits;
-            timeline.Evaluate();
         }
 
         private void Leave()
@@ -182,6 +175,7 @@ namespace HybridShooter.UI.Ending
             if (leaving) return;
             leaving = true;
             skipGroup.alpha = 0f;
+            prank.Dismiss();
             // 엔딩 뒤에는 PRESS ANY KEY 부터 — 새벽으로 바뀐 메뉴를 먼저 보여 준다 (MainMenuController.SkipPressAnyKey 를 켜지 않는다)
             SceneTransition.LoadAsync(mainMenuScene, loadMinWait, destroyCancellationToken).Forget();
         }
