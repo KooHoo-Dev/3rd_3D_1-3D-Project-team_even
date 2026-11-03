@@ -20,7 +20,7 @@ Id	MonsterId	AttackKey	Name	PatternTag	Damage	HitCount	Cooldown	TelegraphTime	Re
 110201	1102	TailSting	꼬리 찌르기	None	8	1	1.3	0.6	0	Circle	3.5	4.9	0	0	0	0	0	0	0	None	0	FALSE	Attack_Tail	mon_muscomorph_ground_attack		2
 110301	1103	DiveClaw	급강하 할퀴기	None	8	1	3	0.5	0	Melee	4	0	0	0	0	0	0	0	0	None	0	FALSE	Fly_Attack	mon_muscomorph_fly_attack		3
 110401	1104	DiveBite	급강하 물기	None	6	1	1.5	0.5	0.4	Melee	4	0	0	0	0	0	0	0	0	None	0	FALSE	Fly_Attack	mon_densoptere_attack		2
-210101	2101	HeadRam	머리 박치기 돌진	None	38	1	3	1.2	0	Line	30	0	0	3.1	0	0	5	2	0	None	0	FALSE	Charge	mon_letalobrach_attack	mon_letalobrach_charge_impact	2.25
+210101	2101	HeadRam	머리 박치기 돌진	None	38	1	3	1.2	0	Line	30	0	0	6.25	0	0	5	2	0	None	0	FALSE	Charge	mon_letalobrach_attack	mon_letalobrach_charge_impact	2.25
 210201	2102	Pounce	시야 밖 기습 도약	None	27	1	2.4	0.2	0	Circle	8	2	0	0	0	0	2	0	0	None	0	FALSE	Attack_Pounce	mon_pardathrox_attack	mon_pardathrox_land	1
 210301	2103	PoisonMortar	원거리 독안개 포격	None	8	1	0.5	0.5	0.5	Circle	40	5	0	0	30	1	0	0	1	PlayerStationary	4	FALSE	Attack_Spit	mon_giant_slug_attack	mon_poison_release	4
 # 부포모프 자폭형: 접근 → 예고 → 자기 중심 폭발 → 보상 없이 사망
