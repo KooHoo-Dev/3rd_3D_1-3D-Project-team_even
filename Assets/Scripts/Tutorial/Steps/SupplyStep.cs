@@ -5,6 +5,7 @@ using HybridShooter.Core.Data;
 using HybridShooter.Core.Data.Defs;
 using HybridShooter.Core.Events;
 using HybridShooter.Monster.Behaviour;
+using HybridShooter.Player;
 using UnityEngine;
 
 namespace HybridShooter.Tutorial.Steps
@@ -15,6 +16,7 @@ namespace HybridShooter.Tutorial.Steps
     ///  2) 회복 팩 상자 + 수류탄 상자를 같이 투하 → 빛기둥 색 = 종류, 각 역할 소개 → 둘 다 회수
     ///  3) V 로 회복 팩 사용 (PlayerItems.HealEnded)
     ///  4) 무기 상자 투하 → 회수 → 보급 무기 규칙 안내 → 휴면 무리를 보급 무기로 처리 (전멸 또는 보급 무기 소진)
+    /// 허용 행동: 이동계 기본, 상자 회수 때만 +상호작용, 3) 에서만 +회복 팩, 4) 처치 때 +사격계 (무기 교체는 막힘)
     /// 상자 안내는 기존 보급 UI(상자 프롬프트·정보 카드·빛기둥 색)가 맡는다. 투하 위치는 마커 바로 아래 지면 (SupplyDropper.Drop(def, position))
     /// </summary>
     public sealed class SupplyStep : TutorialStep
@@ -31,6 +33,7 @@ namespace HybridShooter.Tutorial.Steps
             EventBus<SupplyWeaponChangedEvent>.Subscribe(OnSupplyWeaponChanged);
             if (D.Items != null) D.Items.HealEnded += OnHealEnded;
 
+            D.Allow(PlayerAbility.Movement);
             Objective("obj_next");
             if (D.SupplyEntrance != null)
             {
@@ -46,31 +49,39 @@ namespace HybridShooter.Tutorial.Steps
                 yield return Shock();
             }
 
-            // 2) 회복 팩 + 수류탄 상자
+            // 2) 회복 팩 + 수류탄 상자. 수류탄이 가득이면 상자를 받을 수 없으니(SupplyCrate) 한 칸 비운다
+            if (D.Items != null && D.Items.Grenades >= D.Items.MaxGrenades) D.Items.SetGrenades(D.Items.MaxGrenades - 1);
             Drop(Script.HealSupplyId, D.HealDropPoint);
             Drop(Script.GrenadeSupplyId, D.GrenadeDropPoint);
             yield return D.Say("vo_tut_04_drop");
             yield return D.Say("vo_tut_04_heal_crate");
             yield return D.Say("vo_tut_04_grenade_crate");
+            D.Allow(PlayerAbility.Movement | PlayerAbility.Interact);
             D.SayNow("vo_tut_04_pickup");
             Objective("obj_pickup", ItemsCollected(), 2);
             yield return D.WaitUntil(() => ItemsCollected() >= 2, "vo_tut_04_pickup_hint");
 
-            // 3) 회복 팩 사용
+            // 3) 회복 팩 사용. 체력이 가득이면 팩을 쓸 수 없으니(PlayerItems.TryUseHeal) 훈련 충격을 다시 준다
+            D.Allow(PlayerAbility.Movement);
             if (D.Items != null && D.Items.HealPacks == 0) D.Items.AddHealPacks(1);
+            if (D.Player.CurrentHealth >= D.Player.MaxHealth) yield return Shock();
+            D.Allow(PlayerAbility.Movement | PlayerAbility.Heal);
             Objective("obj_heal");
             D.SayNow("vo_tut_04_heal");
             yield return D.WaitUntil(() => healed, "vo_tut_04_heal_hint");
 
             // 4) 무기 상자 → 보급 무기
+            D.Allow(PlayerAbility.Movement | PlayerAbility.Interact);
             Drop(Script.WeaponSupplyId, D.WeaponDropPoint);
             Objective("obj_weapon_pickup");
             D.SayNow("vo_tut_04_weapon_drop");
             yield return D.WaitUntil(() => collected.Contains(Script.WeaponSupplyId), "vo_tut_04_pickup_hint");
 
+            D.Allow(PlayerAbility.Movement);
             yield return D.Say("vo_tut_04_weapon");
             yield return D.Say("vo_tut_04_weapon_rule");
             var group = D.SpawnDormantGroup(D.WeaponGroupCenter, Script.WeaponGroupCount);
+            D.Allow(PlayerAbility.Movement | PlayerAbility.Shooting); // 기본 총으로 바꿔 잡지 않게 교체는 막는다
             D.SayNow("vo_tut_04_weapon_target");
             int killed = 0;
             Objective("obj_weapon", 0, group.Count);
@@ -87,6 +98,7 @@ namespace HybridShooter.Tutorial.Steps
             }, "vo_tut_04_weapon_hint");
             TutorialDirector.DespawnAlive(group);
 
+            D.Allow(PlayerAbility.Movement);
             yield return D.Say("vo_tut_04_clear");
             if (D.SupplyGate != null) D.SupplyGate.Open();
         }

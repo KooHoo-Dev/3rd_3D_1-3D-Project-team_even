@@ -330,7 +330,7 @@ namespace HybridShooter.Weapon
 
         /// <summary>
         /// 재장전 시작. 이미 장전 중이거나, 탄창이 가득 찼거나, 쏠 수 없는 상태면 false.
-        /// 예비 탄창이 없으면 false + ReloadDeniedEvent (UI 경고)
+        /// 예비 탄창이 없으면 false + ReloadDeniedEvent (UI 경고) + 빈 총 소리 (R · 빈 탄창 좌클릭 모두)
         /// </summary>
         public bool Reload()
         {
@@ -338,6 +338,7 @@ namespace HybridShooter.Weapon
             if (HasSpareMagazine == false)
             {
                 if (IsCurrent) EventBus<ReloadDeniedEvent>.Publish(new ReloadDeniedEvent());
+                PlayDryFire();
                 return false;
             }
             StartReload();
@@ -511,9 +512,8 @@ namespace HybridShooter.Weapon
                 // 연사 총·입력 버퍼는 매 프레임 여기로 온다. 빈 총 소리는 누른 순간 한 번, 누르고 있으면 DryFireRepeat 간격으로만
                 if (triggerDownFrame == Time.frameCount || Time.time >= nextDryFireTime)
                 {
-                    nextDryFireTime = Time.time + DryFireRepeat;
-                    PlaySfx(Def?.DryFireSfx, transform.position); // 예비 탄창이 있으면 이어서 자동 장전 시작음
-                    Reload();
+                    if (HasSpareMagazine) PlayDryFire(); // 이어서 자동 장전 시작음
+                    Reload(); // 예비 탄창이 없으면 거부 → Reload 가 빈 총 소리를 낸다
                 }
                 return false;
             }
@@ -726,6 +726,13 @@ namespace HybridShooter.Weapon
         private const float DryFireRepeat = 0.5f;
 
         private bool IsCurrent => Owner != null && Owner.CurrentGun == this;
+
+        /// <summary>빈 총 소리 (WeaponTable.DryFireSfxKey). 누르고 있을 때 반복 간격도 여기서 잡는다</summary>
+        private void PlayDryFire()
+        {
+            nextDryFireTime = Time.time + DryFireRepeat;
+            PlaySfx(Def?.DryFireSfx, transform.position);
+        }
 
         private void OnDestroy()
         {

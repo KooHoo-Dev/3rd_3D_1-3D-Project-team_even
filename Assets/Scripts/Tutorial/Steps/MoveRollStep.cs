@@ -1,11 +1,13 @@
 using System.Collections;
+using HybridShooter.Player;
 using UnityEngine;
 
 namespace HybridShooter.Tutorial.Steps
 {
     /// <summary>
     /// ① 이동 · 질주 · 구르기. 목표 지점까지 이동 → 질주 누적 SprintSeconds 초 → 피해 차단막을 모두 구르며 통과.
-    /// 차단막에 그냥 닿으면 피해 + 되돌려지고(TutorialDamageBarrier) 안내 대사, 스태미나가 바닥나면 한 번 안내한다
+    /// 차단막에 그냥 닿으면 피해 + 되돌려지고(TutorialDamageBarrier) 안내 대사, 스태미나가 바닥나면 한 번 안내한다.
+    /// 허용 행동: 이동 → +질주 → +구르기 (사격·점프 등은 막힘)
     /// </summary>
     public sealed class MoveRollStep : TutorialStep
     {
@@ -21,6 +23,7 @@ namespace HybridShooter.Tutorial.Steps
         public override IEnumerator Run()
         {
             // 이동
+            D.Allow(PlayerAbility.Move);
             Objective("obj_move");
             D.SayNow("vo_tut_01_move");
             if (D.MoveTarget != null)
@@ -31,6 +34,7 @@ namespace HybridShooter.Tutorial.Steps
             }
 
             // 질주
+            D.Allow(PlayerAbility.Move | PlayerAbility.Sprint);
             yield return D.Say("vo_tut_01_sprint");
             float sprinted = 0f;
             int goal = Mathf.CeilToInt(Script.SprintSeconds);
@@ -46,7 +50,8 @@ namespace HybridShooter.Tutorial.Steps
                 return sprinted >= Script.SprintSeconds;
             }, "vo_tut_01_hint");
 
-            // 구르기 (피해 차단막)
+            // 구르기 (피해 차단막). 점프로 넘어가지 않게 점프는 막아 둔다
+            D.Allow(PlayerAbility.Move | PlayerAbility.Sprint | PlayerAbility.Roll);
             foreach (var barrier in D.RollBarriers)
             {
                 if (barrier == null) continue;

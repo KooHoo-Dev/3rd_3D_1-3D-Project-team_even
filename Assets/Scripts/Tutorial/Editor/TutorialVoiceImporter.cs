@@ -16,10 +16,13 @@ namespace HybridShooter.Tutorial.Editor
     ///  4) SoundTable.tsv 에 대사 Id = 키로 등록한다 (vo_tut_ 행을 새로 씀). TutorialHud 가 이 키로 재생한다
     /// 콘솔에 대사마다 녹음 속 위치와 길이(예상 대비 비율)를 남긴다 — 비율이 크게 벗어난 줄은 짝이 어긋났을 수 있다.
     /// 원본 녹음은 SourcePath 에 둔다 (Resources 밖 → 빌드에 들어가지 않음). 녹음을 다시 만들면 파일만 바꾸고 메뉴를 다시 실행
+    /// 대사를 나중에 추가했으면: 음성 파일이 아직 없는 대사만(대사본 순서) 따로 녹음해 AdditionalSourcePath 에 두고
+    /// Tools/Tutorial/Import Additional Voice Recording 을 실행한다 (있는 음성은 건드리지 않음)
     /// </summary>
     public static class TutorialVoiceImporter
     {
         private const string SourcePath = "Assets/Audio/Voice/Tutorial/Source/Tutorial_Voice.mp3";
+        private const string AdditionalSourcePath = "Assets/Audio/Voice/Tutorial/Source/Tutorial_Voice_Additional.mp3";
         private const string OutputFolder = "Assets/Resources/Audio/Voice/Tutorial";
         private const string ResourcesPrefix = "Audio/Voice/Tutorial/";
         private const string VoiceScriptTsv = "Docs/Design/Tutorial_VoiceScript.tsv";
@@ -49,7 +52,28 @@ namespace HybridShooter.Tutorial.Editor
                 Debug.LogError($"[TutorialVoiceImporter] 대사본 {VoiceScriptTsv} 에서 대사를 읽지 못했습니다.");
                 return;
             }
-            if (TryLoadSamples(out var samples, out int sampleRate) == false) return;
+            Import(SourcePath, lines, lines);
+        }
+
+        /// <summary>음성 파일이 없는 대사만 담은 추가 녹음을 나눠 저장한다</summary>
+        [MenuItem("Tools/Tutorial/Import Additional Voice Recording")]
+        private static void ImportAdditional()
+        {
+            var all = ReadLines();
+            var missing = all.FindAll(line => File.Exists($"{OutputFolder}/{line.id}.wav") == false);
+            if (missing.Count == 0)
+            {
+                Debug.Log("[TutorialVoiceImporter] 모든 대사에 음성 파일이 있습니다. 추가로 가져올 대사가 없습니다.");
+                return;
+            }
+            Debug.Log($"[TutorialVoiceImporter] 음성이 없는 대사 {missing.Count}줄: {string.Join(", ", missing.ConvertAll(line => line.id))}");
+            Import(AdditionalSourcePath, missing, all);
+        }
+
+        /// <summary>sourcePath 녹음을 lines 수만큼 나눠 저장하고, SoundTable 에는 tableLines(대사본 전체)를 쓴다</summary>
+        private static void Import(string sourcePath, List<(string id, string tts)> lines, List<(string id, string tts)> tableLines)
+        {
+            if (TryLoadSamples(sourcePath, out var samples, out int sampleRate) == false) return;
 
             var weights = new float[lines.Count];
             for (int i = 0; i < lines.Count; i++) weights[i] = SpokenLength(lines[i].tts);
@@ -65,7 +89,7 @@ namespace HybridShooter.Tutorial.Editor
                 string warn = ratios[i] < 0.6f || ratios[i] > 1.6f ? " ⚠" : "";
                 log.AppendLine($"{i + 1:00}. {lines[i].id}  {start / (float)sampleRate:0.00}s~{end / (float)sampleRate:0.00}s → {clip.Length / (float)sampleRate:0.00}s  비율 {ratios[i]:0.00}{warn}  {lines[i].tts}");
             }
-            WriteSoundTable(lines);
+            WriteSoundTable(tableLines);
             AssetDatabase.Refresh();
             Debug.Log(log.ToString());
         }
@@ -102,13 +126,13 @@ namespace HybridShooter.Tutorial.Editor
 
         #region 녹음 읽기
         /// <summary>원본 녹음을 모노 PCM 으로 읽는다 (GetData 가 되도록 임포트 설정을 바꿔 다시 임포트)</summary>
-        private static bool TryLoadSamples(out float[] samples, out int sampleRate)
+        private static bool TryLoadSamples(string sourcePath, out float[] samples, out int sampleRate)
         {
             samples = null;
             sampleRate = 0;
-            if (AssetImporter.GetAtPath(SourcePath) is not AudioImporter importer)
+            if (AssetImporter.GetAtPath(sourcePath) is not AudioImporter importer)
             {
-                Debug.LogError($"[TutorialVoiceImporter] 녹음 파일이 없습니다: {SourcePath}");
+                Debug.LogError($"[TutorialVoiceImporter] 녹음 파일이 없습니다: {sourcePath}");
                 return false;
             }
             var settings = importer.defaultSampleSettings;
@@ -122,10 +146,10 @@ namespace HybridShooter.Tutorial.Editor
                 importer.SaveAndReimport();
             }
 
-            var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(SourcePath);
+            var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(sourcePath);
             if (clip == null || clip.LoadAudioData() == false)
             {
-                Debug.LogError($"[TutorialVoiceImporter] 녹음을 읽지 못했습니다: {SourcePath}");
+                Debug.LogError($"[TutorialVoiceImporter] 녹음을 읽지 못했습니다: {sourcePath}");
                 return false;
             }
             samples = new float[clip.samples * clip.channels];
@@ -187,8 +211,8 @@ namespace HybridShooter.Tutorial.Editor
             float totalWeight = 0f;
             foreach (float w in weights) totalWeight += w;
             float perWeight = (last - first) / totalWeight; // 창 수 / 글자
-            int[] cuts = null;
-            for (int pass = 0; pass < 2; pass++)
+            int[] cuts = System.Array.Empty<int>();
+            for (int pass = 0; pass < 2 && n > 1; pass++) // 한 줄뿐이면 경계 없이 통째로
             {
                 cuts = SolveCuts(gaps, first, last, weights, perWeight);
                 // 실제 고른 조각 길이로 비율을 다시 잰다 (경계 무음을 뺀 순수 길이)

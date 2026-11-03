@@ -1,4 +1,5 @@
 using System.Collections;
+using HybridShooter.Player;
 
 namespace HybridShooter.Tutorial.Steps
 {
@@ -10,6 +11,7 @@ namespace HybridShooter.Tutorial.Steps
 
         public override IEnumerator Run()
         {
+            D.Allow(PlayerAbility.All); // 전 과목 통과: 제한 없음
             Objective("obj_exit");
             D.ShowDestination(D.ExitZone, "wp_exit");
             yield return D.Say("vo_tut_06_allclear");
