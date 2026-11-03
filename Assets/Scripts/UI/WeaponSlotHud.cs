@@ -1,5 +1,7 @@
+﻿using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
+using HybridShooter.Core.Services;
 using HybridShooter.Player;
 using HybridShooter.UI.Theme;
 using HybridShooter.Weapon;
@@ -115,7 +117,7 @@ namespace HybridShooter.UI
             bool cinematic = player != null && player.IsInCinematic;
             bool alive = player == null || player.IsAlive;
             bool scoped = aimView != null && aimView.Scoped;
-            rootGroup.alpha = stateHidden || cinematic || alive == false || scoped ? 0f : 1f;
+            rootGroup.alpha = stateHidden || cinematic || alive == false || scoped || LoadoutHolding ? 0f : 1f;
 
             // 보급 무기 탄 소진은 이벤트가 없으므로 (든 총만 AmmoChangedEvent) 여기서 본다
             if (SupplyEmpty != shownSupplyEmpty) Refresh();
@@ -149,6 +151,9 @@ namespace HybridShooter.UI
             emptyWarning.gameObject.SetActive(true);
             emptyWarningUntil = Time.unscaledTime + emptyWarningTime;
         }
+
+        /// <summary>무기 선택 화면(LoadoutPanel, IRoundStartGate)이 라운드 시작을 붙잡고 있는 동안 — 그 화면 뒤로 비치지 않게 숨긴다</summary>
+        private static bool LoadoutHolding => ServiceLocator.TryGet<IRoundStartGate>(out var gate) && gate.HoldsStart;
 
         private void OnGameStateChanged(GameStateChangedEvent e)
             => stateHidden = e.Current == GameState.Reward || e.Current == GameState.GameOver || e.Current == GameState.Paused;
