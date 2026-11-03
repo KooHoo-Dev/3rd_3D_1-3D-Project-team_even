@@ -119,6 +119,63 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &8881772 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5985068884841062280, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8881774
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8881772}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
+--- !u!1 &23606663 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1440275908690343967, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &23606665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 23606663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
+--- !u!1 &25074186 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2783922978549830928, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &25074188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 25074186}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1001 &50080678
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -16491,6 +16548,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 247533298506167553, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1882896786}
     - targetCorrespondingSourceObject: {fileID: 3695915080451544727, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1026565962}
@@ -16548,18 +16608,122 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4609755277823861988, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 225163929}
+    - targetCorrespondingSourceObject: {fileID: 6242829462782538972, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1990336076}
+    - targetCorrespondingSourceObject: {fileID: 3511085110479316401, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 711390832}
+    - targetCorrespondingSourceObject: {fileID: 8964839650338324233, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1763401328}
+    - targetCorrespondingSourceObject: {fileID: 3391809030387225836, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 79215589}
+    - targetCorrespondingSourceObject: {fileID: 3928974689562501039, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1811410717}
+    - targetCorrespondingSourceObject: {fileID: 8427054163178384619, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1713139272}
+    - targetCorrespondingSourceObject: {fileID: 2783922978549830928, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 25074188}
+    - targetCorrespondingSourceObject: {fileID: 2488285683845175197, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1977634222}
+    - targetCorrespondingSourceObject: {fileID: 1440275908690343967, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 23606665}
+    - targetCorrespondingSourceObject: {fileID: 5985068884841062280, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8881774}
+    - targetCorrespondingSourceObject: {fileID: 133274748154049714, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 308679150}
+    - targetCorrespondingSourceObject: {fileID: 8796008698492575827, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1218566661}
+    - targetCorrespondingSourceObject: {fileID: 948369898305351145, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1390023241}
+    - targetCorrespondingSourceObject: {fileID: 7798766242342531954, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1741677164}
     - targetCorrespondingSourceObject: {fileID: 1282173861898127670, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1137818948}
+    - targetCorrespondingSourceObject: {fileID: 5320681310779120251, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 969139017}
+    - targetCorrespondingSourceObject: {fileID: 7727878412219543590, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 151231440}
+    - targetCorrespondingSourceObject: {fileID: 8652857231782777002, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 348254090}
+    - targetCorrespondingSourceObject: {fileID: 4680820980920472853, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1696282143}
     - targetCorrespondingSourceObject: {fileID: 8165494459272180771, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1548940002}
+    - targetCorrespondingSourceObject: {fileID: 1516667136087624425, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 555733052}
+    - targetCorrespondingSourceObject: {fileID: 7398312441627859841, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1709913250}
+    - targetCorrespondingSourceObject: {fileID: 3684887919601316530, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2065517690}
+    - targetCorrespondingSourceObject: {fileID: 745635306556200258, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 808486315}
   m_SourcePrefab: {fileID: 100100000, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
 --- !u!218 &50080679 stripped
 Terrain:
   m_CorrespondingSourceObject: {fileID: 8281797609112118789, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
   m_PrefabInstance: {fileID: 50080678}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &79215587 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3391809030387225836, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &79215589
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 79215587}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
+--- !u!1 &151231438 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7727878412219543590, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &151231440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 151231438}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1 &169888300 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 361883813100392786, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
@@ -16733,6 +16897,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5371a7743b3e724eb736453e1bdc733, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HybridShooter.Core::HybridShooter.Core.Battlefield.SpawnPointFinder
+--- !u!1 &308679148 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 133274748154049714, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &308679150
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 308679148}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1 &311750444
 GameObject:
   m_ObjectHideFlags: 0
@@ -16856,6 +17039,25 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &348254088 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8652857231782777002, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &348254090
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 348254088}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1001 &350609890
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17023,6 +17225,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &555733050 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1516667136087624425, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &555733052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 555733050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1 &571423243 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6495000046405295164, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
@@ -17218,6 +17439,25 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &711390830 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3511085110479316401, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &711390832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 711390830}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1 &775244884 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7471893599848187967, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
@@ -17286,6 +17526,25 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &808486313 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 745635306556200258, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &808486315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 808486313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1 &871242192
 GameObject:
   m_ObjectHideFlags: 0
@@ -17320,6 +17579,7 @@ MonoBehaviour:
   bossBgmKey: bgm_boss
   bossWarningKey: sfx_boss_warning
   hitImpactKey: sfx_hit_flesh
+  weakPointHitPitch: 1.35
   hitMarkerKey: ui_hit_marker
   gameOverKey: ui_game_over
   stageClearKey: ui_stage_clear
@@ -17483,6 +17743,25 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &969139015 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5320681310779120251, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &969139017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 969139015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1 &1026565959 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3695915080451544727, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
@@ -17551,6 +17830,25 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &1218566659 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8796008698492575827, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1218566661
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1218566659}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1 &1223915079 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8118740312386660121, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
@@ -17642,6 +17940,25 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6dc9cc2f02ea97441b705c04304387ea, type: 3}
+--- !u!1 &1390023239 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 948369898305351145, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1390023241
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1390023239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1001 &1529604070
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18115,6 +18432,25 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &1696282141 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4680820980920472853, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1696282143
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1696282141}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1 &1696451598
 GameObject:
   m_ObjectHideFlags: 0
@@ -18165,6 +18501,44 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1709913248 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7398312441627859841, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1709913250
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1709913248}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
+--- !u!1 &1713139270 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8427054163178384619, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1713139272
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1713139270}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1 &1738449003 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4354893999603177216, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
@@ -18199,6 +18573,63 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &1741677162 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7798766242342531954, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1741677164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1741677162}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
+--- !u!1 &1763401326 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8964839650338324233, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1763401328
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1763401326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
+--- !u!1 &1811410715 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3928974689562501039, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1811410717
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1811410715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1 &1847300001
 GameObject:
   m_ObjectHideFlags: 0
@@ -18255,6 +18686,63 @@ MonoBehaviour:
   hardDamage: 80
   minJudgeSeconds: 10
   nearRadius: 3
+--- !u!1 &1882896784 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 247533298506167553, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1882896786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1882896784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
+--- !u!1 &1977634220 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2488285683845175197, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1977634222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1977634220}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
+--- !u!1 &1990336074 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6242829462782538972, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1990336076
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1990336074}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1 &2044657854
 GameObject:
   m_ObjectHideFlags: 0
@@ -18350,6 +18838,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Round.RoundJumpTester
   runDirector: {fileID: 0}
   roundSequencer: {fileID: 0}
+--- !u!1 &2065517688 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3684887919601316530, guid: be6e38ca76ff76d46943acd0808cb8a0, type: 3}
+  m_PrefabInstance: {fileID: 50080678}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2065517690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2065517688}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1e3d2e6d08453ab8ebde0590dc5f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BreakableBuilding
+  breakEffectPrefab: {fileID: 6355918356872710539, guid: 230fa78a83732744492c32cbf62c10ea, type: 3}
+  effectLifetime: 3
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

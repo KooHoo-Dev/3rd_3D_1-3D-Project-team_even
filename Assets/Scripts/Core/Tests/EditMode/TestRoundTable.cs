@@ -29,8 +29,8 @@ namespace HybridShooter.Core.Tests
             var types = DataManager.Rounds.All.Select(round => round.Type).ToArray();
             CollectionAssert.AreEqual(new[] { RoundType.CrowdToBoss, RoundType.Annihilation, RoundType.AnnihilationToBoss }, types);
             CollectionAssert.AreEqual(new[] { 1 }, DataManager.GetRound(1).WaveRounds, "R1 현행 유지");
-            CollectionAssert.AreEqual(new[] { 2, 3, 4, 5 }, DataManager.GetRound(2).WaveRounds, "R2 = 2~5 편성 무작위");
-            CollectionAssert.AreEqual(new[] { 2, 3, 4, 5 }, DataManager.GetRound(3).WaveRounds, "R3 = 2~5 편성 무작위 (R2 와 겹치지 않게는 RoundSequencer)");
+            CollectionAssert.AreEqual(new[] { 2, 3 }, DataManager.GetRound(2).WaveRounds, "R2 = 2·3 편성 무작위");
+            CollectionAssert.AreEqual(new[] { 4, 5 }, DataManager.GetRound(3).WaveRounds, "R3 = 4·5 편성 무작위");
             Assert.AreEqual(150f, DataManager.GetRound(2).PhaseTime);
             Assert.IsTrue(DataManager.GetRound(3).HasBoss, "R3 섬멸 후 보스");
         }

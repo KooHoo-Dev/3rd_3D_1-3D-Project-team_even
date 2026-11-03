@@ -2098,6 +2098,7 @@ GameObject:
   - component: {fileID: 7764257687145243604}
   - component: {fileID: 6979829063793508743}
   - component: {fileID: 3995224259015625745}
+  - component: {fileID: 8382567890012345678}
   m_Layer: 0
   m_Name: Clypeosaurus
   m_TagString: Untagged
@@ -2441,6 +2442,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossHitEffect
   hitBloodPrefab: {fileID: 510622085489733283, guid: 665226fbabe43ce498e273ee4bf3bfb7, type: 3}
   bloodScale: 5
+--- !u!114 &8382567890012345678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523472075301917310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4012bc9bcc124efda623e4da448dd889, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::HybridShooter.Boss.BossBuildingBreaker
+  contactColliders:
+  - {fileID: 4122876080719368405}
+  - {fileID: 4020349537913521221}
+  - {fileID: 6960134797870289315}
+  - {fileID: 3719594880551297770}
+  - {fileID: 8497308567509964027}
+  - {fileID: 6586315409294949885}
+  - {fileID: 6345629762260320250}
+  buildingMask:
+    serializedVersion: 2
+    m_Bits: 128
 --- !u!1 &5523472075301917568
 GameObject:
   m_ObjectHideFlags: 0

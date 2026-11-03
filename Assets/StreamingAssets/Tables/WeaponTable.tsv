@@ -3,8 +3,8 @@ Id	Name	FireMode	Damage	FireRate	MagazineSize	StartMagazines	MaxMagazines	Reload
 2001	라이플	Auto	10	600	30	3	6	2.0	120	1.2	sfx_rifle_fire	sfx_rifle_mag_out	sfx_rifle_mag_in	sfx_rifle_cock	sfx_weapon_switch	sfx_rifle_dry_fire		0.5	Loadout	rifle	0
 2002	돌격소총	Auto	11	750	30	3	6	2.2	100	1.5	sfx_assault_rifle_fire	sfx_rifle_mag_out	sfx_rifle_mag_in	sfx_rifle_cock	sfx_weapon_switch	sfx_rifle_dry_fire		0.5	Loadout	assault_rifle	0
 2003	권총	Single	15	400	12	3	6	1.2	60	0.8	sfx_pistol_fire	sfx_rifle_mag_out	sfx_semi_auto_mag_in	sfx_pistol_cock	sfx_weapon_switch	sfx_pistol_dry_fire		0.5	Sidearm	pistol	0
-2004	기관단총	Auto	7	900	35	3	6	1.6	50	2.5	sfx_smg_fire	sfx_rifle_mag_out	sfx_semi_auto_mag_in	sfx_pistol_cock	sfx_weapon_switch	sfx_semi_auto_dry_fire		0.5	Loadout	smg	2
-2005	산탄총	Single	7	70	6	4	8	0.5	40	8	sfx_shotgun_fire		sfx_shotgun_shell_in	sfx_rifle_cock	sfx_weapon_switch	sfx_shotgun_dry_fire		0.5	Loadout	shotgun	3
-2006	저격소총	Single	90	45	5	3	6	3.0	300	0	sfx_sniper_fire	sfx_rifle_mag_out	sfx_bullet_in	sfx_rifle_cock	sfx_weapon_switch	sfx_semi_auto_dry_fire		0.5	Loadout	sniper	4
+2004	기관단총	Auto	7	900	35	3	6	1.6	50	2.5	sfx_smg_fire	sfx_rifle_mag_out	sfx_semi_auto_mag_in	sfx_pistol_cock	sfx_weapon_switch	sfx_semi_auto_dry_fire		0.5	Loadout	smg	0
+2005	산탄총	Single	7	70	6	4	8	0.5	40	8	sfx_shotgun_fire		sfx_shotgun_shell_in	sfx_rifle_cock	sfx_weapon_switch	sfx_shotgun_dry_fire		0.5	Loadout	shotgun	1
+2006	저격소총	Single	90	45	5	3	6	3.0	300	0	sfx_sniper_fire	sfx_rifle_mag_out	sfx_bullet_in	sfx_rifle_cock	sfx_weapon_switch	sfx_semi_auto_dry_fire		0.5	Loadout	sniper	2
 2007	로켓 발사기	Single	120	40	1	4	8	3.0	200	0.5	sfx_rocket_fire	sfx_scifi_reload		sfx_rifle_mag_in	sfx_weapon_switch	sfx_semi_auto_dry_fire	sfx_explosion_large	0.25	Supply	rocket_launcher	0
 2008	유탄 발사기	Single	60	90	6	2	4	3.2	60	1	sfx_grenade_launcher_fire	sfx_pistol_cock	sfx_shotgun_shell_in	sfx_rifle_cock	sfx_weapon_switch	sfx_shotgun_dry_fire	sfx_explosion_small	0.25	Supply	grenade_launcher	0
