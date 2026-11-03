@@ -156,9 +156,11 @@ namespace HybridShooter.UI.Theme
 
         /// <summary>
         /// 메인 메뉴와 같은 글자 버튼: 투명한 클릭 영역 + 왼쪽 붉은 표식 + 영문 글자 + 오른쪽으로 사라지는 붉은 밑줄.
-        /// 피벗·기준점은 왼쪽 가운데. 색·위치 변화는 UiTextButtonFx 가 맡는다 (Button Transition 없음)
+        /// 피벗·기준점은 왼쪽 가운데. 색·위치 변화는 UiTextButtonFx 가 맡는다 (Button Transition 없음).
+        /// font 를 주면 그 글꼴(한글 버튼은 UiTheme.TextFont)과 좁은 자간, 비우면 Aldrich·넓은 자간. 글자는 이름 "Label" 자식
         /// </summary>
-        public static Button TextButton(Transform parent, string name, string text, float fontSize, Vector2 anchor, Vector2 position, Vector2 size)
+        public static Button TextButton(Transform parent, string name, string text, float fontSize, Vector2 anchor, Vector2 position, Vector2 size,
+                                        TMP_FontAsset font = null)
         {
             const float labelX = 34f;
             var rect = HudFactory.Rect(parent, name, anchor, new Vector2(0f, 0.5f), position, size);
@@ -168,6 +170,11 @@ namespace HybridShooter.UI.Theme
             var marker = Marker(rect, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, fontSize * 0.95f, 5f);
             var label = EnLabel(rect, "Label", text, fontSize, UiTheme.Steel, TextAlignmentOptions.MidlineLeft,
                 new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(labelX, 0f), new Vector2(size.x - labelX, size.y));
+            if (font != null)
+            {
+                label.font = font;
+                label.characterSpacing = 2f;
+            }
             var underline = FadeLine(rect, "Underline", UiTheme.Red, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
                 new Vector2(labelX, -fontSize * 0.62f), new Vector2(Mathf.Min(380f, size.x - labelX), UiTheme.LineWidth));
 
