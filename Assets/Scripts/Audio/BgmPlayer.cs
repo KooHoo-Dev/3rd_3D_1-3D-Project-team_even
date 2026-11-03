@@ -5,7 +5,9 @@ namespace HybridShooter.Audio
 {
     /// <summary>
     /// BGM 두 트랙 크로스페이드. SoundService 가 만들고 매 프레임 Update 를 부른다.
-    /// 새 곡은 비어 있는 쪽 트랙에서 0 → 1, 이전 곡은 1 → 0 으로 바뀐다. 같은 곡을 다시 요청하면 무시
+    /// 새 곡은 비어 있는 쪽 트랙에서 0 → 1, 이전 곡은 1 → 0 으로 바뀐다. 같은 곡을 다시 요청하면 무시.
+    /// 페이드아웃 중인 곡을 다시 요청하면 처음부터 틀지 않고 그 트랙을 되살린다 (A → B → A 빠른 전환).
+    /// 두 트랙이 모두 소리를 내는 중에 새 곡이 오면 더 작게 들리는 트랙을 교체한다 (큰 소리가 뚝 끊기지 않게)
     /// </summary>
     internal sealed class BgmPlayer
     {
@@ -26,7 +28,16 @@ namespace HybridShooter.Audio
             if (defs[active] == def && fadeTarget[active] > 0f) return;
 
             fadeTarget[active] = 0f;
-            active = 1 - active;
+            for (int i = 0; i < sources.Length; i++)
+            {
+                if (defs[i] != def || sources[i].isPlaying == false) continue;
+                active = i;
+                fadeTarget[i] = 1f;
+                return;
+            }
+            // 같으면 이전 활성 트랙이 아닌 쪽 (보통은 이쪽이 비어 있다)
+            int other = 1 - active;
+            active = fade[active] < fade[other] ? active : other;
 
             var source = sources[active];
             defs[active] = def;

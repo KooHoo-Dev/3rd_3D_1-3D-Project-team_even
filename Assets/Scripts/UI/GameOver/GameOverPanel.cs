@@ -1,8 +1,6 @@
 using Cysharp.Threading.Tasks;
-using HybridShooter.Core.Contracts;
 using HybridShooter.Core.Events;
 using HybridShooter.Core.GameFlow;
-using HybridShooter.Core.Services;
 using HybridShooter.Player;
 using HybridShooter.Round;
 using HybridShooter.UI.MainMenu;
@@ -17,8 +15,7 @@ namespace HybridShooter.UI
     /// <summary>
     /// 게임 오버 화면. GameFlowUiBootstrap 이 RunDirector 가 있는 씬에 자동으로 붙인다 (씬에 직접 둬도 된다).
     ///  - GameState.GameOver 가 되면 openDelay(실제 시간) 뒤 열림 (게임 오버는 timeScale = 0)
-    ///  - [재시작] → RunDirector.ReturnToReady → 무기 선택 화면(LoadoutPanel)이 다시 열리고 [출발]로 1스테이지부터.
-    ///    무기 선택 화면(IRoundStartGate)이 없는 씬이면 RestartRun 으로 바로 다시 시작
+    ///  - [재시작] → RunDirector.RestartRun → 체크포인트를 복원해 실패한 라운드를 다시 시작한다.
     ///  - [메인 메뉴] → MainMenuController.SkipPressAnyKey 를 켜고 SceneTransition 으로 메인 메뉴 씬 (Build Settings 에 있어야 한다)
     /// 스타일은 UiTheme (메인 메뉴와 같은 모양): 왼쪽에서 사라지는 어두운 띠 위에 큰 GAME OVER + 붉은 선, 메인 메뉴식 글자 버튼(영문 + 작은 한글).
     /// 열리면 [재시작]이 선택된 상태라 키보드·패드로 바로 고를 수 있다
@@ -104,13 +101,12 @@ namespace HybridShooter.UI
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(restartButton.gameObject);
         }
 
-        /// <summary>처음부터 다시. 무기 선택 화면이 있으면 그 화면을 거친다</summary>
+        /// <summary>장비 선택을 다시 열지 않고 체크포인트로 실패한 라운드를 재시도한다.</summary>
         public void Restart()
         {
             if (IsOpen == false || leaving || runDirector == null) return;
             Close();
-            if (ServiceLocator.TryGet<IRoundStartGate>(out _)) runDirector.ReturnToReady();
-            else runDirector.RestartRun();
+            runDirector.RestartRun();
         }
 
         public void GoToMainMenu()

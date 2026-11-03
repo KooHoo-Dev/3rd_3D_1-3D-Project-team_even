@@ -456,6 +456,18 @@ namespace HybridShooter.Player
             Gizmos.DrawWireSphere(LastThrowTarget, 0.3f);
         }
 
+        /// <summary>진행 중인 사용 동작을 취소하고 라운드 시작 당시 소모품 수량을 복원한다</summary>
+        public void RestoreCheckpoint(int grenadeCount, int healPackCount)
+        {
+            throwing = false;
+            StopHeal();
+            RefreshStats();
+            grenades = Mathf.Clamp(grenadeCount, 0, MaxGrenades);
+            healPacks = Mathf.Clamp(healPackCount, 0, MaxHealPacks);
+            PublishGrenades();
+            PublishHealPacks();
+        }
+
         private void ResetCounts()
         {
             grenades = Mathf.Clamp(DataManager.Player != null ? DataManager.Player.StartGrenades : fallbackStartGrenades, 0, MaxGrenades);

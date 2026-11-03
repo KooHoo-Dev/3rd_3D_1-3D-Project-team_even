@@ -99,5 +99,7 @@ namespace HybridShooter.Core.Contracts
         bool TryPurchase(UpgradeType type, UpgradeGrade grade, ICurrencyWallet wallet);
         /// <summary>처음부터 다시 시작(BL-033) 시 초기화. UpgradesResetEvent</summary>
         void ResetAll();
+        /// <summary>구매 비용을 다시 차감하지 않고 레벨별 등급 기록을 복원한다. UpgradesResetEvent로 능력치를 재계산한다</summary>
+        void RestorePurchases(System.Collections.Generic.IReadOnlyDictionary<UpgradeType, UpgradeGrade[]> purchases);
     }
 }

@@ -30,9 +30,15 @@ namespace HybridShooter.Core.Data.Defs
         public float SupplyInterval { get; }
         /// <summary>보스 처치 추가 보상 (BL-029, 보스 Reward 와 별도)</summary>
         public int BossReward { get; }
+        /// <summary>라운드 배경음 SoundTable 키 (비면 null = GameSoundRouter 기본 곡). 군중전 = 라운드 시작부터, 보스 = 보스 등장부터</summary>
+        public string CrowdBgmKey { get; }
+        public string BossBgmKey { get; }
 
         /// <summary>Link 단계에서 채워짐</summary>
         public MonsterDef Boss { get; internal set; }
+        /// <summary>Link 단계에서 채워짐 (키가 비었거나 SoundTable 에 없으면 null)</summary>
+        public SoundDef CrowdBgm { get; internal set; }
+        public SoundDef BossBgm { get; internal set; }
         /// <summary>이 라운드에 적용되는 군중 생성 규칙 (Round 0 규칙 + 해당 라운드 규칙), StartTime 오름차순</summary>
         public IReadOnlyList<CrowdSpawnRuleDef> SpawnRules { get; internal set; } = Array.Empty<CrowdSpawnRuleDef>();
 
@@ -49,6 +55,8 @@ namespace HybridShooter.Core.Data.Defs
             SupplyStartTime = d.SupplyStartTime;
             SupplyInterval = d.SupplyInterval;
             BossReward = d.BossReward;
+            CrowdBgmKey = string.IsNullOrWhiteSpace(d.CrowdBgm) ? null : d.CrowdBgm.Trim();
+            BossBgmKey = string.IsNullOrWhiteSpace(d.BossBgm) ? null : d.BossBgm.Trim();
 
             r.Check(Round >= 1, Table, Round, "Round 는 1 부터");
             r.Check(WaveRounds.Count > 0, Table, Round, "WaveRounds 가 비었습니다 (WaveStageTable.RoundNo 를 ';' 로 구분)");

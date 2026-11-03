@@ -6,9 +6,10 @@ namespace HybridShooter.Audio
     /// <summary>
     /// 게임 이벤트(EventBus) → 소리. 다른 파트 코드를 고치지 않고 소리를 붙이는 곳.
     /// 이 파일은 필드·구독만, 이벤트 처리는 영역별 partial 파일에 있다.
-    ///   .Round   게임 상태(강화 화면 스냅샷)·라운드 시작·게임오버
+    ///   .Bgm     배경음 결정 (씬·라운드·보스·강화 화면 곡, 한 프레임에 한 번만 재생 요청)
+    ///   .Round   게임 상태(강화 화면 스냅샷·곡)·라운드 시작·게임오버
     ///   .Combat  플레이어·몬스터 이미터 자동 부착, 총기 피격·처치 피드백
-    ///   .Boss    보스 경고·등장(BGM·티라노포드 이미터 부착)·처치(BGM 정지·클리어·아나운서)
+    ///   .Boss    보스 경고·등장(보스 곡·티라노포드 이미터 부착)·처치(곡 정지·클리어·아나운서)
     ///   .Items   보급 투하(투하음·안내 방송)·획득(랜덤 장전음)·다음 라운드 지급, 강화 구매
     ///   .Ui      저체력 경고 반복, 아나운서
     ///
@@ -21,9 +22,19 @@ namespace HybridShooter.Audio
     [RequireComponent(typeof(SoundService))]
     public sealed partial class GameSoundRouter : MonoBehaviour
     {
-        [Header("SoundTable 키")]
+        [Header("배경음 (라운드 곡은 RoundTable.CrowdBgm·BossBgm)")]
+        [Tooltip("씬 시작부터 라운드 시작 전까지의 곡 (튜토리얼 = bgm_tutorial). 비우면 무음")]
+        [SerializeField] private string sceneBgmKey = "";
+        [Tooltip("RoundTable.CrowdBgm 이 빈 라운드의 군중전 곡")]
         [SerializeField] private string crowdBgmKey = "bgm_crowd";
+        [Tooltip("RoundTable.BossBgm 이 빈 라운드의 보스전 곡")]
         [SerializeField] private string bossBgmKey = "bgm_boss";
+        [Tooltip("강화(업그레이드 선택) 화면 동안의 곡. 비우면 강화 화면에서도 지금 곡 유지 (튜토리얼)")]
+        [SerializeField] private string upgradeBgmKey = "bgm_upgrade";
+        [Tooltip("보스 처치 직후 강화 화면이면 업그레이드 곡을 이만큼(초) 늦게 시작 (클리어 효과음·승리 아나운서와 겹치지 않게)")]
+        [SerializeField] private float upgradeBgmDelayAfterBoss = 3.5f;
+
+        [Header("SoundTable 키")]
         [SerializeField] private string bossWarningKey = "sfx_boss_warning";
         [Tooltip("총알이 몬스터에 맞은 위치에서 나는 타격음 (3D)")]
         [SerializeField] private string hitImpactKey = "sfx_hit_flesh";
@@ -68,6 +79,7 @@ namespace HybridShooter.Audio
         /// <summary>씬의 플레이어·직접 둔 몬스터·보스에 이미터 자동 부착 (생성되는 몬스터는 MonsterSpawnedEvent, 보스는 BossAppearedEvent 에서)</summary>
         private void Start()
         {
+            StartSceneBgm();
             AttachPlayerEmitters();
             AttachEmittersInScene();
             AttachBossEmittersInScene();

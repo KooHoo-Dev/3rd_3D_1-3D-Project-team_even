@@ -24,6 +24,7 @@ namespace HybridShooter.Round
         private bool gameOverPending;
         private bool simulationPaused;
         private float playTimeScale = 1f;
+        private RoundCheckpoint checkpoint;
 
         public int CurrentRound { get; private set; }
         public GameState CurrentState { get; private set; } = GameState.Ready;
@@ -56,11 +57,11 @@ namespace HybridShooter.Round
         public void StartRun()
         {
             if (isActiveAndEnabled == false || isRunning || CurrentState != GameState.Ready) return;
-            CurrentRound = 0;
+            CurrentRound = checkpoint != null ? checkpoint.Round - 1 : 0;
             BeginNextRound();
         }
 
-        /// <summary>게임 오버 → 처음부터 바로 다시 시작 (무기 선택 화면을 거치지 않음)</summary>
+        /// <summary>게임 오버 → 실패한 라운드의 시작 상태로 바로 재시도한다.</summary>
         [ContextMenu("Restart Run")]
         public void RestartRun()
         {
@@ -68,8 +69,8 @@ namespace HybridShooter.Round
         }
 
         /// <summary>
-        /// 게임 오버 → 처음부터 재시작 준비만 하고 Ready 에서 멈춘다 (전부 정리·1인칭 복귀).
-        /// 무기 선택 화면(LoadoutPanel)이 GameOver → Ready 를 보고 다시 열리고, [출발]에서 StartRun 을 부른다.
+        /// 게임 오버 → 전투를 정리하고 라운드 시작 체크포인트를 복원한 뒤 Ready 에서 멈춘다.
+        /// RestartRun 은 곧바로 같은 라운드를 시작하고, 이 메서드만 호출하면 무기 선택 화면을 거칠 수 있다.
         /// </summary>
         [ContextMenu("Return To Ready")]
         public bool ReturnToReady()
@@ -79,8 +80,9 @@ namespace HybridShooter.Round
             roundSequencer.StopRound();
             nextRoundPending = false;
             gameOverPending = false;
-            EventBus<RoundCleanupEvent>.Publish(new RoundCleanupEvent(true));
-            CurrentRound = 0;
+            EventBus<RoundCleanupEvent>.Publish(new RoundCleanupEvent(checkpoint == null));
+            if (checkpoint != null) checkpoint.Restore();
+            CurrentRound = checkpoint != null ? checkpoint.Round - 1 : 0;
             ChangeState(GameState.Ready);
             EventBus<CameraModeRequestedEvent>.Publish(new CameraModeRequestedEvent(CameraMode.FirstPerson, 0f));
             return true;
@@ -95,7 +97,10 @@ namespace HybridShooter.Round
             CurrentRound++;
             // Round 는 진행 횟수다. def 는 그 횟수의 RoundTable 행 (유형·웨이브 편성·보스)
             EventBus<RoundStartedEvent>.Publish(new RoundStartedEvent(CurrentRound, def));
-            if (isRunning) roundSequencer.StartRound(def, CurrentRound);
+            if (isRunning == false) return;
+            // 라운드 시작 알림의 초기화가 끝나고 첫 몬스터가 생성되기 직전에 저장한다.
+            checkpoint = new RoundCheckpoint(CurrentRound);
+            roundSequencer.StartRound(def, CurrentRound);
         }
 
         private void OnPhaseChanged(GameState phase)
@@ -169,6 +174,7 @@ namespace HybridShooter.Round
             gameOverPending = false;
             roundSequencer.StopRound();
             if (needsCleanup) EventBus<RoundCleanupEvent>.Publish(new RoundCleanupEvent(false));
+            checkpoint = null;
             ChangeState(GameState.Ready);
             SetSimulationPaused(false);
         }

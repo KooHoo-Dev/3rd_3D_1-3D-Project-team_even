@@ -18,6 +18,7 @@ namespace HybridShooter.Audio
     ///   사망     PlayerController.Died
     ///   숨소리   PlayerStaminaChangedEvent — breathStartRatio 이하에서 루프 시작, breathStopRatio 이상에서 정지
     ///   투척     PlayerItems.ThrowStarted
+    ///   회복 팩  PlayerItems.HealStarted (사용 성공 때만, 개수 차감과 함께)
     ///   무기 교체 GunSlot.GunChanged → WeaponTable.SwitchSfxKey (시작 장착은 제외)
     /// 바닥 재질은 흙 하나만 (금속 발소리는 맵 확정 후 추가).
     /// </summary>
@@ -34,6 +35,7 @@ namespace HybridShooter.Audio
         [SerializeField] private string deathKey = "sfx_player_death";
         [SerializeField] private string breathLoopKey = "sfx_player_breath_loop";
         [SerializeField] private string throwKey = "sfx_grenade_throw";
+        [SerializeField] private string healUseKey = "sfx_player_heal_use";
 
         [Header("발소리")]
         [Tooltip("걷기 보폭(m). 이 거리를 움직일 때마다 발소리 1회")]
@@ -79,6 +81,7 @@ namespace HybridShooter.Audio
             player.Landed += OnLanded;
             player.Died += OnDied;
             if (items != null) items.ThrowStarted += OnThrowStarted;
+            if (items != null) items.HealStarted += OnHealStarted;
             if (gunSlot != null) gunSlot.GunChanged += OnGunChanged;
             enableTime = Time.time;
             EventBus<PlayerStaminaChangedEvent>.Subscribe(OnStaminaChanged);
@@ -92,6 +95,7 @@ namespace HybridShooter.Audio
             player.Landed -= OnLanded;
             player.Died -= OnDied;
             if (items != null) items.ThrowStarted -= OnThrowStarted;
+            if (items != null) items.HealStarted -= OnHealStarted;
             if (gunSlot != null) gunSlot.GunChanged -= OnGunChanged;
             EventBus<PlayerStaminaChangedEvent>.Unsubscribe(OnStaminaChanged);
             EventBus<PlayerDamagedEvent>.Unsubscribe(OnDamaged);
@@ -143,6 +147,8 @@ namespace HybridShooter.Audio
         }
 
         private void OnThrowStarted() => Play(throwKey);
+
+        private void OnHealStarted() => Play(healUseKey);
 
         /// <summary>바꿔 든 무기의 교체음 (2D). 시작 장착(LoadLoadout)은 제외</summary>
         private void OnGunChanged(int slot, Gun gun)

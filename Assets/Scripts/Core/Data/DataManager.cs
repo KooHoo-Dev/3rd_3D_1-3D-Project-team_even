@@ -254,6 +254,22 @@ namespace HybridShooter.Core.Data
                 if (s.IsWeapon)
                     r.Check(weapons.TryGet(s.WeaponId, out var w) && w.Category == WeaponCategory.Supply, SupplyDef.Table, s.Id, $"WeaponId {s.WeaponId} 는 WeaponTable 에 있고 Category = Supply 여야 합니다");
             }
+            foreach (var round in rounds)
+            {
+                round.CrowdBgm = FindBgm(r, round, nameof(round.CrowdBgm), round.CrowdBgmKey);
+                round.BossBgm = FindBgm(r, round, nameof(round.BossBgm), round.BossBgmKey);
+                if (round.BossBgmKey != null && round.HasBoss == false)
+                    r.Warn(RoundDef.Table, round.Round, $"BossBgm '{round.BossBgmKey}' 은 보스 없는 라운드({round.Type})라 쓰이지 않습니다");
+            }
+        }
+
+        /// <summary>FindSound + Category 가 Bgm 인지 확인 (아니면 경고 후 null)</summary>
+        private static SoundDef FindBgm(DataLoadReport r, RoundDef round, string column, string key)
+        {
+            var sound = FindSound(r, RoundDef.Table, round.Round, column, key);
+            if (sound == null || sound.Category == SoundCategory.Bgm) return sound;
+            r.Warn(RoundDef.Table, round.Round, $"{column} 키 '{key}' 의 Category 가 Bgm 이 아닙니다 ({sound.Category})");
+            return null;
         }
 
         /// <summary>키가 비었으면 null (사운드 없음). 키가 있는데 SoundTable 에 없으면 경고 후 null</summary>

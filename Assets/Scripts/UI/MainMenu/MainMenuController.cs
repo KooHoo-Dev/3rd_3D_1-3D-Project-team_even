@@ -64,8 +64,8 @@ namespace HybridShooter.UI.MainMenu
         [SerializeField] private float cameraMoveTime = 1.2f;
 
         [Header("게임 시작")]
-        [Tooltip("Build Settings 에 있는 게임 씬 이름")]
-        [SerializeField] private string gameSceneName = "Monster Player Integration";
+        [Tooltip("GAME START 로 가는 인트로 씬 (Build Settings 에 등록). 인트로 → (튜토리얼 미완료면) 튜토리얼 → 게임 순서는 인트로·튜토리얼이 정한다")]
+        [SerializeField] private string introSceneName = "IntroCrawl";
         [Tooltip("BGM 페이드아웃을 기다리는 최소 시간(초)")]
         [SerializeField] private float loadMinWait = 1f;
         [Tooltip("GAME START 를 누른 뒤 로드 전에 GAME START 호버 연출(조준·줌인)을 보여 주는 시간(초, unscaled)")]
@@ -188,7 +188,7 @@ namespace HybridShooter.UI.MainMenu
                 .SetEase(Ease.InOutSine).SetUpdate(true).SetTarget(this);
         }
 
-        private void StartGame() => StartScene(gameSceneName);
+        private void StartGame() => StartScene(introSceneName);
 
         /// <summary>튜토리얼 다시 하기: 인트로를 건너뛰고 튜토리얼 씬으로 (완료 기록과 상관없이)</summary>
         private void StartTutorial() => StartScene(TutorialProgress.SceneName);

@@ -312,8 +312,8 @@ namespace HybridShooter.Core.Events
     }
 
     /// <summary>
-    /// [보상(UpgradeLedger.ResetAll)] → 무기·수류탄·플레이어. 처음부터 재시작으로 모든 강화가 0 이 됨 (BL-033).
-    /// RoundCleanupEvent(FullReset) 구독 순서와 상관없이 강화가 빠진 능력치로 다시 계산하게 한다
+    /// [보상(UpgradeLedger)] → 무기·수류탄·플레이어. 강화 기록 전체를 초기화하거나 체크포인트로 교체했다.
+    /// 구매 효과를 재발동하지 않고 현재 강화 기록으로 능력치를 다시 계산하게 한다
     /// </summary>
     public readonly struct UpgradesResetEvent { }
 

@@ -1,6 +1,6 @@
-Round	Type	WaveRounds	BossId	BossSpawnTimeMin	BossSpawnTimeMax	PhaseTime	KillRatio	SupplyStartTime	SupplyInterval	BossReward
+Round	Type	WaveRounds	BossId	BossSpawnTimeMin	BossSpawnTimeMax	PhaseTime	KillRatio	SupplyStartTime	SupplyInterval	BossReward	CrowdBgm	BossBgm
 # Round: 진행 번호(마지막 행 이후 라운드는 마지막 행을 재사용)  ·  Type: CrowdToBoss(군중전 → 보스 시각에 보스 → 보스 처치로 클리어) / Annihilation(섬멸: PhaseTime 초 동안 소환, 라운드 누적 처치 목표 달성 시 보스 없이 강화) / AnnihilationToBoss(섬멸 후 보스: 섬멸 목표 달성 → 보스 등장 → 보스 처치로 클리어) / Survival(생존: PhaseTime 초 생존 시 보스 없이 강화)
-# WaveRounds: WaveStageTable.RoundNo(웨이브 편성) 후보를 ';' 로 구분, 라운드 시작마다 하나를 무작위로 고름(같은 출발에서 앞 라운드가 쓴 편성은 제외)  ·  BossId: BossTable.Id (1 = Clypeosaurus, 2 = Tyranopode = 처치 시 게임 클리어 → 마지막 행에만), 보스 라운드가 아니면 0  ·  BossSpawnTime: 라운드 시작 기준(초), 범위 내 무작위(BL-021), CrowdToBoss 만  ·  KillRatio: 섬멸 목표 = 고른 편성이 PhaseTime 안에 소환하는 처치 가능 몬스터(자폭형·ClearBonus 제외) × 비율(내림), 섬멸 유형만  ·  Supply: BL-018
-1	CrowdToBoss	1	1	165	195	0	0	20	25	100
-2	Annihilation	2;3	0	0	0	150	0.9	20	25	0
-3	AnnihilationToBoss	4;5	2	0	0	150	0.9	20	25	150
+# WaveRounds: WaveStageTable.RoundNo(웨이브 편성) 후보를 ';' 로 구분, 라운드 시작마다 하나를 무작위로 고름(같은 출발에서 앞 라운드가 쓴 편성은 제외)  ·  BossId: BossTable.Id (1 = Clypeosaurus, 2 = Tyranopode = 처치 시 게임 클리어 → 마지막 행에만), 보스 라운드가 아니면 0  ·  BossSpawnTime: 라운드 시작 기준(초), 범위 내 무작위(BL-021), CrowdToBoss 만  ·  KillRatio: 섬멸 목표 = 고른 편성이 PhaseTime 안에 소환하는 처치 가능 몬스터(자폭형·ClearBonus 제외) × 비율(내림), 섬멸 유형만  ·  Supply: BL-018  ·  CrowdBgm·BossBgm: SoundTable 키(Category Bgm), CrowdBgm = 라운드 시작부터 · BossBgm = 보스 등장부터, 비우면 GameSoundRouter 기본 곡(bgm_crowd·bgm_boss)
+1	CrowdToBoss	1	1	165	195	0	0	20	25	100	bgm_r1_crowd	bgm_r1_boss
+2	Annihilation	2;3	0	0	0	150	0.9	20	25	0	bgm_r2	
+3	AnnihilationToBoss	4;5	2	0	0	150	0.9	20	25	150	bgm_r3_crowd	bgm_r3_boss

@@ -390,5 +390,12 @@ namespace HybridShooter.Core.Services
             purchased.Clear();
             EventBus<UpgradesResetEvent>.Publish(new UpgradesResetEvent());
         }
+
+        public void RestorePurchases(IReadOnlyDictionary<UpgradeType, UpgradeGrade[]> purchases)
+        {
+            purchased.Clear();
+            foreach (var entry in purchases) purchased.Add(entry.Key, new List<UpgradeGrade>(entry.Value));
+            EventBus<UpgradesResetEvent>.Publish(new UpgradesResetEvent());
+        }
     }
 }
