@@ -19,6 +19,6 @@ Id	Key	Name	GradeId	Role	MaxHp	MoveSpeed	DetectRange	BodyScale	Height	FlyHeight	
 2102	pardathrox_elite	파르다트록스 · 강화	2	Infiltrator	135	7	60	1.4	2.2	0	Default	20	Prefabs/Monsters/Pardathrox_Elite	mon_pardathrox_idle		mon_pardathrox_death		mon_pardathrox_vanish
 2103	giant_slug_elite	자이언트 슬러그 · 강화	2	ZonePressure	180	4.2	45	1.2	1.4	0	Default	20	Prefabs/Monsters/GiantSlug_Elite	mon_giant_slug_idle	mon_giant_slug_move_loop	mon_giant_slug_death		
 # 부포모프 자폭형: 접근 → 예고 → 자기 중심 폭발 → 보상 없이 사망
-1005	bufomorph_suicide	부포모프 · 자폭	1	SelfDestruct	55	4.2	25	0.8	0.9	0	Default	2	Prefabs/Monsters/Bufomorph_Suicide	mon_bufomorph_idle		mon_bufomorph_death		
+1005	bufomorph_suicide	부포모프 · 자폭	1	SelfDestruct	33	4.2	25	0.8	0.9	0	Default	2	Prefabs/Monsters/Bufomorph_Suicide	mon_bufomorph_idle		mon_bufomorph_death		
 # 무스코모프 중량형: 무스코모프 육상보다 느리고 단단함
 1006	muscomorph_heavy	무스코모프 · 중량	1	Melee	120	3.5	25	0.8	0.8	0	WingsOff	1	Prefabs/Monsters/Muscomorph_Heavy	mon_muscomorph_idle	mon_muscomorph_walk_loop	mon_muscomorph_death		

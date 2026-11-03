@@ -24,6 +24,6 @@ Id	MonsterId	AttackKey	Name	PatternTag	Damage	HitCount	Cooldown	TelegraphTime	Re
 210201	2102	Pounce	시야 밖 기습 도약	None	27	1	2.4	0.2	0	Circle	8	2	0	0	0	0	2	0	0	None	0	FALSE	Attack_Pounce	mon_pardathrox_attack	mon_pardathrox_land	1
 210301	2103	PoisonMortar	원거리 독안개 포격	None	8	1	0.5	0.5	0.5	Circle	40	5	0	0	30	1	0	0	1	PlayerStationary	4	FALSE	Attack_Spit	mon_giant_slug_attack	mon_poison_release	4
 # 부포모프 자폭형: 접근 → 예고 → 자기 중심 폭발 → 보상 없이 사망
-100501	1005	SelfDestruct	자폭	None	25	1	2	0.5	0	Circle	2	5.5	0	0	0	0	0	0	0	None	0	FALSE	Attack_Bite	mon_bufomorph_attack	sfx_explosion_small	0
+100501	1005	SelfDestruct	자폭	None	35	1	2	0.5	0	Circle	2	5.5	0	0	0	0	0	0	0	None	0	FALSE	Attack_Bite	mon_bufomorph_attack	sfx_explosion_small	0
 # 무스코모프 중량형: 무스코모프 육상과 같은 꼬리 찌르기
 100601	1006	TailSting	꼬리 찌르기	None	5	1	0.5	0.6	0.2	Circle	3	3	0	0	0	0	0	0	0	None	0	FALSE	Attack_Tail	mon_muscomorph_ground_attack		1
