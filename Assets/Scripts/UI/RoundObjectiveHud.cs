@@ -72,6 +72,7 @@ namespace HybridShooter.UI
             if (canvas == null) Build();
             canvas.gameObject.SetActive(true);
             ShowObjective(roundSequencer.CurrentRoundDef);
+            FitHeight(roundSequencer.CurrentRoundDef.Type);
             UpdateIntroScale();
         }
         #endregion
@@ -117,6 +118,15 @@ namespace HybridShooter.UI
                     timeBarFill.anchorMax = new Vector2(survivalLeft / def.PhaseTime, 1f);
                     break;
             }
+        }
+
+        /// <summary>띠 높이를 보이는 줄에 맞춘다 (보스 라운드는 두 줄뿐이라 빈 공간이 남지 않게). 위쪽 모서리 기준이라 아래만 줄어든다</summary>
+        private void FitHeight(RoundType type)
+        {
+            float height = type == RoundType.CrowdToBoss ? 88f   // 제목 + 목표
+                : type == RoundType.Survival ? 150f              // + 큰 남은 시간 + 막대
+                : 142f;                                          // + 처치 막대 + 증원 시간
+            if (Mathf.Approximately(panel.sizeDelta.y, height) == false) panel.sizeDelta = new Vector2(PanelSize.x, height);
         }
 
         /// <summary>라운드 시작 뒤 introTime 동안 크게, 마지막 0.5초에 평소 크기(hudScale)로 줄인다</summary>

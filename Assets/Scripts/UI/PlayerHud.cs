@@ -538,10 +538,10 @@ namespace HybridShooter.UI
 
             float margin = UiTheme.HudMargin;
 
-            // 왼쪽 아래, 체력 위: 목숨 (마름모 표식 + ×n / 최대)
+            // 왼쪽 아래, 체력 위: 목숨 (하트 + ×n / 최대)
             livesGroup = Group(go.transform, "Lives", new Vector2(0f, 0f), new Vector2(margin, 162f), new Vector2(300f, 36f));
-            livesIcon = NewImage(Rect(livesGroup.transform, "Icon", Vector2.zero, new Vector2(0.5f, 0.5f), new Vector2(9f, 18f), new Vector2(13f, 13f)), WhiteSprite());
-            livesIcon.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            livesIcon = NewImage(Rect(livesGroup.transform, "Icon", Vector2.zero, new Vector2(0.5f, 0.5f), new Vector2(11f, 18f), new Vector2(22f, 22f)), HeartSprite());
+            livesIcon.preserveAspect = true;
             livesIcon.color = Normal;
             livesText = Label(livesGroup.transform, "Count", numberFont, 24f, TextAlignmentOptions.MidlineLeft,
                 new Vector2(30f, 0f), new Vector2(240f, 36f));
@@ -718,7 +718,33 @@ namespace HybridShooter.UI
             return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
         }
 
-        /// <summary>흰 단색 스프라이트 (게이지·목숨 마름모. 색은 Image.color 로)</summary>
+        /// <summary>목숨 하트 (64px, 흰색). 하트 곡선 (x²+y²-1)³ - x²y³ ≤ 0 을 4×4 표본으로 가장자리를 부드럽게. 색은 Image.color 로</summary>
+        private static Sprite HeartSprite()
+        {
+            const int size = 64;
+            const int samples = 4;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "HudHeart", wrapMode = TextureWrapMode.Clamp };
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                int inside = 0;
+                for (int sy = 0; sy < samples; sy++)
+                for (int sx = 0; sx < samples; sx++)
+                {
+                    float hx = ((x + (sx + 0.5f) / samples) / size - 0.5f) * 2.6f;
+                    float hy = ((y + (sy + 0.5f) / samples) / size - 0.45f) * 2.6f;
+                    float a = hx * hx + hy * hy - 1f;
+                    if (a * a * a - hx * hx * hy * hy * hy <= 0f) inside++;
+                }
+                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(255 * inside / (samples * samples)));
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+        }
+
+        /// <summary>흰 단색 스프라이트 (게이지. 색은 Image.color 로)</summary>
         private static Sprite WhiteSprite()
         {
             if (white == null) white = Sprite.Create(Texture2D.whiteTexture, new Rect(0f, 0f, 4f, 4f), new Vector2(0.5f, 0.5f));

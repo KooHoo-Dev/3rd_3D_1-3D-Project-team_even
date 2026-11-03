@@ -56,6 +56,11 @@ namespace HybridShooter.UI
         private const float Pad = 34f;
         /// <summary>누를 수 없는 글자 버튼 투명도</summary>
         private const float DisabledAlpha = 0.35f;
+        /// <summary>
+        /// 다음으로 넘어가는 버튼 끝 표시. ▶ 는 Noto Sans KR 폰트 에셋에 없어 네모(□)로 나오므로 › 를 붉게 쓴다.
+        /// 한글 글꼴(Aldrich 에는 한글이 없다)로 그리는 글자에만 붙인다
+        /// </summary>
+        private const string NextMark = "  <color=#E0574D>›</color>";
 
         private static Sprite white;
 
@@ -76,7 +81,7 @@ namespace HybridShooter.UI
 
         private GameObject root, rewardPanel, upgradePanel;
         private TextMeshProUGUI crowdText, bossText, totalText, rewardBalanceText;
-        private TextMeshProUGUI balanceText, subtitleText, finishLabel, rerollLabel, ownedText;
+        private TextMeshProUGUI balanceText, subtitleText, finishLabel, rerollLabel, rerollCostText, ownedText;
         private Button selectButton, finishButton, rerollButton;
         private readonly List<CardView> cards = new List<CardView>();
         private readonly System.Text.StringBuilder ownedBuilder = new System.Text.StringBuilder();
@@ -158,8 +163,8 @@ namespace HybridShooter.UI
             bool anyPurchasable = manager.AnyPurchasable;
             SetInteractable(finishButton, manager.CanFinish);
             SetInteractable(rerollButton, manager.CanReroll);
-            rerollLabel.text = $"리롤  <color=#D9A24B>{manager.RerollCost}</color>";
-            finishLabel.text = manager.HasPurchased ? "다음 라운드 ▶" : "건너뛰기 ▶";
+            rerollCostText.text = manager.RerollCost.ToString();
+            finishLabel.text = manager.HasPurchased ? "다음 라운드" + NextMark : "건너뛰기" + NextMark;
             subtitleText.text = anyPurchasable
                 ? (manager.HasPurchased ? $"강화 {manager.PurchaseCount}회 · 재화가 남아 있으면 계속 강화할 수 있습니다"
                                         : "재화가 있는 만큼 강화할 수 있습니다 · 다음 라운드까지 유지됩니다")
@@ -335,7 +340,7 @@ namespace HybridShooter.UI
             totalText = CreateTotalRow(p, 566f);
             rewardBalanceText = CreateRow(p, "보유 재화 (이전 라운드 잔액 포함)", 656f, false);
 
-            selectButton = CreateTextButton(p, "SelectUpgradeButton", "강화 선택 ▶", 34f, UiTheme.TextFont, out _);
+            selectButton = CreateTextButton(p, "SelectUpgradeButton", "강화 선택" + NextMark, 34f, UiTheme.TextFont, out _);
             Place((RectTransform)selectButton.transform, 0f, 776f, 340f, 76f);
             selectButton.onClick.AddListener(() => ShowUpgrade(true));
         }
@@ -373,8 +378,21 @@ namespace HybridShooter.UI
             for (int i = 0; i < count; i++)
                 cards.Add(BuildCard(p, MarginX + i * (cardWidth + CardGap), cardWidth));
 
-            rerollButton = CreateTextButton(p, "RerollButton", string.Empty, 28f, UiTheme.TextFont, out rerollLabel);
+            rerollButton = CreateTextButton(p, "RerollButton", "리롤", 28f, UiTheme.TextFont, out rerollLabel);
             PlaceLeft((RectTransform)rerollButton.transform, MarginX - 34f, 916f, 360f, 70f);
+            // "리롤" 뒤에 재화 마름모 + 비용 (글자 자식이라 선택 때 같이 밀린다)
+            float rerollTextWidth = rerollLabel.GetPreferredValues("리롤").x;
+            var rerollCoin = CreateImage("CoinIcon", rerollLabel.transform, UiTheme.Ember);
+            rerollCoin.rectTransform.anchorMin = rerollCoin.rectTransform.anchorMax = rerollCoin.rectTransform.pivot = new Vector2(0f, 0.5f);
+            rerollCoin.rectTransform.anchoredPosition = new Vector2(rerollTextWidth + 22f, 0f);
+            rerollCoin.rectTransform.sizeDelta = new Vector2(10f, 10f);
+            rerollCoin.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            rerollCostText = CreateText("Cost", rerollLabel.transform, UiTheme.NumberFont, 28f, TextAlignmentOptions.MidlineLeft, UiTheme.Ember, string.Empty);
+            rerollCostText.rectTransform.anchorMin = new Vector2(0f, 0f);
+            rerollCostText.rectTransform.anchorMax = new Vector2(0f, 1f);
+            rerollCostText.rectTransform.pivot = new Vector2(0f, 0.5f);
+            rerollCostText.rectTransform.anchoredPosition = new Vector2(rerollTextWidth + 40f, 0f);
+            rerollCostText.rectTransform.sizeDelta = new Vector2(120f, 0f);
             rerollButton.onClick.AddListener(() => manager.TryReroll());
 
             finishButton = CreateTextButton(p, "FinishButton", string.Empty, 32f, UiTheme.TextFont, out finishLabel);
@@ -432,7 +450,8 @@ namespace HybridShooter.UI
             card.Description = CreateText("Description", c, UiTheme.TextFont, 21f, TextAlignmentOptions.TopLeft, UiTheme.Steel, string.Empty);
             card.Description.textWrappingMode = TextWrappingModes.Normal;
             PlaceLeft(card.Description.rectTransform, Pad, 262f, inner, 64f);
-            card.Effect = CreateText("Effect", c, UiTheme.NumberFont, 26f, TextAlignmentOptions.MidlineLeft, UiTheme.MoonWhite, string.Empty);
+            // 값에 "개"·"발" 같은 한글 단위가 붙으므로 한글 글꼴 (Aldrich 에는 한글이 없어 네모로 나온다)
+            card.Effect = CreateText("Effect", c, UiTheme.TextFont, 26f, TextAlignmentOptions.MidlineLeft, UiTheme.MoonWhite, string.Empty);
             PlaceLeft(card.Effect.rectTransform, Pad, 330f, inner, 38f);
             PlaceLeft(CreateImage("EffectBottom", c, lineColor).rectTransform, Pad, 384f, inner, 1f);
 
