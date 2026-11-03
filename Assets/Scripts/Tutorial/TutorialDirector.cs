@@ -19,8 +19,10 @@ namespace HybridShooter.Tutorial
 {
     /// <summary>
     /// 불시착 후 기본 전투 테스트 (기획: Docs/Design/Tutorial_Proposal_v3.md). TutorialMap 씬에 하나.
-    /// 과목: ① 이동·질주·구르기 → ② 조준·사격(보상) → ③ 수류탄 → ④ 보급 → ⑤ 강화 체험 → ⑥ 전장 입장
+    /// 과목: ① 이동·질주·구르기 → ② 조준·사격(보상) → ②-B 무기 교체 → ③ 수류탄 → ④ 보급 → ⑤ 강화 체험 → ⑥ 전장 입장
     ///  - 과목을 통과할 때마다 그 구역의 진행 차단막(TutorialGate)을 연다
+    ///  - 지시한 행동만 하게 과목·구간마다 입력을 좁힌다 (Allow → PlayerController.SetAllowedAbilities). 끝나면 전부 푼다
+    ///  - 수류탄은 던져도 줄지 않는다 (PlayerItems.ConsumeGrenades = false)
     ///  - 어디로 가야 할 때는 목적지를 표시한다 (ShowDestination: 화면 표식 TutorialWaypointHud)
     ///  - 몬스터는 휴면(MonsterController.SetDormant)으로 소환해 공격하지 않는다. 피해원은 피해 차단막·훈련 충격뿐이고,
     ///    체력이 MinHealthRatio 밑으로 떨어지면 가득 채운다 (튜토리얼에서 죽지 않게)
@@ -122,6 +124,7 @@ namespace HybridShooter.Tutorial
         {
             EventBus<CurrencyChangedEvent>.Unsubscribe(OnCurrencyChanged);
             current?.Cleanup();
+            ReleaseRestrictions();
         }
 
         private void Start()
@@ -137,9 +140,12 @@ namespace HybridShooter.Tutorial
             Items = Player.GetComponent<PlayerItems>();
             Guns = Player.GetComponent<GunSlot>();
             ResetServices();
+            if (Items != null) Items.ConsumeGrenades = false;
+            Allow(PlayerAbility.None); // 첫 대사 동안은 둘러보기만
 
             steps.Add(new MoveRollStep());
             steps.Add(new AimStep());
+            steps.Add(new WeaponSwitchStep());
             steps.Add(new GrenadeStep());
             steps.Add(new SupplyStep());
             steps.Add(new UpgradeStep());
@@ -204,6 +210,12 @@ namespace HybridShooter.Tutorial
                 if (s == step) index = total;
             }
             return $"TRAINING {index:00} / {total:00}";
+        }
+
+        /// <summary>입력으로 할 수 있는 행동을 abilities 로 좁힌다 (시선·Esc 는 항상 된다)</summary>
+        public void Allow(PlayerAbility abilities)
+        {
+            if (Player != null) Player.SetAllowedAbilities(abilities);
         }
 
         /// <summary>진행이 있었다 (힌트 타이머를 다시 센다)</summary>
@@ -296,6 +308,7 @@ namespace HybridShooter.Tutorial
             current = null;
             TutorialProgress.MarkDone();
             ResetServices();
+            ReleaseRestrictions();
             Hud.ClearObjective();
             Hud.SetSkipProgress(0f);
             HideDestination();
@@ -316,6 +329,13 @@ namespace HybridShooter.Tutorial
         {
             if (ServiceLocator.TryGet<ICurrencyWallet>(out var wallet)) wallet.ResetTo(0);
             if (ServiceLocator.TryGet<IUpgradeState>(out var upgrades)) upgrades.ResetAll();
+        }
+
+        /// <summary>행동 제한·수류탄 무소모를 되돌린다. 종료·건너뛰기·비활성 모두</summary>
+        private void ReleaseRestrictions()
+        {
+            Allow(PlayerAbility.All);
+            if (Items != null) Items.ConsumeGrenades = true;
         }
 
         /// <summary>튜토리얼에서는 죽지 않는다: 체력이 너무 낮으면 가득 채운다</summary>

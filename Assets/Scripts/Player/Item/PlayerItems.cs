@@ -120,6 +120,8 @@ namespace HybridShooter.Player
         public HealStats HealStats { get; private set; }
 
         public bool IsThrowing => throwing;
+        /// <summary>false 면 던져도 개수가 줄지 않는다 (튜토리얼). 기본 true</summary>
+        public bool ConsumeGrenades { get; set; } = true;
         /// <summary>던지는 동작 전체 시간 (애니메이션 재생 속도를 여기에 맞춘다)</summary>
         public float ThrowDuration => throwDuration;
         /// <summary>true 면 타이머 대신 애니메이션(드라이버)이 ReleaseGrenade() 를 부른다</summary>
@@ -145,6 +147,15 @@ namespace HybridShooter.Player
             grenades = Mathf.Min(grenades + amount, max);
             PublishGrenades();
             return true;
+        }
+
+        /// <summary>개수를 바로 정한다 (0 ~ 최대). 튜토리얼이 보급 상자를 받을 자리를 비울 때 쓴다</summary>
+        public void SetGrenades(int count)
+        {
+            int clamped = Mathf.Clamp(count, 0, MaxGrenades);
+            if (clamped == grenades) return;
+            grenades = clamped;
+            PublishGrenades();
         }
 
         public bool AddHealPacks(int amount)
@@ -193,8 +204,11 @@ namespace HybridShooter.Player
             var context = new ProjectileContext(Faction.Player, gameObject, transform, grenadeDef != null ? grenadeDef.Id : 0, grenadeHitMask);
             grenade.Launch(GrenadeStats, context, grenadeDef, velocity, ownColliders);
 
-            grenades--;
-            PublishGrenades();
+            if (ConsumeGrenades)
+            {
+                grenades--;
+                PublishGrenades();
+            }
             GrenadeReleased?.Invoke();
         }
 
